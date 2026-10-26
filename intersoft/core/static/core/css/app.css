@@ -1,0 +1,29 @@
+/* Variables: cambias un color aquí y cambia en toda la app */
+:root {
+  --fondo: #f5f7fa;
+  --superficie: #ffffff;
+  --borde: #e2e8f0;
+  --texto: #1e293b;
+  --suave: #64748b;
+  --primario: #2563eb;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; background: var(--fondo); color: var(--texto); }
+a { color: var(--primario); text-decoration: none; }
+
+.barra { display: flex; align-items: center; gap: 20px; padding: 12px 24px; background: var(--superficie); border-bottom: 1px solid var(--borde); }
+.barra nav { display: flex; gap: 16px; }
+.barra .cuenta { margin-left: auto; color: var(--suave); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+.tabla { width: 100%; border-collapse: collapse; background: var(--superficie); border: 1px solid var(--borde); }
+.tabla th, .tabla td { padding: 10px 14px; border-bottom: 1px solid var(--borde); text-align: left; }
+.tabla th { color: var(--suave); font-size: .85rem; text-transform: uppercase; }
+
+.buscador { display: flex; gap: 8px; margin-bottom: 16px; }
+.buscador input { flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid var(--borde); border-radius: 8px; }
+
+button { padding: 8px 16px; border: none; border-radius: 8px; background: var(--primario); color: #fff; cursor: pointer; }
+.paginacion { display: flex; gap: 16px; justify-content: center; padding: 16px; }

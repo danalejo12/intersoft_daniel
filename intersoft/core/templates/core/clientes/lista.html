@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+{% block titulo %}Clientes · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>Clientes</h1>
+
+  <!-- GET: la búsqueda queda en la URL (se puede compartir y recargar) -->
+  <form method="get" class="buscador">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
+    <button type="submit">Buscar</button>
+  </form>
+
+  <table class="tabla">
+    <thead>
+      <tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Teléfono</th></tr>
+    </thead>
+    <tbody>
+      {% for cliente in clientes %}
+        <tr>
+          <td>{{ cliente.nombre }}</td>
+          <td>{{ cliente.tipo_documento }} {{ cliente.numero_documento }}</td>
+          <td>{{ cliente.email|default:"—" }}</td>
+          <td>{{ cliente.telefono|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">
+          {% if q %}Ningún cliente coincide con «{{ q }}».{% else %}Aún no hay clientes.{% endif %}
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <nav class="paginacion">
+      {% if page_obj.has_previous %}
+        <!-- querystring conserva ?q=... al cambiar de página (Django 5.1+) -->
+        <a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>
+      {% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Intersoft{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+</head>
+<body>
+  {% if user.is_authenticated %}
+    <header class="barra">
+      <strong>Intersoft</strong>
+      <nav>
+        <a href="{% url 'dashboard' %}">Inicio</a>
+        <a href="{% url 'clientes_lista' %}">Clientes</a>
+      </nav>
+      <span class="cuenta">{{ request.empresa.nombre|default:"Sin empresa" }} · {{ user.email }}</span>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Salir</button>
+      </form>
+    </header>
+  {% endif %}
+
+  <main>
+    {% block contenido %}{% endblock %}
+  </main>
+</body>
+</html>

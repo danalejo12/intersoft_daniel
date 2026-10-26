@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+{% block titulo %}Inicio · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>{{ request.empresa.nombre }}</h1>
+  <p>Rol: {{ request.membresia.rol.nombre }}</p>
+
+  <ul>
+    <li>Clientes activos: <strong>{{ total_clientes }}</strong></li>
+    <li>Productos activos: <strong>{{ total_productos }}</strong></li>
+  </ul>
+
+  <h2>Stock bajo</h2>
+  <table border="1" cellpadding="6">
+    <tr><th>Código</th><th>Producto</th><th>Stock</th><th>Mínimo</th></tr>
+    {% for producto in stock_bajo %}
+      <tr>
+        <td>{{ producto.codigo }}</td>
+        <td>{{ producto.nombre }}</td>
+        <td>{{ producto.stock }}</td>
+        <td>{{ producto.stock_minimo }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
+    {% endfor %}
+  </table>
+{% endblock %}
