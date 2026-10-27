@@ -27,3 +27,23 @@ main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
 button { padding: 8px 16px; border: none; border-radius: 8px; background: var(--primario); color: #fff; cursor: pointer; }
 .paginacion { display: flex; gap: 16px; justify-content: center; padding: 16px; }
+
+/* ---------- Paso 6: encabezado, botones, formularios y mensajes ---------- */
+button { font: inherit; }
+.encabezado { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.encabezado h1 { margin: 0; }
+.boton { display: inline-block; padding: 8px 16px; border-radius: 8px; background: var(--primario); color: #fff; }
+
+.formulario { max-width: 520px; background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 20px; }
+.campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.campo label { font-weight: 600; font-size: .9rem; }
+.campo input, .campo select { padding: 8px 12px; border: 1px solid var(--borde); border-radius: 8px; font: inherit; }
+.error { color: #b91c1c; font-size: .85rem; margin: 0; }
+.acciones { display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+
+.mensaje { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; background: #eff6ff; border: 1px solid #bfdbfe; }
+.mensaje.success { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+/* ---------- Errores de formulario ---------- */
+.campo.obligatorio label::after { content: " *"; color: #b91c1c; }
+.campo.con-error input, .campo.con-error select { border-color: #b91c1c; background: #fef2f2; }
+.error.aviso { padding: 10px 14px; margin-bottom: 14px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; }

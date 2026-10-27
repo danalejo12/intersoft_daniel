@@ -5,7 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+  {# ?v= obliga al navegador a bajar el CSS de nuevo: súbelo cada vez que cambies app.css #}
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=2">
 </head>
 <body>
   {% if user.is_authenticated %}
@@ -23,7 +24,12 @@
     </header>
   {% endif %}
 
-  <main>
+    <main>
+    <!-- Mensajes de una sola vez: aparecen después de guardar y desaparecen al recargar -->
+    {% for mensaje in messages %}
+      <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+    {% endfor %}
+
     {% block contenido %}{% endblock %}
   </main>
 </body>

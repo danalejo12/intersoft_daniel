@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% block titulo %}{% if object %}Editar{% else %}Nuevo{% endif %} cliente · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <p class="error aviso">Revisa los campos marcados en rojo.</p>
+    {% endif %}
+
+    {# Errores que no pertenecen a un campo concreto #}
+    {% for error in form.non_field_errors %}
+      <p class="error">{{ error }}</p>
+    {% endfor %}
+
+    {% for campo in form %}
+      {# con-error pinta el borde del campo en rojo; obligatorio agrega el asterisco #}
+      <div class="campo{% if campo.errors %} con-error{% endif %}{% if campo.field.required %} obligatorio{% endif %}">
+        {{ campo.label_tag }}
+        {{ campo }}
+        {# Esta parte es la que muestra el mensaje en rojo debajo de cada campo #}
+        {% for error in campo.errors %}
+          <p class="error">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="acciones">
+      <a href="{% url 'clientes_lista' %}">Cancelar</a>
+      <button type="submit">Guardar</button>
+    </div>
+  </form>
+{% endblock %}

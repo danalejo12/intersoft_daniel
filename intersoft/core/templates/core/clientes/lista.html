@@ -2,9 +2,13 @@
 {% block titulo %}Clientes · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>Clientes</h1>
+  <div class="encabezado">
+    <h1>Clientes</h1>
+    {% if puede_crear %}
+      <a class="boton" href="{% url 'clientes_crear' %}">Nuevo cliente</a>
+    {% endif %}
+  </div>
 
-  <!-- GET: la búsqueda queda en la URL (se puede compartir y recargar) -->
   <form method="get" class="buscador">
     <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
     <button type="submit">Buscar</button>
@@ -12,7 +16,7 @@
 
   <table class="tabla">
     <thead>
-      <tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Teléfono</th></tr>
+      <tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Teléfono</th><th></th></tr>
     </thead>
     <tbody>
       {% for cliente in clientes %}
@@ -21,9 +25,14 @@
           <td>{{ cliente.tipo_documento }} {{ cliente.numero_documento }}</td>
           <td>{{ cliente.email|default:"—" }}</td>
           <td>{{ cliente.telefono|default:"—" }}</td>
+          <td>
+            {% if puede_editar %}
+              <a href="{% url 'clientes_editar' cliente.pk %}">Editar</a>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="4">
+        <tr><td colspan="5">
           {% if q %}Ningún cliente coincide con «{{ q }}».{% else %}Aún no hay clientes.{% endif %}
         </td></tr>
       {% endfor %}
@@ -33,7 +42,6 @@
   {% if is_paginated %}
     <nav class="paginacion">
       {% if page_obj.has_previous %}
-        <!-- querystring conserva ?q=... al cambiar de página (Django 5.1+) -->
         <a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>
       {% endif %}
       <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
