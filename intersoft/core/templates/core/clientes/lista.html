@@ -1,53 +1,36 @@
 {% extends "core/base.html" %}
-{% block titulo %}Clientes · Intersoft{% endblock %}
+{% block titulo %}Facturas · Intersoft{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>Clientes</h1>
-    {% if puede_crear %}
-      <a class="boton" href="{% url 'clientes_crear' %}">Nuevo cliente</a>
-    {% endif %}
+    <h1>Facturas</h1>
+    <a class="boton" href="{% url 'facturas_crear' %}">Nueva factura</a>
   </div>
-
-  <form method="get" class="buscador">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
-    <button type="submit">Buscar</button>
-  </form>
 
   <table class="tabla">
     <thead>
-      <tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Teléfono</th><th></th></tr>
+      <tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th class="num">Total</th></tr>
     </thead>
     <tbody>
-      {% for cliente in clientes %}
+      {% for factura in facturas %}
         <tr>
-          <td>{{ cliente.nombre }}</td>
-          <td>{{ cliente.tipo_documento }} {{ cliente.numero_documento }}</td>
-          <td>{{ cliente.email|default:"—" }}</td>
-          <td>{{ cliente.telefono|default:"—" }}</td>
-          <td>
-            {% if puede_editar %}
-              <a href="{% url 'clientes_editar' cliente.pk %}">Editar</a>
-            {% endif %}
-          </td>
+          <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
+          <td>{{ factura.creado_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ factura.cliente.nombre }}</td>
+          <td>{{ factura.get_estado_display }}</td>
+          <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="5">
-          {% if q %}Ningún cliente coincide con «{{ q }}».{% else %}Aún no hay clientes.{% endif %}
-        </td></tr>
+        <tr><td colspan="5">Aún no hay facturas.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
   {% if is_paginated %}
     <nav class="paginacion">
-      {% if page_obj.has_previous %}
-        <a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>
-      {% endif %}
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
       <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}
-        <a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>
-      {% endif %}
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
     </nav>
   {% endif %}
 {% endblock %}

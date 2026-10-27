@@ -6,9 +6,9 @@ from decimal import Decimal
 
 from django.test import TestCase
 
+from .forms import ProductoForm
 from .models import Cliente, Empresa, Factura, MovimientoInventario, Producto, Usuario
-from .services import StockInsuficiente, anular_factura, crear_factura
-
+from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
 
 class FacturacionTests(TestCase):
     def setUp(self):
@@ -67,3 +67,39 @@ class FacturacionTests(TestCase):
             )
         ajeno.refresh_from_db()
         self.assertEqual(ajeno.stock, 5)
+
+class InventarioTests(TestCase):
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Empresa Inv", nit="900000010", slug="empresa-inv")
+        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x")
+        self.producto = Producto.objects.create(
+            empresa=self.empresa, codigo="A1", nombre="Arroz", precio=Decimal("3000"), stock=0
+        )
+
+    def mover(self, tipo, cantidad):
+        return registrar_movimiento(
+            empresa=self.empresa, producto=self.producto, tipo=tipo, cantidad=cantidad, usuario=self.usuario
+        )
+
+    def test_entrada_y_ajuste_cambian_el_stock(self):
+        self.mover(MovimientoInventario.Tipo.ENTRADA, 20)
+        self.mover(MovimientoInventario.Tipo.AJUSTE, -3)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 17)
+        self.assertEqual(MovimientoInventario.objects.filter(producto=self.producto).count(), 2)
+
+    def test_ajuste_que_deja_negativo_no_registra_nada(self):
+        self.mover(MovimientoInventario.Tipo.ENTRADA, 5)
+        with self.assertRaises(StockInsuficiente):
+            self.mover(MovimientoInventario.Tipo.AJUSTE, -6)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 5)
+        self.assertEqual(MovimientoInventario.objects.filter(producto=self.producto).count(), 1)
+
+    def test_codigo_repetido_en_la_misma_empresa_es_invalido(self):
+        form = ProductoForm(
+            data={"codigo": "a1", "nombre": "Otro", "precio": "100", "iva_porcentaje": "19", "stock_minimo": "0"},
+            empresa=self.empresa,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("codigo", form.errors)

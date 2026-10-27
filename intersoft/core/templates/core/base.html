@@ -1,36 +1,81 @@
-{% load static %}
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  {# ?v= obliga al navegador a bajar el CSS de nuevo: súbelo cada vez que cambies app.css #}
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=11">
 </head>
 <body>
-  {% if user.is_authenticated %}
+
+{% if user.is_authenticated %}
+{% with ruta=request.resolver_match.url_name %}
+<div class="escena">
+
+  <!-- Dock: navegación principal en forma de píldora -->
+  <nav class="dock" aria-label="Menú principal">
+    <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 17.5a9 9 0 1 1 14.2 0"/><path d="m12 13 3.5-3.5"/><circle cx="12" cy="13" r="1"/></svg>
+    </a>
+    <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/></svg>
+    </a>
+    <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
+    </a>
+    <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+    </a>
+    {# Aquí puedes agregar tu enlace de Categorías con el mismo formato #}
+
+    <span class="dock-espacio"></span>
+
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="dock-salir" data-label="Salir" aria-label="Salir">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></svg>
+      </button>
+    </form>
+  </nav>
+
+  <!-- Ventana de vidrio -->
+  <div class="ventana">
     <header class="barra">
-      <strong>Intersoft</strong>
-      <nav>
-        <a href="{% url 'dashboard' %}">Inicio</a>
-        <a href="{% url 'clientes_lista' %}">Clientes</a>
-      </nav>
-      <span class="cuenta">{{ request.empresa.nombre|default:"Sin empresa" }} · {{ user.email }}</span>
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit">Salir</button>
+      <a class="marca" href="{% url 'dashboard' %}">
+        <span class="marca-icono">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M12 8v8"/></svg>
+        </span>
+        {{ request.empresa.nombre|default:"Intersoft" }}
+      </a>
+
+      <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
+        <input type="search" name="q" placeholder="Buscar productos" aria-label="Buscar productos">
       </form>
+
+      <div class="cuenta">
+        <span class="cuenta-texto">
+          <strong>{{ user.get_full_name|default:user.email }}</strong>
+          <small>{{ request.membresia.rol.nombre }}</small>
+        </span>
+        <span class="avatar" aria-hidden="true">{{ user.email|first|upper }}</span>
+      </div>
     </header>
-  {% endif %}
+{% endwith %}
+{% endif %}
 
     <main>
-    <!-- Mensajes de una sola vez: aparecen después de guardar y desaparecen al recargar -->
-    {% for mensaje in messages %}
-      <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
-    {% endfor %}
+      {% for mensaje in messages %}
+        <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+      {% endfor %}
 
-    {% block contenido %}{% endblock %}
-  </main>
+      {% block contenido %}{% endblock %}
+    </main>
+
+{% if user.is_authenticated %}
+  </div>
+</div>
+{% endif %}
+
+{% block scripts %}{% endblock %}
 </body>
 </html>

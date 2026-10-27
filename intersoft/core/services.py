@@ -124,3 +124,38 @@ def anular_factura(*, factura, usuario):
     factura.anulada_en = timezone.now()
     factura.save(update_fields=["estado", "anulada_en"])
     return factura
+
+@transaction.atomic
+def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referencia=""):
+    """
+    Único punto por el que cambia el stock (fuera de la facturación).
+
+    - ENTRADA y SALIDA reciben cantidad positiva.
+    - AJUSTE puede ser positivo (sobrante) o negativo (faltante, daño, pérdida).
+    """
+    cantidad = int(cantidad)
+    Tipo = MovimientoInventario.Tipo
+
+    if tipo in (Tipo.ENTRADA, Tipo.SALIDA) and cantidad <= 0:
+        raise ValueError("La cantidad debe ser mayor que cero.")
+    if tipo == Tipo.AJUSTE and cantidad == 0:
+        raise ValueError("Un ajuste no puede ser cero.")
+
+    variacion = -cantidad if tipo == Tipo.SALIDA else cantidad
+
+    # Bloqueamos el producto: si alguien factura al mismo tiempo, espera su turno
+    producto = Producto.objects.select_for_update().get(pk=producto.pk, empresa=empresa)
+    if producto.stock + variacion < 0:
+        raise StockInsuficiente(
+            f"El movimiento dejaría el stock de {producto.nombre} en negativo (disponible: {producto.stock})."
+        )
+
+    Producto.objects.filter(pk=producto.pk).update(stock=F("stock") + variacion)
+    return MovimientoInventario.objects.create(
+        empresa=empresa,
+        producto=producto,
+        tipo=tipo,
+        cantidad=cantidad,
+        referencia=referencia,
+        usuario=usuario,
+    )

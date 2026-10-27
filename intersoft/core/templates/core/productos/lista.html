@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+{% block titulo %}Productos · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Productos</h1>
+    {% if puede_crear %}
+      <a class="boton" href="{% url 'productos_crear' %}">Nuevo producto</a>
+    {% endif %}
+  </div>
+
+  <form method="get" class="buscador">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o código">
+    <label class="check"><input type="checkbox" name="bajo" value="1" {% if solo_bajo %}checked{% endif %}> Solo stock bajo</label>
+    <button type="submit">Buscar</button>
+  </form>
+
+  <table class="tabla">
+    <thead>
+      <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for producto in productos %}
+        <tr>
+          <td>{{ producto.codigo }}</td>
+          <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
+          <td>{{ producto.categoria.nombre|default:"—" }}</td>
+          <td class="num">$ {{ producto.precio|floatformat:"0g" }}</td>
+          <td class="num">
+            {{ producto.stock }}
+            {% if producto.stock_bajo %}<span class="alerta">bajo</span>{% endif %}
+          </td>
+          <td>
+            {% if puede_editar %}<a href="{% url 'productos_editar' producto.pk %}">Editar</a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">No hay productos que coincidan.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <nav class="paginacion">
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+{% block titulo %}{% if object %}Editar{% else %}Nuevo{% endif %} producto · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        {{ campo.label_tag }}
+        {{ campo }}
+        {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+        {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="acciones">
+      <a href="{% url 'productos_lista' %}">Cancelar</a>
+      <button type="submit">Guardar</button>
+    </div>
+  </form>
+{% endblock %}

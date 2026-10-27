@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% block titulo %}Factura {{ factura.numero }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Factura N.º {{ factura.numero }}</h1>
+    <a href="{% url 'facturas_lista' %}">← Volver a facturas</a>
+  </div>
+
+  <p>
+    <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
+    <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
+    <strong>Estado:</strong> {{ factura.get_estado_display }} ·
+    <strong>Vendedor:</strong> {{ factura.creada_por.email }}
+  </p>
+
+  <table class="tabla">
+    <thead>
+      <tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unit.</th><th class="num">IVA</th><th class="num">Subtotal</th></tr>
+    </thead>
+    <tbody>
+      {% for detalle in factura.detalles.all %}
+        <tr>
+          <td>{{ detalle.producto.codigo }} · {{ detalle.producto.nombre }}</td>
+          <td class="num">{{ detalle.cantidad }}</td>
+          <td class="num">$ {{ detalle.precio_unitario|floatformat:"0g" }}</td>
+          <td class="num">{{ detalle.iva_porcentaje|floatformat:"0" }} %</td>
+          <td class="num">$ {{ detalle.subtotal|floatformat:"0g" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="4" class="num">Subtotal</td><td class="num">$ {{ factura.subtotal|floatformat:"0g" }}</td></tr>
+      <tr><td colspan="4" class="num">IVA</td><td class="num">$ {{ factura.iva|floatformat:"0g" }}</td></tr>
+      <tr class="total"><td colspan="4" class="num">Total</td><td class="num">$ {{ factura.total|floatformat:"0g" }}</td></tr>
+    </tfoot>
+  </table>
+{% endblock %}

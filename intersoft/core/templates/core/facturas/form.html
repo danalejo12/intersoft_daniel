@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+{% block titulo %}Nueva factura · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>Nueva factura</h1>
+
+  <form method="post" class="formulario ancho" novalidate>
+    {% csrf_token %}
+
+    <div class="campo">
+      {{ form.cliente.label_tag }}
+      {{ form.cliente }}
+      {% for error in form.cliente.errors %}<p class="error">{{ error }}</p>{% endfor %}
+    </div>
+
+    {# OBLIGATORIO en todo formset: le dice a Django cuántas filas vienen en el POST #}
+    {{ lineas.management_form }}
+
+    {# Errores de todo el formset (fila mínima, productos repetidos) #}
+    {% for error in lineas.non_form_errors %}<p class="error">{{ error }}</p>{% endfor %}
+
+    <table class="tabla lineas">
+      <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for linea in lineas %}
+          <tr>
+            <td>
+              {{ linea.producto }}
+              {% for error in linea.producto.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </td>
+            <td>
+              {{ linea.cantidad }}
+              {% for error in linea.cantidad.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="acciones">
+      <a href="{% url 'facturas_lista' %}">Cancelar</a>
+      <button type="submit">Facturar</button>
+    </div>
+  </form>
+{% endblock %}

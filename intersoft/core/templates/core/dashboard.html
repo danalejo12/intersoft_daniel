@@ -2,26 +2,184 @@
 {% block titulo %}Inicio · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>{{ request.empresa.nombre }}</h1>
-  <p>Rol: {{ request.membresia.rol.nombre }}</p>
+  <!-- Indicadores: cada uno brilla con el color de lo que mide -->
+  <section class="kpis">
+    <article class="kpi">
+      <div class="kpi-cabecera">
+        <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+        <span>Ventas del mes</span>
+      </div>
+      <strong>$ {{ ventas_mes|floatformat:"0g" }}</strong>
+      <small>{{ facturas_mes }} factura{{ facturas_mes|pluralize }} <em>este mes</em></small>
+      <canvas class="sparkline" id="sparkline-ventas" aria-label="Ventas de los últimos 7 días"></canvas>
+    </article>
 
-  <ul>
-    <li>Clientes activos: <strong>{{ total_clientes }}</strong></li>
-    <li>Productos activos: <strong>{{ total_productos }}</strong></li>
-  </ul>
+    <article class="kpi verde">
+      <div class="kpi-cabecera">
+        <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/></svg></span>
+        <span>Clientes activos</span>
+      </div>
+      <strong>{{ total_clientes }}</strong>
+      <small><a href="{% url 'clientes_lista' %}">Ver clientes</a></small>
+    </article>
 
-  <h2>Stock bajo</h2>
-  <table border="1" cellpadding="6">
-    <tr><th>Código</th><th>Producto</th><th>Stock</th><th>Mínimo</th></tr>
-    {% for producto in stock_bajo %}
-      <tr>
-        <td>{{ producto.codigo }}</td>
-        <td>{{ producto.nombre }}</td>
-        <td>{{ producto.stock }}</td>
-        <td>{{ producto.stock_minimo }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
-    {% endfor %}
-  </table>
+    <article class="kpi violeta">
+      <div class="kpi-cabecera">
+        <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/></svg></span>
+        <span>Productos activos</span>
+      </div>
+      <strong>{{ total_productos }}</strong>
+      <small><a href="{% url 'productos_lista' %}">Ver inventario</a></small>
+    </article>
+
+    <article class="kpi {% if n_stock_bajo %}rojo{% else %}verde{% endif %}">
+      <div class="kpi-cabecera">
+        <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+        <span>Con stock bajo</span>
+      </div>
+      <strong>{{ n_stock_bajo }}</strong>
+      <small>{% if n_stock_bajo %}<a href="{% url 'productos_lista' %}?bajo=1">Revisar productos</a>{% else %}Todo en orden{% endif %}</small>
+    </article>
+  </section>
+
+  <section class="paneles">
+    <!-- Medidor: qué porcentaje del inventario está sobre su mínimo -->
+    <article class="tarjeta {% if salud_inventario >= 70 %}verde{% elif salud_inventario >= 40 %}ambar{% else %}rojo{% endif %}">
+      <div class="tarjeta-cabecera"><h2>Salud del inventario</h2></div>
+      <div class="medidor-caja">
+        <svg class="medidor" viewBox="0 0 200 124" role="img" aria-label="{{ salud_inventario }} % del inventario sobre el mínimo">
+          <path class="medidor-pista" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"/>
+          <path class="medidor-valor" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100" style="stroke-dasharray: {{ salud_inventario }} 100"/>
+          <text x="20" y="122" text-anchor="middle">0</text>
+          <text x="180" y="122" text-anchor="middle">100</text>
+        </svg>
+        <div class="medidor-cifra">{{ salud_inventario }}%</div>
+      </div>
+      <div class="medidor-pie">
+        <div>Sobre el mínimo<strong>{{ productos_sanos }}</strong></div>
+        <div>En alerta<strong>{{ n_stock_bajo }}</strong></div>
+      </div>
+    </article>
+
+    <!-- Gráfica de ventas de los últimos 6 meses -->
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Ventas de los últimos 6 meses</h2>
+        <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
+      </div>
+      <div class="leyenda"><span>Facturado (sin anuladas)</span></div>
+      <div class="grafica"><canvas id="grafica-ventas" aria-label="Ventas por mes"></canvas></div>
+    </article>
+  </section>
+
+  <section class="paneles parejos">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Stock bajo</h2></div>
+      <table class="tabla">
+        <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th></tr></thead>
+        <tbody>
+          {% for producto in stock_bajo %}
+            <tr>
+              <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
+              <td class="num">{{ producto.stock }} <span class="alerta">bajo</span></td>
+              <td class="num">{{ producto.stock_minimo }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">Todo el inventario está por encima del mínimo.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Últimas facturas</h2></div>
+      <table class="tabla">
+        <thead><tr><th>N.º</th><th>Cliente</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          {% for factura in ultimas_facturas %}
+            <tr>
+              <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
+              <td>{{ factura.cliente.nombre }}</td>
+              <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">Aún no hay facturas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  {# json_script pasa datos de Python a JavaScript de forma segura (sin riesgo de XSS) #}
+  {{ serie_meses|json_script:"datos-meses" }}
+  {{ serie_dias|json_script:"datos-dias" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+  <script>
+    const meses = JSON.parse(document.getElementById("datos-meses").textContent);
+    const dias = JSON.parse(document.getElementById("datos-dias").textContent);
+    const sinAnimacion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const verde = "#7bd66b";
+
+    // Formato corto de dinero: 1.250.000 -> $1,3M · 45.000 -> $45K
+    const corto = (v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}K` : `$${v}`;
+
+    // Gráfica principal: línea suave con relleno degradado
+    const lienzo = document.getElementById("grafica-ventas");
+    const ctx = lienzo.getContext("2d");
+    const relleno = ctx.createLinearGradient(0, 0, 0, 300);
+    relleno.addColorStop(0, "rgba(123, 214, 107, 0.35)");
+    relleno.addColorStop(1, "rgba(123, 214, 107, 0)");
+
+    new Chart(lienzo, {
+      type: "line",
+      data: {
+        labels: meses.etiquetas,
+        datasets: [{
+          data: meses.valores,
+          borderColor: verde,
+          borderWidth: 3,
+          backgroundColor: relleno,
+          fill: true,
+          tension: 0.45,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: verde,
+        }],
+      },
+      options: {
+        animation: sinAnimacion ? false : { duration: 1200 },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => " $ " + c.parsed.y.toLocaleString("es-CO") } },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "rgba(244,242,238,.45)" }, border: { display: false } },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(255,255,255,.07)" },
+            ticks: { color: "rgba(244,242,238,.45)", callback: corto, maxTicksLimit: 5 },
+            border: { display: false },
+          },
+        },
+      },
+    });
+
+    // Sparkline de la tarjeta de ventas (últimos 7 días)
+    new Chart(document.getElementById("sparkline-ventas"), {
+      type: "line",
+      data: {
+        labels: dias.etiquetas,
+        datasets: [{ data: dias.valores, borderColor: "#5b8cff", borderWidth: 2.5, tension: 0.45, pointRadius: 0, fill: false }],
+      },
+      options: {
+        animation: sinAnimacion ? false : { duration: 900 },
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+      },
+    });
+  </script>
 {% endblock %}

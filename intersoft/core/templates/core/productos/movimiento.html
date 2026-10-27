@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+{% block titulo %}Movimiento · {{ producto.nombre }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>Registrar movimiento</h1>
+  <p class="nota">{{ producto.codigo }} · {{ producto.nombre }} · Stock actual: <strong>{{ producto.stock }}</strong></p>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        {{ campo.label_tag }}
+        {{ campo }}
+        {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+        {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="acciones">
+      <a href="{% url 'productos_kardex' producto.pk %}">Cancelar</a>
+      <button type="submit">Registrar</button>
+    </div>
+  </form>
+{% endblock %}

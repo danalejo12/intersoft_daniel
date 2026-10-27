@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% block titulo %}Kardex {{ producto.codigo }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>{{ producto.nombre }}</h1>
+      <p class="nota">{{ producto.codigo }} · Stock actual: <strong>{{ producto.stock }}</strong> · Mínimo: {{ producto.stock_minimo }}</p>
+    </div>
+    {% if puede_mover %}
+      <a class="boton" href="{% url 'productos_movimiento' producto.pk %}">Registrar movimiento</a>
+    {% endif %}
+  </div>
+
+  <h2>Kardex</h2>
+  <table class="tabla">
+    <thead>
+      <tr><th>Fecha</th><th>Tipo</th><th class="num">Cantidad</th><th>Referencia</th><th>Usuario</th></tr>
+    </thead>
+    <tbody>
+      {% for mov in movimientos %}
+        <tr>
+          <td>{{ mov.creado_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ mov.get_tipo_display }}</td>
+          {# Las salidas restan; entradas y ajustes ya traen su signo #}
+          <td class="num">{% if mov.tipo == "salida" %}-{{ mov.cantidad }}{% else %}{{ mov.cantidad|stringformat:"+d" }}{% endif %}</td>
+          <td>{{ mov.referencia|default:"—" }}</td>
+          <td>{{ mov.usuario.email }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Este producto aún no tiene movimientos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p><a href="{% url 'productos_lista' %}">← Volver a productos</a></p>
+{% endblock %}
