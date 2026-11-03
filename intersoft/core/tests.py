@@ -5,10 +5,15 @@ Ejecutar:  python manage.py test core
 from decimal import Decimal
 
 from django.test import TestCase
+from django.urls import reverse
 
 from .forms import ProductoForm
-from .models import Cliente, Empresa, Factura, MovimientoInventario, Producto, Usuario
+from .models import Cliente, Empresa, Factura, Membresia, MovimientoInventario, Producto, Rol, Usuario
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
+from django.db import IntegrityError, transaction
+
+from .models import Pago
+from .pagos import PagoNoPermitido, calcular_firma_integridad, crear_pago, monto_en_centavos
 
 class FacturacionTests(TestCase):
     def setUp(self):
@@ -68,6 +73,7 @@ class FacturacionTests(TestCase):
         ajeno.refresh_from_db()
         self.assertEqual(ajeno.stock, 5)
 
+
 class InventarioTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Empresa Inv", nit="900000010", slug="empresa-inv")
@@ -103,3 +109,99 @@ class InventarioTests(TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("codigo", form.errors)
+
+
+class EliminacionTests(TestCase):
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Mía", nit="900000020", slug="mia")
+        self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000021", slug="ajena")
+        usuario = Usuario.objects.create_user(username="a@test.co", email="a@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=usuario, empresa=self.empresa, rol=rol)
+        self.client.force_login(usuario)
+        self.cliente = Cliente.objects.create(
+            empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Mío"
+        )
+        self.producto = Producto.objects.create(
+            empresa=self.empresa, codigo="E1", nombre="Producto", precio=Decimal("1000"), stock=5
+        )
+
+    def test_post_desactiva_cliente_sin_borrarlo(self):
+        self.client.post(reverse("clientes_eliminar", args=[self.cliente.pk]))
+        self.cliente.refresh_from_db()
+        self.assertFalse(self.cliente.activo)
+
+    def test_post_desactiva_producto_sin_borrarlo(self):
+        self.client.post(reverse("productos_eliminar", args=[self.producto.pk]))
+        self.producto.refresh_from_db()
+        self.assertFalse(self.producto.activo)
+
+    def test_get_no_elimina(self):
+        respuesta = self.client.get(reverse("clientes_eliminar", args=[self.cliente.pk]))
+        self.assertEqual(respuesta.status_code, 405)
+        self.cliente.refresh_from_db()
+        self.assertTrue(self.cliente.activo)
+
+    def test_no_elimina_datos_de_otra_empresa(self):
+        ajeno = Cliente.objects.create(
+            empresa=self.ajena, tipo_documento="CC", numero_documento="2", nombre="Ajeno"
+        )
+        respuesta = self.client.post(reverse("clientes_eliminar", args=[ajeno.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+        ajeno.refresh_from_db()
+        self.assertTrue(ajeno.activo)
+# pago -- pago 
+class PagoTests(TestCase):
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Empresa Pago", nit="900000030", slug="empresa-pago")
+        self.usuario = Usuario.objects.create_user(username="p@test.co", email="p@test.co", password="x")
+        cliente = Cliente.objects.create(
+            empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
+        )
+        producto = Producto.objects.create(
+            empresa=self.empresa, codigo="P1", nombre="Producto",
+            precio=Decimal("1000.00"), iva_porcentaje=Decimal("19.00"), stock=10,
+        )
+        self.factura = crear_factura(
+            empresa=self.empresa, usuario=self.usuario, cliente=cliente,
+            items=[{"producto": producto, "cantidad": 3}],
+        )
+
+    def test_firma_coincide_con_ejemplo_oficial_de_wompi(self):
+        firma = calcular_firma_integridad(
+            referencia="sk8-438k4-xmxm392-sn2m",
+            monto_centavos=2490000,
+            moneda="COP",
+            secreto="prod_integrity_Z5mMke9x0k8gpErbDqwrJXMqsI6SFli6",
+        )
+        self.assertEqual(firma, "37c8407747e595535433ef8f6a811d853cd943046624a0ec04662b17bbf33bf5")
+
+    def test_convierte_a_centavos(self):
+        self.assertEqual(monto_en_centavos(Decimal("3570.00")), 357000)
+
+    def test_el_monto_sale_de_la_factura(self):
+        pago = crear_pago(factura=self.factura)
+        self.assertEqual(pago.monto_centavos, 357000)
+        self.assertEqual(pago.estado, Pago.Estado.PENDIENTE)
+        self.assertEqual(pago.empresa_id, self.empresa.id)
+
+    def test_no_cobra_factura_anulada(self):
+        anular_factura(factura=self.factura, usuario=self.usuario)
+        with self.assertRaises(PagoNoPermitido):
+            crear_pago(factura=self.factura)
+
+    def test_no_cobra_factura_ya_pagada(self):
+        pago = crear_pago(factura=self.factura)
+        pago.estado = Pago.Estado.APROBADO
+        pago.save()
+        with self.assertRaises(PagoNoPermitido):
+            crear_pago(factura=self.factura)
+
+    def test_la_base_impide_dos_pagos_aprobados(self):
+        primero = crear_pago(factura=self.factura)
+        segundo = crear_pago(factura=self.factura)
+        primero.estado = Pago.Estado.APROBADO
+        primero.save()
+        segundo.estado = Pago.Estado.APROBADO
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            segundo.save()

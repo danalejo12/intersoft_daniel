@@ -76,16 +76,17 @@
     <article class="tarjeta">
       <div class="tarjeta-cabecera"><h2>Stock bajo</h2></div>
       <table class="tabla">
-        <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th></tr></thead>
+        <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th><th></th></tr></thead>
         <tbody>
           {% for producto in stock_bajo %}
             <tr>
               <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
               <td class="num">{{ producto.stock }} <span class="alerta">bajo</span></td>
               <td class="num">{{ producto.stock_minimo }}</td>
+              <td>{% if puede_mover %}<a href="{% url 'productos_movimiento' producto.pk %}">Reponer</a>{% endif %}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="3">Todo el inventario está por encima del mínimo.</td></tr>
+            <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
           {% endfor %}
         </tbody>
       </table>

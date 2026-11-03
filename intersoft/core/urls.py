@@ -19,4 +19,8 @@ urlpatterns = [
     path("productos/<uuid:pk>/", views.ProductoKardexView.as_view(), name="productos_kardex"),
     path("productos/<uuid:pk>/editar/", views.ProductoUpdateView.as_view(), name="productos_editar"),
     path("productos/<uuid:pk>/movimiento/", views.MovimientoCreateView.as_view(), name="productos_movimiento"),
+    path("clientes/<uuid:pk>/eliminar/", views.ClienteDeleteView.as_view(), name="clientes_eliminar"),
+    path("productos/<uuid:pk>/eliminar/", views.ProductoDeleteView.as_view(), name="productos_eliminar"),
+    path("categorias/<uuid:pk>/eliminar/", views.CategoriaDeleteView.as_view(), name="categorias_eliminar"),
+    path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
 ]

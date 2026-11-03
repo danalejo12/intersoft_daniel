@@ -31,7 +31,17 @@
             {% if producto.stock_bajo %}<span class="alerta">bajo</span>{% endif %}
           </td>
           <td>
+            {% if puede_mover %}<a href="{% url 'productos_movimiento' producto.pk %}">Reponer</a>{% endif %}
             {% if puede_editar %}<a href="{% url 'productos_editar' producto.pk %}">Editar</a>{% endif %}
+
+            {% if puede_eliminar %}
+              <form method="post" action="{% url 'productos_eliminar' producto.pk %}"
+                    style="display:inline"
+                    onsubmit="return confirm('¿Seguro que quieres eliminar este producto?');">
+                {% csrf_token %}
+                <button type="submit">Eliminar</button>
+              </form>
+            {% endif %}
           </td>
         </tr>
       {% empty %}

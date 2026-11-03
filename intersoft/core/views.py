@@ -17,8 +17,8 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 # 3. Imports de tu propia app
 from .forms import ClienteForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, Factura, MovimientoInventario, Producto
-from .services import StockInsuficiente, crear_factura, registrar_movimiento
+from .models import Categoria, Cliente, Factura, MovimientoInventario, Producto
+from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
 # ---------------------------------------------------------------
 # Vistas de prueba (las quitaremos más adelante)
 # ---------------------------------------------------------------
@@ -47,6 +47,7 @@ class DashboardView(TenantMixin, TemplateView):
         contexto["total_productos"] = productos.count()
         # F("stock_minimo") compara dos columnas DENTRO de PostgreSQL
         contexto["stock_bajo"] = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
+        contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
         return contexto
 
 
@@ -77,6 +78,7 @@ class ClienteListView(PermisoRequeridoMixin, ListView):
         # La plantilla no puede llamar tiene_permiso("..."): se lo damos ya resuelto
         contexto["puede_crear"] = membresia.tiene_permiso("clientes.crear")
         contexto["puede_editar"] = membresia.tiene_permiso("clientes.editar")
+        contexto["puede_eliminar"] = self.request.membresia.tiene_permiso("clientes.eliminar")  # ← nueva
         return contexto
 
 
@@ -201,6 +203,8 @@ class ProductoListView(PermisoRequeridoMixin, ListView):
         contexto["solo_bajo"] = self.solo_bajo
         contexto["puede_crear"] = membresia.tiene_permiso("inventario.crear")
         contexto["puede_editar"] = membresia.tiene_permiso("inventario.editar")
+        contexto["puede_mover"] = membresia.tiene_permiso("inventario.movimientos")
+        contexto["puede_eliminar"] = membresia.tiene_permiso("productos.eliminar")
         return contexto
 
 
@@ -289,3 +293,69 @@ class MovimientoCreateView(PermisoRequeridoMixin, View):
 
     def mostrar(self, producto, form):
         return render(self.request, self.template_name, {"producto": producto, "form": form})
+
+# Eliminar -- Eliminar -- Eliminar 
+class EliminarLogicoView(PermisoRequeridoMixin, View):
+    """Desactiva un registro sin borrarlo. Solo acepta POST."""
+    http_method_names = ["post"]
+    model = None
+    campo_activo = "activo"
+    url_lista = None
+
+    def motivo_bloqueo(self, objeto):
+        return None  # Cada subclase puede impedir la eliminación
+
+    def post(self, request, pk):
+        # Filtrar por empresa impide tocar registros de otro tenant (da 404)
+        objeto = get_object_or_404(
+            self.model.objects.de_empresa(request.empresa),
+            pk=pk,
+            **{self.campo_activo: True},
+        )
+        motivo = self.motivo_bloqueo(objeto)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect(self.url_lista)
+
+        setattr(objeto, self.campo_activo, False)
+        objeto.save(update_fields=[self.campo_activo, "actualizado_en"])
+        messages.success(request, f"«{objeto}» se eliminó correctamente.")
+        return redirect(self.url_lista)
+
+
+class ClienteDeleteView(EliminarLogicoView):
+    model = Cliente
+    permiso_requerido = "clientes.eliminar"
+    url_lista = "clientes_lista"
+
+
+class ProductoDeleteView(EliminarLogicoView):
+    model = Producto
+    permiso_requerido = "productos.eliminar"
+    url_lista = "productos_lista"
+
+
+class CategoriaDeleteView(EliminarLogicoView):
+    model = Categoria
+    campo_activo = "activa"  # En este modelo el campo es femenino
+    permiso_requerido = "categorias.eliminar"
+    url_lista = "categorias_lista"
+
+    def motivo_bloqueo(self, categoria):
+        if Producto.objects.filter(categoria=categoria, activo=True).exists():
+            return "No se puede eliminar: la categoría tiene productos activos."
+        return None
+
+
+class FacturaAnularView(PermisoRequeridoMixin, View):
+    http_method_names = ["post"]
+    permiso_requerido = "facturas.anular"
+
+    def post(self, request, pk):
+        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
+        try:
+            anular_factura(factura=factura, usuario=request.user)
+            messages.success(request, f"Factura {factura.numero} anulada.")
+        except ValueError as error:
+            messages.error(request, str(error))
+        return redirect("facturas_lista")

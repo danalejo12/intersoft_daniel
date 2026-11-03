@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
  
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
-    MovimientoInventario, Permiso, Producto, Rol, Usuario,
+    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago
 )
  
  
@@ -84,3 +84,10 @@ class FacturaAdmin(admin.ModelAdmin):
     
 from django.contrib.auth.models import Group
 admin.site.unregister(Group)
+
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    list_display = ["referencia", "factura", "empresa", "monto_centavos", "estado", "creado_en"]
+    list_filter = ["empresa", "estado"]
+    search_fields = ["referencia", "wompi_transaccion_id"]
+    readonly_fields = ["referencia", "monto_centavos", "moneda", "wompi_transaccion_id"]
