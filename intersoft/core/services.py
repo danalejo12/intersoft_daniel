@@ -109,6 +109,9 @@ def anular_factura(*, factura, usuario):
     if factura.estado == Factura.Estado.ANULADA:
         raise ValueError("La factura ya está anulada.")
 
+    if factura.esta_pagada:
+        raise ValueError("No se puede anular una factura pagada; primero debe reembolsarse.")
+
     for detalle in factura.detalles.all():
         Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") + detalle.cantidad)
         MovimientoInventario.objects.create(

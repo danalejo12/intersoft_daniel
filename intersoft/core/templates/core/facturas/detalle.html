@@ -10,7 +10,7 @@
   <p>
     <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
     <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
-    <strong>Estado:</strong> {{ factura.get_estado_display }} ·
+    <strong>Estado:</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>Pagada</strong>{% endif %} ·
     <strong>Vendedor:</strong> {{ factura.creada_por.email }}
   </p>
 
@@ -35,4 +35,30 @@
       <tr class="total"><td colspan="4" class="num">Total</td><td class="num">$ {{ factura.total|floatformat:"0g" }}</td></tr>
     </tfoot>
   </table>
+
+  {% if factura.pagos.all %}
+    <h2>Pagos</h2>
+    <table class="tabla">
+      <thead><tr><th>Fecha</th><th>Referencia</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        {% for pago in factura.pagos.all %}
+          <tr>
+            <td>{{ pago.creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{{ pago.referencia }}</td>
+            <td>{{ pago.get_estado_display }}</td>
+            <td><a href="{% url 'pagos_resultado' pago.pk %}">{% if pago.estado == "pendiente" %}Consultar estado{% else %}Ver{% endif %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if factura.estado == "emitida" and not factura.esta_pagada %}
+    <div class="acciones">
+      <form method="post" action="{% url 'facturas_cobrar' factura.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit">Pagar con Wompi</button>
+      </form>
+    </div>
+  {% endif %}
 {% endblock %}

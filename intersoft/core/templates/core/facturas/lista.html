@@ -9,7 +9,7 @@
 
   <table class="tabla">
     <thead>
-      <tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th class="num">Total</th></tr>
+      <tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th class="num">Total</th><th></th></tr>
     </thead>
     <tbody>
       {% for factura in facturas %}
@@ -17,11 +17,24 @@
           <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
           <td>{{ factura.creado_en|date:"d/m/Y H:i" }}</td>
           <td>{{ factura.cliente.nombre }}</td>
-          <td>{{ factura.get_estado_display }}</td>
+          <td>{% if factura.pagada %}Pagada{% else %}{{ factura.get_estado_display }}{% endif %}</td>
           <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
+          <td class="acciones-fila">
+            <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Ver</a>
+            {% if factura.pagada %}
+              <span class="etiqueta-pagada">Pagada</span>
+            {% elif factura.pago_en_proceso %}
+              <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Verificar pago</a>
+            {% elif puede_cobrar and factura.estado == "emitida" %}
+              <form method="post" action="{% url 'facturas_cobrar' factura.pk %}">
+                {% csrf_token %}
+                <button type="submit">Pagar con Wompi</button>
+              </form>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5">Aún no hay facturas.</td></tr>
+        <tr><td colspan="6">Aún no hay facturas.</td></tr>
       {% endfor %}
     </tbody>
   </table>

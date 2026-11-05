@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+{% block titulo %}Resultado del pago · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>Pago de la factura {{ pago.factura.numero }}</h1>
+  <p>Estado: <strong>{{ pago.get_estado_display }}</strong></p>
+
+  {% if pago.estado == "pendiente" %}
+    <p class="nota">Estamos esperando la confirmación de Wompi.</p>
+    <a href="?{% if transaccion_id %}id={{ transaccion_id|urlencode }}{% endif %}">Consultar de nuevo</a>
+  {% endif %}
+
+  <a class="boton" href="{% url 'facturas_lista' %}">Volver a facturas</a>
+{% endblock %}

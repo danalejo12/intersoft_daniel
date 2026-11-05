@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% block titulo %}Simulador de pago · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>Simulador de pago</h1>
+  <p class="nota"><strong>Modo de prueba:</strong> aquí no se cobra dinero real.</p>
+  <p>Factura {{ pago.factura.numero }} · Total: $ {{ pago.factura.total|floatformat:"0g" }}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" name="resultado" value="APPROVED">Aprobar</button>
+    <button type="submit" name="resultado" value="DECLINED">Rechazar</button>
+    <button type="submit" name="resultado" value="ERROR">Simular error</button>
+  </form>
+{% endblock %}

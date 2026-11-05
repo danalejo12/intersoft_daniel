@@ -147,3 +147,13 @@ MAILERS = {
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"  # temporal: en el paso 4 será el dashboard
 LOGOUT_REDIRECT_URL = "login"
+
+from decouple import config
+
+WOMPI_PUBLIC_KEY = config("WOMPI_PUBLIC_KEY", default="")
+WOMPI_INTEGRITY_SECRET = config("WOMPI_INTEGRITY_SECRET", default="")
+WOMPI_EVENTS_SECRET = config("WOMPI_EVENTS_SECRET", default="")
+WOMPI_PRIVATE_KEY = config("WOMPI_PRIVATE_KEY", default="")  # Solo para consultar transacciones
+WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/"
+# Solo para desarrollo: pagos.pasarela_simulada() además exige DEBUG=True
+PASARELA_SIMULADA = config("PASARELA_SIMULADA", default=False, cast=bool)

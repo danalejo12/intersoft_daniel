@@ -41,6 +41,10 @@ class Factura(ModeloTenant):
  
     def __str__(self):
         return f"Factura {self.numero}"
+
+    @property
+    def esta_pagada(self):
+        return self.pagos.filter(estado="aprobado").exists()
  
  
 class DetalleFactura(ModeloTenant):

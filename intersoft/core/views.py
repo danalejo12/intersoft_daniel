@@ -1,23 +1,38 @@
 # 1. Imports de Python
+import json
 from datetime import date, timedelta
 
 # 2. Imports de Django
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, Exists, F, OuterRef, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
-from django.http import JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 # 3. Imports de tu propia app
 from .forms import ClienteForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Categoria, Cliente, Factura, MovimientoInventario, Producto
+from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Producto
+from .pagos import (
+    PagoNoPermitido,
+    aplicar_transaccion,
+    crear_evento_simulado,
+    crear_pago,
+    evento_es_valido,
+    pasarela_simulada,
+    sincronizar_pago,
+    sincronizar_pendientes,
+    url_checkout,
+)
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
 # ---------------------------------------------------------------
 # Vistas de prueba (las quitaremos más adelante)
@@ -116,7 +131,26 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
 
     def get_queryset(self):
         # select_related trae el cliente en la MISMA consulta (evita N+1)
-        return super().get_queryset().select_related("cliente").order_by("-numero")
+        # pagada y pago_en_proceso se calculan en la misma consulta con EXISTS (no una por fila)
+        pagos = Pago.objects.filter(factura=OuterRef("pk"))
+        # Un intento de los últimos 30 min puede estar pagado en Wompi: primero hay que verificarlo
+        recientes = timezone.now() - timedelta(minutes=30)
+        return (
+            super().get_queryset()
+            .select_related("cliente")
+            .annotate(
+                pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO)),
+                pago_en_proceso=Exists(
+                    pagos.filter(estado=Pago.Estado.PENDIENTE, creado_en__gte=recientes)
+                ),
+            )
+            .order_by("-numero")
+        )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["puede_cobrar"] = self.request.membresia.tiene_permiso("ventas.cobrar")
+        return contexto
 
 
 class FacturaDetailView(PermisoRequeridoMixin, DetailView):
@@ -130,8 +164,15 @@ class FacturaDetailView(PermisoRequeridoMixin, DetailView):
         return (
             super().get_queryset()
             .select_related("cliente", "creada_por")
-            .prefetch_related("detalles__producto")
+            .prefetch_related("detalles__producto", "pagos")
         )
+
+    def get_object(self, queryset=None):
+        factura = super().get_object(queryset)
+        if factura.pagos.filter(estado=Pago.Estado.PENDIENTE).exists():
+            sincronizar_pendientes(factura)
+            factura = super().get_object(queryset)  # recarga los pagos ya actualizados
+        return factura
 
 
 class FacturaCreateView(PermisoRequeridoMixin, View):
@@ -359,3 +400,94 @@ class FacturaAnularView(PermisoRequeridoMixin, View):
         except ValueError as error:
             messages.error(request, str(error))
         return redirect("facturas_lista")
+
+
+class FacturaCobrarView(PermisoRequeridoMixin, View):
+    """Crea el intento de pago y envía al cliente a la pasarela."""
+    http_method_names = ["post"]
+    permiso_requerido = "ventas.cobrar"
+
+    def post(self, request, pk):
+        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
+        sincronizar_pendientes(factura)  # evita cobrar dos veces si un intento ya se aprobó
+        try:
+            pago = crear_pago(factura=factura)
+        except PagoNoPermitido as error:
+            messages.error(request, str(error))
+            return redirect("facturas_lista")
+
+        if pasarela_simulada():
+            return redirect("pagos_simulador", pk=pago.pk)
+
+        redirect_url = request.build_absolute_uri(reverse("pagos_resultado", args=[pago.pk]))
+        return redirect(url_checkout(pago=pago, redirect_url=redirect_url))
+
+
+class PagoResultadoView(PermisoRequeridoMixin, View):
+    """Muestra el estado guardado. Esta página nunca marca un pago como aprobado."""
+    permiso_requerido = "ventas.ver"
+
+    def get(self, request, pk):
+        pago = get_object_or_404(
+            Pago.objects.de_empresa(request.empresa).select_related("factura"), pk=pk
+        )
+        # Con ?id=<transacción> (redirect de Wompi) se consulta ese id; sin él, por referencia
+        transaccion_id = request.GET.get("id", "")
+        if not pasarela_simulada():
+            pago = sincronizar_pago(pago=pago, transaccion_id=transaccion_id)
+        return render(
+            request, "core/pagos/resultado.html", {"pago": pago, "transaccion_id": transaccion_id}
+        )
+
+
+class PagoSimuladorView(PermisoRequeridoMixin, View):
+    """Reemplaza el checkout solo en desarrollo. No mueve dinero real."""
+    permiso_requerido = "ventas.cobrar"
+    RESULTADOS = {"APPROVED", "DECLINED", "ERROR"}
+
+    def dispatch(self, request, *args, **kwargs):
+        if not pasarela_simulada():
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def obtener_pago(self, request, pk):
+        return get_object_or_404(
+            Pago.objects.de_empresa(request.empresa).select_related("factura"),
+            pk=pk,
+            estado=Pago.Estado.PENDIENTE,
+        )
+
+    def get(self, request, pk):
+        pago = self.obtener_pago(request, pk)
+        return render(request, "core/pagos/simulador.html", {"pago": pago})
+
+    def post(self, request, pk):
+        pago = self.obtener_pago(request, pk)
+        resultado = request.POST.get("resultado")
+        if resultado not in self.RESULTADOS:
+            return HttpResponseBadRequest("Resultado no válido.")
+
+        evento = crear_evento_simulado(
+            pago=pago, status=resultado, secreto=settings.WOMPI_EVENTS_SECRET
+        )
+        if evento_es_valido(evento, settings.WOMPI_EVENTS_SECRET):
+            aplicar_transaccion(evento["data"]["transaction"])
+        return redirect("pagos_resultado", pk=pago.pk)
+
+
+@method_decorator(csrf_exempt, name="dispatch")  # Wompi no tiene tu token CSRF; lo protege la firma
+class WompiWebhookView(View):
+    http_method_names = ["post"]
+
+    def post(self, request):
+        try:
+            evento = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return HttpResponseBadRequest("JSON no válido.")
+
+        if not isinstance(evento, dict) or not evento_es_valido(evento, settings.WOMPI_EVENTS_SECRET):
+            return HttpResponseBadRequest("Firma no válida.")
+
+        if evento.get("event") == "transaction.updated":
+            aplicar_transaccion(evento["data"]["transaction"])
+        return HttpResponse(status=200)

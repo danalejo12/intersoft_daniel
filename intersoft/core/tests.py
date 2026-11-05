@@ -2,18 +2,25 @@
 Pruebas automáticas de Intersoft.
 Ejecutar:  python manage.py test core
 """
+import json
 from decimal import Decimal
+from unittest import mock
 
-from django.test import TestCase
+from django.db import IntegrityError, transaction
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .forms import ProductoForm
-from .models import Cliente, Empresa, Factura, Membresia, MovimientoInventario, Producto, Rol, Usuario
+from .models import Cliente, Empresa, Factura, Membresia, MovimientoInventario, Pago, Producto, Rol, Usuario
+from .pagos import (
+    PagoNoPermitido,
+    calcular_checksum,
+    calcular_firma_integridad,
+    crear_evento_simulado,
+    crear_pago,
+    monto_en_centavos,
+)
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
-from django.db import IntegrityError, transaction
-
-from .models import Pago
-from .pagos import PagoNoPermitido, calcular_firma_integridad, crear_pago, monto_en_centavos
 
 class FacturacionTests(TestCase):
     def setUp(self):
@@ -205,3 +212,285 @@ class PagoTests(TestCase):
         segundo.estado = Pago.Estado.APROBADO
         with self.assertRaises(IntegrityError), transaction.atomic():
             segundo.save()
+
+    def test_no_anula_factura_pagada(self):
+        pago = crear_pago(factura=self.factura)
+        pago.estado = Pago.Estado.APROBADO
+        pago.save()
+        with self.assertRaises(ValueError):
+            anular_factura(factura=self.factura, usuario=self.usuario)
+@override_settings(
+    WOMPI_PUBLIC_KEY="pub_test_x",
+    WOMPI_INTEGRITY_SECRET="secreto_de_prueba",
+    WOMPI_CHECKOUT_URL="https://checkout.wompi.co/p/",
+)
+class CobroVistaTests(TestCase):
+    def crear_factura_de(self, empresa, usuario):
+        cliente = Cliente.objects.create(
+            empresa=empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
+        )
+        producto = Producto.objects.create(
+            empresa=empresa, codigo="P1", nombre="Producto",
+            precio=Decimal("1000.00"), iva_porcentaje=Decimal("19.00"), stock=10,
+        )
+        return crear_factura(
+            empresa=empresa, usuario=usuario, cliente=cliente,
+            items=[{"producto": producto, "cantidad": 3}],
+        )
+
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Mía", nit="900000040", slug="mia-pago")
+        self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000041", slug="ajena-pago")
+        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
+        self.client.force_login(self.usuario)
+        self.factura = self.crear_factura_de(self.empresa, self.usuario)
+
+    def test_cobrar_redirige_al_checkout_sin_exponer_el_secreto(self):
+        respuesta = self.client.post(reverse("facturas_cobrar", args=[self.factura.pk]))
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(respuesta.url.startswith("https://checkout.wompi.co/p/?"))
+        self.assertIn("amount-in-cents=357000", respuesta.url)
+        self.assertNotIn("secreto_de_prueba", respuesta.url)
+        self.assertEqual(Pago.objects.count(), 1)
+
+    def test_get_no_crea_pago(self):
+        respuesta = self.client.get(reverse("facturas_cobrar", args=[self.factura.pk]))
+        self.assertEqual(respuesta.status_code, 405)
+        self.assertEqual(Pago.objects.count(), 0)
+
+
+@override_settings(DEBUG=True, PASARELA_SIMULADA=True, WOMPI_EVENTS_SECRET="secreto_eventos")
+class FlujoPagoTests(TestCase):
+    def crear_factura_de(self, empresa):
+        cliente = Cliente.objects.create(
+            empresa=empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
+        )
+        producto = Producto.objects.create(
+            empresa=empresa, codigo="P1", nombre="Producto",
+            precio=Decimal("1000.00"), iva_porcentaje=Decimal("19.00"), stock=10,
+        )
+        return crear_factura(
+            empresa=empresa, usuario=self.usuario, cliente=cliente,
+            items=[{"producto": producto, "cantidad": 3}],
+        )
+
+    def enviar(self, evento):
+        return self.client.post(
+            reverse("wompi_webhook"), data=json.dumps(evento), content_type="application/json"
+        )
+
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Mía", nit="900000050", slug="mia-flujo")
+        self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000051", slug="ajena-flujo")
+        self.usuario = Usuario.objects.create_user(username="f@test.co", email="f@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
+        self.client.force_login(self.usuario)
+        self.factura = self.crear_factura_de(self.empresa)
+
+    def test_cobrar_redirige_al_simulador(self):
+        respuesta = self.client.post(reverse("facturas_cobrar", args=[self.factura.pk]))
+        pago = Pago.objects.get()
+        self.assertEqual(respuesta.url, reverse("pagos_simulador", args=[pago.pk]))
+
+    def test_simulador_aprueba_el_pago(self):
+        pago = crear_pago(factura=self.factura)
+        self.client.post(reverse("pagos_simulador", args=[pago.pk]), {"resultado": "APPROVED"})
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.APROBADO)
+        self.assertTrue(self.factura.esta_pagada)
+
+    def test_simulador_no_existe_con_debug_false(self):
+        pago = crear_pago(factura=self.factura)
+        with self.settings(DEBUG=False):
+            respuesta = self.client.get(reverse("pagos_simulador", args=[pago.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+
+    @override_settings(
+        PASARELA_SIMULADA=False,
+        WOMPI_PUBLIC_KEY="pub_test_x",
+        WOMPI_INTEGRITY_SECRET="secreto_integridad",
+        WOMPI_CHECKOUT_URL="https://checkout.wompi.co/p/",
+    )
+    def test_modo_real_va_a_wompi_sin_exponer_el_secreto(self):
+        respuesta = self.client.post(reverse("facturas_cobrar", args=[self.factura.pk]))
+        self.assertTrue(respuesta.url.startswith("https://checkout.wompi.co/p/?"))
+        self.assertIn("amount-in-cents=357000", respuesta.url)
+        self.assertNotIn("secreto_integridad", respuesta.url)
+
+    def test_webhook_repetido_no_cambia_el_pago(self):
+        pago = crear_pago(factura=self.factura)
+        evento = crear_evento_simulado(pago=pago, status="APPROVED", secreto="secreto_eventos")
+        self.assertEqual(self.enviar(evento).status_code, 200)
+        pago.refresh_from_db()
+        primera_aprobacion = pago.aprobado_en
+        self.assertEqual(self.enviar(evento).status_code, 200)
+        pago.refresh_from_db()
+        self.assertEqual(pago.aprobado_en, primera_aprobacion)
+
+    def test_webhook_rechaza_firma_falsa(self):
+        pago = crear_pago(factura=self.factura)
+        evento = crear_evento_simulado(pago=pago, status="APPROVED", secreto="secreto_falso")
+        self.assertEqual(self.enviar(evento).status_code, 400)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.PENDIENTE)
+
+    def test_monto_alterado_no_aprueba(self):
+        pago = crear_pago(factura=self.factura)
+        evento = crear_evento_simulado(pago=pago, status="APPROVED", secreto="secreto_eventos")
+        evento["data"]["transaction"]["amount_in_cents"] = 100
+        evento["signature"]["checksum"] = calcular_checksum(evento, "secreto_eventos")
+        self.enviar(evento)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.ERROR)
+
+    def test_no_cobra_factura_de_otra_empresa(self):
+        ajena = self.crear_factura_de(self.ajena)
+        respuesta = self.client.post(reverse("facturas_cobrar", args=[ajena.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+    def test_no_cobra_factura_de_otra_empresa(self):
+        ajena = self.crear_factura_de(self.ajena)
+        respuesta = self.client.post(reverse("facturas_cobrar", args=[ajena.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+        self.assertEqual(Pago.objects.count(), 0)
+
+
+@override_settings(DEBUG=True, PASARELA_SIMULADA=False, WOMPI_PUBLIC_KEY="pub_test_x")
+class ConsultaWompiTests(TestCase):
+    """Respaldo del webhook: al volver del checkout se consulta la API de Wompi."""
+
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Mía", nit="900000060", slug="mia-consulta")
+        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
+        self.client.force_login(self.usuario)
+        cliente = Cliente.objects.create(
+            empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
+        )
+        producto = Producto.objects.create(
+            empresa=self.empresa, codigo="P1", nombre="Producto",
+            precio=Decimal("1000.00"), iva_porcentaje=Decimal("19.00"), stock=10,
+        )
+        factura = crear_factura(
+            empresa=self.empresa, usuario=self.usuario, cliente=cliente,
+            items=[{"producto": producto, "cantidad": 3}],
+        )
+        self.pago = crear_pago(factura=factura)
+
+    def transaccion(self, **cambios):
+        datos = {
+            "id": "1234-5678-90", "status": "APPROVED", "reference": self.pago.referencia,
+            "amount_in_cents": self.pago.monto_centavos, "currency": "COP",
+            "payment_method_type": "CARD",
+        }
+        return {**datos, **cambios}
+
+    def volver_de_wompi(self, transaccion):
+        with mock.patch("core.pagos.consultar_transaccion", return_value=transaccion) as consulta:
+            respuesta = self.client.get(
+                reverse("pagos_resultado", args=[self.pago.pk]), {"id": "1234-5678-90"}
+            )
+        self.pago.refresh_from_db()
+        return respuesta, consulta
+
+    def test_aprobado_en_wompi_aprueba_el_pago(self):
+        respuesta, consulta = self.volver_de_wompi(self.transaccion())
+        consulta.assert_called_once_with("1234-5678-90")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(self.pago.estado, Pago.Estado.APROBADO)
+
+    def test_rechazado_en_wompi_rechaza_el_pago(self):
+        self.volver_de_wompi(self.transaccion(status="DECLINED"))
+        self.assertEqual(self.pago.estado, Pago.Estado.RECHAZADO)
+
+    def test_transaccion_de_otra_referencia_no_cambia_el_pago(self):
+        self.volver_de_wompi(self.transaccion(reference="INT-otra"))
+        self.assertEqual(self.pago.estado, Pago.Estado.PENDIENTE)
+
+    def test_wompi_no_responde_deja_pendiente(self):
+        self.volver_de_wompi(None)
+        self.assertEqual(self.pago.estado, Pago.Estado.PENDIENTE)
+
+    def test_consulta_va_a_sandbox_con_llave_de_prueba(self):
+        respuesta_api = mock.MagicMock()
+        respuesta_api.__enter__.return_value.read.return_value = b'{"data": {"id": "1"}}'
+        with mock.patch("core.pagos.urlopen", return_value=respuesta_api) as abrir:
+            from .pagos import consultar_transaccion
+            self.assertEqual(consultar_transaccion("1234-5678-90"), {"id": "1"})
+            self.assertIsNone(consultar_transaccion("../admin"))  # id con formato raro: ni se consulta
+        self.assertEqual(abrir.call_count, 1)
+        self.assertEqual(
+            abrir.call_args.args[0].full_url, "https://sandbox.wompi.co/v1/transactions/1234-5678-90"
+        )
+
+
+@override_settings(DEBUG=True, PASARELA_SIMULADA=False, WOMPI_PUBLIC_KEY="pub_test_x",
+                   WOMPI_INTEGRITY_SECRET="test_integrity_x", WOMPI_PRIVATE_KEY="prv_test_x")
+class WompiDesdeLocalTests(ConsultaWompiTests):
+    """En 127.0.0.1 Wompi bloquea el redirect-url: se cobra sin él y se busca por referencia."""
+
+    def test_redirect_local_no_se_envia(self):
+        from .pagos import url_checkout
+        self.assertNotIn("redirect-url", url_checkout(pago=self.pago, redirect_url="http://127.0.0.1:8000/x/"))
+        self.assertNotIn("redirect-url", url_checkout(pago=self.pago, redirect_url="http://localhost:8000/x/"))
+        self.assertIn("redirect-url", url_checkout(pago=self.pago, redirect_url="https://intersoft.co/x/"))
+
+    def test_sin_id_busca_por_referencia(self):
+        with mock.patch("core.pagos.buscar_transaccion_por_referencia",
+                        return_value=self.transaccion(status="DECLINED")) as buscar:
+            self.client.get(reverse("pagos_resultado", args=[self.pago.pk]))
+        buscar.assert_called_once_with(self.pago.referencia)
+        self.pago.refresh_from_db()
+        self.assertEqual(self.pago.estado, Pago.Estado.RECHAZADO)
+
+    def test_busqueda_usa_llave_privada_en_sandbox(self):
+        respuesta_api = mock.MagicMock()
+        respuesta_api.__enter__.return_value.read.return_value = json.dumps({"data": [
+            {"id": "viejo", "created_at": "2026-11-01T10:00:00Z"},
+            {"id": "nuevo", "created_at": "2026-11-05T10:00:00Z"},
+        ]}).encode()
+        with mock.patch("core.pagos.urlopen", return_value=respuesta_api) as abrir:
+            from .pagos import buscar_transaccion_por_referencia
+            self.assertEqual(buscar_transaccion_por_referencia("INT-abc")["id"], "nuevo")
+        peticion = abrir.call_args.args[0]
+        self.assertEqual(peticion.full_url, "https://sandbox.wompi.co/v1/transactions?reference=INT-abc")
+        self.assertEqual(peticion.get_header("Authorization"), "Bearer prv_test_x")
+
+    @override_settings(WOMPI_PRIVATE_KEY="")
+    def test_sin_llave_privada_no_consulta(self):
+        with mock.patch("core.pagos.urlopen") as abrir:
+            from .pagos import buscar_transaccion_por_referencia
+            self.assertIsNone(buscar_transaccion_por_referencia("INT-abc"))
+        abrir.assert_not_called()
+
+
+@override_settings(DEBUG=True, PASARELA_SIMULADA=False, WOMPI_PUBLIC_KEY="pub_test_x",
+                   WOMPI_INTEGRITY_SECRET="test_integrity_x", WOMPI_PRIVATE_KEY="prv_test_x")
+class PagoPendienteTests(ConsultaWompiTests):
+    """Un pago aprobado en Wompi se refleja al volver, sin pasar por la página de resultado."""
+
+    def test_lista_muestra_verificar_en_vez_de_pagar(self):
+        with mock.patch("core.pagos.buscar_transaccion_por_referencia") as buscar:
+            html = self.client.get(reverse("facturas_lista")).content.decode()
+        buscar.assert_not_called()  # la lista no llama a Wompi
+        self.assertIn("Verificar pago", html)
+        self.assertNotIn("Pagar con Wompi", html)
+
+    def test_detalle_consulta_wompi_y_marca_pagada(self):
+        with mock.patch("core.pagos.buscar_transaccion_por_referencia", return_value=self.transaccion()):
+            html = self.client.get(reverse("facturas_detalle", args=[self.pago.factura_id])).content.decode()
+        self.pago.refresh_from_db()
+        self.assertEqual(self.pago.estado, Pago.Estado.APROBADO)
+        self.assertNotIn("Pagar con Wompi", html)
+
+    def test_no_cobra_dos_veces_si_wompi_ya_aprobo(self):
+        with mock.patch("core.pagos.buscar_transaccion_por_referencia", return_value=self.transaccion()):
+            respuesta = self.client.post(reverse("facturas_cobrar", args=[self.pago.factura_id]))
+        self.assertEqual(respuesta.url, reverse("facturas_lista"))
+        self.assertEqual(Pago.objects.count(), 1)
+        self.pago.refresh_from_db()
+        self.assertEqual(self.pago.estado, Pago.Estado.APROBADO)
+
