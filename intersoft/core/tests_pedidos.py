@@ -1,4 +1,5 @@
 """Pedidos con reserva: la factura nace con el pago."""
+import threading
 from datetime import timedelta
 from decimal import Decimal
 from io import StringIO
@@ -8,7 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, connection, connections, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
@@ -30,8 +31,8 @@ from .pagos import (
     url_checkout,
 )
 from .reservas import marcar_pagado
-from .services import anular_factura, crear_factura
-from .tests_compra import Base, DATOS_ENVIO, crear_negocio, crear_producto, transaccion
+from .services import StockInsuficiente, anular_factura, crear_factura
+from .tests_compra import Base, DATOS_ENVIO, crear_negocio, crear_producto, crear_usuario, transaccion
 
 Usuario = get_user_model()
 
@@ -635,3 +636,86 @@ class ComandoVencimientoTests(PedidoBase):
         self.buscar.return_value = None
         self.vencido_hace(1)
         self.assertIn("Vencidos: 1", self.ejecutar())
+
+
+class AdminPedidosTests(TestCase):
+    def test_filtro_por_estado_encuentra_los_reembolsos(self):
+        empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
+        usuario = Usuario.objects.create_superuser(username="s@c.co", email="s@c.co", password="x")
+        crear_pedido_simple(empresa, usuario, numero=1)
+        reembolso = crear_pedido_simple(empresa, usuario, numero=2)
+        Pedido.objects.filter(pk=reembolso.pk).update(estado=Pedido.Estado.REQUIERE_REEMBOLSO)
+        self.client.force_login(usuario)
+        respuesta = self.client.get(reverse("admin:core_pedido_changelist"), {"estado__exact": "requiere_reembolso"})
+        self.assertEqual(list(respuesta.context["cl"].queryset), [reembolso])
+
+
+class ConcurrenciaPedidosTests(TransactionTestCase):
+    """Con hilos y conexiones reales: aquí sí compiten los bloqueos de PostgreSQL."""
+
+    def setUp(self):
+        self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
+        self.negocio = crear_negocio("Panadería", "111", self.dueno)
+        self.producto = crear_producto(self.negocio, stock=10)
+        self.compradores = [crear_usuario("a@correo.co"), crear_usuario("b@correo.co")]
+
+    def en_paralelo(self, *funciones):
+        barrera = threading.Barrier(len(funciones))
+        resultados, errores = [], []
+
+        def correr(funcion):
+            try:
+                barrera.wait(timeout=15)
+                resultados.append(funcion())
+            except Exception as error:
+                errores.append(error)
+            finally:
+                connections.close_all()
+
+        hilos = [threading.Thread(target=correr, args=[f]) for f in funciones]
+        for hilo in hilos:
+            hilo.start()
+        for hilo in hilos:
+            hilo.join(timeout=40)
+            self.assertFalse(hilo.is_alive(), "un hilo quedó bloqueado")
+        return resultados, errores
+
+    def pedido(self, comprador, cantidad=1):
+        producto = Producto.objects.get(pk=self.producto.pk)
+        return compras.crear_pedido(
+            usuario=comprador, negocio=self.negocio,
+            lineas=[{"producto": producto, "cantidad": cantidad}],
+            datos={**DATOS_ENVIO, "numero_documento": "1020304"},
+        )
+
+    def test_dos_pedidos_simultaneos_reciben_numeros_distintos(self):
+        _, errores = self.en_paralelo(*[lambda c=c: self.pedido(c) for c in self.compradores])
+        self.assertEqual(errores, [])
+        self.assertEqual(sorted(Pedido.objects.values_list("numero", flat=True)), [1, 2])
+
+    def test_la_ultima_unidad_la_obtiene_una_sola_persona(self):
+        Producto.objects.filter(pk=self.producto.pk).update(stock=1)
+        resultados, errores = self.en_paralelo(*[lambda c=c: self.pedido(c) for c in self.compradores])
+        self.assertEqual(len(resultados), 1)
+        self.assertEqual([type(e) for e in errores], [StockInsuficiente])
+        self.assertEqual(Pedido.objects.count(), 1)
+        self.assertEqual(Producto.objects.get(pk=self.producto.pk).stock, 0)
+
+    def test_webhook_y_consulta_simultaneos_crean_una_sola_factura(self):
+        pedido = self.pedido(self.compradores[0], cantidad=2)
+        evento = transaccion(crear_pago_pedido(pedido=pedido))
+        _, errores = self.en_paralelo(lambda: aplicar_transaccion(evento), lambda: aplicar_transaccion(evento))
+        self.assertEqual(errores, [])
+        self.assertEqual(Factura.objects.count(), 1)
+        self.assertEqual(Producto.objects.get(pk=self.producto.pk).stock, 8)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, Pedido.Estado.PAGADO)
+
+    def test_dos_ejecuciones_simultaneas_liberan_una_sola_vez(self):
+        pedido = self.pedido(self.compradores[0], cantidad=2)
+        Pedido.objects.filter(pk=pedido.pk).update(expira_en=timezone.now() - timedelta(minutes=1))
+        resultados, errores = self.en_paralelo(lambda: compras.vencer_pedido(pedido.pk), lambda: compras.vencer_pedido(pedido.pk))
+        self.assertEqual(errores, [])
+        self.assertEqual(sorted(resultados), ["omitido", "vencido"])
+        self.assertEqual(Producto.objects.get(pk=self.producto.pk).stock, 10)
+        self.assertEqual(MovimientoInventario.objects.filter(tipo="entrada").count(), 1)
