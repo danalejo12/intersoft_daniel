@@ -1,5 +1,9 @@
 """Compra en el marketplace. Reutiliza la facturación y los pagos del panel, sin duplicarlos."""
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from .models import Cliente, Comentario, DetalleFactura, Pago, Pedido
 from .pagos import sincronizar_pago
@@ -30,6 +34,13 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         empresa=negocio,
         comprador=usuario,
         factura=factura,
+        numero=factura.numero,
+        expira_en=timezone.now() + timedelta(minutes=settings.PEDIDO_MINUTOS_RESERVA),
+        subtotal=factura.subtotal,
+        iva=factura.iva,
+        total=factura.total,
+        tipo_documento=datos["tipo_documento"],
+        numero_documento=datos["numero_documento"],
         nombre=datos["nombre"],
         email=datos["email"],
         telefono=datos["telefono"],

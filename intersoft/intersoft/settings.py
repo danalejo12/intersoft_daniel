@@ -163,3 +163,6 @@ WOMPI_PRIVATE_KEY = config("WOMPI_PRIVATE_KEY", default="")  # Solo para consult
 WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/"
 # Solo para desarrollo: pagos.pasarela_simulada() además exige DEBUG=True
 PASARELA_SIMULADA = config("PASARELA_SIMULADA", default=False, cast=bool)
+
+# Pedidos del marketplace
+PEDIDO_MINUTOS_RESERVA = config("PEDIDO_MINUTOS_RESERVA", default=30, cast=int)

@@ -14,7 +14,9 @@ class Pago(ModeloTenant):
         ANULADO = "anulado", "Anulado"
         ERROR = "error", "Error"
 
-    factura = models.ForeignKey("Factura", on_delete=models.PROTECT, related_name="pagos")
+    # Exactamente uno: el panel cobra facturas; el marketplace cobra pedidos.
+    factura = models.ForeignKey("Factura", on_delete=models.PROTECT, related_name="pagos", null=True, blank=True)
+    pedido = models.ForeignKey("Pedido", on_delete=models.PROTECT, related_name="pagos", null=True, blank=True)
     referencia = models.CharField(max_length=60, unique=True)
     monto_centavos = models.BigIntegerField()
     moneda = models.CharField(max_length=3, default="COP")
@@ -31,6 +33,16 @@ class Pago(ModeloTenant):
                 fields=["factura"],
                 condition=Q(estado="aprobado"),
                 name="uq_un_pago_aprobado_por_factura",
+            ),
+            models.UniqueConstraint(
+                fields=["pedido"],
+                condition=Q(estado="aprobado"),
+                name="uq_un_pago_aprobado_por_pedido",
+            ),
+            models.CheckConstraint(
+                condition=(Q(factura__isnull=False) & Q(pedido__isnull=True))
+                | (Q(factura__isnull=True) & Q(pedido__isnull=False)),
+                name="ck_pago_factura_o_pedido",
             ),
         ]
 

@@ -1,4 +1,6 @@
 """Compras del marketplace: pedidos con datos de envío y opiniones de productos."""
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -9,7 +11,14 @@ from .ventas import Factura
 
 
 class Pedido(ModeloTenant):
-    """Lo que compró una persona en un negocio. La factura guarda productos, precios y pagos."""
+    """Lo que compró una persona en un negocio. Guarda sus líneas y su total: la factura nace al pagar."""
+
+    class Estado(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente de pago"
+        PAGADO = "pagado", "Pagado"
+        VENCIDO = "vencido", "Vencido"
+        CANCELADO = "cancelado", "Cancelado"
+        REQUIERE_REEMBOLSO = "requiere_reembolso", "Requiere reembolso"
 
     ETIQUETAS = {
         "por_pagar": "Por pagar",
@@ -20,7 +29,16 @@ class Pedido(ModeloTenant):
     }
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
-    factura = models.OneToOneField(Factura, on_delete=models.PROTECT, related_name="pedido")
+    factura = models.OneToOneField(Factura, on_delete=models.PROTECT, related_name="pedido", null=True, blank=True)
+    numero = models.PositiveIntegerField()  # Consecutivo por empresa, independiente del de facturas.
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
+    expira_en = models.DateTimeField()
+    renovaciones = models.PositiveSmallIntegerField(default=0)
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    iva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    tipo_documento = models.CharField(max_length=5)
+    numero_documento = models.CharField(max_length=20)
     nombre = models.CharField(max_length=150)
     email = models.EmailField()
     telefono = models.CharField(max_length=20)
@@ -33,10 +51,17 @@ class Pedido(ModeloTenant):
         verbose_name = "pedido"
         verbose_name_plural = "pedidos"
         ordering = ["-creado_en"]
-        indexes = [models.Index(fields=["comprador", "-creado_en"], name="ix_pedido_comprador_fecha")]
+        constraints = [
+            models.UniqueConstraint(fields=["empresa", "numero"], name="uq_pedido_numero_por_empresa"),
+            models.CheckConstraint(condition=Q(total__gte=0), name="ck_pedido_total_no_negativo"),
+        ]
+        indexes = [
+            models.Index(fields=["comprador", "-creado_en"], name="ix_pedido_comprador_fecha"),
+            models.Index(fields=["estado", "expira_en"], name="ix_pedido_estado_expira"),
+        ]
 
     def __str__(self):
-        return f"Pedido de {self.nombre} · {self.factura}"
+        return f"Pedido {self.numero} de {self.nombre}"
 
     @property
     def estado_compra(self):
@@ -56,6 +81,25 @@ class Pedido(ModeloTenant):
     @property
     def estado_etiqueta(self):
         return self.ETIQUETAS[self.estado_compra]
+
+
+class DetallePedido(ModeloTenant):
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="lineas")
+    producto = models.ForeignKey("Producto", on_delete=models.PROTECT, related_name="lineas_pedido")
+    cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    # Se CONGELAN al confirmar: si mañana cambia el precio, este pedido no cambia.
+    precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)
+    iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta:
+        verbose_name = "línea de pedido"
+        verbose_name_plural = "líneas de pedido"
+        constraints = [
+            models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_linea_pedido_cantidad_positiva"),
+        ]
+
+    def __str__(self):
+        return f"{self.cantidad} × {self.producto}"
 
 
 class Comentario(ModeloTenant):
