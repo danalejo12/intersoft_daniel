@@ -168,3 +168,5 @@ PASARELA_SIMULADA = config("PASARELA_SIMULADA", default=False, cast=bool)
 PEDIDO_MINUTOS_RESERVA = config("PEDIDO_MINUTOS_RESERVA", default=30, cast=int)
 PEDIDO_MINUTOS_MINIMOS_PAGO = config("PEDIDO_MINUTOS_MINIMOS_PAGO", default=5, cast=int)
 PEDIDO_MAX_RENOVACIONES = config("PEDIDO_MAX_RENOVACIONES", default=2, cast=int)
+# Tiempo extra, contado desde el vencimiento, para una transacción que Wompi tiene en PENDING
+PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS = config("PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS", default=120, cast=int)

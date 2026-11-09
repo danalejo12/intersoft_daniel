@@ -1,11 +1,13 @@
 """Pedidos con reserva: la factura nace con el pago."""
 from datetime import timedelta
 from decimal import Decimal
+from io import StringIO
 from unittest import mock
 from urllib.error import URLError
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -539,3 +541,97 @@ class ConvivenciaPanelTests(PedidoBase):
         pago = crear_pago(factura=factura)
         self.assertEqual(pago.factura, factura)
         self.assertIsNone(pago.pedido)
+
+
+class ComandoVencimientoTests(PedidoBase):
+    def ejecutar(self):
+        salida = StringIO()
+        call_command("liberar_pedidos_vencidos", stdout=salida)
+        self.recargar()
+        return salida.getvalue()
+
+    def vencido_hace(self, minutos):
+        Pedido.objects.filter(pk=self.pedido.pk).update(expira_en=timezone.now() - timedelta(minutes=minutos))
+        self.recargar()
+
+    def test_vence_y_devuelve_el_stock(self):
+        self.vencido_hace(1)
+        self.assertIn("Vencidos: 1", self.ejecutar())
+        self.assertEqual(self.pedido.estado, Pedido.Estado.VENCIDO)
+        self.assertEqual(self.producto.stock, 5)
+        self.assertEqual(self.referencias()[-1], ("entrada", f"Liberación pedido {self.pedido.numero}"))
+
+    def test_respeta_el_plazo(self):
+        self.assertIn("Vencidos: 0", self.ejecutar())
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+        self.assertEqual(self.producto.stock, 3)
+
+    @override_settings(PEDIDO_MINUTOS_RESERVA=1)
+    def test_el_plazo_es_configurable(self):
+        self.agregar()
+        self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)
+        nuevo = Pedido.objects.get(numero=2)
+        self.assertLess(nuevo.expira_en, timezone.now() + timedelta(minutes=2))
+
+    def test_no_toca_pedidos_pagados(self):
+        marcar_pagado(self.pedido)
+        self.vencido_hace(10)
+        self.ejecutar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_ejecutarlo_dos_veces_no_devuelve_dos_veces(self):
+        self.vencido_hace(1)
+        self.ejecutar()
+        self.assertIn("Vencidos: 0", self.ejecutar())
+        self.assertEqual(self.producto.stock, 5)
+
+    def test_transaccion_pending_antes_del_limite_espera(self):
+        self.buscar.return_value = transaccion(self.intento(), status="PENDING")
+        self.vencido_hace(119)
+        self.assertIn("Esperando a Wompi: 1", self.ejecutar())
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_transaccion_pending_pasado_el_limite_vence(self):
+        self.buscar.return_value = transaccion(self.intento(), status="PENDING")
+        self.vencido_hace(121)
+        self.assertIn("Vencidos: 1", self.ejecutar())
+        self.assertEqual(self.pedido.estado, Pedido.Estado.VENCIDO)
+        self.assertEqual(self.producto.stock, 5)
+
+    @override_settings(PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS=5)
+    def test_el_limite_de_espera_es_configurable(self):
+        self.buscar.return_value = transaccion(self.intento(), status="PENDING")
+        self.vencido_hace(6)
+        self.assertIn("Vencidos: 1", self.ejecutar())
+
+    def test_pasado_el_limite_el_aprobado_tardio_factura(self):
+        pago = self.intento()
+        self.buscar.return_value = transaccion(pago, status="PENDING")
+        self.vencido_hace(121)
+        self.ejecutar()
+        aplicar_transaccion(transaccion(pago))
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+        self.assertEqual(self.producto.stock, 3)
+        self.assertEqual(Factura.objects.count(), 1)
+
+    def test_si_wompi_ya_aprobo_queda_pagado(self):
+        self.buscar.return_value = transaccion(self.intento())
+        self.vencido_hace(1)
+        self.assertIn("Pagados al revisar: 1", self.ejecutar())
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+
+    def test_si_wompi_no_responde_vence_igual(self):
+        self.intento()
+        self.buscar.side_effect = WompiNoResponde
+        self.vencido_hace(1)
+        self.assertIn("Vencidos: 1", self.ejecutar())
+        self.assertEqual(self.producto.stock, 5)
+
+    def test_intento_que_nunca_llego_a_wompi_vence(self):
+        self.intento()
+        self.buscar.return_value = None
+        self.vencido_hace(1)
+        self.assertIn("Vencidos: 1", self.ejecutar())

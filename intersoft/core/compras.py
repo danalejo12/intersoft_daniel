@@ -96,6 +96,31 @@ def cancelar_pedido(pedido):
         reservas.liberar_pedido(bloqueado, Estado.CANCELADO)
 
 
+def vencer_pedido(pedido_id):
+    """Vence un pedido si corresponde. Devuelve qué pasó: vencido, pagado, esperando u omitido."""
+    ahora = timezone.now()
+    pedido = Pedido.objects.get(pk=pedido_id)
+    # Fuera de cualquier bloqueo: no se retiene una fila mientras se espera a Wompi
+    resultado = revisar_en_wompi(pedido)
+    if resultado == ResultadoWompi.APROBADO:
+        return "pagado"
+    espera = timedelta(minutes=settings.PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS)
+    if resultado == ResultadoWompi.EN_PROCESO and ahora < pedido.expira_en + espera:
+        return "esperando"
+    # Si Wompi no responde también se vence: un pago que llegue después lo cubre el aprobado tardío
+    with transaction.atomic():
+        # skip_locked: si otra ejecución ya lo tomó, esta sigue con el siguiente
+        bloqueado = (
+            Pedido.objects.select_for_update(skip_locked=True)
+            .filter(pk=pedido_id, estado=Estado.PENDIENTE, expira_en__lte=ahora)
+            .first()
+        )
+        if bloqueado is None:
+            return "omitido"
+        reservas.liberar_pedido(bloqueado, Estado.VENCIDO)
+    return "vencido"
+
+
 @transaction.atomic
 def renovar_reserva(pedido):
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
