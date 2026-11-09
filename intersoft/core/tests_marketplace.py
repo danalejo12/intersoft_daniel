@@ -1,10 +1,14 @@
+import io
+import tempfile
 from decimal import Decimal
 from unittest import mock
 
 from django.contrib.auth import authenticate, get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from .backends import EmailBackend
 from .models import Empresa, Membresia, Producto, Rol
@@ -353,3 +357,89 @@ class NegocioElegidoTests(TestCase):
     def test_registrar_otro_negocio_abre_ese_negocio(self):
         self.client.post(reverse("negocio_registrar"), datos_negocio("Zeta", "4"))
         self.assertEqual(self.empresa_activa(), "Zeta")
+
+
+def archivo_png(nombre="Foto Original.PNG", relleno=0):
+    contenido = io.BytesIO()
+    Image.new("RGB", (8, 8), "red").save(contenido, "PNG")
+    return SimpleUploadedFile(nombre, contenido.getvalue() + b"0" * relleno, "image/png")
+
+
+class ImagenProductoTests(TestCase):
+    def setUp(self):
+        carpeta = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(carpeta.cleanup)
+        ajuste = override_settings(MEDIA_ROOT=carpeta.name)
+        ajuste.enable()
+        self.addCleanup(ajuste.disable)
+        self.usuario = crear_usuario()
+        self.empresa = registrar_negocio(usuario=self.usuario, datos=datos_negocio())
+        self.client.force_login(self.usuario)
+
+    def datos(self, **extra):
+        return {"codigo": "A-1", "nombre": "Arroz", "precio": "1000", "iva_porcentaje": "19",
+                "stock_inicial": "0", "stock_minimo": "0", "descripcion": "", **extra}
+
+    def test_subir_imagen_desde_el_panel(self):
+        respuesta = self.client.post(reverse("productos_crear"), self.datos(imagen=archivo_png()))
+        self.assertRedirects(respuesta, reverse("productos_lista"))
+        nombre = Producto.objects.get().imagen.name
+        self.assertTrue(nombre.startswith(f"productos/{self.empresa.pk}/"))
+        self.assertTrue(nombre.endswith(".png"))
+        self.assertNotIn("Original", nombre)
+
+    def test_archivo_que_no_es_imagen_se_rechaza(self):
+        falso = SimpleUploadedFile("foto.png", b"esto no es una imagen", "image/png")
+        respuesta = self.client.post(reverse("productos_crear"), self.datos(imagen=falso))
+        self.assertIn("imagen", respuesta.context["form"].errors)
+        self.assertFalse(Producto.objects.exists())
+
+    def test_extension_no_permitida_se_rechaza(self):
+        respuesta = self.client.post(reverse("productos_crear"), self.datos(imagen=archivo_png("foto.gif")))
+        self.assertIn("imagen", respuesta.context["form"].errors)
+
+    def test_imagen_demasiado_grande_se_rechaza(self):
+        pesada = archivo_png(relleno=5 * 1024 * 1024 + 1)
+        respuesta = self.client.post(reverse("productos_crear"), self.datos(imagen=pesada))
+        self.assertIn("imagen", respuesta.context["form"].errors)
+
+    def test_cambiar_la_foto_borra_el_credito_anterior(self):
+        producto = crear_producto(self.empresa, "Arroz", codigo="A-1")
+        producto.imagen.save("a.png", archivo_png())
+        Producto.objects.filter(pk=producto.pk).update(imagen_credito="Autor, CC BY", imagen_fuente="https://ejemplo.co/a")
+        self.client.post(reverse("productos_editar", args=[producto.pk]), self.datos(imagen=archivo_png("b.png")))
+        producto.refresh_from_db()
+        self.assertEqual(producto.imagen_credito, "")
+        self.assertEqual(producto.imagen_fuente, "")
+
+    def test_editar_sin_cambiar_la_foto_conserva_el_credito(self):
+        producto = crear_producto(self.empresa, "Arroz", codigo="A-1")
+        producto.imagen.save("a.png", archivo_png())
+        Producto.objects.filter(pk=producto.pk).update(imagen_credito="Autor, CC BY")
+        self.client.post(reverse("productos_editar", args=[producto.pk]), self.datos(nombre="Arroz blanco"))
+        producto.refresh_from_db()
+        self.assertEqual(producto.nombre, "Arroz blanco")
+        self.assertEqual(producto.imagen_credito, "Autor, CC BY")
+
+    def test_catalogo_y_detalle_muestran_la_foto_y_el_credito(self):
+        producto = crear_producto(self.empresa, "Arroz")
+        producto.imagen.save("a.png", archivo_png())
+        Producto.objects.filter(pk=producto.pk).update(imagen_credito="Autor, CC BY")
+        self.assertContains(self.client.get(reverse("marketplace")), producto.imagen.url)
+        detalle = self.client.get(reverse("tienda_producto", args=[producto.pk]))
+        self.assertContains(detalle, producto.imagen.url)
+        self.assertContains(detalle, "Autor, CC BY")
+
+    def test_producto_sin_foto_sigue_mostrando_la_inicial(self):
+        crear_producto(self.empresa, "Arroz")
+        self.assertContains(self.client.get(reverse("marketplace")), 'data-letra="A"')
+
+
+class BotonMarketplaceTests(TestCase):
+    def test_el_panel_tiene_el_boton_al_marketplace(self):
+        usuario = crear_usuario()
+        registrar_negocio(usuario=usuario, datos=datos_negocio())
+        self.client.force_login(usuario)
+        respuesta = self.client.get(reverse("productos_lista"))
+        self.assertContains(respuesta, f'href="{reverse("marketplace")}"')
+        self.assertContains(respuesta, "Ir al marketplace")

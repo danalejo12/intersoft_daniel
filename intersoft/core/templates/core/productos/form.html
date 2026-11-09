@@ -4,7 +4,7 @@
 {% block contenido %}
   <h1>{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
 
-  <form method="post" class="formulario" novalidate>
+  <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {% for campo in form %}
       <div class="campo">

@@ -9,7 +9,16 @@
   </p>
 
   <article class="detalle">
-    <div class="detalle-imagen con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</div>
+    <div>
+      {% if producto.imagen %}
+        <img class="detalle-foto" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+        {% if producto.imagen_credito %}
+          <p class="credito-foto">Foto de referencia: {% if producto.imagen_fuente %}<a href="{{ producto.imagen_fuente }}" target="_blank" rel="noopener noreferrer">{{ producto.imagen_credito }}</a>{% else %}{{ producto.imagen_credito }}{% endif %}</p>
+        {% endif %}
+      {% else %}
+        <div class="detalle-imagen con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</div>
+      {% endif %}
+    </div>
     <div>
       <h1>{{ producto.nombre }}</h1>
       {% if producto.categoria %}<p class="categoria">{{ producto.categoria.nombre }}</p>{% endif %}

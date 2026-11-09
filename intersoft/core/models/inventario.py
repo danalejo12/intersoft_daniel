@@ -1,8 +1,10 @@
 """Inventario: categorías, productos y kardex de movimientos."""
+import os
+import uuid
 from decimal import ROUND_HALF_UP, Decimal
  
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
  
@@ -25,6 +27,12 @@ class Categoria(ModeloTenant):
         return self.nombre
  
  
+def ruta_imagen_producto(producto, nombre_original):
+    # El nombre lo pone el servidor: el que trae el archivo no es confiable y podría repetirse
+    extension = os.path.splitext(nombre_original)[1].lower()
+    return f"productos/{producto.empresa_id}/{uuid.uuid4().hex}{extension}"
+
+
 class Producto(ModeloTenant):
     categoria = models.ForeignKey(
         Categoria, on_delete=models.SET_NULL, null=True, blank=True, related_name="productos"
@@ -46,8 +54,15 @@ class Producto(ModeloTenant):
     stock_minimo = models.IntegerField(default=0)  # Para alertas de reabastecimiento.
     activo = models.BooleanField(default=True)
     publicado = models.BooleanField(default=False)  # Cada negocio decide qué se ve en el marketplace.
+    imagen = models.ImageField(
+        upload_to=ruta_imagen_producto,
+        blank=True,
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
+    )
+    # Autor y licencia de la foto, cuando no es propia. Las licencias libres exigen citarlos.
+    imagen_credito = models.CharField(max_length=200, blank=True)
+    imagen_fuente = models.URLField(blank=True)
  
-
     class Meta:
         verbose_name = "producto"
         verbose_name_plural = "productos"

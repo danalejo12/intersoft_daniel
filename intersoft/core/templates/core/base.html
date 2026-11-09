@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=12">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=13">
 </head>
 <body>
 
@@ -15,16 +15,16 @@
   <!-- Dock: navegación principal en forma de píldora -->
   <nav class="dock" aria-label="Menú principal">
     <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 17.5a9 9 0 1 1 14.2 0"/><path d="m12 13 3.5-3.5"/><circle cx="12" cy="13" r="1"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 21v-6.5h4V21"/></svg>
     </a>
     <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg>
     </a>
     <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg>
     </a>
     <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15.5 8.5H10a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 0 1 0 3.5H8.5"/><path d="M12 7v10"/></svg>
     </a>
     {# Aquí puedes agregar tu enlace de Categorías con el mismo formato #}
 
@@ -43,7 +43,7 @@
     <header class="barra">
       <a class="marca" href="{% url 'dashboard' %}">
         <span class="marca-icono">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M12 8v8"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
         </span>
         {{ request.empresa.nombre|default:"Intersoft" }}
       </a>
@@ -53,6 +53,10 @@
       </form>
 
       <div class="cuenta">
+        <a class="boton secundario ir-marketplace" href="{% url 'marketplace' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 3-5h14l3 5"/><path d="M2 8v1.5a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0 3.33 3.33 0 0 0 6.67 0V8Z"/><path d="M4 12.5V21h16v-8.5"/><path d="M10 21v-5h4v5"/></svg>
+          Ir al marketplace
+        </a>
         <span class="cuenta-texto">
           <strong>{{ user.get_full_name|default:user.email }}</strong>
           <small>{{ request.membresia.rol.nombre }}</small>
