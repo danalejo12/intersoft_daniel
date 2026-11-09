@@ -1,9 +1,12 @@
 from decimal import Decimal
+from unittest import mock
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
+from .backends import EmailBackend
 from .models import Empresa, Membresia, Producto, Rol
 from .negocios import registrar_negocio
 
@@ -235,3 +238,118 @@ class ProductoFormularioTests(TestCase):
         empresa = crear_empresa("Una", "1", "una")
         producto = Producto.objects.create(empresa=empresa, nombre="X", codigo="X", precio=1)
         self.assertFalse(producto.publicado)
+
+
+class PrecioConIvaTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.empresa = crear_empresa("Una", "1", "una")
+
+    def producto(self, iva, precio="1000", codigo="P-1"):
+        producto = crear_producto(self.empresa, "Arroz", codigo=codigo)
+        producto.precio = Decimal(precio)
+        producto.iva_porcentaje = Decimal(iva)
+        producto.save()
+        return producto
+
+    def test_catalogo_y_detalle_muestran_el_precio_con_iva(self):
+        producto = self.producto("19")
+        for url in (reverse("marketplace"), reverse("tienda_producto", args=[producto.pk])):
+            with self.subTest(url=url):
+                respuesta = self.client.get(url)
+                self.assertContains(respuesta, "$1.190")
+                self.assertContains(respuesta, "IVA incluido")
+                self.assertNotContains(respuesta, "+ IVA")
+
+    def test_iva_cero_muestra_el_mismo_precio(self):
+        self.producto("0")
+        respuesta = self.client.get(reverse("marketplace"))
+        self.assertContains(respuesta, "$1.000")
+        self.assertNotContains(respuesta, "1.190")
+
+    def test_redondea_hacia_arriba(self):
+        producto = self.producto("1", precio="0.50")
+        self.assertEqual(producto.precio_con_iva, Decimal("0.51"))
+
+
+class LoginSinMayusculasTests(TestCase):
+    def setUp(self):
+        self.usuario = crear_usuario("ana@correo.co")
+
+    def ingresar(self, correo, clave=CLAVE):
+        return self.client.post(reverse("login"), {"username": correo, "password": clave})
+
+    def test_correo_en_mayusculas_inicia_sesion(self):
+        self.assertEqual(self.ingresar("ANA@CORREO.CO").status_code, 302)
+        self.assertEqual(self.client.session["_auth_user_id"], str(self.usuario.pk))
+
+    def test_contrasena_incorrecta_falla(self):
+        self.assertEqual(self.ingresar("ANA@CORREO.CO", "otra-clave").status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_la_base_no_permite_correos_que_solo_difieren_en_mayusculas(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Usuario.objects.create_user(username="otra", email="ANA@correo.co", password=CLAVE)
+
+    def test_usuario_inactivo_no_inicia_sesion(self):
+        Usuario.objects.filter(pk=self.usuario.pk).update(is_active=False)
+        self.assertIsNone(authenticate(username="ana@correo.co", password=CLAVE))
+
+    def test_usuario_inexistente_calcula_el_hash(self):
+        with mock.patch.object(Usuario, "set_password") as calcular_hash:
+            self.assertIsNone(authenticate(username="nadie@correo.co", password=CLAVE))
+        calcular_hash.assert_called_once_with(CLAVE)
+
+    def test_si_encuentra_mas_de_uno_no_autentica(self):
+        with mock.patch.object(Usuario._default_manager, "filter", return_value=[self.usuario, self.usuario]):
+            self.assertIsNone(EmailBackend().authenticate(None, username="ana@correo.co", password=CLAVE))
+
+
+class NegocioElegidoTests(TestCase):
+    def setUp(self):
+        self.usuario = crear_usuario()
+        self.alfa = registrar_negocio(usuario=self.usuario, datos=datos_negocio("Alfa", "1"))
+        self.beta = registrar_negocio(usuario=self.usuario, datos=datos_negocio("Beta", "2"))
+        self.ajena = registrar_negocio(usuario=crear_usuario("otra@correo.co"), datos=datos_negocio("Ajena", "3"))
+        self.client.force_login(self.usuario)
+
+    def elegir(self, valor):
+        sesion = self.client.session
+        sesion["empresa_id"] = valor
+        sesion.save()
+
+    def empresa_activa(self):
+        return self.client.get(reverse("quien_soy")).json()["empresa"]
+
+    def test_la_sesion_elige_el_segundo_negocio(self):
+        self.elegir(str(self.beta.pk))
+        self.assertEqual(self.empresa_activa(), "Beta")
+
+    def test_sin_eleccion_usa_el_primero_por_nombre_y_actualiza_la_sesion(self):
+        self.assertEqual(self.empresa_activa(), "Alfa")
+        self.assertEqual(self.client.session["empresa_id"], str(self.alfa.pk))
+
+    def test_empresa_ajena_se_ignora(self):
+        self.elegir(str(self.ajena.pk))
+        self.assertEqual(self.empresa_activa(), "Alfa")
+        self.assertEqual(self.client.session["empresa_id"], str(self.alfa.pk))
+
+    def test_comprador_con_empresa_ajena_en_la_sesion_no_entra(self):
+        self.client.force_login(crear_usuario("comprador@correo.co"))
+        self.elegir(str(self.ajena.pk))
+        self.assertRedirects(self.client.get(reverse("dashboard")), reverse("negocio_registrar"))
+
+    def test_valor_invalido_no_falla(self):
+        for valor in ("no-es-un-uuid", -1):
+            with self.subTest(valor=valor):
+                self.elegir(valor)
+                self.assertEqual(self.empresa_activa(), "Alfa")
+
+    def test_empresa_inactiva_en_la_sesion_se_ignora(self):
+        Empresa.objects.filter(pk=self.beta.pk).update(activa=False)
+        self.elegir(str(self.beta.pk))
+        self.assertEqual(self.empresa_activa(), "Alfa")
+
+    def test_registrar_otro_negocio_abre_ese_negocio(self):
+        self.client.post(reverse("negocio_registrar"), datos_negocio("Zeta", "4"))
+        self.assertEqual(self.empresa_activa(), "Zeta")

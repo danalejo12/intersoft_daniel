@@ -7,8 +7,8 @@
     <span class="tarjeta-negocio">{{ producto.empresa.nombre }}</span>
     <span class="tarjeta-pie">
       <span class="precio">
-        <span class="precio-valor">${{ producto.precio|floatformat:"-2g" }}</span>
-        {% if producto.iva_porcentaje %}<small>+ IVA</small>{% endif %}
+        <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
+        {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
       </span>
       {% include "core/tienda/disponibilidad.html" %}
     </span>

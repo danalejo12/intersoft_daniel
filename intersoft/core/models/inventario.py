@@ -1,5 +1,5 @@
 """Inventario: categorías, productos y kardex de movimientos."""
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
  
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -72,6 +72,13 @@ class Producto(ModeloTenant):
     @property
     def stock_bajo(self):
         return self.stock <= self.stock_minimo
+
+    @property
+    def precio_con_iva(self):
+        """Precio al consumidor: la Ley 1480 de 2011 (art. 26) exige informarlo con impuestos."""
+        return (self.precio * (1 + self.iva_porcentaje / 100)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
  
  
 class MovimientoInventario(ModeloTenant):

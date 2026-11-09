@@ -14,8 +14,8 @@
       <h1>{{ producto.nombre }}</h1>
       {% if producto.categoria %}<p class="categoria">{{ producto.categoria.nombre }}</p>{% endif %}
       <p class="precio precio-grande">
-        <span class="precio-valor">${{ producto.precio|floatformat:"-2g" }}</span>
-        {% if producto.iva_porcentaje %}<small>+ IVA {{ producto.iva_porcentaje|floatformat:"-2" }}%</small>{% endif %}
+        <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
+        {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
       </p>
       {% include "core/tienda/disponibilidad.html" %}
       {% if producto.descripcion %}<div class="descripcion">{{ producto.descripcion|linebreaks }}</div>{% endif %}
