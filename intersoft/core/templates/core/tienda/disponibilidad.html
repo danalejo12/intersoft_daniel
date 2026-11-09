@@ -1,0 +1,2 @@
+{# El público solo ve si hay o no: el stock exacto es información interna del negocio #}
+{% if producto.stock > 0 %}<span class="estado disponible">Disponible</span>{% else %}<span class="estado agotado">Agotado</span>{% endif %}

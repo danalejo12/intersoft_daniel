@@ -1,0 +1,22 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}{{ negocio.nombre }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <p class="migas"><a href="{% url 'marketplace' %}">Marketplace</a> / {{ negocio.nombre }}</p>
+
+  <div class="encabezado-negocio">
+    <span class="inicial inicial-grande con-tono" data-letra="{{ negocio.nombre|first|upper }}" aria-hidden="true">{{ negocio.nombre|first|upper }}</span>
+    <h1>{{ negocio.nombre }}</h1>
+  </div>
+
+  {% if productos %}
+    <div class="rejilla">
+      {% for producto in productos %}
+        {% include "core/tienda/tarjeta_producto.html" %}
+      {% endfor %}
+    </div>
+    {% include "core/tienda/paginacion.html" %}
+  {% else %}
+    <p class="vacio">Este negocio todavía no tiene productos publicados.</p>
+  {% endif %}
+{% endblock %}

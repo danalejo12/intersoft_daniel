@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
  
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
-    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago
+    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario
 )
  
  
@@ -91,3 +91,16 @@ class PagoAdmin(admin.ModelAdmin):
     list_filter = ["empresa", "estado"]
     search_fields = ["referencia", "wompi_transaccion_id"]
     readonly_fields = ["referencia", "monto_centavos", "moneda", "wompi_transaccion_id"]
+
+
+@admin.register(Pedido)
+class PedidoAdmin(admin.ModelAdmin):
+    list_display = ["factura", "nombre", "ciudad", "empresa", "creado_en"]
+    list_filter = ["empresa", "departamento"]
+    search_fields = ["nombre", "email", "factura__numero"]
+
+
+@admin.register(Comentario)
+class ComentarioAdmin(admin.ModelAdmin):
+    list_display = ["producto", "calificacion", "compra_verificada", "empresa", "creado_en"]
+    list_filter = ["empresa", "calificacion", "compra_verificada"]

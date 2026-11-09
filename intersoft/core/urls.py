@@ -1,12 +1,11 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
-from . import views
+from . import views, views_compra, views_tienda
 
-urlpatterns = [
+# Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
+panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
-    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("quien-soy/", views.quien_soy, name="quien_soy"),
 
     # Clientes
@@ -33,5 +32,42 @@ urlpatterns = [
     # Pagos
     path("pagos/<uuid:pk>/resultado/", views.PagoResultadoView.as_view(), name="pagos_resultado"),
     path("pagos/<uuid:pk>/simulador/", views.PagoSimuladorView.as_view(), name="pagos_simulador"),
+]
+
+urlpatterns = [
+    # Marketplace público
+    path("", views_tienda.MarketplaceView.as_view(), name="marketplace"),
+    path("tienda/producto/<uuid:pk>/", views_tienda.ProductoPublicoView.as_view(), name="tienda_producto"),
+    path("tienda/<slug:slug>/", views_tienda.TiendaNegocioView.as_view(), name="tienda_negocio"),
+
+    # Opiniones
+    path("tienda/producto/<uuid:pk>/comentar/", views_compra.ComentarView.as_view(), name="comentar"),
+    path("comentarios/<uuid:pk>/eliminar/", views_compra.EliminarComentarioView.as_view(), name="comentario_eliminar"),
+
+    # Carrito y compra
+    path("carrito/", views_compra.CarritoView.as_view(), name="carrito"),
+    path("carrito/agregar/<uuid:pk>/", views_compra.AgregarAlCarritoView.as_view(), name="carrito_agregar"),
+    path("carrito/actualizar/<uuid:pk>/", views_compra.ActualizarCarritoView.as_view(), name="carrito_actualizar"),
+    path("carrito/quitar/<uuid:pk>/", views_compra.QuitarDelCarritoView.as_view(), name="carrito_quitar"),
+    path("comprar/<slug:slug>/", views_compra.CheckoutView.as_view(), name="checkout"),
+
+    # Pedidos de cada comprador
+    path("pedidos/", views_compra.MisPedidosView.as_view(), name="mis_pedidos"),
+    path("pedidos/<uuid:pk>/", views_compra.PedidoDetalleView.as_view(), name="pedido_detalle"),
+    path("pedidos/<uuid:pk>/estado/", views_compra.EstadoPedidoView.as_view(), name="pedido_estado"),
+    path("pedidos/<uuid:pk>/pagar/", views_compra.PagarPedidoView.as_view(), name="pedido_pagar"),
+    path("pedidos/<uuid:pk>/cancelar/", views_compra.CancelarPedidoView.as_view(), name="pedido_cancelar"),
+
+    # Cuentas
+    path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),
+    path("negocio/registrar/", views_tienda.RegistrarNegocioView.as_view(), name="negocio_registrar"),
+    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("entrar/", views_tienda.despues_de_login, name="despues_login"),
+
+    # Panel de cada negocio
+    path("panel/", include(panel_urlpatterns)),
+
+    # Wompi tiene esta dirección configurada: no se mueve
     path("webhooks/wompi/", views.WompiWebhookView.as_view(), name="wompi_webhook"),
 ]

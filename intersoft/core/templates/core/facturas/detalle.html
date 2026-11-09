@@ -11,7 +11,7 @@
     <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
     <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
     <strong>Estado:</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>Pagada</strong>{% endif %} ·
-    <strong>Vendedor:</strong> {{ factura.creada_por.email }}
+    {% if factura.pedido %}<strong>Origen:</strong> Compra en el marketplace{% else %}<strong>Vendedor:</strong> {{ factura.creada_por.email }}{% endif %}
   </p>
 
   <table class="tabla">
@@ -35,6 +35,16 @@
       <tr class="total"><td colspan="4" class="num">Total</td><td class="num">$ {{ factura.total|floatformat:"0g" }}</td></tr>
     </tfoot>
   </table>
+
+  {% if factura.pedido %}
+    <h2>Datos de envío</h2>
+    <p>
+      <strong>{{ factura.pedido.nombre }}</strong><br>
+      {{ factura.pedido.direccion }}{% if factura.pedido.indicaciones %} · {{ factura.pedido.indicaciones }}{% endif %}<br>
+      {{ factura.pedido.ciudad }}, {{ factura.pedido.departamento }}<br>
+      {{ factura.pedido.telefono }} · {{ factura.pedido.email }}
+    </p>
+  {% endif %}
 
   {% if factura.pagos.all %}
     <h2>Pagos</h2>

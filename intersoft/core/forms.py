@@ -1,6 +1,9 @@
 from django import forms
+from django.core.files.uploadedfile import UploadedFile
 
 from .models import Categoria, Cliente, MovimientoInventario, Producto
+
+IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
 
 class ClienteForm(forms.ModelForm):
@@ -121,13 +124,18 @@ class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
         # "stock" NO está: el stock solo cambia con movimientos (kardex), nunca a mano
-        fields = ["codigo", "nombre", "categoria", "precio", "iva_porcentaje", "stock_minimo", "descripcion"]
+        fields = ["codigo", "nombre", "categoria", "precio", "iva_porcentaje", "stock_minimo", "descripcion", "imagen", "publicado"]
         labels = {
             "codigo": "Código",
             "categoria": "Categoría",
             "iva_porcentaje": "IVA (%)",
             "stock_minimo": "Stock mínimo",
             "descripcion": "Descripción",
+            "publicado": "Publicar en el marketplace",
+        }
+        help_texts = {
+            "publicado": "Si lo marcas, cualquier persona podrá ver este producto en el catálogo.",
+            "imagen": "JPG, PNG o WEBP, máximo 5 MB.",
         }
         widgets = {"descripcion": forms.Textarea(attrs={"rows": 3})}
 
@@ -143,7 +151,7 @@ class ProductoForm(forms.ModelForm):
     # Orden en que se muestran los campos
     field_order = [
         "codigo", "nombre", "categoria", "precio", "iva_porcentaje",
-        "stock_inicial", "stock_minimo", "descripcion",
+        "stock_inicial", "stock_minimo", "descripcion", "imagen", "publicado",
     ]
 
     def __init__(self, *args, empresa=None, **kwargs):
@@ -158,6 +166,16 @@ class ProductoForm(forms.ModelForm):
             Categoria.objects.de_empresa(empresa).filter(activa=True).order_by("nombre")
         )
         self.fields["categoria"].empty_label = "Sin categoría"
+
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get("imagen")
+        if isinstance(imagen, UploadedFile) and imagen.size > IMAGEN_TAMANO_MAXIMO:
+            raise forms.ValidationError("La imagen no puede pesar más de 5 MB.")
+        # False = el usuario marcó "limpiar". Si la foto cambia, el crédito de la anterior ya no aplica
+        if imagen is False or isinstance(imagen, UploadedFile):
+            self.instance.imagen_credito = ""
+            self.instance.imagen_fuente = ""
+        return imagen
 
     def clean_codigo(self):
         # Normalizamos: " p-001 " -> "P-001", y validamos que no se repita en la empresa

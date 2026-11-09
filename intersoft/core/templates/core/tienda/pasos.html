@@ -1,0 +1,6 @@
+<ol class="pasos" aria-label="Pasos de la compra">
+  <li class="{% if paso >= 1 %}hecho{% endif %}" {% if paso == 1 %}aria-current="step"{% endif %}><span>1</span> Carrito</li>
+  <li class="{% if paso >= 2 %}hecho{% endif %}" {% if paso == 2 %}aria-current="step"{% endif %}><span>2</span> Envío</li>
+  <li class="{% if paso >= 3 %}hecho{% endif %}" {% if paso == 3 %}aria-current="step"{% endif %}><span>3</span> Pago</li>
+  <li class="{% if paso >= 4 %}hecho{% endif %}" {% if paso == 4 %}aria-current="step"{% endif %}><span>4</span> ¡Listo!</li>
+</ol>

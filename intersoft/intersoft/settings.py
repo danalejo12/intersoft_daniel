@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     
 ]
 AUTH_USER_MODEL = 'core.Usuario'
+AUTHENTICATION_BACKENDS = ["core.backends.EmailBackend"]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -75,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.carrito',
             ],
         },
     },
@@ -134,6 +136,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Archivos que suben los usuarios (fotos de productos). media/ no se sube a git.
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -145,8 +151,8 @@ MAILERS = {
 }
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"  # temporal: en el paso 4 será el dashboard
-LOGOUT_REDIRECT_URL = "login"
+LOGIN_REDIRECT_URL = "despues_login"  # dueños al panel, compradores al marketplace
+LOGOUT_REDIRECT_URL = "marketplace"
 
 from decouple import config
 

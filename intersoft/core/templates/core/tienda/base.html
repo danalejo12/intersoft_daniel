@@ -1,0 +1,67 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Intersoft · Marketplace{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=4">
+  <script src="{% static 'core/js/tienda.js' %}?v=2" defer></script>
+</head>
+<body>
+  <div id="centinela-barra" aria-hidden="true"></div>
+
+  <header class="barra">
+    <div class="contenedor barra-interior">
+      <a class="marca" href="{% url 'marketplace' %}">Intersoft</a>
+
+      <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios">
+        <button type="submit" class="boton">Buscar</button>
+      </form>
+
+      <nav class="menu" aria-label="Cuenta">
+        <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="Ver carrito de compras" data-carrito>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
+          <span class="contador" data-carrito-cantidad {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
+        </a>
+        {% if user.is_authenticated %}
+          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">Mis pedidos</a>
+          <a class="boton boton-claro" href="{% url 'dashboard' %}">Mi panel</a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="enlace">Salir</button>
+          </form>
+        {% else %}
+          <a class="menu-enlace menu-vende" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+          <a class="menu-enlace" href="{% url 'login' %}">Ingresar</a>
+          <a class="boton" href="{% url 'registro' %}">Crear cuenta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    {% for mensaje in messages %}
+      <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+    {% endfor %}
+
+    {% block contenido %}{% endblock %}
+  </main>
+
+  <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
+
+  <footer class="pie">
+    <div class="contenedor pie-interior">
+      <span class="pie-marca">Intersoft</span>
+      <nav aria-label="Enlaces del pie">
+        <a href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+        <a href="{% url 'registro' %}">Crear cuenta</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

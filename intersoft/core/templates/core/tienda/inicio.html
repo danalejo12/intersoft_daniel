@@ -1,0 +1,53 @@
+{% extends "core/tienda/base.html" %}
+
+{% block contenido %}
+  {% if q %}
+    <h1 class="resultados">Resultados para «{{ q }}»</h1>
+  {% else %}
+    <section class="portada">
+      <span class="mancha mancha-1" aria-hidden="true"></span>
+      <span class="mancha mancha-2" aria-hidden="true"></span>
+      <span class="mancha mancha-3" aria-hidden="true"></span>
+      <h1>Todos los negocios, en un solo lugar</h1>
+      <p>Encuentra productos de los negocios que venden en Intersoft.</p>
+      <div class="portada-acciones">
+        <a class="boton boton-hero" href="#titulo-productos">Ver productos</a>
+        {% if user.is_authenticated %}
+          <a class="boton boton-hero-sec" href="{% url 'dashboard' %}">Mi panel</a>
+        {% else %}
+          <a class="boton boton-hero-sec" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if negocios %}
+    <section aria-labelledby="titulo-negocios">
+      <h2 id="titulo-negocios">Negocios</h2>
+      <div class="negocios">
+        {% for negocio in negocios %}
+          <a class="chip" href="{% url 'tienda_negocio' negocio.slug %}">
+            <span class="inicial con-tono" data-letra="{{ negocio.nombre|first|upper }}" aria-hidden="true">{{ negocio.nombre|first|upper }}</span>
+            {{ negocio.nombre }}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="titulo-productos">
+    <h2 id="titulo-productos">Productos</h2>
+    {% if productos %}
+      <div class="rejilla">
+        {% for producto in productos %}
+          {% include "core/tienda/tarjeta_producto.html" %}
+        {% endfor %}
+      </div>
+      {% include "core/tienda/paginacion.html" %}
+    {% elif q %}
+      <p class="vacio">No encontramos productos ni negocios con esa búsqueda.</p>
+    {% else %}
+      <p class="vacio">Todavía no hay productos publicados.</p>
+    {% endif %}
+  </section>
+{% endblock %}

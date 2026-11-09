@@ -271,6 +271,22 @@ button:active, .boton:active { transform: scale(.97); }
 }
 .boton.secundario:hover { background: rgba(255, 255, 255, .2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
 
+.ir-marketplace { flex: none; min-height: 40px; white-space: nowrap; }
+.ir-marketplace svg { width: 18px; height: 18px; }
+
+/* Foto pequeña en la lista de productos; sin foto muestra la inicial */
+.miniatura {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .1);
+  color: var(--suave);
+  font-weight: 600;
+  object-fit: cover;
+}
+
 /* ---------- Campos ---------- */
 input[type="text"], input[type="email"], input[type="password"], input[type="number"],
 input[type="search"], input[type="tel"], input[type="date"], select, textarea {

@@ -17,11 +17,12 @@
 
   <table class="tabla">
     <thead>
-      <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th><th></th></tr>
+      <tr><th></th><th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th><th></th></tr>
     </thead>
     <tbody>
       {% for producto in productos %}
         <tr>
+          <td>{% if producto.imagen %}<img class="miniatura" src="{{ producto.imagen.url }}" alt="" loading="lazy">{% else %}<span class="miniatura" aria-hidden="true">{{ producto.nombre|first|upper }}</span>{% endif %}</td>
           <td>{{ producto.codigo }}</td>
           <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
           <td>{{ producto.categoria.nombre|default:"—" }}</td>
@@ -45,7 +46,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6">No hay productos que coincidan.</td></tr>
+        <tr><td colspan="7">No hay productos que coincidan.</td></tr>
       {% endfor %}
     </tbody>
   </table>
