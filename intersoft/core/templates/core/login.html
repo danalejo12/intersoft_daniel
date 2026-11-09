@@ -23,5 +23,7 @@
       <input type="hidden" name="next" value="{{ next }}">
       <button type="submit">Ingresar</button>
     </form>
+
+    <p class="nota">¿No tienes cuenta? <a href="{% url 'registro' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Créala aquí</a></p>
   </section>
 {% endblock %}

@@ -1,0 +1,18 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Crear cuenta · Intersoft{% endblock %}
+
+{% block contenido %}
+  <section class="caja-formulario">
+    <h1>Crea tu cuenta</h1>
+    <p class="nota">Con esta misma cuenta podrás comprar y registrar tu negocio.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "core/tienda/campos.html" %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="boton boton-ancho">Crear cuenta</button>
+    </form>
+
+    <p class="nota">¿Ya tienes cuenta? <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Ingresa aquí</a></p>
+  </section>
+{% endblock %}

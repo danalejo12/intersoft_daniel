@@ -145,8 +145,8 @@ MAILERS = {
 }
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"  # temporal: en el paso 4 será el dashboard
-LOGOUT_REDIRECT_URL = "login"
+LOGIN_REDIRECT_URL = "despues_login"  # dueños al panel, compradores al marketplace
+LOGOUT_REDIRECT_URL = "marketplace"
 
 from decouple import config
 

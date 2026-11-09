@@ -121,14 +121,16 @@ class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
         # "stock" NO está: el stock solo cambia con movimientos (kardex), nunca a mano
-        fields = ["codigo", "nombre", "categoria", "precio", "iva_porcentaje", "stock_minimo", "descripcion"]
+        fields = ["codigo", "nombre", "categoria", "precio", "iva_porcentaje", "stock_minimo", "descripcion", "publicado"]
         labels = {
             "codigo": "Código",
             "categoria": "Categoría",
             "iva_porcentaje": "IVA (%)",
             "stock_minimo": "Stock mínimo",
             "descripcion": "Descripción",
+            "publicado": "Publicar en el marketplace",
         }
+        help_texts = {"publicado": "Si lo marcas, cualquier persona podrá ver este producto en el catálogo."}
         widgets = {"descripcion": forms.Textarea(attrs={"rows": 3})}
 
     # Campo EXTRA: no existe en el modelo. Solo se usa al crear.
@@ -143,7 +145,7 @@ class ProductoForm(forms.ModelForm):
     # Orden en que se muestran los campos
     field_order = [
         "codigo", "nombre", "categoria", "precio", "iva_porcentaje",
-        "stock_inicial", "stock_minimo", "descripcion",
+        "stock_inicial", "stock_minimo", "descripcion", "publicado",
     ]
 
     def __init__(self, *args, empresa=None, **kwargs):

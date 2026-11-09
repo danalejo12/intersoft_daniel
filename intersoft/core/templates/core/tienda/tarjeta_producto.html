@@ -1,0 +1,16 @@
+<a class="tarjeta" href="{% url 'tienda_producto' producto.pk %}">
+  <span class="tarjeta-imagen" aria-hidden="true">
+    <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}">{{ producto.nombre|first|upper }}</span>
+  </span>
+  <span class="tarjeta-cuerpo">
+    <strong class="tarjeta-nombre">{{ producto.nombre }}</strong>
+    <span class="tarjeta-negocio">{{ producto.empresa.nombre }}</span>
+    <span class="tarjeta-pie">
+      <span class="precio">
+        <span class="precio-valor">${{ producto.precio|floatformat:"-2g" }}</span>
+        {% if producto.iva_porcentaje %}<small>+ IVA</small>{% endif %}
+      </span>
+      {% include "core/tienda/disponibilidad.html" %}
+    </span>
+  </span>
+</a>

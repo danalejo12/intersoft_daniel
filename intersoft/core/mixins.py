@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
 
 
 class TenantMixin(LoginRequiredMixin):
@@ -10,7 +11,7 @@ class TenantMixin(LoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()          # manda al login
         if request.empresa is None:
-            raise PermissionDenied("No tienes una empresa activa.")
+            return redirect("negocio_registrar")        # comprador sin negocio: que registre uno
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):

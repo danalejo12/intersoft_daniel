@@ -1,0 +1,9 @@
+{% for error in form.non_field_errors %}<p class="error">{% include "core/tienda/icono_error.html" %}<span>{{ error }}</span></p>{% endfor %}
+{% for campo in form %}
+  <div class="campo{% if campo.errors %} con-error{% endif %}">
+    {{ campo.label_tag }}
+    {{ campo }}
+    {% for error in campo.errors %}<p class="error">{% include "core/tienda/icono_error.html" %}<span>{{ error }}</span></p>{% endfor %}
+    {% if campo.help_text %}<small class="ayuda">{{ campo.help_text|safe }}</small>{% endif %}
+  </div>
+{% endfor %}

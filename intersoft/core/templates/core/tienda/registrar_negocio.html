@@ -1,0 +1,15 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Registra tu negocio · Intersoft{% endblock %}
+
+{% block contenido %}
+  <section class="caja-formulario">
+    <h1>Registra tu negocio</h1>
+    <p class="nota">Tendrás un panel para manejar clientes, productos y facturas, y decidirás qué productos publicar.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "core/tienda/campos.html" %}
+      <button type="submit" class="boton boton-ancho">Registrar negocio</button>
+    </form>
+  </section>
+{% endblock %}

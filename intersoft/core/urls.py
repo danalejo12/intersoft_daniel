@@ -1,12 +1,11 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
-from . import views
+from . import views, views_tienda
 
-urlpatterns = [
+# Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
+panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
-    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("quien-soy/", views.quien_soy, name="quien_soy"),
 
     # Clientes
@@ -33,5 +32,24 @@ urlpatterns = [
     # Pagos
     path("pagos/<uuid:pk>/resultado/", views.PagoResultadoView.as_view(), name="pagos_resultado"),
     path("pagos/<uuid:pk>/simulador/", views.PagoSimuladorView.as_view(), name="pagos_simulador"),
+]
+
+urlpatterns = [
+    # Marketplace público
+    path("", views_tienda.MarketplaceView.as_view(), name="marketplace"),
+    path("tienda/producto/<uuid:pk>/", views_tienda.ProductoPublicoView.as_view(), name="tienda_producto"),
+    path("tienda/<slug:slug>/", views_tienda.TiendaNegocioView.as_view(), name="tienda_negocio"),
+
+    # Cuentas
+    path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),
+    path("negocio/registrar/", views_tienda.RegistrarNegocioView.as_view(), name="negocio_registrar"),
+    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("entrar/", views_tienda.despues_de_login, name="despues_login"),
+
+    # Panel de cada negocio
+    path("panel/", include(panel_urlpatterns)),
+
+    # Wompi tiene esta dirección configurada: no se mueve
     path("webhooks/wompi/", views.WompiWebhookView.as_view(), name="wompi_webhook"),
 ]

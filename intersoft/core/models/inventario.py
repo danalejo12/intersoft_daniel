@@ -45,7 +45,9 @@ class Producto(ModeloTenant):
     stock = models.IntegerField(default=0)
     stock_minimo = models.IntegerField(default=0)  # Para alertas de reabastecimiento.
     activo = models.BooleanField(default=True)
+    publicado = models.BooleanField(default=False)  # Cada negocio decide qué se ve en el marketplace.
  
+
     class Meta:
         verbose_name = "producto"
         verbose_name_plural = "productos"

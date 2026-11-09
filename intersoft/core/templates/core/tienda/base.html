@@ -1,0 +1,60 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Intersoft · Marketplace{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=2">
+  <script src="{% static 'core/js/tienda.js' %}?v=1" defer></script>
+</head>
+<body>
+  <div id="centinela-barra" aria-hidden="true"></div>
+
+  <header class="barra">
+    <div class="contenedor barra-interior">
+      <a class="marca" href="{% url 'marketplace' %}">Intersoft</a>
+
+      <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios">
+        <button type="submit" class="boton">Buscar</button>
+      </form>
+
+      <nav class="menu" aria-label="Cuenta">
+        {% if user.is_authenticated %}
+          <a class="boton boton-claro" href="{% url 'dashboard' %}">Mi panel</a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="enlace">Salir</button>
+          </form>
+        {% else %}
+          <a class="menu-enlace menu-vende" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+          <a class="menu-enlace" href="{% url 'login' %}">Ingresar</a>
+          <a class="boton" href="{% url 'registro' %}">Crear cuenta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    {% for mensaje in messages %}
+      <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+    {% endfor %}
+
+    {% block contenido %}{% endblock %}
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor pie-interior">
+      <span class="pie-marca">Intersoft</span>
+      <nav aria-label="Enlaces del pie">
+        <a href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+        <a href="{% url 'registro' %}">Crear cuenta</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

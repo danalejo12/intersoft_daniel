@@ -1,0 +1,32 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}{{ producto.nombre }} · {{ producto.empresa.nombre }}{% endblock %}
+
+{% block contenido %}
+  <p class="migas">
+    <a href="{% url 'marketplace' %}">Marketplace</a> /
+    <a href="{% url 'tienda_negocio' producto.empresa.slug %}">{{ producto.empresa.nombre }}</a> /
+    {{ producto.nombre }}
+  </p>
+
+  <article class="detalle">
+    <div class="detalle-imagen con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</div>
+    <div>
+      <h1>{{ producto.nombre }}</h1>
+      {% if producto.categoria %}<p class="categoria">{{ producto.categoria.nombre }}</p>{% endif %}
+      <p class="precio precio-grande">
+        <span class="precio-valor">${{ producto.precio|floatformat:"-2g" }}</span>
+        {% if producto.iva_porcentaje %}<small>+ IVA {{ producto.iva_porcentaje|floatformat:"-2" }}%</small>{% endif %}
+      </p>
+      {% include "core/tienda/disponibilidad.html" %}
+      {% if producto.descripcion %}<div class="descripcion">{{ producto.descripcion|linebreaks }}</div>{% endif %}
+
+      <a class="vendedor" href="{% url 'tienda_negocio' producto.empresa.slug %}">
+        <span class="inicial inicial-grande con-tono" data-letra="{{ producto.empresa.nombre|first|upper }}" aria-hidden="true">{{ producto.empresa.nombre|first|upper }}</span>
+        <span>
+          <small>Vendido por</small>
+          <strong>{{ producto.empresa.nombre }}</strong>
+        </span>
+      </a>
+    </div>
+  </article>
+{% endblock %}
