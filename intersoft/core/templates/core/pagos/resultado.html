@@ -2,7 +2,7 @@
 {% block titulo %}Resultado del pago · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>Pago de la factura {{ pago.factura.numero }}</h1>
+  <h1>{% if pago.factura %}Pago de la factura {{ pago.factura.numero }}{% else %}Pago del pedido {{ pago.pedido.numero }}{% endif %}</h1>
   <p>Estado: <strong>{{ pago.get_estado_display }}</strong></p>
 
   {% if pago.estado == "pendiente" %}

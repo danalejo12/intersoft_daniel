@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from .models import Cliente, Comentario, Empresa, Factura, Pago, Pedido, Producto
 from .negocios import registrar_negocio
+from .reservas import marcar_pagado
 from .services import StockInsuficiente
 
 Usuario = get_user_model()
@@ -143,13 +144,16 @@ class CheckoutTests(Base):
         })
         self.assertEqual(self.cantidad_en_carrito(), {str(self.producto.pk): 1})
 
-    def test_compra_crea_pedido_factura_cliente_y_reserva_stock(self):
+    def test_compra_crea_pedido_y_reserva_stock_sin_factura(self):
         respuesta = self.comprar(cantidad=2)
         pedido = Pedido.objects.get()
         self.assertRedirects(respuesta, reverse("pedido_detalle", args=[pedido.pk]))
         self.assertEqual(pedido.comprador, self.comprador)
         self.assertEqual(pedido.empresa, self.negocio)
-        self.assertEqual(pedido.factura.cliente.numero_documento, "1020304")
+        self.assertEqual(pedido.numero_documento, "1020304")
+        self.assertIsNone(pedido.factura)
+        self.assertFalse(Factura.objects.exists())
+        self.assertFalse(Cliente.objects.exists())
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock, 3)
         self.assertEqual(self.cantidad_en_carrito(), {})
@@ -160,7 +164,7 @@ class CheckoutTests(Base):
         url = reverse("checkout", args=[self.negocio.slug])
         mostrado = self.client.get(url).context["grupo"]["total"]
         self.client.post(url, DATOS_ENVIO)
-        self.assertEqual(mostrado, Pedido.objects.get().factura.total)
+        self.assertEqual(mostrado, Pedido.objects.get().total)
 
     def test_solo_compra_el_negocio_elegido(self):
         otro = crear_negocio("Ferretería", "222", crear_usuario("o@correo.co"))
@@ -182,13 +186,14 @@ class CheckoutTests(Base):
     def test_cliente_existente_se_reutiliza_sin_cambiarlo(self):
         Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="1020304", nombre="Nombre del negocio")
         self.comprar()
+        marcar_pagado(Pedido.objects.get())
         cliente = Cliente.objects.get(empresa=self.negocio)
         self.assertEqual(cliente.nombre, "Nombre del negocio")
 
     def test_si_alguien_se_lleva_el_stock_no_revela_cantidades(self):
         self.client.force_login(self.comprador)
         self.agregar(cantidad=2)
-        with mock.patch("core.compras.crear_factura", side_effect=StockInsuficiente("hay 1, se piden 2")):
+        with mock.patch("core.reservas.reservar_stock", side_effect=StockInsuficiente("hay 1, se piden 2")):
             respuesta = self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO, follow=True)
         self.assertNotContains(respuesta, "hay 1")
         self.assertContains(respuesta, "Otra persona")
@@ -231,14 +236,16 @@ class PagoPedidoTests(Base):
 
     def test_el_monto_sale_de_la_factura(self):
         self.pagar()
-        self.assertEqual(Pago.objects.get().monto_centavos, int(self.pedido.factura.total * 100))
+        self.assertEqual(Pago.objects.get().monto_centavos, int(self.pedido.total * 100))
 
     def test_aprobado_agradece_y_queda_pagado(self):
         self.pagar()
         self.buscar.return_value = transaccion(Pago.objects.get())
         respuesta = self.client.get(self.detalle)
         self.assertContains(respuesta, "Gracias por tu compra, Ana!")
-        self.assertTrue(Factura.objects.get().esta_pagada)
+        factura = Factura.objects.get()
+        self.assertTrue(factura.esta_pagada)
+        self.assertEqual(Pedido.objects.get().factura, factura)
         self.assertNotContains(respuesta, "Pagar con Wompi")
 
     def test_rechazado_permite_reintentar_y_conserva_la_reserva(self):
@@ -258,8 +265,10 @@ class PagoPedidoTests(Base):
         respuesta = self.client.get(self.detalle)
 
         pago.refresh_from_db()
+        self.pedido.refresh_from_db()
         self.assertEqual(pago.estado, Pago.Estado.ERROR)
-        self.assertFalse(self.pedido.factura.esta_pagada)
+        self.assertIsNone(self.pedido.factura)
+        self.assertFalse(Factura.objects.exists())
         self.assertNotEqual(self.pedido.estado_compra, "pagado")
         self.assertNotContains(respuesta, "Gracias por tu compra")
 
@@ -299,7 +308,8 @@ class PagoPedidoTests(Base):
         self.pagar()
         self.buscar.return_value = transaccion(Pago.objects.get())
         self.client.post(reverse("pedido_cancelar", args=[self.pedido.pk]))
-        self.pedido.factura.refresh_from_db()
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
         self.assertEqual(self.pedido.factura.estado, Factura.Estado.EMITIDA)
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock, 3)
@@ -310,6 +320,10 @@ class PagoPedidoTests(Base):
         self.assertNotContains(self.client.get(reverse("mis_pedidos")), "Panadería")
 
     def test_el_negocio_ve_los_datos_de_envio_en_su_panel(self):
+        self.pagar()
+        self.buscar.return_value = transaccion(Pago.objects.get())
+        self.client.get(self.detalle)
+        self.pedido.refresh_from_db()
         self.client.force_login(self.dueno)
         respuesta = self.client.get(reverse("facturas_detalle", args=[self.pedido.factura_id]))
         self.assertContains(respuesta, "Datos de envío")
@@ -364,8 +378,7 @@ class ComentariosTests(Base):
         self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)  # carrito vacío: no compra
         self.agregar()
         self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)
-        pedido = Pedido.objects.get()
-        Pago.objects.create(empresa=self.negocio, factura=pedido.factura, referencia="R-1", monto_centavos=100, estado="aprobado")
+        marcar_pagado(Pedido.objects.get())
         self.client.post(self.url, {"calificacion": 5, "texto": "Ya compré", "compra_verificada": "on"})
         self.assertTrue(Comentario.objects.get().compra_verificada)
 

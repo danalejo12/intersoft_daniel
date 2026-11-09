@@ -166,3 +166,5 @@ PASARELA_SIMULADA = config("PASARELA_SIMULADA", default=False, cast=bool)
 
 # Pedidos del marketplace
 PEDIDO_MINUTOS_RESERVA = config("PEDIDO_MINUTOS_RESERVA", default=30, cast=int)
+PEDIDO_MINUTOS_MINIMOS_PAGO = config("PEDIDO_MINUTOS_MINIMOS_PAGO", default=5, cast=int)
+PEDIDO_MAX_RENOVACIONES = config("PEDIDO_MAX_RENOVACIONES", default=2, cast=int)

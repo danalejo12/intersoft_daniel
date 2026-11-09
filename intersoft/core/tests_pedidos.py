@@ -1,15 +1,35 @@
 """Pedidos con reserva: la factura nace con el pago."""
 from datetime import timedelta
 from decimal import Decimal
+from unittest import mock
+from urllib.error import URLError
+from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
-from .models import Cliente, Empresa, Factura, Pago, Pedido
-from .services import crear_factura
+from . import compras
+from .models import Cliente, Empresa, Factura, MovimientoInventario, Pago, Pedido, Producto
+from .pagos import (
+    PagoNoPermitido,
+    ResultadoWompi,
+    WompiNoResponde,
+    aplicar_transaccion,
+    buscar_transaccion_por_referencia,
+    calcular_firma_integridad,
+    crear_pago,
+    crear_pago_pedido,
+    formato_expiracion,
+    revisar_en_wompi,
+    url_checkout,
+)
+from .reservas import marcar_pagado
+from .services import anular_factura, crear_factura
+from .tests_compra import Base, DATOS_ENVIO, crear_negocio, crear_producto, transaccion
 
 Usuario = get_user_model()
 
@@ -130,9 +150,392 @@ class MigracionDatosPedidosTests(TransactionTestCase):
         self.assertEqual(pedido.factura.estado, "anulada")
 
         # Solo la factura sin pagar devuelve stock: 3 iniciales + 2 liberadas
-        from .models import MovimientoInventario, Producto
         self.assertEqual(Producto.objects.get(pk=self.producto.pk).stock, 5)
         movimiento = MovimientoInventario.objects.get()
         self.assertEqual((movimiento.tipo, movimiento.referencia), ("entrada", "Liberación pedido 3"))
 
         self.assertEqual(Factura.objects.get(pk=suelta.pk).estado, "emitida")
+
+
+LLAVES = dict(PASARELA_SIMULADA=False, WOMPI_PUBLIC_KEY="pub_test_x", WOMPI_INTEGRITY_SECRET="test_integrity_x", WOMPI_PRIVATE_KEY="prv_test_x")
+
+
+@override_settings(**LLAVES)
+class PedidoBase(Base):
+    def setUp(self):
+        super().setUp()
+        self.comprar(cantidad=2)
+        self.pedido = Pedido.objects.get()
+
+    def recargar(self):
+        self.pedido.refresh_from_db()
+        self.producto.refresh_from_db()
+
+    def intento(self):
+        return crear_pago_pedido(pedido=self.pedido)
+
+    def vencer(self):
+        Pedido.objects.filter(pk=self.pedido.pk).update(expira_en=timezone.now() - timedelta(minutes=1))
+        self.recargar()
+
+    def referencias(self):
+        return list(MovimientoInventario.objects.order_by("creado_en").values_list("tipo", "referencia"))
+
+
+class ReservaTests(PedidoBase):
+    def test_reserva_queda_en_el_kardex(self):
+        self.assertEqual(self.producto.__class__.objects.get(pk=self.producto.pk).stock, 3)
+        self.assertEqual(self.referencias(), [("salida", f"Reserva pedido {self.pedido.numero}")])
+
+    def test_precio_queda_congelado(self):
+        Producto.objects.filter(pk=self.producto.pk).update(precio=Decimal("9000"))
+        self.assertEqual(self.pedido.lineas.get().precio_unitario, Decimal("1999.98"))
+        self.assertEqual(self.intento().monto_centavos, int(self.pedido.total * 100))
+
+    def test_sin_stock_no_crea_nada(self):
+        self.agregar(cantidad=3)
+        Producto.objects.filter(pk=self.producto.pk).update(stock=2)
+        with mock.patch("core.carrito.grupo_de", return_value=(self._grupo(cantidad=3), [])):
+            self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)
+        self.assertEqual(Pedido.objects.count(), 1)
+        self.assertEqual(len(self.referencias()), 1)
+
+    def _grupo(self, cantidad):
+        producto = Producto.objects.get(pk=self.producto.pk)
+        return {"negocio": self.negocio, "lineas": [{"producto": producto, "cantidad": cantidad}], "total": 0}
+
+    def test_numero_de_pedido_consecutivo_por_negocio(self):
+        self.agregar()
+        self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)
+        self.assertEqual(sorted(Pedido.objects.values_list("numero", flat=True)), [1, 2])
+
+
+class AprobacionTests(PedidoBase):
+    def aprobar(self, pago=None, **cambios):
+        return aplicar_transaccion({**transaccion(pago or self.intento()), **cambios})
+
+    def test_crea_una_factura_sin_descontar_otra_vez(self):
+        self.aprobar()
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+        self.assertEqual(self.producto.stock, 3)
+        self.assertEqual(len(self.referencias()), 1)
+        factura = self.pedido.factura
+        self.assertEqual((factura.total, factura.subtotal), (self.pedido.total, self.pedido.subtotal))
+        detalle = factura.detalles.get()
+        self.assertEqual((detalle.cantidad, detalle.precio_unitario), (2, Decimal("1999.98")))
+        self.assertEqual(factura.creada_por, self.comprador)
+
+    def test_evento_repetido_crea_una_sola_factura(self):
+        pago = self.intento()
+        self.aprobar(pago)
+        self.aprobar(pago)
+        self.assertEqual(Factura.objects.count(), 1)
+        self.assertEqual(len(self.referencias()), 1)
+
+    def test_segundo_intento_aprobado_queda_en_error(self):
+        primero, segundo = self.intento(), self.intento()
+        self.aprobar(primero)
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            self.aprobar(segundo)
+        segundo.refresh_from_db()
+        self.assertEqual(segundo.estado, Pago.Estado.ERROR)
+        self.assertEqual(Factura.objects.count(), 1)
+
+    def verificar_reembolso(self, pago):
+        pago.refresh_from_db()
+        self.recargar()
+        self.assertEqual(pago.estado, Pago.Estado.ERROR)
+        self.assertEqual(self.pedido.estado, Pedido.Estado.REQUIERE_REEMBOLSO)
+        self.assertIsNone(self.pedido.factura)
+        self.assertEqual(self.producto.stock, 5)
+        self.assertEqual(self.referencias()[-1], ("entrada", f"Liberación pedido {self.pedido.numero}"))
+        with self.assertRaises(PagoNoPermitido):
+            self.intento()
+
+    def test_monto_distinto_va_a_reembolso_y_devuelve_stock(self):
+        pago = self.intento()
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            self.aprobar(pago, amount_in_cents=pago.monto_centavos - 100)
+        self.verificar_reembolso(pago)
+
+    def test_moneda_distinta_va_a_reembolso_y_devuelve_stock(self):
+        pago = self.intento()
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            self.aprobar(pago, currency="USD")
+        self.verificar_reembolso(pago)
+
+    def test_monto_distinto_repetido_no_devuelve_dos_veces(self):
+        pago = self.intento()
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            self.aprobar(pago, amount_in_cents=1)
+            self.aprobar(pago, amount_in_cents=1)
+        self.recargar()
+        self.assertEqual(self.producto.stock, 5)
+
+    def test_rechazado_con_monto_distinto_no_toca_el_pedido(self):
+        pago = self.intento()
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            self.aprobar(pago, status="DECLINED", amount_in_cents=1)
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_referencia_de_otro_pago_no_cambia_nada(self):
+        pago = self.intento()
+        self.buscar.return_value = {**transaccion(pago), "reference": "INT-otra"}
+        self.client.get(reverse("pedido_detalle", args=[self.pedido.pk]))
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.PENDIENTE)
+
+    def test_aprobado_tardio_con_stock_se_factura(self):
+        pago = self.intento()
+        compras.reservas.liberar_pedido(self.pedido, Pedido.Estado.VENCIDO)
+        self.aprobar(pago)
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+        self.assertEqual(Factura.objects.count(), 1)
+        self.assertEqual(self.producto.stock, 3)
+        self.assertEqual(self.referencias()[-1], ("salida", f"Reserva pedido {self.pedido.numero}"))
+
+    def test_aprobado_tardio_sin_stock_requiere_reembolso(self):
+        pago = self.intento()
+        compras.reservas.liberar_pedido(self.pedido, Pedido.Estado.VENCIDO)
+        Producto.objects.filter(pk=self.producto.pk).update(stock=1)
+        with self.assertLogs("core.reservas", "CRITICAL"):
+            self.aprobar(pago)
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.REQUIERE_REEMBOLSO)
+        self.assertFalse(Factura.objects.exists())
+        self.assertEqual(self.producto.stock, 1)
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.APROBADO)
+
+    def test_aprobado_tras_cancelar_requiere_reembolso_sin_reservar(self):
+        pago = self.intento()
+        compras.reservas.liberar_pedido(self.pedido, Pedido.Estado.CANCELADO)
+        with self.assertLogs("core.reservas", "CRITICAL"):
+            self.aprobar(pago)
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.REQUIERE_REEMBOLSO)
+        self.assertEqual(self.producto.stock, 5)
+
+    def test_reutiliza_cliente_inactivo_sin_duplicarlo(self):
+        existente = Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="1020304", nombre="Antes", activo=False)
+        self.aprobar()
+        self.recargar()
+        self.assertEqual(Cliente.objects.filter(empresa=self.negocio).count(), 1)
+        self.assertEqual(self.pedido.factura.cliente, existente)
+
+
+class BusquedaWompiTests(TestCase):
+    def setUp(self):
+        parche = override_settings(**LLAVES)
+        parche.enable()
+        self.addCleanup(parche.disable)
+
+    def test_falla_de_red_se_distingue(self):
+        with mock.patch("core.pagos.urlopen", side_effect=URLError("sin red")):
+            with self.assertRaises(WompiNoResponde):
+                buscar_transaccion_por_referencia("INT-1")
+
+    def test_sin_transacciones_devuelve_none(self):
+        respuesta = mock.MagicMock()
+        respuesta.__enter__.return_value.read.return_value = b'{"data": []}'
+        with mock.patch("core.pagos.urlopen", return_value=respuesta):
+            self.assertIsNone(buscar_transaccion_por_referencia("INT-1"))
+
+
+class CancelarTests(PedidoBase):
+    def cancelar(self):
+        return self.client.post(reverse("pedido_cancelar", args=[self.pedido.pk]), follow=True)
+
+    def test_sin_transaccion_en_wompi_se_cancela(self):
+        self.intento()
+        self.buscar.return_value = None
+        self.assertContains(self.cancelar(), "Este pedido fue cancelado")
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.CANCELADO)
+        self.assertEqual(self.producto.stock, 5)
+        self.assertEqual(self.referencias()[-1], ("entrada", f"Liberación pedido {self.pedido.numero}"))
+
+    def test_aprobado_en_wompi_no_se_cancela(self):
+        self.buscar.return_value = transaccion(self.intento())
+        self.assertContains(self.cancelar(), "Gracias por tu compra")
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+
+    def test_en_proceso_no_se_cancela(self):
+        self.buscar.return_value = transaccion(self.intento(), status="PENDING")
+        self.assertContains(self.cancelar(), "sigue en proceso")
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_wompi_no_responde_no_se_cancela(self):
+        self.intento()
+        self.buscar.side_effect = WompiNoResponde
+        self.assertContains(self.cancelar(), "No pudimos confirmar")
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+
+    def test_sin_llave_privada_no_se_cancela(self):
+        self.intento()
+        with override_settings(WOMPI_PRIVATE_KEY=""):
+            self.assertEqual(revisar_en_wompi(self.pedido), ResultadoWompi.SIN_RESPUESTA)
+
+    def test_sin_intentos_se_cancela_sin_consultar(self):
+        self.cancelar()
+        self.buscar.assert_not_called()
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.CANCELADO)
+
+    def test_cancelar_dos_veces_no_devuelve_dos_veces(self):
+        self.cancelar()
+        self.assertContains(self.cancelar(), "ya no se puede cancelar")
+        self.recargar()
+        self.assertEqual(self.producto.stock, 5)
+
+
+class ExpiracionWompiTests(PedidoBase):
+    def test_firma_con_expiracion_sigue_el_orden_documentado(self):
+        # La documentación repite por error el hash del ejemplo sin expiración; este es el calculado
+        firma = calcular_firma_integridad(
+            referencia="sk8-438k4-xmxm392-sn2m",
+            monto_centavos=2490000,
+            moneda="COP",
+            secreto="prod_integrity_Z5mMke9x0k8gpErbDqwrJXMqsI6SFli6",
+            expiracion="2023-06-09T20:28:50.000Z",
+        )
+        self.assertEqual(firma, "e972f58e7de36b283fbb93d9318d39a54ffdff4e8e917b534f30d63c9d7bb89c")
+
+    def test_formato_iso_utc_sin_microsegundos(self):
+        fecha = timezone.datetime(2026, 11, 9, 15, 28, 50, 123456, tzinfo=timezone.get_fixed_timezone(-300))
+        self.assertEqual(formato_expiracion(fecha), "2026-11-09T20:28:50.000Z")
+
+    def test_url_y_firma_usan_el_mismo_texto(self):
+        pago = self.intento()
+        datos = parse_qs(urlsplit(url_checkout(pago=pago, redirect_url="https://intersoft.co/x/")).query)
+        texto = datos["expiration-time"][0]
+        self.assertEqual(texto, formato_expiracion(self.pedido.expira_en))
+        esperada = calcular_firma_integridad(
+            referencia=pago.referencia, monto_centavos=pago.monto_centavos, moneda="COP",
+            secreto="test_integrity_x", expiracion=texto,
+        )
+        self.assertEqual(datos["signature:integrity"][0], esperada)
+
+    def test_cobro_de_factura_no_lleva_expiracion(self):
+        cliente = Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="5", nombre="C")
+        factura = crear_factura(empresa=self.negocio, usuario=self.dueno, cliente=cliente, items=[{"producto": self.producto, "cantidad": 1}])
+        url = url_checkout(pago=crear_pago(factura=factura), redirect_url="https://intersoft.co/x/")
+        self.assertNotIn("expiration-time", url)
+
+
+class RenovacionTests(PedidoBase):
+    def faltan(self, minutos):
+        Pedido.objects.filter(pk=self.pedido.pk).update(expira_en=timezone.now() + timedelta(minutes=minutos))
+        self.recargar()
+
+    def renovar(self):
+        return self.client.post(reverse("pedido_renovar", args=[self.pedido.pk]), follow=True)
+
+    def detalle(self):
+        return self.client.get(reverse("pedido_detalle", args=[self.pedido.pk]))
+
+    def test_con_poco_tiempo_no_abre_wompi(self):
+        self.faltan(4)
+        respuesta = self.client.post(reverse("pedido_pagar", args=[self.pedido.pk]), follow=True)
+        self.assertFalse(Pago.objects.exists())
+        self.assertContains(respuesta, "Renovar reserva")
+        self.assertNotContains(respuesta, "Pagar con Wompi")
+
+    def test_con_tiempo_suficiente_abre_wompi(self):
+        self.faltan(6)
+        self.assertTrue(self.client.post(reverse("pedido_pagar", args=[self.pedido.pk])).url.startswith("https://checkout.wompi.co/"))
+
+    def test_renovar_extiende_el_plazo_normal(self):
+        self.faltan(4)
+        self.renovar()
+        self.recargar()
+        self.assertEqual(self.pedido.renovaciones, 1)
+        self.assertGreater(self.pedido.expira_en, timezone.now() + timedelta(minutes=29))
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_maximo_dos_renovaciones(self):
+        for _ in range(2):
+            self.faltan(4)
+            self.renovar()
+        self.faltan(4)
+        respuesta = self.renovar()
+        self.assertContains(respuesta, "Ya usaste las renovaciones")
+        self.recargar()
+        self.assertEqual(self.pedido.renovaciones, 2)
+
+    def test_no_renueva_si_sigue_vigente(self):
+        self.renovar()
+        self.recargar()
+        self.assertEqual(self.pedido.renovaciones, 0)
+
+    def test_no_renueva_si_un_producto_se_desactivo(self):
+        self.faltan(4)
+        Producto.objects.filter(pk=self.producto.pk).update(activo=False)
+        self.renovar()
+        self.recargar()
+        self.assertEqual(self.pedido.renovaciones, 0)
+
+    def test_renovar_vencido_vuelve_a_reservar(self):
+        compras.reservas.liberar_pedido(self.pedido, Pedido.Estado.VENCIDO)
+        self.renovar()
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
+        self.assertEqual(self.producto.stock, 3)
+
+    def test_renovar_vencido_sin_stock_no_renueva(self):
+        compras.reservas.liberar_pedido(self.pedido, Pedido.Estado.VENCIDO)
+        Producto.objects.filter(pk=self.producto.pk).update(stock=1)
+        self.assertContains(self.renovar(), "ya no hay unidades")
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.VENCIDO)
+        self.assertEqual(self.producto.stock, 1)
+
+    def test_pagar_reserva_vencida_la_libera(self):
+        self.vencer()
+        with self.assertRaises(PagoNoPermitido):
+            self.intento()
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.VENCIDO)
+        self.assertEqual(self.producto.stock, 5)
+        self.assertFalse(Pago.objects.exists())
+
+
+class ConvivenciaPanelTests(PedidoBase):
+    def setUp(self):
+        super().setUp()
+        marcar_pagado(self.pedido)
+        self.factura = self.pedido.factura
+
+    def test_factura_del_marketplace_esta_pagada_sin_pagos_propios(self):
+        self.assertFalse(self.factura.pagos.exists())
+        self.assertTrue(self.factura.esta_pagada)
+
+    def test_no_se_puede_cobrar_de_nuevo(self):
+        with self.assertRaises(PagoNoPermitido):
+            crear_pago(factura=self.factura)
+
+    def test_no_se_puede_anular(self):
+        with self.assertRaises(ValueError):
+            anular_factura(factura=self.factura, usuario=self.dueno)
+
+    def test_la_lista_del_panel_la_muestra_pagada(self):
+        self.client.force_login(self.dueno)
+        respuesta = self.client.get(reverse("facturas_lista"))
+        self.assertTrue(respuesta.context["facturas"][0].pagada)
+        self.assertContains(respuesta, "Pagada")
+
+    def test_factura_normal_sigue_cobrandose(self):
+        cliente = Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="5", nombre="C")
+        factura = crear_factura(empresa=self.negocio, usuario=self.dueno, cliente=cliente, items=[{"producto": self.producto, "cantidad": 1}])
+        self.assertFalse(factura.esta_pagada)
+        pago = crear_pago(factura=factura)
+        self.assertEqual(pago.factura, factura)
+        self.assertIsNone(pago.pedido)

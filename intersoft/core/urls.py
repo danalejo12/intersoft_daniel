@@ -57,6 +57,7 @@ urlpatterns = [
     path("pedidos/<uuid:pk>/estado/", views_compra.EstadoPedidoView.as_view(), name="pedido_estado"),
     path("pedidos/<uuid:pk>/pagar/", views_compra.PagarPedidoView.as_view(), name="pedido_pagar"),
     path("pedidos/<uuid:pk>/cancelar/", views_compra.CancelarPedidoView.as_view(), name="pedido_cancelar"),
+    path("pedidos/<uuid:pk>/renovar/", views_compra.RenovarReservaView.as_view(), name="pedido_renovar"),
 
     # Cuentas
     path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),

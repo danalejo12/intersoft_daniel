@@ -10,13 +10,20 @@ from django.db import transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
-from .models import DetalleFactura, Empresa, Factura, MovimientoInventario, Producto
+from .models import Cliente, DetalleFactura, Empresa, Factura, MovimientoInventario, Producto
 
 CENTAVOS = Decimal("0.01")
 
 
 class StockInsuficiente(Exception):
     """Se intenta vender más unidades de las que hay."""
+
+
+def siguiente_consecutivo(modelo, empresa):
+    """Consecutivo sin duplicados: la fila de la empresa queda bloqueada hasta el final de la transacción."""
+    Empresa.objects.select_for_update().get(pk=empresa.pk)
+    ultimo = modelo.objects.filter(empresa=empresa).aggregate(m=Max("numero"))["m"] or 0
+    return ultimo + 1
 
 
 @transaction.atomic
@@ -58,11 +65,9 @@ def crear_factura(*, empresa, usuario, cliente, items):
                 f"Stock insuficiente de {producto.nombre}: hay {producto.stock}, se piden {cantidad}."
             )
 
-    # 3. Consecutivo sin duplicados: bloqueamos la fila de la empresa mientras numeramos.
-    Empresa.objects.select_for_update().get(pk=empresa.pk)
-    ultimo = Factura.objects.filter(empresa=empresa).aggregate(m=Max("numero"))["m"] or 0
+    # 3. Consecutivo sin duplicados.
     factura = Factura.objects.create(
-        empresa=empresa, numero=ultimo + 1, cliente=cliente, creada_por=usuario
+        empresa=empresa, numero=siguiente_consecutivo(Factura, empresa), cliente=cliente, creada_por=usuario
     )
 
     # 4. Líneas, descuento de stock y kardex.
@@ -99,6 +104,42 @@ def crear_factura(*, empresa, usuario, cliente, items):
     factura.iva = iva
     factura.total = (subtotal + iva).quantize(CENTAVOS)
     factura.save(update_fields=["subtotal", "iva", "total"])
+    return factura
+
+
+@transaction.atomic
+def crear_factura_desde_pedido(pedido):
+    """Factura de un pedido pagado. No toca el stock: ya se descontó al reservar."""
+    # Sin filtrar por activo: un cliente inactivo con el mismo documento se reutiliza, no se duplica
+    cliente, _ = Cliente.objects.get_or_create(
+        empresa_id=pedido.empresa_id,
+        tipo_documento=pedido.tipo_documento,
+        numero_documento=pedido.numero_documento,
+        defaults={
+            "nombre": pedido.nombre,
+            "email": pedido.email,
+            "telefono": pedido.telefono,
+            "direccion": pedido.direccion,
+        },
+    )
+    factura = Factura.objects.create(
+        empresa_id=pedido.empresa_id,
+        numero=siguiente_consecutivo(Factura, pedido.empresa),
+        cliente=cliente,
+        creada_por=pedido.comprador,
+        subtotal=pedido.subtotal,
+        iva=pedido.iva,
+        total=pedido.total,
+    )
+    for linea in pedido.lineas.all():
+        DetalleFactura.objects.create(
+            empresa_id=pedido.empresa_id,
+            factura=factura,
+            producto_id=linea.producto_id,
+            cantidad=linea.cantidad,
+            precio_unitario=linea.precio_unitario,
+            iva_porcentaje=linea.iva_porcentaje,
+        )
     return factura
 
 

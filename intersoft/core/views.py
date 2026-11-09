@@ -21,7 +21,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 # 3. Imports de tu propia app
 from .forms import ClienteForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Producto
+from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
 from .pagos import (
     PagoNoPermitido,
     aplicar_transaccion,
@@ -139,7 +139,8 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
             super().get_queryset()
             .select_related("cliente")
             .annotate(
-                pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO)),
+                pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO))
+                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO)),
                 pago_en_proceso=Exists(
                     pagos.filter(estado=Pago.Estado.PENDIENTE, creado_en__gte=recientes)
                 ),
@@ -455,6 +456,7 @@ class PagoSimuladorView(PermisoRequeridoMixin, View):
             Pago.objects.de_empresa(request.empresa).select_related("factura"),
             pk=pk,
             estado=Pago.Estado.PENDIENTE,
+            factura__isnull=False,  # el simulador solo cubre el cobro de facturas del panel
         )
 
     def get(self, request, pk):

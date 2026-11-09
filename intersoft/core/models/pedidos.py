@@ -1,10 +1,12 @@
 """Compras del marketplace: pedidos con datos de envío y opiniones de productos."""
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 from .base import ModeloTenant
 from .ventas import Factura
@@ -26,6 +28,8 @@ class Pedido(ModeloTenant):
         "pagado": "Pagado",
         "rechazado": "Pago no aprobado",
         "cancelado": "Cancelado",
+        "vencido": "Reserva vencida",
+        "requiere_reembolso": "En revisión de reembolso",
     }
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
@@ -65,14 +69,25 @@ class Pedido(ModeloTenant):
 
     @property
     def estado_compra(self):
-        if self.factura.estado == Factura.Estado.ANULADA:
-            return "cancelado"
-        estados = list(self.factura.pagos.values_list("estado", flat=True))  # del más reciente al más viejo
-        if "aprobado" in estados:
-            return "pagado"
+        """Estado que ve el comprador: mientras está pendiente, depende de su último intento."""
+        if self.estado != self.Estado.PENDIENTE:
+            return self.estado
+        estados = list(self.pagos.values_list("estado", flat=True))  # del más reciente al más viejo
         if not estados:
             return "por_pagar"
         return "procesando" if estados[0] == "pendiente" else "rechazado"
+
+    @property
+    def necesita_renovar(self):
+        minimo = timedelta(minutes=settings.PEDIDO_MINUTOS_MINIMOS_PAGO)
+        return self.estado == self.Estado.PENDIENTE and self.expira_en - timezone.now() < minimo
+
+    @property
+    def puede_renovar(self):
+        return (
+            self.estado in (self.Estado.PENDIENTE, self.Estado.VENCIDO)
+            and self.renovaciones < settings.PEDIDO_MAX_RENOVACIONES
+        )
 
     @property
     def primer_nombre(self):
