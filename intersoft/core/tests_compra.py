@@ -250,6 +250,19 @@ class PagoPedidoTests(Base):
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock, 3)
 
+    def test_monto_alterado_en_la_consulta_deja_error_y_no_paga(self):
+        self.pagar()
+        pago = Pago.objects.get()
+        self.buscar.return_value = {**transaccion(pago), "amount_in_cents": pago.monto_centavos - 100}
+
+        respuesta = self.client.get(self.detalle)
+
+        pago.refresh_from_db()
+        self.assertEqual(pago.estado, Pago.Estado.ERROR)
+        self.assertFalse(self.pedido.factura.esta_pagada)
+        self.assertNotEqual(self.pedido.estado_compra, "pagado")
+        self.assertNotContains(respuesta, "Gracias por tu compra")
+
     def test_el_estado_lo_decide_wompi_no_la_url(self):
         self.pagar()
         self.client.get(self.detalle + "?status=APPROVED&estado=pagado")
