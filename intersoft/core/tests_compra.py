@@ -378,3 +378,11 @@ class ComentariosTests(Base):
         respuesta = self.client.get(self.pagina)
         self.assertEqual(respuesta.context["opiniones"]["total"], 2)
         self.assertContains(respuesta, "2 opiniones")
+
+
+class EmpresaIntactaTests(TestCase):
+    def test_login_usa_el_estilo_de_la_tienda_y_conserva_el_registro(self):
+        respuesta = self.client.get(reverse("login"))
+        self.assertTemplateUsed(respuesta, "core/tienda/base.html")
+        self.assertContains(respuesta, "Créala aquí")
+        self.assertFalse(Empresa.objects.exists())
