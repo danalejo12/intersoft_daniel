@@ -1,0 +1,71 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Tu carrito · Intersoft{% endblock %}
+
+{% block contenido %}
+  {% if grupos %}
+    {% include "core/tienda/pasos.html" with paso=1 %}
+    <h1 class="titulo-compra">Tu carrito</h1>
+    {% if grupos|length > 1 %}
+      <p class="nota">Tienes productos de {{ grupos|length }} negocios. Cada uno se paga por separado para que te lo envíe directamente.</p>
+    {% endif %}
+
+    {% for grupo in grupos %}
+      <section class="compra-rejilla" aria-label="Productos de {{ grupo.negocio.nombre }}">
+        <div class="panel-compra">
+          <h2 class="negocio-titulo">
+            <span class="inicial con-tono" data-letra="{{ grupo.negocio.nombre|first|upper }}" aria-hidden="true">{{ grupo.negocio.nombre|first|upper }}</span>
+            <a href="{% url 'tienda_negocio' grupo.negocio.slug %}">{{ grupo.negocio.nombre }}</a>
+          </h2>
+
+          {% for linea in grupo.lineas %}
+            <div class="linea">
+              <a class="linea-foto" href="{% url 'tienda_producto' linea.producto.pk %}" aria-hidden="true" tabindex="-1">
+                {% if linea.producto.imagen %}
+                  <img src="{{ linea.producto.imagen.url }}" alt="">
+                {% else %}
+                  <span class="con-tono" data-letra="{{ linea.producto.nombre|first|upper }}">{{ linea.producto.nombre|first|upper }}</span>
+                {% endif %}
+              </a>
+              <div class="linea-datos">
+                <a class="linea-nombre" href="{% url 'tienda_producto' linea.producto.pk %}">{{ linea.producto.nombre }}</a>
+                <small class="nota">${{ linea.producto.precio_con_iva|floatformat:"-2g" }} c/u</small>
+                <div class="linea-acciones">
+                  <form method="post" action="{% url 'carrito_actualizar' linea.producto.pk %}" data-auto-enviar>
+                    {% csrf_token %}
+                    {% include "core/tienda/selector_cantidad.html" with valor=linea.cantidad %}
+                    <noscript><button type="submit" class="enlace">Actualizar</button></noscript>
+                  </form>
+                  <form method="post" action="{% url 'carrito_quitar' linea.producto.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="enlace">Quitar</button>
+                  </form>
+                </div>
+              </div>
+              <strong class="linea-total">${{ linea.total|floatformat:"-2g" }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        <aside class="resumen">
+          <h3>Resumen</h3>
+          <dl>
+            <div><dt>Productos ({{ grupo.unidades }})</dt><dd>${{ grupo.subtotal|floatformat:"-2g" }}</dd></div>
+            <div><dt>IVA</dt><dd>${{ grupo.iva|floatformat:"-2g" }}</dd></div>
+            <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
+          </dl>
+          <a class="boton boton-grande boton-ancho" href="{% url 'checkout' grupo.negocio.slug %}">Continuar con la compra</a>
+          <p class="confianza">El envío lo coordinas con {{ grupo.negocio.nombre }}.</p>
+        </aside>
+      </section>
+    {% endfor %}
+
+    <a class="volver" href="{% url 'marketplace' %}">← Seguir comprando</a>
+  {% else %}
+    <section class="estado-vacio">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
+      <h1 class="titulo-compra">Tu carrito está vacío</h1>
+      <p class="nota">Hay productos esperándote. Date una vuelta por el catálogo.</p>
+      <a class="boton boton-grande" href="{% url 'marketplace' %}">Explorar productos</a>
+    </section>
+  {% endif %}
+{% endblock %}

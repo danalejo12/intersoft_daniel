@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from . import views, views_tienda
+from . import views, views_compra, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
@@ -39,6 +39,24 @@ urlpatterns = [
     path("", views_tienda.MarketplaceView.as_view(), name="marketplace"),
     path("tienda/producto/<uuid:pk>/", views_tienda.ProductoPublicoView.as_view(), name="tienda_producto"),
     path("tienda/<slug:slug>/", views_tienda.TiendaNegocioView.as_view(), name="tienda_negocio"),
+
+    # Opiniones
+    path("tienda/producto/<uuid:pk>/comentar/", views_compra.ComentarView.as_view(), name="comentar"),
+    path("comentarios/<uuid:pk>/eliminar/", views_compra.EliminarComentarioView.as_view(), name="comentario_eliminar"),
+
+    # Carrito y compra
+    path("carrito/", views_compra.CarritoView.as_view(), name="carrito"),
+    path("carrito/agregar/<uuid:pk>/", views_compra.AgregarAlCarritoView.as_view(), name="carrito_agregar"),
+    path("carrito/actualizar/<uuid:pk>/", views_compra.ActualizarCarritoView.as_view(), name="carrito_actualizar"),
+    path("carrito/quitar/<uuid:pk>/", views_compra.QuitarDelCarritoView.as_view(), name="carrito_quitar"),
+    path("comprar/<slug:slug>/", views_compra.CheckoutView.as_view(), name="checkout"),
+
+    # Pedidos de cada comprador
+    path("pedidos/", views_compra.MisPedidosView.as_view(), name="mis_pedidos"),
+    path("pedidos/<uuid:pk>/", views_compra.PedidoDetalleView.as_view(), name="pedido_detalle"),
+    path("pedidos/<uuid:pk>/estado/", views_compra.EstadoPedidoView.as_view(), name="pedido_estado"),
+    path("pedidos/<uuid:pk>/pagar/", views_compra.PagarPedidoView.as_view(), name="pedido_pagar"),
+    path("pedidos/<uuid:pk>/cancelar/", views_compra.CancelarPedidoView.as_view(), name="pedido_cancelar"),
 
     # Cuentas
     path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),

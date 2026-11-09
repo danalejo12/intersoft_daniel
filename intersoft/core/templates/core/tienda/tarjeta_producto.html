@@ -1,20 +1,28 @@
-<a class="tarjeta" href="{% url 'tienda_producto' producto.pk %}">
-  <span class="tarjeta-imagen" aria-hidden="true">
-    {% if producto.imagen %}
-      <img class="tarjeta-foto" src="{{ producto.imagen.url }}" alt="" loading="lazy">
-    {% else %}
-      <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}">{{ producto.nombre|first|upper }}</span>
-    {% endif %}
-  </span>
-  <span class="tarjeta-cuerpo">
-    <strong class="tarjeta-nombre">{{ producto.nombre }}</strong>
-    <span class="tarjeta-negocio">{{ producto.empresa.nombre }}</span>
-    <span class="tarjeta-pie">
-      <span class="precio">
-        <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
-        {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
-      </span>
-      {% include "core/tienda/disponibilidad.html" %}
+<article class="tarjeta">
+  <a class="tarjeta-enlace" href="{% url 'tienda_producto' producto.pk %}">
+    <span class="tarjeta-imagen" aria-hidden="true">
+      {% if producto.imagen %}
+        <img class="tarjeta-foto" src="{{ producto.imagen.url }}" alt="" loading="lazy">
+      {% else %}
+        <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}">{{ producto.nombre|first|upper }}</span>
+      {% endif %}
     </span>
-  </span>
-</a>
+    <span class="tarjeta-cuerpo">
+      <strong class="tarjeta-nombre">{{ producto.nombre }}</strong>
+      <span class="tarjeta-negocio">{{ producto.empresa.nombre }}</span>
+      <span class="tarjeta-pie">
+        <span class="precio">
+          <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
+          {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
+        </span>
+        {% include "core/tienda/disponibilidad.html" %}
+      </span>
+    </span>
+  </a>
+  {% if producto.stock > 0 %}
+    <form class="tarjeta-accion" method="post" action="{% url 'carrito_agregar' producto.pk %}" data-agregar>
+      {% csrf_token %}
+      <button type="submit" class="boton boton-claro boton-ancho">Añadir al carrito</button>
+    </form>
+  {% endif %}
+</article>

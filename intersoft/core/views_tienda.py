@@ -2,7 +2,7 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -56,6 +56,15 @@ class ProductoPublicoView(DetailView):
 
     def get_queryset(self):
         return productos_publicos()
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        comentarios = self.object.comentarios.select_related("autor")
+        contexto["comentarios"] = comentarios[:30]
+        contexto["opiniones"] = comentarios.aggregate(promedio=Avg("calificacion"), total=Count("id"))
+        if self.request.user.is_authenticated:
+            contexto["mi_comentario"] = comentarios.filter(autor=self.request.user).first()
+        return contexto
 
 
 def _destino_seguro(request):

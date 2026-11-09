@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
-  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=3">
-  <script src="{% static 'core/js/tienda.js' %}?v=1" defer></script>
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=4">
+  <script src="{% static 'core/js/tienda.js' %}?v=2" defer></script>
 </head>
 <body>
   <div id="centinela-barra" aria-hidden="true"></div>
@@ -24,7 +24,12 @@
       </form>
 
       <nav class="menu" aria-label="Cuenta">
+        <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="Ver carrito de compras" data-carrito>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
+          <span class="contador" data-carrito-cantidad {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
+        </a>
         {% if user.is_authenticated %}
+          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">Mis pedidos</a>
           <a class="boton boton-claro" href="{% url 'dashboard' %}">Mi panel</a>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
@@ -46,6 +51,8 @@
 
     {% block contenido %}{% endblock %}
   </main>
+
+  <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
 
   <footer class="pie">
     <div class="contenedor pie-interior">

@@ -1,0 +1,28 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Mis pedidos · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1 class="titulo-compra">Mis pedidos</h1>
+
+  {% for pedido in pedidos %}
+    <a class="pedido-fila" href="{% url 'pedido_detalle' pedido.pk %}">
+      <span class="inicial inicial-grande con-tono" data-letra="{{ pedido.empresa.nombre|first|upper }}" aria-hidden="true">{{ pedido.empresa.nombre|first|upper }}</span>
+      <span class="pedido-datos">
+        <strong>{{ pedido.empresa.nombre }}</strong>
+        <small class="nota">Pedido N.º {{ pedido.factura.numero }} · {{ pedido.creado_en|date:"j M Y" }}</small>
+      </span>
+      <span class="pedido-cierre">
+        <strong class="precio-valor">${{ pedido.factura.total|floatformat:"-2g" }}</strong>
+        <span class="estado pedido-{{ pedido.estado_compra }}">{{ pedido.estado_etiqueta }}</span>
+      </span>
+    </a>
+  {% empty %}
+    <section class="estado-vacio">
+      <h2>Aún no tienes pedidos</h2>
+      <p class="nota">Cuando compres algo, aquí podrás seguirlo.</p>
+      <a class="boton boton-grande" href="{% url 'marketplace' %}">Explorar productos</a>
+    </section>
+  {% endfor %}
+
+  {% include "core/tienda/paginacion.html" %}
+{% endblock %}

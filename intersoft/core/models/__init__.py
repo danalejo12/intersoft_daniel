@@ -11,6 +11,7 @@ from .clientes import Cliente
 from .inventario import Categoria, Producto, MovimientoInventario
 from .ventas import Factura, DetalleFactura
 from .pagos import Pago
+from .pedidos import Comentario, Pedido
  
 __all__ = [
     "ModeloBase", "ModeloTenant", "TenantQuerySet",

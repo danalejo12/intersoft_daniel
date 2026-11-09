@@ -1,0 +1,1 @@
+<span class="estrellas" role="img" aria-label="{{ valor|floatformat:1 }} de 5 estrellas">{% for n in "12345" %}<span class="{% if n|add:0 <= valor|floatformat:0|add:0 %}llena{% endif %}" aria-hidden="true">★</span>{% endfor %}</span>
