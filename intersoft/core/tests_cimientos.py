@@ -219,3 +219,59 @@ class LimpiezaTests(TestCase):
         fabrica = RequestFactory()
         self.assertEqual(destino_seguro(fabrica.get("/", {"next": "/carrito/"})), "/carrito/")
         self.assertEqual(destino_seguro(fabrica.get("/", {"next": "https://malo.example/"})), "")
+
+
+class EsperaEntreConsultasTests(PedidoBase):
+    """Las páginas que se recargan no consultan a Wompi más de una vez cada 10 s."""
+
+    def setUp(self):
+        super().setUp()
+        from .tests_compra import transaccion
+
+        self.transaccion = transaccion
+        self.pago = self.intento()
+        self.estado = reverse("pedido_estado", args=[self.pedido.pk])
+
+    def pasar_diez_segundos(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from .models import Pago
+
+        Pago.objects.filter(pk=self.pago.pk).update(consultado_en=timezone.now() - timedelta(seconds=11))
+
+    def test_dos_consultas_seguidas_llaman_una_sola_vez_a_wompi(self):
+        self.assertEqual(self.client.get(self.estado).json()["estado"], "procesando")
+        self.assertEqual(self.client.get(self.estado).json()["estado"], "procesando")
+        self.assertEqual(self.buscar.call_count, 1)
+
+    def test_mientras_espera_responde_con_lo_guardado(self):
+        self.client.get(self.estado)
+        self.buscar.return_value = self.transaccion(self.pago)
+        self.assertEqual(self.client.get(self.estado).json()["estado"], "procesando")
+        self.assertEqual(self.buscar.call_count, 1)
+
+    def test_pasados_diez_segundos_vuelve_a_consultar(self):
+        self.client.get(self.estado)
+        self.buscar.return_value = self.transaccion(self.pago)
+        self.pasar_diez_segundos()
+        self.assertEqual(self.client.get(self.estado).json()["estado"], "pagado")
+        self.assertEqual(self.buscar.call_count, 2)
+
+    def test_el_detalle_del_pedido_tambien_espera(self):
+        detalle = reverse("pedido_detalle", args=[self.pedido.pk])
+        self.client.get(detalle)
+        self.client.get(detalle)
+        self.assertEqual(self.buscar.call_count, 1)
+
+    def test_pagar_consulta_aunque_no_hayan_pasado_diez_segundos(self):
+        from .models import Pago
+
+        self.client.get(self.estado)  # deja la marca de consulta reciente
+        self.buscar.return_value = self.transaccion(self.pago)
+        self.client.post(reverse("pedido_pagar", args=[self.pedido.pk]))
+        self.assertEqual(self.buscar.call_count, 2)
+        self.assertEqual(Pago.objects.count(), 1)  # no abrió un segundo cobro
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)

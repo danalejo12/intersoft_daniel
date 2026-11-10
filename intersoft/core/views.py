@@ -407,7 +407,7 @@ class FacturaCobrarView(PermisoRequeridoMixin, View):
 
     def post(self, request, pk):
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
-        sincronizar_pendientes(factura)  # evita cobrar dos veces si un intento ya se aprobó
+        sincronizar_pendientes(factura, forzar=True)  # evita cobrar dos veces si un intento ya se aprobó
         try:
             pago = crear_pago(factura=factura)
         except PagoNoPermitido as error:

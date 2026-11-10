@@ -205,7 +205,7 @@ class PagarPedidoView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         pedido = _mi_pedido(request, pk)
-        compras.actualizar_pagos(pedido)  # evita cobrar dos veces si un intento ya se aprobó
+        compras.actualizar_pagos(pedido, forzar=True)  # evita cobrar dos veces si un intento ya se aprobó
         try:
             pago = crear_pago_pedido(pedido=pedido)
         except PagoNoPermitido as error:

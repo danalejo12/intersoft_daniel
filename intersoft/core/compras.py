@@ -73,10 +73,11 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
     return pedido
 
 
-def actualizar_pagos(pedido, transaccion_id=""):
-    """Le pregunta a Wompi por los intentos sin respuesta. El navegador nunca decide el estado."""
+def actualizar_pagos(pedido, transaccion_id="", forzar=False):
+    """Le pregunta a Wompi por los intentos sin respuesta. El navegador nunca decide el estado.
+    forzar=True salta la espera de 10 s: se usa justo antes de cobrar."""
     for pago in pedido.pagos.filter(estado=Pago.Estado.PENDIENTE):
-        sincronizar_pago(pago=pago, transaccion_id=transaccion_id)
+        sincronizar_pago(pago=pago, transaccion_id=transaccion_id, forzar=forzar)
     pedido.refresh_from_db()  # aplicar_transaccion trabaja sobre su propia copia bloqueada
 
 

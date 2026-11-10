@@ -24,6 +24,8 @@ class Pago(ModeloTenant):
     wompi_transaccion_id = models.CharField(max_length=60, blank=True)
     metodo_pago = models.CharField(max_length=30, blank=True)
     aprobado_en = models.DateTimeField(null=True, blank=True)
+    # Última consulta a Wompi desde una página: evita consultar en cada recarga
+    consultado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-creado_en"]

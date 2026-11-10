@@ -124,8 +124,11 @@ class MigracionDatosPedidosTests(TransactionTestCase):
         return factura
 
     def migrar(self):
+        # Hasta la última migración: después se usan los modelos actuales, que pueden tener campos nuevos
         ejecutor = MigrationExecutor(connection)
         ejecutor.migrate(self.DESPUES)
+        ejecutor = MigrationExecutor(connection)
+        ejecutor.migrate(ejecutor.loader.graph.leaf_nodes())
 
     def test_adapta_los_tres_casos_y_no_toca_las_demas_facturas(self):
         pagada = self.factura(1)

@@ -285,6 +285,7 @@ class PagoPedidoTests(Base):
         self.pagar()
         self.assertEqual(self.client.get(url).json()["estado"], "procesando")
         self.buscar.return_value = transaccion(Pago.objects.get())
+        Pago.objects.update(consultado_en=None)  # pasaron los 10 s de espera entre consultas
         self.assertEqual(self.client.get(url).json()["estado"], "pagado")
 
     def test_no_cobra_dos_veces_si_wompi_ya_aprobo(self):
