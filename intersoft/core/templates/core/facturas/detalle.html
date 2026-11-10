@@ -63,6 +63,22 @@
     </table>
   {% endif %}
 
+  {% if factura.pedido.pagos.all %}
+    <h2>Pagos del pedido {{ factura.pedido.numero }}</h2>
+    <table class="tabla">
+      <thead><tr><th>Fecha</th><th>Referencia</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for pago in factura.pedido.pagos.all %}
+          <tr>
+            <td>{{ pago.creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{{ pago.referencia }}</td>
+            <td>{{ pago.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
   {% if factura.estado == "emitida" and not factura.esta_pagada %}
     <div class="acciones">
       <form method="post" action="{% url 'facturas_cobrar' factura.pk %}" style="display:inline">

@@ -44,7 +44,11 @@ class Factura(ModeloTenant):
 
     @property
     def esta_pagada(self):
-        return self.pagos.filter(estado="aprobado").exists()
+        if self.pagos.filter(estado="aprobado").exists():
+            return True
+        # La factura del marketplace nace ya pagada: su pago pertenece al pedido
+        pedido = getattr(self, "pedido", None)
+        return pedido is not None and pedido.estado == "pagado"
  
  
 class DetalleFactura(ModeloTenant):

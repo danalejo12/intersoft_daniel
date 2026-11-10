@@ -12,7 +12,7 @@ from . import carrito, compras
 from .forms_tienda import ComentarioForm, DatosEnvioForm
 from .marketplace import empresas_publicas, productos_publicos
 from .models import Comentario, Pedido
-from .pagos import PagoNoPermitido, crear_pago, url_checkout
+from .pagos import PagoNoPermitido, crear_pago_pedido, url_checkout
 from .services import StockInsuficiente
 from .views_tienda import _destino_seguro
 
@@ -120,14 +120,13 @@ class CheckoutView(LoginRequiredMixin, FormView):
 
     def get_initial(self):
         usuario = self.request.user
-        ultimo = Pedido.objects.filter(comprador=usuario).select_related("factura__cliente").first()
+        ultimo = Pedido.objects.filter(comprador=usuario).first()
         if ultimo is None:
             return {"nombre": usuario.get_full_name(), "email": usuario.email}
         # Quien ya compró no debería escribir todo otra vez
-        cliente = ultimo.factura.cliente
         return {
             "nombre": ultimo.nombre, "email": ultimo.email, "telefono": ultimo.telefono,
-            "tipo_documento": cliente.tipo_documento, "numero_documento": cliente.numero_documento,
+            "tipo_documento": ultimo.tipo_documento, "numero_documento": ultimo.numero_documento,
             "departamento": ultimo.departamento, "ciudad": ultimo.ciudad,
             "direccion": ultimo.direccion, "indicaciones": ultimo.indicaciones,
         }
@@ -147,7 +146,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 datos=form.cleaned_data,
             )
         except (StockInsuficiente, ValueError):
-            # El mensaje del servicio incluye el stock exacto, que es información interna del negocio
+            # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
             messages.warning(
                 self.request,
                 "Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos.",
@@ -163,9 +162,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
 
 
 def _mi_pedido(request, pk):
-    return get_object_or_404(
-        Pedido.objects.filter(comprador=request.user).select_related("factura", "empresa"), pk=pk
-    )
+    return get_object_or_404(Pedido.objects.filter(comprador=request.user).select_related("empresa"), pk=pk)
 
 
 class MisPedidosView(LoginRequiredMixin, ListView):
@@ -174,7 +171,7 @@ class MisPedidosView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return Pedido.objects.filter(comprador=self.request.user).select_related("factura", "empresa")
+        return Pedido.objects.filter(comprador=self.request.user).select_related("empresa")
 
 
 class PedidoDetalleView(LoginRequiredMixin, DetailView):
@@ -185,7 +182,7 @@ class PedidoDetalleView(LoginRequiredMixin, DetailView):
         return (
             Pedido.objects.filter(comprador=self.request.user)
             .select_related("factura", "empresa")
-            .prefetch_related("factura__detalles__producto")
+            .prefetch_related("lineas__producto")
         )
 
     def get_object(self, queryset=None):
@@ -210,7 +207,7 @@ class PagarPedidoView(LoginRequiredMixin, View):
         pedido = _mi_pedido(request, pk)
         compras.actualizar_pagos(pedido)  # evita cobrar dos veces si un intento ya se aprobó
         try:
-            pago = crear_pago(factura=pedido.factura)
+            pago = crear_pago_pedido(pedido=pedido)
         except PagoNoPermitido as error:
             messages.info(request, str(error))
             return redirect("pedido_detalle", pk=pedido.pk)
@@ -226,7 +223,20 @@ class CancelarPedidoView(LoginRequiredMixin, View):
         try:
             compras.cancelar_pedido(pedido)
             messages.info(request, "Cancelamos tu pedido. Aquí seguimos cuando quieras volver.")
-        except ValueError as error:
+        except compras.OperacionNoPermitida as error:
+            messages.warning(request, str(error))
+        return redirect("pedido_detalle", pk=pedido.pk)
+
+
+class RenovarReservaView(LoginRequiredMixin, View):
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        pedido = _mi_pedido(request, pk)
+        try:
+            compras.renovar_reserva(pedido)
+            messages.success(request, "¡Listo! Renovamos tu reserva. Ya puedes pagar con calma.")
+        except compras.OperacionNoPermitida as error:
             messages.warning(request, str(error))
         return redirect("pedido_detalle", pk=pedido.pk)
 

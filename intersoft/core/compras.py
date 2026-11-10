@@ -1,35 +1,56 @@
-"""Compra en el marketplace. Reutiliza la facturación y los pagos del panel, sin duplicarlos."""
-from django.db import transaction
+"""Compra en el marketplace: el pedido reserva el stock y la factura nace al aprobarse el pago."""
+from datetime import timedelta
+from decimal import Decimal
 
-from .models import Cliente, Comentario, DetalleFactura, Pago, Pedido
-from .pagos import sincronizar_pago
-from .services import anular_factura, crear_factura
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+
+from . import reservas
+from .models import Comentario, DetallePedido, Pago, Pedido, Producto
+from .pagos import ResultadoWompi, revisar_en_wompi, sincronizar_pago
+from .services import CENTAVOS, StockInsuficiente, siguiente_consecutivo
+
+Estado = Pedido.Estado
+
+
+class OperacionNoPermitida(Exception):
+    """El mensaje se le muestra al comprador."""
+
+
+def _nuevo_vencimiento():
+    return timezone.now() + timedelta(minutes=settings.PEDIDO_MINUTOS_RESERVA)
 
 
 @transaction.atomic
 def crear_pedido(*, usuario, negocio, lineas, datos):
-    """Crea cliente, factura y pedido, y reserva el stock: las tres cosas o ninguna."""
-    cliente, _ = Cliente.objects.get_or_create(
-        empresa=negocio,
-        tipo_documento=datos["tipo_documento"],
-        numero_documento=datos["numero_documento"],
-        defaults={
-            "nombre": datos["nombre"],
-            "email": datos["email"],
-            "telefono": datos["telefono"],
-            "direccion": datos["direccion"],
-        },
+    """Crea el pedido con precios congelados y reserva el stock: todo o nada. No crea factura."""
+    # Productos primero y empresa después, el mismo orden de crear_factura, para evitar bloqueos cruzados
+    cantidades = {linea["producto"].pk: linea["cantidad"] for linea in lineas}
+    productos = list(
+        Producto.objects.select_for_update()
+        .filter(empresa=negocio, id__in=cantidades, activo=True)
+        .order_by("id")
     )
-    factura = crear_factura(
-        empresa=negocio,
-        usuario=usuario,
-        cliente=cliente,
-        items=[{"producto": linea["producto"], "cantidad": linea["cantidad"]} for linea in lineas],
-    )
-    return Pedido.objects.create(
+    if len(productos) != len(cantidades):
+        raise ValueError("Producto inexistente, inactivo o de otro negocio.")
+
+    subtotal = iva = Decimal("0")
+    for producto in productos:  # misma fórmula de services.crear_factura
+        valor = producto.precio * cantidades[producto.pk]
+        subtotal += valor
+        iva += (valor * producto.iva_porcentaje / 100).quantize(CENTAVOS)
+
+    pedido = Pedido.objects.create(
         empresa=negocio,
         comprador=usuario,
-        factura=factura,
+        numero=siguiente_consecutivo(Pedido, negocio),
+        expira_en=_nuevo_vencimiento(),
+        subtotal=subtotal.quantize(CENTAVOS),
+        iva=iva,
+        total=(subtotal + iva).quantize(CENTAVOS),
+        tipo_documento=datos["tipo_documento"],
+        numero_documento=datos["numero_documento"],
         nombre=datos["nombre"],
         email=datos["email"],
         telefono=datos["telefono"],
@@ -38,25 +59,101 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         direccion=datos["direccion"],
         indicaciones=datos["indicaciones"],
     )
+    for producto in productos:
+        DetallePedido.objects.create(
+            empresa=negocio,
+            pedido=pedido,
+            producto=producto,
+            cantidad=cantidades[producto.pk],
+            precio_unitario=producto.precio,
+            iva_porcentaje=producto.iva_porcentaje,
+        )
+    reservas.reservar_stock(pedido)
+    return pedido
 
 
 def actualizar_pagos(pedido, transaccion_id=""):
     """Le pregunta a Wompi por los intentos sin respuesta. El navegador nunca decide el estado."""
-    for pago in pedido.factura.pagos.filter(estado=Pago.Estado.PENDIENTE):
+    for pago in pedido.pagos.filter(estado=Pago.Estado.PENDIENTE):
         sincronizar_pago(pago=pago, transaccion_id=transaccion_id)
+    pedido.refresh_from_db()  # aplicar_transaccion trabaja sobre su propia copia bloqueada
 
 
 def cancelar_pedido(pedido):
-    """Devuelve el stock. Antes confirma con Wompi, por si el pago ya se aprobó."""
-    actualizar_pagos(pedido)
-    return anular_factura(factura=pedido.factura, usuario=pedido.comprador)
+    """Solo se cancela si Wompi confirma que ningún intento sigue vivo."""
+    resultado = revisar_en_wompi(pedido)
+    if resultado == ResultadoWompi.APROBADO:
+        raise OperacionNoPermitida("Tu pago ya fue aprobado, así que este pedido no se puede cancelar.")
+    if resultado == ResultadoWompi.EN_PROCESO:
+        raise OperacionNoPermitida("Tu pago sigue en proceso en Wompi. Espera el resultado antes de cancelar.")
+    if resultado == ResultadoWompi.SIN_RESPUESTA:
+        raise OperacionNoPermitida("No pudimos confirmar tu pago con Wompi. Inténtalo de nuevo en un momento.")
+
+    with transaction.atomic():
+        bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
+        if bloqueado.estado != Estado.PENDIENTE:
+            raise OperacionNoPermitida("Este pedido ya no se puede cancelar.")
+        reservas.liberar_pedido(bloqueado, Estado.CANCELADO)
+
+
+def vencer_pedido(pedido_id):
+    """Vence un pedido si corresponde. Devuelve qué pasó: vencido, pagado, esperando u omitido."""
+    ahora = timezone.now()
+    pedido = Pedido.objects.get(pk=pedido_id)
+    # Fuera de cualquier bloqueo: no se retiene una fila mientras se espera a Wompi
+    resultado = revisar_en_wompi(pedido)
+    if resultado == ResultadoWompi.APROBADO:
+        return "pagado"
+    espera = timedelta(minutes=settings.PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS)
+    if resultado == ResultadoWompi.EN_PROCESO and ahora < pedido.expira_en + espera:
+        return "esperando"
+    # Si Wompi no responde también se vence: un pago que llegue después lo cubre el aprobado tardío
+    with transaction.atomic():
+        # skip_locked: si otra ejecución ya lo tomó, esta sigue con el siguiente
+        bloqueado = (
+            Pedido.objects.select_for_update(skip_locked=True)
+            .filter(pk=pedido_id, estado=Estado.PENDIENTE, expira_en__lte=ahora)
+            .first()
+        )
+        if bloqueado is None:
+            return "omitido"
+        reservas.liberar_pedido(bloqueado, Estado.VENCIDO)
+    return "vencido"
+
+
+@transaction.atomic
+def renovar_reserva(pedido):
+    pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if pedido.renovaciones >= settings.PEDIDO_MAX_RENOVACIONES:
+        raise OperacionNoPermitida("Ya renovaste esta reserva las veces permitidas. Puedes hacer un pedido nuevo.")
+
+    if pedido.estado == Estado.VENCIDO:
+        # El stock se había liberado: hay que volver a reservarlo con lo que haya hoy
+        try:
+            with transaction.atomic():
+                reservas.reservar_stock(pedido)
+        except StockInsuficiente:
+            raise OperacionNoPermitida("Lo sentimos, ya no hay unidades suficientes para este pedido.") from None
+    elif pedido.estado == Estado.PENDIENTE:
+        if not pedido.necesita_renovar:
+            raise OperacionNoPermitida("Tu reserva sigue vigente, no hace falta renovarla.")
+        if reservas.hay_productos_inactivos(pedido):
+            raise OperacionNoPermitida("Lo sentimos, un producto de este pedido ya no está disponible.")
+    else:
+        raise OperacionNoPermitida("Este pedido ya no se puede renovar.")
+
+    pedido.estado = Estado.PENDIENTE
+    pedido.expira_en = _nuevo_vencimiento()
+    pedido.renovaciones += 1
+    pedido.save(update_fields=["estado", "expira_en", "renovaciones", "actualizado_en"])
+    return pedido
 
 
 def compro_el_producto(usuario, producto):
-    return DetalleFactura.objects.filter(
+    return DetallePedido.objects.filter(
         producto=producto,
-        factura__pedido__comprador=usuario,
-        factura__pagos__estado=Pago.Estado.APROBADO,
+        pedido__comprador=usuario,
+        pedido__estado=Estado.PAGADO,
     ).exists()
 
 

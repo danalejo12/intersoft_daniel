@@ -5,7 +5,7 @@
 {% with estado=pedido.estado_compra %}
   {% if estado == "pagado" %}
     {% include "core/tienda/pasos.html" with paso=4 %}
-  {% elif estado != "cancelado" %}
+  {% elif estado == "por_pagar" or estado == "procesando" or estado == "rechazado" %}
     {% include "core/tienda/pasos.html" with paso=3 %}
   {% endif %}
 
@@ -30,6 +30,46 @@
         <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
       </div>
 
+    {% elif estado == "requiere_reembolso" %}
+      <div class="sello sello-alerta" aria-hidden="true">!</div>
+      <h1 class="titulo-compra">Estamos revisando tu pago</h1>
+      <p>Recibimos un pago que no pudimos asociar a este pedido. No te preocupes: lo revisaremos para devolverte el dinero. No hace falta que pagues de nuevo.</p>
+      <div class="estado-acciones">
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+      </div>
+
+    {% elif estado == "vencido" %}
+      <div class="sello" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+      <h1 class="titulo-compra">Tu reserva venció</h1>
+      <p>Pasó el tiempo para pagar y los productos volvieron a estar disponibles. {% if pedido.puede_renovar %}Si aún los quieres, revisamos si siguen disponibles.{% endif %}</p>
+      <div class="estado-acciones">
+        {% if pedido.puede_renovar %}
+          <form method="post" action="{% url 'pedido_renovar' pedido.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="boton boton-grande">Renovar reserva</button>
+          </form>
+        {% endif %}
+        <a class="boton boton-claro boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+      </div>
+
+    {% elif pedido.necesita_renovar %}
+      <div class="sello sello-alerta" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+      <h1 class="titulo-compra">Tu reserva está por vencer</h1>
+      {% if pedido.puede_renovar %}
+        <p>Te quedan muy pocos minutos y no queremos que te quedes a mitad del pago. Renuévala y sigue con calma.</p>
+        <form method="post" action="{% url 'pedido_renovar' pedido.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="boton boton-grande">Renovar reserva</button>
+        </form>
+      {% else %}
+        <p>Ya usaste las renovaciones de este pedido. Cuando venza, puedes volver a hacer tu compra.</p>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+      {% endif %}
+
     {% else %}
       {% if estado == "rechazado" %}
         <div class="sello sello-alerta" aria-hidden="true">!</div>
@@ -44,7 +84,7 @@
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
         </div>
         <h1 class="titulo-compra">¡Ya casi! Solo falta el pago</h1>
-        <p>Tus productos están reservados. Se abrirá una pestaña con la página segura de Wompi.</p>
+        <p>Tus productos están reservados hasta las {{ pedido.expira_en|date:"g:i a" }}. Se abrirá una pestaña con la página segura de Wompi.</p>
       {% endif %}
 
       <form method="post" action="{% url 'pedido_pagar' pedido.pk %}" target="_blank" rel="noopener" data-pagar>
@@ -60,19 +100,19 @@
 
   <div class="compra-rejilla">
     <section class="panel-compra" aria-labelledby="titulo-detalle">
-      <h2 class="seccion-form" id="titulo-detalle">Pedido N.º {{ pedido.factura.numero }} · {{ pedido.empresa.nombre }}</h2>
-      {% for detalle in pedido.factura.detalles.all %}
+      <h2 class="seccion-form" id="titulo-detalle">Pedido N.º {{ pedido.numero }} · {{ pedido.empresa.nombre }}</h2>
+      {% for linea in pedido.lineas.all %}
         <div class="linea linea-compacta">
           <span class="linea-foto" aria-hidden="true">
-            {% if detalle.producto.imagen %}
-              <img src="{{ detalle.producto.imagen.url }}" alt="">
+            {% if linea.producto.imagen %}
+              <img src="{{ linea.producto.imagen.url }}" alt="">
             {% else %}
-              <span class="con-tono" data-letra="{{ detalle.producto.nombre|first|upper }}">{{ detalle.producto.nombre|first|upper }}</span>
+              <span class="con-tono" data-letra="{{ linea.producto.nombre|first|upper }}">{{ linea.producto.nombre|first|upper }}</span>
             {% endif %}
           </span>
           <div class="linea-datos">
-            <span class="linea-nombre">{{ detalle.producto.nombre }}</span>
-            <small class="nota">{{ detalle.cantidad }} unidad{{ detalle.cantidad|pluralize:"es" }}</small>
+            <span class="linea-nombre">{{ linea.producto.nombre }}</span>
+            <small class="nota">{{ linea.cantidad }} unidad{{ linea.cantidad|pluralize:"es" }}</small>
           </div>
         </div>
       {% endfor %}
@@ -87,11 +127,11 @@
         {{ pedido.telefono }}
       </p>
       <dl>
-        <div><dt>Productos</dt><dd>${{ pedido.factura.subtotal|floatformat:"-2g" }}</dd></div>
-        <div><dt>IVA</dt><dd>${{ pedido.factura.iva|floatformat:"-2g" }}</dd></div>
-        <div class="resumen-total"><dt>Total</dt><dd>${{ pedido.factura.total|floatformat:"-2g" }}</dd></div>
+        <div><dt>Productos</dt><dd>${{ pedido.subtotal|floatformat:"-2g" }}</dd></div>
+        <div><dt>IVA</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
+        <div class="resumen-total"><dt>Total</dt><dd>${{ pedido.total|floatformat:"-2g" }}</dd></div>
       </dl>
-      {% if estado == "por_pagar" or estado == "rechazado" or estado == "procesando" %}
+      {% if pedido.estado == "pendiente" %}
         <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" onsubmit="return confirm('¿Seguro que quieres cancelar este pedido?');">
           {% csrf_token %}
           <button type="submit" class="enlace">Cancelar pedido</button>

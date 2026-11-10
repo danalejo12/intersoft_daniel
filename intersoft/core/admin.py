@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
  
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
-    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario
+    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario, DetallePedido
 )
  
  
@@ -87,17 +87,27 @@ admin.site.unregister(Group)
 
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
-    list_display = ["referencia", "factura", "empresa", "monto_centavos", "estado", "creado_en"]
+    list_display = ["referencia", "factura", "pedido", "empresa", "monto_centavos", "estado", "creado_en"]
     list_filter = ["empresa", "estado"]
     search_fields = ["referencia", "wompi_transaccion_id"]
     readonly_fields = ["referencia", "monto_centavos", "moneda", "wompi_transaccion_id"]
 
 
+class DetallePedidoInline(admin.TabularInline):
+    model = DetallePedido
+    extra = 0
+    can_delete = False
+    fields = readonly_fields = ["producto", "cantidad", "precio_unitario", "iva_porcentaje"]
+
+
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = ["factura", "nombre", "ciudad", "empresa", "creado_en"]
-    list_filter = ["empresa", "departamento"]
-    search_fields = ["nombre", "email", "factura__numero"]
+    list_display = ["numero", "nombre", "estado", "total", "empresa", "expira_en", "creado_en"]
+    # El filtro por estado permite encontrar los pedidos en requiere_reembolso
+    list_filter = ["estado", "empresa", "departamento"]
+    list_select_related = ["empresa"]
+    search_fields = ["nombre", "email", "numero_documento"]
+    inlines = [DetallePedidoInline]
 
 
 @admin.register(Comentario)
