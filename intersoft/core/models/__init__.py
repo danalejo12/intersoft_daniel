@@ -12,6 +12,12 @@ from .inventario import Categoria, Producto, MovimientoInventario
 from .ventas import Factura, DetalleFactura
 from .pagos import Pago
 from .pedidos import Comentario, DetallePedido, Pedido
+from .caja import PagoCaja, TurnoCaja
+from .erp import (
+    Proveedor, Compra, LineaCompra, CuentaTesoreria, CuentaCartera,
+    MovimientoTesoreria, CuentaContable, AsientoContable, LineaAsiento,
+    Empleado, LiquidacionNomina, OrdenProduccion, InsumoProduccion, Servicio, Cita,
+)
  
 __all__ = [
     "ModeloBase", "ModeloTenant", "TenantQuerySet",
@@ -21,4 +27,3 @@ __all__ = [
     "Categoria", "Producto", "MovimientoInventario",
     "Factura", "DetalleFactura",
 ]
- 

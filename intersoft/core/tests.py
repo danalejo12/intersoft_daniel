@@ -346,10 +346,12 @@ class FlujoPagoTests(TestCase):
         pago.refresh_from_db()
         self.assertEqual(pago.estado, Pago.Estado.ERROR)
 
-    def test_no_cobra_factura_de_otra_empresa(self):
+    # Antes tenía el mismo nombre que la siguiente y Python la reemplazaba: nunca se ejecutaba
+    def test_cobrar_factura_de_otra_empresa_responde_404(self):
         ajena = self.crear_factura_de(self.ajena)
         respuesta = self.client.post(reverse("facturas_cobrar", args=[ajena.pk]))
         self.assertEqual(respuesta.status_code, 404)
+
     def test_no_cobra_factura_de_otra_empresa(self):
         ajena = self.crear_factura_de(self.ajena)
         respuesta = self.client.post(reverse("facturas_cobrar", args=[ajena.pk]))
@@ -494,3 +496,62 @@ class PagoPendienteTests(ConsultaWompiTests):
         self.pago.refresh_from_db()
         self.assertEqual(self.pago.estado, Pago.Estado.APROBADO)
 
+
+class AislamientoPanelTests(TestCase):
+    """Otra empresa nunca ve ni cambia lo de este negocio: cada vista responde 404."""
+
+    def setUp(self):
+        self.mia = Empresa.objects.create(nombre="Mía", nit="900000070", slug="mia-aislada")
+        self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000071", slug="ajena-aislada")
+        self.usuario = Usuario.objects.create_user(username="m@test.co", email="m@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.mia, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=self.mia, rol=rol)
+        self.client.force_login(self.usuario)
+
+        dueno_ajeno = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x")
+        self.cliente = Cliente.objects.create(empresa=self.ajena, tipo_documento="CC", numero_documento="9", nombre="Ajeno")
+        self.producto = Producto.objects.create(
+            empresa=self.ajena, codigo="AJ1", nombre="Ajeno", precio=Decimal("1000"), stock=10
+        )
+        self.factura = crear_factura(
+            empresa=self.ajena, usuario=dueno_ajeno, cliente=self.cliente,
+            items=[{"producto": self.producto, "cantidad": 1}],
+        )
+
+    def test_clientes_editar(self):
+        url = reverse("clientes_editar", args=[self.cliente.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        respuesta = self.client.post(url, {"tipo_documento": "CC", "numero_documento": "9", "nombre": "Cambiado"})
+        self.assertEqual(respuesta.status_code, 404)
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.nombre, "Ajeno")
+
+    def test_productos_editar(self):
+        url = reverse("productos_editar", args=[self.producto.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        respuesta = self.client.post(url, {"codigo": "AJ1", "nombre": "Cambiado", "precio": "1", "iva_porcentaje": "0", "stock_minimo": "0"})
+        self.assertEqual(respuesta.status_code, 404)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.nombre, "Ajeno")
+
+    def test_productos_kardex(self):
+        self.assertEqual(self.client.get(reverse("productos_kardex", args=[self.producto.pk])).status_code, 404)
+
+    def test_productos_movimiento(self):
+        url = reverse("productos_movimiento", args=[self.producto.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        respuesta = self.client.post(url, {"tipo": "entrada", "cantidad": "5", "referencia": "x"})
+        self.assertEqual(respuesta.status_code, 404)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 9)
+
+    def test_facturas_detalle(self):
+        self.assertEqual(self.client.get(reverse("facturas_detalle", args=[self.factura.pk])).status_code, 404)
+
+    def test_facturas_anular(self):
+        respuesta = self.client.post(reverse("facturas_anular", args=[self.factura.pk]))
+        self.assertEqual(respuesta.status_code, 404)
+        self.factura.refresh_from_db()
+        self.assertEqual(self.factura.estado, Factura.Estado.EMITIDA)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 9)

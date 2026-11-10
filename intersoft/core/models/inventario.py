@@ -1,13 +1,14 @@
 """Inventario: categorías, productos y kardex de movimientos."""
 import os
 import uuid
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
  
 from django.conf import settings
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
  
+from ..impuestos import calcular_iva
 from .base import ModeloTenant
  
  
@@ -91,9 +92,7 @@ class Producto(ModeloTenant):
     @property
     def precio_con_iva(self):
         """Precio al consumidor: la Ley 1480 de 2011 (art. 26) exige informarlo con impuestos."""
-        return (self.precio * (1 + self.iva_porcentaje / 100)).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        return self.precio + calcular_iva(self.precio, self.iva_porcentaje)
  
  
 class MovimientoInventario(ModeloTenant):

@@ -14,7 +14,7 @@ from .marketplace import empresas_publicas, productos_publicos
 from .models import Comentario, Pedido
 from .pagos import PagoNoPermitido, crear_pago_pedido, url_checkout
 from .services import StockInsuficiente
-from .views_tienda import _destino_seguro
+from .redirecciones import destino_seguro
 
 # ---------------------------------------------------------------
 # Carrito
@@ -70,7 +70,7 @@ class AgregarAlCarritoView(View):
             )
 
         (messages.success if ok else messages.warning)(request, mensaje)
-        return HttpResponseRedirect(_destino_seguro(request) or reverse("carrito"))
+        return HttpResponseRedirect(destino_seguro(request) or reverse("carrito"))
 
 
 class ActualizarCarritoView(View):
@@ -205,7 +205,7 @@ class PagarPedidoView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         pedido = _mi_pedido(request, pk)
-        compras.actualizar_pagos(pedido)  # evita cobrar dos veces si un intento ya se aprobó
+        compras.actualizar_pagos(pedido, forzar=True)  # evita cobrar dos veces si un intento ya se aprobó
         try:
             pago = crear_pago_pedido(pedido=pedido)
         except PagoNoPermitido as error:

@@ -20,7 +20,9 @@ def crear_usuario(correo="ana@correo.co", nombre="Ana", apellido="Pérez"):
 
 
 def crear_negocio(nombre, nit, dueno):
-    return registrar_negocio(usuario=dueno, datos={"nombre": nombre, "nit": nit, "email": "", "telefono": "", "direccion": ""})
+    return registrar_negocio(usuario=dueno, datos={
+        "nombre": nombre, "nit": nit, "email": "", "telefono": "6011234567", "direccion": "Calle 1 # 2-3",
+    })
 
 
 def crear_producto(empresa, nombre="Pan", codigo="P-1", precio="1999.98", stock=5, publicado=True, iva="19"):
@@ -283,6 +285,7 @@ class PagoPedidoTests(Base):
         self.pagar()
         self.assertEqual(self.client.get(url).json()["estado"], "procesando")
         self.buscar.return_value = transaccion(Pago.objects.get())
+        Pago.objects.update(consultado_en=None)  # pasaron los 10 s de espera entre consultas
         self.assertEqual(self.client.get(url).json()["estado"], "pagado")
 
     def test_no_cobra_dos_veces_si_wompi_ya_aprobo(self):

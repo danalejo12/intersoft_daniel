@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
  
+from ..impuestos import calcular_iva
 from .base import ModeloTenant
  
  
@@ -25,6 +26,10 @@ class Factura(ModeloTenant):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="facturas_creadas"
     )
     anulada_en = models.DateTimeField(null=True, blank=True)
+    # Solo las ventas del punto de venta: el turno de caja donde se cobraron
+    turno = models.ForeignKey(
+        "TurnoCaja", on_delete=models.PROTECT, related_name="facturas", null=True, blank=True
+    )
  
     class Meta:
         verbose_name = "factura"
@@ -45,6 +50,9 @@ class Factura(ModeloTenant):
     @property
     def esta_pagada(self):
         if self.pagos.filter(estado="aprobado").exists():
+            return True
+        # Venta de mostrador: se registra solo cuando los pagos cubren el total
+        if self.pagos_caja.exists():
             return True
         # La factura del marketplace nace ya pagada: su pago pertenece al pedido
         pedido = getattr(self, "pedido", None)
@@ -75,5 +83,5 @@ class DetalleFactura(ModeloTenant):
  
     @property
     def valor_iva(self):
-        return (self.subtotal * self.iva_porcentaje / 100).quantize(Decimal("0.01"))
+        return calcular_iva(self.subtotal, self.iva_porcentaje)
  

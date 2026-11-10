@@ -123,9 +123,16 @@ class MigracionDatosPedidosTests(TransactionTestCase):
             )
         return factura
 
-    def migrar(self):
+    def migrar_hasta_la_de_datos(self):
+        """Ejecuta 0007, 0008 (datos) y 0009, y devuelve los modelos históricos de ese punto."""
         ejecutor = MigrationExecutor(connection)
         ejecutor.migrate(self.DESPUES)
+        return MigrationExecutor(connection).loader.project_state(self.DESPUES).apps
+
+    def migrar_hasta_la_ultima(self):
+        # Después se usan los modelos actuales, que pueden tener campos de migraciones posteriores
+        ejecutor = MigrationExecutor(connection)
+        ejecutor.migrate(ejecutor.loader.graph.leaf_nodes())
 
     def test_adapta_los_tres_casos_y_no_toca_las_demas_facturas(self):
         pagada = self.factura(1)
@@ -135,7 +142,20 @@ class MigracionDatosPedidosTests(TransactionTestCase):
         self.Pago_.objects.create(empresa=self.empresa, factura=sin_pagar, referencia="R-3", monto_centavos=238000)
         suelta = self.factura(4, con_pedido=False)
 
-        self.migrar()
+        # 1. Justo después de la migración de datos, con los modelos de ese momento:
+        #    así el resultado se le atribuye a la 0008 y no a una migración posterior
+        apps = self.migrar_hasta_la_de_datos()
+        Pedido_ = apps.get_model("core", "Pedido")
+        self.assertEqual(
+            dict(Pedido_.objects.values_list("factura__numero", "estado")),
+            {1: "pagado", 2: "cancelado", 3: "cancelado"},
+        )
+        self.assertEqual(apps.get_model("core", "Producto").objects.get(pk=self.producto.pk).stock, 5)
+        self.assertEqual(apps.get_model("core", "Factura").objects.get(numero=3).estado, "anulada")
+        self.assertEqual(apps.get_model("core", "Factura").objects.get(numero=4).estado, "emitida")
+
+        # 2. Con todas las migraciones aplicadas, el resultado se mantiene
+        self.migrar_hasta_la_ultima()
 
         pedido = Pedido.objects.get(factura__numero=1)
         self.assertEqual(pedido.estado, "pagado")

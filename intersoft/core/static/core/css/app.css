@@ -559,6 +559,94 @@ body > main { min-height: 100vh; display: grid; place-items: center; padding: 24
   .acciones { flex-direction: column-reverse; align-items: stretch; }
 }
 
+/* ---------- Punto de venta ---------- */
+/* El estilo general de los botones les da display: el atributo hidden debe ganar */
+.pos [hidden], .pos-dialogo [hidden] { display: none !important; }
+.pos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 22px; align-items: start; }
+.pos-encabezado { margin-bottom: 14px; }
+.pos-turno { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pos-turno .nota { margin: 0; }
+.pos-buscar { position: relative; }
+.pos-buscar input { padding-top: 15px; padding-bottom: 15px; font-size: 1.05rem; }
+.pos-resultados {
+  position: absolute; left: 0; right: 0; z-index: 20; margin: 6px 0 0; padding: 6px; list-style: none;
+  max-height: 340px; overflow-y: auto;
+  background: rgba(30, 29, 28, .97); border: 1px solid var(--tarjeta-borde); border-radius: var(--radio-campo);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .7);
+}
+.pos-cliente .pos-resultados { position: static; }
+.pos-resultado { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+.pos-resultado small { color: var(--suave); white-space: nowrap; }
+.pos-resultado:hover, .pos-resultado.activo { background: rgba(91, 140, 255, .18); }
+.pos-aviso { min-height: 1.4em; margin: 8px 2px; color: var(--verde); font-size: .9rem; }
+.pos-aviso.pos-aviso-error { color: var(--rojo); }
+.pos-subtitulo { margin: 8px 0 12px; font-size: 1rem; color: var(--suave); }
+
+.pos-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+button.pos-producto {
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px;
+  padding: 10px; text-align: left; line-height: 1.25;
+  background: var(--tarjeta); border: 1px solid var(--tarjeta-borde); border-radius: 16px; box-shadow: none; color: var(--texto);
+}
+button.pos-producto:hover { background: rgba(255, 255, 255, .1); box-shadow: none; filter: none; }
+button.pos-producto[aria-disabled="true"] { opacity: .45; }
+.pos-producto img, .pos-inicial { width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; object-fit: cover; }
+.pos-inicial { display: grid; place-items: center; background: rgba(91, 140, 255, .16); color: var(--azul); font-size: 1.8rem; font-weight: 700; }
+.pos-producto-nombre { font-weight: 600; overflow-wrap: anywhere; }
+.pos-producto-precio { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pos-producto small { color: var(--suave); font-size: .8rem; }
+.pos-producto small.pos-stock-bajo { color: var(--ambar); }
+
+.pos-venta { position: sticky; top: 18px; display: flex; flex-direction: column; gap: 14px; }
+.pos-cliente label { display: block; margin-bottom: 6px; color: var(--suave); font-size: .85rem; }
+.pos-cliente-elegido { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; }
+.pos-lineas { margin: 0; padding: 0; list-style: none; max-height: 42vh; overflow-y: auto; }
+.pos-linea { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.pos-linea-nombre { overflow-wrap: anywhere; }
+.pos-linea-total { font-variant-numeric: tabular-nums; }
+.pos-cantidad { display: inline-flex; align-items: center; gap: 2px; }
+.pos-cantidad input { width: 52px; padding: 6px 4px; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.pos-cantidad input::-webkit-outer-spin-button, .pos-cantidad input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
+.pos-cantidad button, button.pos-quitar {
+  width: 32px; height: 32px; padding: 0; border-radius: 10px;
+  background: rgba(255, 255, 255, .08); box-shadow: none; color: var(--texto); font-size: 1.1rem;
+}
+button.pos-quitar { color: var(--rojo); }
+.pos-cantidad button:hover, button.pos-quitar:hover { background: rgba(255, 255, 255, .16); box-shadow: none; transform: none; }
+.pos-vacio { margin: 8px 0; color: var(--tenue); text-align: center; }
+.pos-totales { margin: 0; }
+.pos-totales div { display: flex; justify-content: space-between; padding: 4px 0; }
+.pos-totales dt { color: var(--suave); }
+.pos-totales dd { margin: 0; font-variant-numeric: tabular-nums; }
+.pos-totales .pos-total { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--linea); font-size: 1.5rem; font-weight: 700; }
+.pos-totales .pos-total dt { color: var(--texto); }
+.pos-cobrar { width: 100%; padding: 16px; font-size: 1.1rem; }
+.pos-cobrar kbd { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: rgba(0, 0, 0, .2); font: inherit; font-size: .75rem; }
+button.pos-enlace { padding: 6px; background: none; border: 0; box-shadow: none; color: var(--azul); font-size: .9rem; }
+button.pos-enlace:hover { background: none; box-shadow: none; text-decoration: underline; transform: none; }
+
+.pos-dialogo {
+  width: min(480px, calc(100vw - 32px)); padding: 26px; border: 1px solid var(--tarjeta-borde); border-radius: var(--radio-tarjeta);
+  background: #2a2826; color: var(--texto); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8);
+}
+.pos-dialogo::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: blur(3px); }
+.pos-dialogo h2 { margin: 0 0 18px; }
+.pos-pago { margin-bottom: 16px; }
+.pos-pago label { display: block; margin-bottom: 6px; color: var(--suave); font-size: .85rem; }
+.pos-pago-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pos-rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pos-rapidos .boton { padding: 7px 12px; font-size: .82rem; }
+.pos-estado-pago { min-height: 1.4em; margin: 4px 0 14px; color: var(--ambar); font-size: 1.05rem; font-weight: 600; }
+.pos-estado-pago.pos-estado-ok { color: var(--verde); }
+.pos-listo .pos-cambio { font-size: 1.3rem; }
+.pos-listo .pos-cambio strong { color: var(--verde); font-size: 2rem; }
+.pos-abrir { max-width: 520px; }
+
+@media (max-width: 1000px) {
+  .pos { grid-template-columns: 1fr; }
+  .pos-venta { position: static; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

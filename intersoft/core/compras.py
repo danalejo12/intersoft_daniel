@@ -9,7 +9,8 @@ from django.utils import timezone
 from . import reservas
 from .models import Comentario, DetallePedido, Pago, Pedido, Producto
 from .pagos import ResultadoWompi, revisar_en_wompi, sincronizar_pago
-from .services import CENTAVOS, StockInsuficiente, siguiente_consecutivo
+from .impuestos import CENTAVOS, calcular_iva
+from .services import StockInsuficiente, siguiente_consecutivo
 
 Estado = Pedido.Estado
 
@@ -39,7 +40,7 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
     for producto in productos:  # misma fórmula de services.crear_factura
         valor = producto.precio * cantidades[producto.pk]
         subtotal += valor
-        iva += (valor * producto.iva_porcentaje / 100).quantize(CENTAVOS)
+        iva += calcular_iva(valor, producto.iva_porcentaje)
 
     pedido = Pedido.objects.create(
         empresa=negocio,
@@ -72,10 +73,11 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
     return pedido
 
 
-def actualizar_pagos(pedido, transaccion_id=""):
-    """Le pregunta a Wompi por los intentos sin respuesta. El navegador nunca decide el estado."""
+def actualizar_pagos(pedido, transaccion_id="", forzar=False):
+    """Le pregunta a Wompi por los intentos sin respuesta. El navegador nunca decide el estado.
+    forzar=True salta la espera de 10 s: se usa justo antes de cobrar."""
     for pago in pedido.pagos.filter(estado=Pago.Estado.PENDIENTE):
-        sincronizar_pago(pago=pago, transaccion_id=transaccion_id)
+        sincronizar_pago(pago=pago, transaccion_id=transaccion_id, forzar=forzar)
     pedido.refresh_from_db()  # aplicar_transaccion trabaja sobre su propia copia bloqueada
 
 

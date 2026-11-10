@@ -9,19 +9,20 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.formats import date_format
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 # 3. Imports de tu propia app
-from .forms import ClienteForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
+from .forms import ClienteForm, DatosNegocioForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
+from .models import Cliente, Factura, MovimientoInventario, Pago, PagoCaja, Pedido, Producto
 from .pagos import (
     PagoNoPermitido,
     aplicar_transaccion,
@@ -34,15 +35,6 @@ from .pagos import (
     url_checkout,
 )
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
-# ---------------------------------------------------------------
-# Vistas de prueba (las quitaremos más adelante)
-# ---------------------------------------------------------------
-def quien_soy(request):
-    return JsonResponse({
-        "usuario": str(request.user),
-        "empresa": request.empresa.nombre if request.empresa else None,
-        "rol": request.membresia.rol.nombre if request.membresia else None,
-    })
 
 
 # ---------------------------------------------------------------
@@ -59,11 +51,84 @@ class DashboardView(TenantMixin, TemplateView):
         productos = Producto.objects.de_empresa(empresa).filter(activo=True)
 
         contexto["total_clientes"] = Cliente.objects.de_empresa(empresa).filter(activo=True).count()
-        contexto["total_productos"] = productos.count()
+        total_productos = productos.count()
+        contexto["total_productos"] = total_productos
         # F("stock_minimo") compara dos columnas DENTRO de PostgreSQL
-        contexto["stock_bajo"] = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
+        stock_bajo = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
+        contexto["stock_bajo"] = stock_bajo
         contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
+
+        # Salud del inventario: porcentaje de productos por encima de su mínimo
+        n_stock_bajo = stock_bajo.count()
+        contexto["n_stock_bajo"] = n_stock_bajo
+        contexto["productos_sanos"] = total_productos - n_stock_bajo
+        contexto["salud_inventario"] = (
+            round(100 * (total_productos - n_stock_bajo) / total_productos) if total_productos else 100
+        )
+
+        # Ventas: solo facturas de esta empresa, sin las anuladas
+        ventas = Factura.objects.de_empresa(empresa).exclude(estado=Factura.Estado.ANULADA)
+        ahora = timezone.localtime()
+        inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        del_mes = ventas.filter(creado_en__gte=inicio_mes).aggregate(total=Sum("total"), cantidad=Count("id"))
+        contexto["ventas_mes"] = del_mes["total"] or 0
+        contexto["facturas_mes"] = del_mes["cantidad"]
+        contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
+        contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
+        contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
         return contexto
+
+    @staticmethod
+    def serie_meses(ventas, inicio_mes, cantidad=6):
+        """Total facturado en los últimos 6 meses, incluido el actual; los meses sin ventas valen 0."""
+        meses = []
+        anio, mes = inicio_mes.year, inicio_mes.month
+        for _ in range(cantidad):
+            meses.append((anio, mes))
+            anio, mes = (anio - 1, 12) if mes == 1 else (anio, mes - 1)
+        meses.reverse()
+        desde = inicio_mes.replace(year=meses[0][0], month=meses[0][1])
+        totales = {
+            (fila["mes"].year, fila["mes"].month): fila["total"]
+            for fila in ventas.filter(creado_en__gte=desde)
+            .annotate(mes=TruncMonth("creado_en")).values("mes").annotate(total=Sum("total"))
+        }
+        return {
+            "etiquetas": [date_format(date(anio, mes, 1), "M Y") for anio, mes in meses],
+            "valores": [float(totales.get(clave, 0)) for clave in meses],
+        }
+
+    @staticmethod
+    def serie_dias(ventas, hoy, cantidad=7):
+        """Total facturado en los últimos 7 días, incluido hoy."""
+        dias = [hoy - timedelta(days=atras) for atras in range(cantidad - 1, -1, -1)]
+        totales = {
+            fila["dia"]: fila["total"]
+            for fila in ventas.filter(creado_en__date__gte=dias[0])
+            .annotate(dia=TruncDate("creado_en")).values("dia").annotate(total=Sum("total"))
+        }
+        return {
+            "etiquetas": [date_format(dia, "j M") for dia in dias],
+            "valores": [float(totales.get(dia, 0)) for dia in dias],
+        }
+
+
+class DatosNegocioView(PermisoRequeridoMixin, SuccessMessageMixin, UpdateView):
+    """Dirección y teléfono legales del negocio. Sin ellos, sus productos no salen en el marketplace."""
+
+    permiso_requerido = "negocio.editar"  # solo el rol administrador, que tiene todos los permisos
+    form_class = DatosNegocioForm
+    template_name = "core/negocio/datos.html"
+    success_url = reverse_lazy("dashboard")
+    success_message = "¡Listo! Guardamos los datos de tu negocio."
+
+    def get_object(self, queryset=None):
+        # El negocio es siempre el activo: nunca se recibe un id desde la URL
+        return self.request.empresa
+
+    def form_valid(self, form):
+        # Se salta TenantMixin.form_valid: Empresa no tiene campo empresa
+        return super(TenantMixin, self).form_valid(form)
 
 
 # ---------------------------------------------------------------
@@ -140,7 +205,8 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
             .select_related("cliente")
             .annotate(
                 pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO))
-                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO)),
+                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO))
+                | Exists(PagoCaja.objects.filter(factura=OuterRef("pk"))),
                 pago_en_proceso=Exists(
                     pagos.filter(estado=Pago.Estado.PENDIENTE, creado_en__gte=recientes)
                 ),
@@ -246,7 +312,7 @@ class ProductoListView(PermisoRequeridoMixin, ListView):
         contexto["puede_crear"] = membresia.tiene_permiso("inventario.crear")
         contexto["puede_editar"] = membresia.tiene_permiso("inventario.editar")
         contexto["puede_mover"] = membresia.tiene_permiso("inventario.movimientos")
-        contexto["puede_eliminar"] = membresia.tiene_permiso("productos.eliminar")
+        contexto["puede_eliminar"] = membresia.tiene_permiso("inventario.eliminar")
         return contexto
 
 
@@ -373,20 +439,8 @@ class ClienteDeleteView(EliminarLogicoView):
 
 class ProductoDeleteView(EliminarLogicoView):
     model = Producto
-    permiso_requerido = "productos.eliminar"
+    permiso_requerido = "inventario.eliminar"
     url_lista = "productos_lista"
-
-
-class CategoriaDeleteView(EliminarLogicoView):
-    model = Categoria
-    campo_activo = "activa"  # En este modelo el campo es femenino
-    permiso_requerido = "categorias.eliminar"
-    url_lista = "categorias_lista"
-
-    def motivo_bloqueo(self, categoria):
-        if Producto.objects.filter(categoria=categoria, activo=True).exists():
-            return "No se puede eliminar: la categoría tiene productos activos."
-        return None
 
 
 class FacturaAnularView(PermisoRequeridoMixin, View):
@@ -410,7 +464,7 @@ class FacturaCobrarView(PermisoRequeridoMixin, View):
 
     def post(self, request, pk):
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
-        sincronizar_pendientes(factura)  # evita cobrar dos veces si un intento ya se aprobó
+        sincronizar_pendientes(factura, forzar=True)  # evita cobrar dos veces si un intento ya se aprobó
         try:
             pago = crear_pago(factura=factura)
         except PagoNoPermitido as error:

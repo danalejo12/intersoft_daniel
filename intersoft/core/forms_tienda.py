@@ -48,12 +48,26 @@ class RegistroNegocioForm(forms.ModelForm):
             "nit": "NIT",
             "email": "Correo del negocio",
             "telefono": "Teléfono",
-            "direccion": "Dirección",
+            "direccion": "Dirección de notificaciones",
         }
         error_messages = {"nit": {"unique": "Ya existe un negocio registrado con este NIT."}}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        hacer_obligatorios_datos_legales(self)
+
     def clean_nit(self):
         return self.cleaned_data["nit"].replace(".", "").replace(" ", "")
+
+
+def hacer_obligatorios_datos_legales(form):
+    """Ley 1480, art. 53: el comprador debe poder identificar y contactar al vendedor."""
+    form.fields["direccion"].required = True
+    form.fields["direccion"].help_text = "Donde el negocio recibe notificaciones. La verán tus compradores."
+    form.fields["telefono"].required = True
+    form.fields["telefono"].validators.append(
+        RegexValidator(r"^\+?[0-9\s-]{7,20}$", "Escribe un teléfono válido, por ejemplo 601 234 5678.")
+    )
 
 
 class DatosEnvioForm(forms.Form):

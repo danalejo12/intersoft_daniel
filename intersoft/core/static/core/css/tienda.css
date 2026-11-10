@@ -477,6 +477,8 @@ a.linea-nombre { min-height: 44px; }
 .resumen-lineas li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; overflow-wrap: anywhere; }
 .resumen-lineas li span:last-child { flex: none; font-variant-numeric: tabular-nums; }
 .direccion { margin: 0; overflow-wrap: anywhere; }
+.direccion a { display: inline-flex; align-items: center; min-height: 44px; }
+.titulo-vendedor { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--borde); }
 .volver { display: flex; align-items: center; justify-content: center; min-height: 44px; }
 
 .estado-vacio { max-width: 460px; margin: 40px auto; color: var(--texto-suave); text-align: center; }

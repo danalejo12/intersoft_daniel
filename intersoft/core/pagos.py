@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from . import reservas
@@ -302,10 +303,31 @@ def buscar_transaccion_por_referencia(referencia):
     return max(transacciones, key=lambda t: t.get("created_at") or "")
 
 
-def sincronizar_pago(*, pago, transaccion_id=""):
+ESPERA_ENTRE_CONSULTAS = dt.timedelta(seconds=10)
+
+
+def _tomar_turno_de_consulta(pago):
+    """True si pasaron 10 s desde la última consulta. El UPDATE condicional es atómico:
+    si dos peticiones llegan a la vez, solo una consulta a Wompi."""
+    ahora = timezone.now()
+    return bool(
+        Pago.objects.filter(pk=pago.pk)
+        .filter(Q(consultado_en__isnull=True) | Q(consultado_en__lte=ahora - ESPERA_ENTRE_CONSULTAS))
+        .update(consultado_en=ahora)
+    )
+
+
+def sincronizar_pago(*, pago, transaccion_id="", forzar=False):
     """Respaldo del webhook: el estado se lo pedimos a Wompi.
-    Del navegador solo llega, si acaso, el id; nunca el estado ni el monto."""
+    Del navegador solo llega, si acaso, el id; nunca el estado ni el monto.
+
+    En las páginas que se recargan (forzar=False) no se consulta más de una vez cada 10 s y,
+    mientras tanto, se responde con lo guardado. Antes de cobrar se usa forzar=True."""
     if pago.estado != Pago.Estado.PENDIENTE:
+        return pago
+    if forzar:
+        Pago.objects.filter(pk=pago.pk).update(consultado_en=timezone.now())
+    elif not _tomar_turno_de_consulta(pago):
         return pago
     if transaccion_id:
         transaccion = consultar_transaccion(transaccion_id)
@@ -349,12 +371,12 @@ def revisar_en_wompi(pedido):
     return resultado
 
 
-def sincronizar_pendientes(factura):
+def sincronizar_pendientes(factura, forzar=False):
     """Pregunta a Wompi por cada pago pendiente de la factura (respaldo del webhook)."""
     if pasarela_simulada():
         return
     for pago in factura.pagos.filter(estado=Pago.Estado.PENDIENTE):
-        sincronizar_pago(pago=pago)
+        sincronizar_pago(pago=pago, forzar=forzar)
 
 
 def crear_evento_simulado(*, pago, status, secreto):

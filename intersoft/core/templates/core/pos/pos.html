@@ -1,0 +1,121 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block titulo %}Punto de venta · Intersoft{% endblock %}
+
+{% block contenido %}
+<div class="pos" data-pos
+     data-url-productos="{% url 'pos_productos' %}"
+     data-url-clientes="{% url 'pos_clientes' %}"
+     data-url-vender="{% url 'pos_vender' %}">
+  {% csrf_token %}
+
+  <section class="pos-catalogo" aria-label="Productos">
+    <div class="encabezado pos-encabezado">
+      <h1>Punto de venta</h1>
+      <div class="pos-turno">
+        <span class="nota">Caja abierta desde las {{ turno.creado_en|date:"g:i a" }}</span>
+        <a class="boton secundario" href="{% url 'pos_cerrar' %}">Cerrar caja</a>
+      </div>
+    </div>
+
+    <div class="pos-buscar">
+      <input type="search" id="pos-buscar" placeholder="Escanea el código o escribe el nombre" autocomplete="off" autofocus
+             aria-label="Buscar producto por código o nombre" aria-controls="pos-resultados">
+      <ul class="pos-resultados" id="pos-resultados" role="listbox" hidden></ul>
+    </div>
+    <p class="pos-aviso" id="pos-aviso" role="status" aria-live="polite"></p>
+
+    <h2 class="pos-subtitulo">Más vendidos</h2>
+    {% if frecuentes %}
+      <div class="pos-rejilla">
+        {% for producto in frecuentes %}
+          <button type="button" class="pos-producto" data-agregar="{{ producto.pk }}" {% if producto.stock <= 0 %}aria-disabled="true"{% endif %}>
+            {% if producto.imagen %}
+              <img src="{{ producto.imagen.url }}" alt="" loading="lazy">
+            {% else %}
+              <span class="pos-inicial" aria-hidden="true">{{ producto.nombre|first|upper }}</span>
+            {% endif %}
+            <span class="pos-producto-nombre">{{ producto.nombre }}</span>
+            <span class="pos-producto-precio">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
+            <small class="{% if producto.stock <= producto.stock_minimo %}pos-stock-bajo{% endif %}">{% if producto.stock > 0 %}{{ producto.stock }} en stock{% else %}Agotado{% endif %}</small>
+          </button>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="nota">Aún no tienes productos activos. Créalos en <a href="{% url 'productos_lista' %}">Productos</a>.</p>
+    {% endif %}
+  </section>
+
+  <aside class="pos-venta tarjeta" aria-label="Venta actual">
+    <div class="pos-cliente">
+      <label for="pos-cliente-buscar">Cliente</label>
+      <div class="pos-cliente-elegido" id="pos-cliente-elegido">
+        <span id="pos-cliente-nombre">Consumidor final</span>
+        <button type="button" class="pos-enlace" id="pos-cliente-quitar" hidden>Quitar</button>
+      </div>
+      <input type="search" id="pos-cliente-buscar" placeholder="Buscar por nombre o documento" autocomplete="off">
+      <ul class="pos-resultados" id="pos-clientes" role="listbox" hidden></ul>
+    </div>
+
+    <ol class="pos-lineas" id="pos-lineas" aria-live="polite"></ol>
+    <p class="pos-vacio" id="pos-vacio">Escanea o toca un producto para empezar.</p>
+
+    <dl class="pos-totales">
+      <div><dt>Subtotal</dt><dd id="pos-subtotal">$0</dd></div>
+      <div><dt>IVA</dt><dd id="pos-iva">$0</dd></div>
+      <div class="pos-total"><dt>Total</dt><dd id="pos-total">$0</dd></div>
+    </dl>
+    <button type="button" class="boton pos-cobrar" id="pos-cobrar" disabled>Cobrar <kbd>F2</kbd></button>
+    <button type="button" class="pos-enlace" id="pos-vaciar">Vaciar venta</button>
+  </aside>
+</div>
+
+<dialog class="pos-dialogo" id="pos-cobro" aria-labelledby="pos-cobro-titulo">
+  <form method="dialog" id="pos-form-cobro" novalidate>
+    <h2 id="pos-cobro-titulo">Cobrar <span id="pos-cobro-total"></span></h2>
+
+    <div class="pos-pago">
+      <label for="pos-efectivo">Efectivo recibido</label>
+      <input type="text" id="pos-efectivo" inputmode="decimal" autocomplete="off" placeholder="0">
+      <div class="pos-rapidos" id="pos-rapidos" aria-label="Montos rápidos"></div>
+    </div>
+    <div class="pos-pago">
+      <label for="pos-tarjeta">Tarjeta (datáfono)</label>
+      <div class="pos-pago-fila">
+        <input type="text" id="pos-tarjeta" inputmode="decimal" autocomplete="off" placeholder="0">
+        <input type="text" id="pos-tarjeta-ref" autocomplete="off" placeholder="Comprobante (opcional)" maxlength="60">
+      </div>
+    </div>
+    <div class="pos-pago">
+      <label for="pos-transferencia">Transferencia o Nequi</label>
+      <div class="pos-pago-fila">
+        <input type="text" id="pos-transferencia" inputmode="decimal" autocomplete="off" placeholder="0">
+        <input type="text" id="pos-transferencia-ref" autocomplete="off" placeholder="Referencia (opcional)" maxlength="60">
+      </div>
+    </div>
+
+    <p class="pos-estado-pago" id="pos-estado-pago" aria-live="polite"></p>
+    <p class="error" id="pos-error-cobro" role="alert" hidden></p>
+
+    <div class="acciones">
+      <button type="button" class="boton secundario" id="pos-volver">Volver</button>
+      <button type="submit" class="boton" id="pos-confirmar">Confirmar venta</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="pos-dialogo pos-listo" id="pos-listo" aria-labelledby="pos-listo-titulo">
+  <h2 id="pos-listo-titulo">Venta N.º <span id="pos-listo-numero"></span> registrada</h2>
+  <p class="pos-cambio">Cambio: <strong id="pos-listo-cambio">$0</strong></p>
+  <div class="acciones">
+    <a class="boton secundario" id="pos-imprimir" href="#" target="_blank" rel="noopener">Imprimir ticket</a>
+    <button type="button" class="boton" id="pos-nueva">Nueva venta</button>
+  </div>
+</dialog>
+
+{{ frecuentes_datos|json_script:"pos-frecuentes" }}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'core/js/pos.js' %}?v=1" defer></script>
+{% endblock %}

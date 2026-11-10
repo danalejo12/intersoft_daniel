@@ -14,6 +14,9 @@ def productos_publicos():
     return (
         Producto.objects
         .filter(activo=True, publicado=True, empresa__activa=True)
+        # Sin datos legales del vendedor (Ley 1480, art. 53) sus productos no se publican
+        .exclude(empresa__direccion="")
+        .exclude(empresa__telefono="")
         .select_related("empresa", "categoria")
         .order_by("nombre", "id")  # el id da un orden estable al paginar
     )

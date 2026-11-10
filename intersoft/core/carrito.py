@@ -6,7 +6,7 @@ de la base de datos, para que nadie pueda alterarlos desde el navegador.
 from decimal import Decimal
 
 from .marketplace import productos_publicos
-from .services import CENTAVOS
+from .impuestos import CENTAVOS, calcular_iva
 
 CLAVE_SESION = "carrito"
 MAXIMO_POR_PRODUCTO = 99
@@ -58,7 +58,7 @@ def quitar_lineas(request, lineas):
 def _linea(producto, cantidad):
     # Misma fórmula de services.crear_factura: lo que se muestra es exactamente lo que se cobra
     subtotal = producto.precio * cantidad
-    iva = (subtotal * producto.iva_porcentaje / 100).quantize(CENTAVOS)
+    iva = calcular_iva(subtotal, producto.iva_porcentaje)
     return {"producto": producto, "cantidad": cantidad, "subtotal": subtotal, "iva": iva, "total": subtotal + iva}
 
 
