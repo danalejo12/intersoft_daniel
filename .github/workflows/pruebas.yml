@@ -1,0 +1,60 @@
+name: Pruebas
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Base de datos desechable del propio CI: no es un secreto real
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: intersoft
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Valores solo para el CI. Ninguna llave de Wompi: las pruebas usan llaves falsas.
+      DJANGO_SECRET_KEY: clave-solo-para-el-ci-no-se-usa-en-ningun-otro-lugar-0123456789
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost
+      DB_NAME: intersoft
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
+
+    defaults:
+      run:
+        working-directory: intersoft
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r ../requirements.txt
+
+      - name: Revisar la configuración
+        run: python manage.py check
+
+      - name: Revisar que no falten migraciones
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Pruebas
+        run: python manage.py test core --noinput
