@@ -173,3 +173,49 @@ class RedondeoIvaTests(TestCase):
         cliente = Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="5", nombre="C")
         factura = crear_factura(empresa=self.negocio, usuario=self.dueno, cliente=cliente, items=[{"producto": self.producto, "cantidad": 1}])
         self.assertEqual(factura.total, esperado)
+
+
+class LimpiezaTests(TestCase):
+    def test_quien_soy_ya_no_existe(self):
+        from django.urls import NoReverseMatch
+
+        with self.assertRaises(NoReverseMatch):
+            reverse("quien_soy")
+        self.assertEqual(self.client.get("/panel/quien-soy/").status_code, 404)
+
+    def test_eliminar_producto_exige_inventario_eliminar(self):
+        from decimal import Decimal
+
+        from .models import Membresia, Permiso, Producto, Rol, Usuario
+
+        empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
+        for codigo, debe_eliminar in (("inventario.eliminar", True), ("productos.eliminar", False)):
+            with self.subTest(permiso=codigo):
+                usuario = Usuario.objects.create_user(username=f"{codigo}@c.co", email=f"{codigo}@c.co", password="x")
+                rol = Rol.objects.create(empresa=empresa, nombre=codigo, es_admin=False)
+                rol.permisos.add(Permiso.objects.get_or_create(codigo=codigo, defaults={"descripcion": codigo})[0])
+                Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
+                producto = Producto.objects.create(empresa=empresa, codigo=codigo, nombre="P", precio=Decimal("1"))
+                self.client.force_login(usuario)
+                respuesta = self.client.post(reverse("productos_eliminar", args=[producto.pk]))
+                producto.refresh_from_db()
+                self.assertEqual(producto.activo, not debe_eliminar)
+                if not debe_eliminar:
+                    self.assertEqual(respuesta.status_code, 403)
+
+    def test_etiquetas_salen_de_estado(self):
+        pedido = Pedido(estado=Pedido.Estado.VENCIDO)
+        self.assertEqual(pedido.estado_etiqueta, Pedido.Estado.VENCIDO.label)
+        self.assertEqual(Pedido(estado=Pedido.Estado.REQUIERE_REEMBOLSO).estado_etiqueta, "Requiere reembolso")
+
+    def test_destino_seguro_es_una_funcion_publica_compartida(self):
+        from django.test import RequestFactory
+
+        from . import views_compra, views_tienda
+        from .redirecciones import destino_seguro
+
+        self.assertIs(views_compra.destino_seguro, destino_seguro)
+        self.assertIs(views_tienda.destino_seguro, destino_seguro)
+        fabrica = RequestFactory()
+        self.assertEqual(destino_seguro(fabrica.get("/", {"next": "/carrito/"})), "/carrito/")
+        self.assertEqual(destino_seguro(fabrica.get("/", {"next": "https://malo.example/"})), "")

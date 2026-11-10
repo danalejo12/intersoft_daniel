@@ -9,7 +9,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -21,7 +21,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 # 3. Imports de tu propia app
 from .forms import ClienteForm, DatosNegocioForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
+from .models import Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
 from .pagos import (
     PagoNoPermitido,
     aplicar_transaccion,
@@ -34,15 +34,6 @@ from .pagos import (
     url_checkout,
 )
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
-# ---------------------------------------------------------------
-# Vistas de prueba (las quitaremos más adelante)
-# ---------------------------------------------------------------
-def quien_soy(request):
-    return JsonResponse({
-        "usuario": str(request.user),
-        "empresa": request.empresa.nombre if request.empresa else None,
-        "rol": request.membresia.rol.nombre if request.membresia else None,
-    })
 
 
 # ---------------------------------------------------------------
@@ -264,7 +255,7 @@ class ProductoListView(PermisoRequeridoMixin, ListView):
         contexto["puede_crear"] = membresia.tiene_permiso("inventario.crear")
         contexto["puede_editar"] = membresia.tiene_permiso("inventario.editar")
         contexto["puede_mover"] = membresia.tiene_permiso("inventario.movimientos")
-        contexto["puede_eliminar"] = membresia.tiene_permiso("productos.eliminar")
+        contexto["puede_eliminar"] = membresia.tiene_permiso("inventario.eliminar")
         return contexto
 
 
@@ -391,20 +382,8 @@ class ClienteDeleteView(EliminarLogicoView):
 
 class ProductoDeleteView(EliminarLogicoView):
     model = Producto
-    permiso_requerido = "productos.eliminar"
+    permiso_requerido = "inventario.eliminar"
     url_lista = "productos_lista"
-
-
-class CategoriaDeleteView(EliminarLogicoView):
-    model = Categoria
-    campo_activo = "activa"  # En este modelo el campo es femenino
-    permiso_requerido = "categorias.eliminar"
-    url_lista = "categorias_lista"
-
-    def motivo_bloqueo(self, categoria):
-        if Producto.objects.filter(categoria=categoria, activo=True).exists():
-            return "No se puede eliminar: la categoría tiene productos activos."
-        return None
 
 
 class FacturaAnularView(PermisoRequeridoMixin, View):

@@ -6,7 +6,6 @@ from . import views, views_compra, views_tienda
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
-    path("quien-soy/", views.quien_soy, name="quien_soy"),
     path("negocio/", views.DatosNegocioView.as_view(), name="negocio_datos"),
 
     # Clientes

@@ -22,14 +22,12 @@ class Pedido(ModeloTenant):
         CANCELADO = "cancelado", "Cancelado"
         REQUIERE_REEMBOLSO = "requiere_reembolso", "Requiere reembolso"
 
-    ETIQUETAS = {
+    # Mientras el pedido está pendiente, el comprador ve el estado de su último intento.
+    # Los demás estados usan la etiqueta de Estado: una sola fuente para cada texto.
+    ETIQUETAS_DEL_INTENTO = {
         "por_pagar": "Por pagar",
         "procesando": "Confirmando pago",
-        "pagado": "Pagado",
         "rechazado": "Pago no aprobado",
-        "cancelado": "Cancelado",
-        "vencido": "Reserva vencida",
-        "requiere_reembolso": "En revisión de reembolso",
     }
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
@@ -95,7 +93,8 @@ class Pedido(ModeloTenant):
 
     @property
     def estado_etiqueta(self):
-        return self.ETIQUETAS[self.estado_compra]
+        estado = self.estado_compra
+        return self.ETIQUETAS_DEL_INTENTO.get(estado) or self.Estado(estado).label
 
 
 class DetallePedido(ModeloTenant):

@@ -6,12 +6,12 @@ from django.db.models import Avg, Count, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import DetailView, FormView, ListView
 
 from .forms_tienda import RegistroCompradorForm, RegistroNegocioForm
 from .marketplace import empresas_publicas, negocios_con_productos, productos_publicos
 from .negocios import registrar_negocio
+from .redirecciones import destino_seguro
 
 
 class MarketplaceView(ListView):
@@ -67,23 +67,13 @@ class ProductoPublicoView(DetailView):
         return contexto
 
 
-def _destino_seguro(request):
-    """Devuelve ?next= solo si apunta a este sitio; evita redirigir a páginas externas."""
-    destino = request.POST.get("next") or request.GET.get("next") or ""
-    if url_has_allowed_host_and_scheme(
-        destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()
-    ):
-        return destino
-    return ""
-
-
 class RegistroCompradorView(FormView):
     template_name = "core/tienda/registro.html"
     form_class = RegistroCompradorForm
 
     def _ir_al_destino(self):
         # HttpResponseRedirect y no redirect(): el destino viene del usuario y no es un nombre de ruta
-        return HttpResponseRedirect(_destino_seguro(self.request) or reverse("marketplace"))
+        return HttpResponseRedirect(destino_seguro(self.request) or reverse("marketplace"))
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
@@ -96,7 +86,7 @@ class RegistroCompradorView(FormView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["next"] = _destino_seguro(self.request)
+        contexto["next"] = destino_seguro(self.request)
         return contexto
 
 

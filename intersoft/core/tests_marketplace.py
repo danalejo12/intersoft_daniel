@@ -326,7 +326,8 @@ class NegocioElegidoTests(TestCase):
         sesion.save()
 
     def empresa_activa(self):
-        return self.client.get(reverse("quien_soy")).json()["empresa"]
+        # El middleware deja el negocio activo en la petición; quien_soy ya no existe
+        return self.client.get(reverse("dashboard")).wsgi_request.empresa.nombre
 
     def test_la_sesion_elige_el_segundo_negocio(self):
         self.elegir(str(self.beta.pk))

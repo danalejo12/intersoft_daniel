@@ -14,7 +14,7 @@ from .marketplace import empresas_publicas, productos_publicos
 from .models import Comentario, Pedido
 from .pagos import PagoNoPermitido, crear_pago_pedido, url_checkout
 from .services import StockInsuficiente
-from .views_tienda import _destino_seguro
+from .redirecciones import destino_seguro
 
 # ---------------------------------------------------------------
 # Carrito
@@ -70,7 +70,7 @@ class AgregarAlCarritoView(View):
             )
 
         (messages.success if ok else messages.warning)(request, mensaje)
-        return HttpResponseRedirect(_destino_seguro(request) or reverse("carrito"))
+        return HttpResponseRedirect(destino_seguro(request) or reverse("carrito"))
 
 
 class ActualizarCarritoView(View):
