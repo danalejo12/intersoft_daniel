@@ -6,7 +6,7 @@ from unittest import mock
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
@@ -16,6 +16,10 @@ from .negocios import registrar_negocio
 
 Usuario = get_user_model()
 CLAVE = "ClaveSegura#2026"
+
+
+def peticion_de_login():
+    return RequestFactory().post("/login/")
 
 
 def crear_empresa(nombre, nit, slug, activa=True):
@@ -300,11 +304,12 @@ class LoginSinMayusculasTests(TestCase):
 
     def test_usuario_inactivo_no_inicia_sesion(self):
         Usuario.objects.filter(pk=self.usuario.pk).update(is_active=False)
-        self.assertIsNone(authenticate(username="ana@correo.co", password=CLAVE))
+        # django-axes exige la petición para contar los intentos
+        self.assertIsNone(authenticate(peticion_de_login(), username="ana@correo.co", password=CLAVE))
 
     def test_usuario_inexistente_calcula_el_hash(self):
         with mock.patch.object(Usuario, "set_password") as calcular_hash:
-            self.assertIsNone(authenticate(username="nadie@correo.co", password=CLAVE))
+            self.assertIsNone(authenticate(peticion_de_login(), username="nadie@correo.co", password=CLAVE))
         calcular_hash.assert_called_once_with(CLAVE)
 
     def test_si_encuentra_mas_de_uno_no_autentica(self):

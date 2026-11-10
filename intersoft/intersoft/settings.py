@@ -6,6 +6,7 @@ Todo lo que cambia entre entornos se lee de variables de entorno o del archivo .
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 from decouple import AutoConfig, Csv
@@ -36,10 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
     'core',
 ]
 AUTH_USER_MODEL = 'core.Usuario'
-AUTHENTICATION_BACKENDS = ["core.backends.EmailBackend"]
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",  # primero: rechaza a quien está bloqueado
+    "core.backends.EmailBackend",
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -50,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.TenantMiddleware',
+    'axes.middleware.AxesMiddleware',  # al final, como pide django-axes
 ]
 
 ROOT_URLCONF = 'intersoft.urls'
@@ -182,6 +188,18 @@ LOGGING = {
         "core.reservas": {"handlers": ["consola", "archivo", "correo_admins"], "level": "INFO", "propagate": False},
     },
 }
+
+# ---------------------------------------------------------------
+# Límite de intentos de ingreso (django-axes)
+# ---------------------------------------------------------------
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+# Se bloquea la combinación correo + IP: un atacante no puede dejar sin acceso a toda una oficina
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+# El login no distingue mayúsculas: ANA@correo.co y ana@correo.co cuentan como el mismo intento
+AXES_USERNAME_CALLABLE = "core.acceso.correo_del_intento"
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_TEMPLATE = "core/tienda/bloqueado.html"
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "despues_login"  # dueños al panel, compradores al marketplace

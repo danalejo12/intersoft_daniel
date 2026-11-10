@@ -380,3 +380,52 @@ class InicioPanelTests(TestCase):
         self.client.force_login(usuario)
         contexto = self.contexto()
         self.assertEqual((contexto["ventas_mes"], contexto["salud_inventario"]), (0, 100))
+
+
+class LimiteDeIntentosTests(TestCase):
+    CLAVE = "ClaveSegura#2026"
+
+    def setUp(self):
+        from .models import Usuario
+
+        self.usuario = Usuario.objects.create_user(username="ana@correo.co", email="ana@correo.co", password=self.CLAVE)
+
+    def ingresar(self, correo="ana@correo.co", clave="equivocada"):
+        return self.client.post(reverse("login"), {"username": correo, "password": clave})
+
+    def test_cinco_fallos_bloquean_aunque_luego_la_clave_sea_correcta(self):
+        for _ in range(5):
+            self.ingresar()
+        respuesta = self.ingresar(clave=self.CLAVE)
+        self.assertEqual(respuesta.status_code, 429)
+        self.assertContains(respuesta, "Tómate un respiro", status_code=429)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_cuatro_fallos_aun_dejan_entrar(self):
+        for _ in range(4):
+            self.ingresar()
+        self.assertEqual(self.ingresar(clave=self.CLAVE).status_code, 302)
+
+    def test_cambiar_mayusculas_no_evita_el_bloqueo(self):
+        for correo in ("ana@correo.co", "ANA@correo.co", "Ana@Correo.co", "ana@CORREO.CO", "aNa@correo.co"):
+            self.ingresar(correo=correo)
+        self.assertEqual(self.ingresar(clave=self.CLAVE).status_code, 429)
+
+    def test_el_bloqueo_dura_quince_minutos(self):
+        from datetime import timedelta
+
+        from axes.models import AccessAttempt
+        from django.utils import timezone
+
+        for _ in range(5):
+            self.ingresar()
+        AccessAttempt.objects.update(attempt_time=timezone.now() - timedelta(minutes=16))
+        self.assertEqual(self.ingresar(clave=self.CLAVE).status_code, 302)
+
+    def test_otro_correo_desde_la_misma_ip_no_queda_bloqueado(self):
+        from .models import Usuario
+
+        Usuario.objects.create_user(username="luis@correo.co", email="luis@correo.co", password=self.CLAVE)
+        for _ in range(5):
+            self.ingresar()
+        self.assertEqual(self.ingresar(correo="luis@correo.co", clave=self.CLAVE).status_code, 302)

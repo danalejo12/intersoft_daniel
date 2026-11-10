@@ -81,7 +81,8 @@ class RegistroCompradorView(FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        login(self.request, form.save())
+        # Con django-axes hay dos backends: se indica el que de verdad autentica
+        login(self.request, form.save(), backend="core.backends.EmailBackend")
         return self._ir_al_destino()
 
     def get_context_data(self, **kwargs):
