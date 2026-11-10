@@ -275,3 +275,108 @@ class EsperaEntreConsultasTests(PedidoBase):
         self.assertEqual(Pago.objects.count(), 1)  # no abrió un segundo cobro
         self.recargar()
         self.assertEqual(self.pedido.estado, Pedido.Estado.PAGADO)
+
+
+class InicioPanelTests(TestCase):
+    def setUp(self):
+        from decimal import Decimal
+
+        from .models import Cliente, Membresia, Producto, Rol, Usuario
+        from .services import crear_factura
+
+        self.empresa = Empresa.objects.create(nombre="Mía", nit="900000090", slug="mia-inicio", direccion="C 1", telefono="6011234567")
+        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x")
+        rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
+        self.client.force_login(self.usuario)
+
+        cliente = Cliente.objects.create(empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente")
+        self.sano = Producto.objects.create(empresa=self.empresa, codigo="S", nombre="Sano", precio=Decimal("1000"), iva_porcentaje=Decimal("0"), stock=50, stock_minimo=5)
+        Producto.objects.create(empresa=self.empresa, codigo="B", nombre="Bajo", precio=Decimal("1"), stock=1, stock_minimo=5)
+
+        def vender(cantidad, empresa=self.empresa, cliente=cliente, producto=None):
+            return crear_factura(empresa=empresa, usuario=self.usuario, cliente=cliente, items=[{"producto": producto or self.sano, "cantidad": cantidad}])
+
+        self.hoy = vender(2)  # 2.000
+        self.anulada = vender(3)
+        from .services import anular_factura
+
+        anular_factura(factura=self.anulada, usuario=self.usuario)
+
+        # De otra empresa: nunca debe contarse
+        otra = Empresa.objects.create(nombre="Otra", nit="900000091", slug="otra-inicio")
+        cliente_otro = Cliente.objects.create(empresa=otra, tipo_documento="CC", numero_documento="2", nombre="C")
+        producto_otro = Producto.objects.create(empresa=otra, codigo="O", nombre="O", precio=Decimal("99999"), iva_porcentaje=Decimal("0"), stock=9)
+        self.ajena = vender(1, empresa=otra, cliente=cliente_otro, producto=producto_otro)
+
+    def contexto(self):
+        return self.client.get(reverse("dashboard")).context
+
+    def test_ventas_del_mes_sin_anuladas_ni_otras_empresas(self):
+        from decimal import Decimal
+
+        contexto = self.contexto()
+        self.assertEqual(contexto["ventas_mes"], Decimal("2000.00"))
+        self.assertEqual(contexto["facturas_mes"], 1)
+        self.assertEqual(list(contexto["ultimas_facturas"]), [self.hoy])
+
+    def test_salud_del_inventario(self):
+        contexto = self.contexto()
+        self.assertEqual((contexto["n_stock_bajo"], contexto["productos_sanos"]), (1, 1))
+        self.assertEqual(contexto["salud_inventario"], 50)
+
+    def test_series_de_meses_y_dias(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from .models import Factura
+
+        Factura.objects.filter(pk=self.hoy.pk).update(creado_en=timezone.now() - timedelta(days=3))
+        contexto = self.contexto()
+        meses, dias = contexto["serie_meses"], contexto["serie_dias"]
+        self.assertEqual((len(meses["etiquetas"]), len(meses["valores"])), (6, 6))
+        self.assertEqual((len(dias["etiquetas"]), len(dias["valores"])), (7, 7))
+        self.assertEqual(dias["valores"][-4], 2000.0)  # hace 3 días
+        self.assertEqual(sum(dias["valores"]), 2000.0)
+        self.assertEqual(sum(meses["valores"]), 2000.0)  # sin la anulada ni la de otra empresa
+
+    def test_venta_de_hace_dos_meses_va_en_su_mes(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from .models import Factura
+
+        Factura.objects.filter(pk=self.hoy.pk).update(creado_en=timezone.now() - timedelta(days=62))
+        contexto = self.contexto()
+        self.assertEqual(contexto["ventas_mes"], 0)
+        self.assertEqual(sum(contexto["serie_meses"]["valores"]), 2000.0)
+        self.assertEqual(contexto["serie_meses"]["valores"][-1], 0.0)
+
+    def test_la_pagina_muestra_los_datos(self):
+        respuesta = self.client.get(reverse("dashboard"))
+        self.assertContains(respuesta, "$ 2.000")
+        self.assertContains(respuesta, "50%")
+        self.assertContains(respuesta, 'id="datos-meses"')
+
+    def test_otra_empresa_ve_solo_lo_suyo(self):
+        from .models import Membresia, Rol, Usuario
+
+        otra = Empresa.objects.get(slug="otra-inicio")
+        usuario = Usuario.objects.create_user(username="o@test.co", email="o@test.co", password="x")
+        Membresia.objects.create(usuario=usuario, empresa=otra, rol=Rol.objects.create(empresa=otra, nombre="A", es_admin=True))
+        self.client.force_login(usuario)
+        contexto = self.contexto()
+        self.assertEqual(contexto["ventas_mes"], 99999)
+        self.assertEqual(list(contexto["ultimas_facturas"]), [self.ajena])
+
+    def test_sin_productos_ni_ventas_no_falla(self):
+        from .models import Membresia, Rol, Usuario
+
+        vacia = Empresa.objects.create(nombre="Vacía", nit="900000092", slug="vacia")
+        usuario = Usuario.objects.create_user(username="v@test.co", email="v@test.co", password="x")
+        Membresia.objects.create(usuario=usuario, empresa=vacia, rol=Rol.objects.create(empresa=vacia, nombre="A", es_admin=True))
+        self.client.force_login(usuario)
+        contexto = self.contexto()
+        self.assertEqual((contexto["ventas_mes"], contexto["salud_inventario"]), (0, 100))

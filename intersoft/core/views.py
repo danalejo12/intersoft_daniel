@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.formats import date_format
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
@@ -50,11 +51,66 @@ class DashboardView(TenantMixin, TemplateView):
         productos = Producto.objects.de_empresa(empresa).filter(activo=True)
 
         contexto["total_clientes"] = Cliente.objects.de_empresa(empresa).filter(activo=True).count()
-        contexto["total_productos"] = productos.count()
+        total_productos = productos.count()
+        contexto["total_productos"] = total_productos
         # F("stock_minimo") compara dos columnas DENTRO de PostgreSQL
-        contexto["stock_bajo"] = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
+        stock_bajo = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
+        contexto["stock_bajo"] = stock_bajo
         contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
+
+        # Salud del inventario: porcentaje de productos por encima de su mínimo
+        n_stock_bajo = stock_bajo.count()
+        contexto["n_stock_bajo"] = n_stock_bajo
+        contexto["productos_sanos"] = total_productos - n_stock_bajo
+        contexto["salud_inventario"] = (
+            round(100 * (total_productos - n_stock_bajo) / total_productos) if total_productos else 100
+        )
+
+        # Ventas: solo facturas de esta empresa, sin las anuladas
+        ventas = Factura.objects.de_empresa(empresa).exclude(estado=Factura.Estado.ANULADA)
+        ahora = timezone.localtime()
+        inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        del_mes = ventas.filter(creado_en__gte=inicio_mes).aggregate(total=Sum("total"), cantidad=Count("id"))
+        contexto["ventas_mes"] = del_mes["total"] or 0
+        contexto["facturas_mes"] = del_mes["cantidad"]
+        contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
+        contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
+        contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
         return contexto
+
+    @staticmethod
+    def serie_meses(ventas, inicio_mes, cantidad=6):
+        """Total facturado en los últimos 6 meses, incluido el actual; los meses sin ventas valen 0."""
+        meses = []
+        anio, mes = inicio_mes.year, inicio_mes.month
+        for _ in range(cantidad):
+            meses.append((anio, mes))
+            anio, mes = (anio - 1, 12) if mes == 1 else (anio, mes - 1)
+        meses.reverse()
+        desde = inicio_mes.replace(year=meses[0][0], month=meses[0][1])
+        totales = {
+            (fila["mes"].year, fila["mes"].month): fila["total"]
+            for fila in ventas.filter(creado_en__gte=desde)
+            .annotate(mes=TruncMonth("creado_en")).values("mes").annotate(total=Sum("total"))
+        }
+        return {
+            "etiquetas": [date_format(date(anio, mes, 1), "M Y") for anio, mes in meses],
+            "valores": [float(totales.get(clave, 0)) for clave in meses],
+        }
+
+    @staticmethod
+    def serie_dias(ventas, hoy, cantidad=7):
+        """Total facturado en los últimos 7 días, incluido hoy."""
+        dias = [hoy - timedelta(days=atras) for atras in range(cantidad - 1, -1, -1)]
+        totales = {
+            fila["dia"]: fila["total"]
+            for fila in ventas.filter(creado_en__date__gte=dias[0])
+            .annotate(dia=TruncDate("creado_en")).values("dia").annotate(total=Sum("total"))
+        }
+        return {
+            "etiquetas": [date_format(dia, "j M") for dia in dias],
+            "valores": [float(totales.get(dia, 0)) for dia in dias],
+        }
 
 
 class DatosNegocioView(PermisoRequeridoMixin, SuccessMessageMixin, UpdateView):
