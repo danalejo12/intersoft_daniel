@@ -144,6 +144,45 @@ MAILERS = {
     },
 }
 
+# Reciben por correo los avisos critical (reembolsos, cobros duplicados). Separados por coma.
+ADMINS = config("ADMINS", default="", cast=Csv())
+
+
+# ---------------------------------------------------------------
+# Registros: consola y archivo rotativo
+# ---------------------------------------------------------------
+LOG_DIR = Path(config("LOG_DIR", default=str(BASE_DIR / "logs")))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "detallado": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "consola": {"class": "logging.StreamHandler", "formatter": "detallado"},
+        "archivo": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOG_DIR / "intersoft.log"),
+            "maxBytes": 5 * 1024 * 1024,  # 5 MB por archivo
+            "backupCount": 10,
+            "encoding": "utf-8",
+            "delay": True,
+            "formatter": "detallado",
+        },
+        # Sin ADMINS no envía nada; con el correo de desarrollo, lo muestra en la consola
+        "correo_admins": {"class": "django.utils.log.AdminEmailHandler", "level": "CRITICAL"},
+    },
+    "loggers": {
+        "django": {"handlers": ["consola", "archivo"], "level": "WARNING", "propagate": False},
+        "core": {"handlers": ["consola", "archivo"], "level": "INFO", "propagate": False},
+        # Aquí están los avisos de dinero: reembolsos, montos distintos y cobros duplicados
+        "core.pagos": {"handlers": ["consola", "archivo", "correo_admins"], "level": "INFO", "propagate": False},
+        "core.reservas": {"handlers": ["consola", "archivo", "correo_admins"], "level": "INFO", "propagate": False},
+    },
+}
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "despues_login"  # dueños al panel, compradores al marketplace
 LOGOUT_REDIRECT_URL = "marketplace"
