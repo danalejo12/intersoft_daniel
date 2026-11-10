@@ -26,4 +26,9 @@ class Empresa(ModeloBase):
  
     def __str__(self):
         return self.nombre
+
+    @property
+    def datos_completos(self):
+        """Ley 1480, art. 53: sin dirección de notificaciones y teléfono, el negocio no puede vender."""
+        return bool(self.direccion.strip() and self.telefono.strip())
  

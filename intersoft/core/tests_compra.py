@@ -20,7 +20,9 @@ def crear_usuario(correo="ana@correo.co", nombre="Ana", apellido="Pérez"):
 
 
 def crear_negocio(nombre, nit, dueno):
-    return registrar_negocio(usuario=dueno, datos={"nombre": nombre, "nit": nit, "email": "", "telefono": "", "direccion": ""})
+    return registrar_negocio(usuario=dueno, datos={
+        "nombre": nombre, "nit": nit, "email": "", "telefono": "6011234567", "direccion": "Calle 1 # 2-3",
+    })
 
 
 def crear_producto(empresa, nombre="Pan", codigo="P-1", precio="1999.98", stock=5, publicado=True, iva="19"):

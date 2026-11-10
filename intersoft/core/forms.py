@@ -1,7 +1,7 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
-from .models import Categoria, Cliente, MovimientoInventario, Producto
+from .models import Categoria, Cliente, Empresa, MovimientoInventario, Producto
 
 IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
@@ -189,6 +189,25 @@ class ProductoForm(forms.ModelForm):
         if existe:
             raise forms.ValidationError("Ya existe un producto con este código en tu empresa.")
         return codigo
+
+
+class DatosNegocioForm(forms.ModelForm):
+    """Datos legales que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
+
+    class Meta:
+        model = Empresa
+        fields = ["direccion", "telefono", "email"]
+        labels = {
+            "direccion": "Dirección de notificaciones",
+            "telefono": "Teléfono",
+            "email": "Correo del negocio",
+        }
+
+    def __init__(self, *args, **kwargs):
+        from .forms_tienda import hacer_obligatorios_datos_legales  # evita una importación circular
+
+        super().__init__(*args, **kwargs)
+        hacer_obligatorios_datos_legales(self)
 
 
 class MovimientoForm(forms.Form):

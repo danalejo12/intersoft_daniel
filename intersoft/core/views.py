@@ -19,7 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 # 3. Imports de tu propia app
-from .forms import ClienteForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
+from .forms import ClienteForm, DatosNegocioForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
 from .models import Categoria, Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
 from .pagos import (
@@ -64,6 +64,24 @@ class DashboardView(TenantMixin, TemplateView):
         contexto["stock_bajo"] = productos.filter(stock__lte=F("stock_minimo")).order_by("stock")
         contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
         return contexto
+
+
+class DatosNegocioView(PermisoRequeridoMixin, SuccessMessageMixin, UpdateView):
+    """Dirección y teléfono legales del negocio. Sin ellos, sus productos no salen en el marketplace."""
+
+    permiso_requerido = "negocio.editar"  # solo el rol administrador, que tiene todos los permisos
+    form_class = DatosNegocioForm
+    template_name = "core/negocio/datos.html"
+    success_url = reverse_lazy("dashboard")
+    success_message = "¡Listo! Guardamos los datos de tu negocio."
+
+    def get_object(self, queryset=None):
+        # El negocio es siempre el activo: nunca se recibe un id desde la URL
+        return self.request.empresa
+
+    def form_valid(self, form):
+        # Se salta TenantMixin.form_valid: Empresa no tiene campo empresa
+        return super(TenantMixin, self).form_valid(form)
 
 
 # ---------------------------------------------------------------

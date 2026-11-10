@@ -72,6 +72,19 @@
         <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
       {% endfor %}
 
+      {% if request.empresa and not request.empresa.datos_completos %}
+        <div class="mensaje error" role="alert">
+          <span>
+            Tus productos no se están mostrando en el marketplace: faltan la dirección de notificaciones y el teléfono de tu negocio.
+            {% if request.membresia.rol.es_admin %}
+              <a href="{% url 'negocio_datos' %}">Completar ahora</a>
+            {% else %}
+              Pídele al administrador del negocio que los complete.
+            {% endif %}
+          </span>
+        </div>
+      {% endif %}
+
       {% block contenido %}{% endblock %}
     </main>
 

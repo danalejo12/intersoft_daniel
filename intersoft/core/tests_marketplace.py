@@ -19,7 +19,10 @@ CLAVE = "ClaveSegura#2026"
 
 
 def crear_empresa(nombre, nit, slug, activa=True):
-    return Empresa.objects.create(nombre=nombre, nit=nit, slug=slug, activa=activa)
+    # Con dirección y teléfono: sin ellos el negocio no publica (Ley 1480, art. 53)
+    return Empresa.objects.create(
+        nombre=nombre, nit=nit, slug=slug, activa=activa, direccion="Calle 1 # 2-3", telefono="6011234567"
+    )
 
 
 def crear_producto(empresa, nombre, codigo="P-1", publicado=True, activo=True, stock=5):
@@ -41,7 +44,7 @@ def datos_registro(correo="nueva@correo.co", **extra):
 
 
 def datos_negocio(nombre="Mi Tienda", nit="900111222"):
-    return {"nombre": nombre, "nit": nit, "email": "", "telefono": "", "direccion": ""}
+    return {"nombre": nombre, "nit": nit, "email": "", "telefono": "6011234567", "direccion": "Calle 1 # 2-3"}
 
 
 class CatalogoTests(TestCase):

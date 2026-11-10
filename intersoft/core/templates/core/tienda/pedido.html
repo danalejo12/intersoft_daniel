@@ -131,6 +131,15 @@
         <div><dt>IVA</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
         <div class="resumen-total"><dt>Total</dt><dd>${{ pedido.total|floatformat:"-2g" }}</dd></div>
       </dl>
+
+      <h3 class="titulo-vendedor">Datos del vendedor</h3>
+      <p class="direccion">
+        <strong>{{ pedido.empresa.nombre }}</strong><br>
+        NIT {{ pedido.empresa.nit }}<br>
+        {{ pedido.empresa.direccion|default:"Dirección no registrada" }}<br>
+        {{ pedido.empresa.telefono|default:"Teléfono no registrado" }}
+        {% if pedido.empresa.email %}<br><a href="mailto:{{ pedido.empresa.email }}">{{ pedido.empresa.email }}</a>{% endif %}
+      </p>
       {% if pedido.estado == "pendiente" %}
         <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" onsubmit="return confirm('¿Seguro que quieres cancelar este pedido?');">
           {% csrf_token %}
