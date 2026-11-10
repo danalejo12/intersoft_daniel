@@ -4,7 +4,8 @@ from django.contrib.auth.admin import UserAdmin
  
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
-    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario, DetallePedido
+    MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario, DetallePedido,
+    PagoCaja, TurnoCaja,
 )
  
  
@@ -114,3 +115,19 @@ class PedidoAdmin(admin.ModelAdmin):
 class ComentarioAdmin(admin.ModelAdmin):
     list_display = ["producto", "calificacion", "compra_verificada", "empresa", "creado_en"]
     list_filter = ["empresa", "calificacion", "compra_verificada"]
+
+
+@admin.register(TurnoCaja)
+class TurnoCajaAdmin(admin.ModelAdmin):
+    list_display = ["creado_en", "cajero", "empresa", "base_inicial", "cerrado_en", "diferencia"]
+    list_filter = ["empresa"]
+    list_select_related = ["cajero", "empresa"]
+    # El arqueo no se edita a mano: queda como se cerró
+    readonly_fields = ["base_inicial", "cerrado_en", "efectivo_esperado", "efectivo_contado", "diferencia"]
+
+
+@admin.register(PagoCaja)
+class PagoCajaAdmin(admin.ModelAdmin):
+    list_display = ["factura", "metodo", "monto", "recibido", "cambio", "empresa", "creado_en"]
+    list_filter = ["empresa", "metodo"]
+    readonly_fields = ["factura", "turno", "metodo", "monto", "recibido", "cambio"]

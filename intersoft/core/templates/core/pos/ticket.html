@@ -1,0 +1,105 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recibo {{ factura.numero }} · {{ empresa.nombre }}</title>
+  <style>
+    @page { size: 80mm auto; margin: 4mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; background: #eef2f6; color: #182334; font: 13px/1.5 Arial, sans-serif; }
+    .visor { width: 100%; max-width: 390px; margin: 0 auto; }
+    .barra { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+    .barra span { color: #566579; font-size: 12px; }
+    .acciones { display: flex; gap: 8px; }
+    button { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; background: white; color: #182334; font: 600 13px Arial, sans-serif; cursor: pointer; }
+    .imprimir { background: #163f42; border-color: #163f42; color: white; }
+    button:focus-visible { outline: 3px solid #178d95; outline-offset: 3px; }
+    .recibo { background: white; border-top: 5px solid #163f42; padding: 28px 24px; box-shadow: 0 8px 32px #18233414; border-radius: 4px; overflow-wrap: anywhere; }
+    .cabecera { text-align: center; padding-bottom: 20px; }
+    .etiqueta { margin: 0 0 8px; font-size: 10px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #526579; }
+    h1 { margin: 0 0 8px; font-size: 23px; line-height: 1.2; }
+    .contacto { margin: 0; color: #526579; font-size: 12px; }
+    .folio { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px dashed #b7c3cf; border-bottom: 1px dashed #b7c3cf; padding: 12px 0; }
+    .folio strong { font-size: 17px; }
+    .datos { margin: 16px 0; }
+    .datos div { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 8px; margin: 5px 0; }
+    dt { color: #526579; } dd { margin: 0; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th { text-align: left; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 9px 0; border-bottom: 1px solid #cbd5e1; color: #526579; }
+    th:last-child { width: 34%; }
+    td { padding: 5px 0; vertical-align: top; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .producto td { padding-top: 12px; font-weight: bold; }
+    .cantidad td { padding-top: 0; padding-bottom: 10px; font-size: 12px; color: #526579; border-bottom: 1px solid #edf0f3; }
+    .totales { margin-top: 12px; }
+    .total td { padding: 12px 0; border-top: 2px solid #182334; font-size: 22px; font-weight: bold; color: #163f42; }
+    h2 { margin: 18px 0 6px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #526579; }
+    .referencia { display: block; font-size: 11px; color: #526579; }
+    .cambio td { border-top: 1px dashed #b7c3cf; padding-top: 10px; font-weight: bold; }
+    footer { border-top: 1px dashed #b7c3cf; margin-top: 20px; padding-top: 18px; text-align: center; }
+    footer strong { font-size: 15px; } footer p { margin: 5px 0 0; font-size: 11px; color: #526579; }
+    @media (max-width: 360px) { body { padding: 16px 8px; } .recibo { padding: 24px 16px; } .barra { flex-wrap: wrap; } }
+    @media print {
+      body { width: 72mm; padding: 0; margin: 0 auto; background: white; color: black; font-size: 11px; }
+      .visor { max-width: none; } .barra { display: none; }
+      .recibo { border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+      h1 { font-size: 18px; } .cabecera { padding-bottom: 12px; }
+      .contacto, .etiqueta, dt, th, h2, .referencia, .cantidad td, footer p, .total td { color: black; }
+      .total td { font-size: 18px; } .folio strong { font-size: 14px; }
+      .cantidad td { border-color: #aaa; } th, .folio, .cambio td, footer { border-color: black; }
+      tr, .folio, footer, .total { break-inside: avoid; }
+      thead { display: table-header-group; }
+    }
+  </style>
+</head>
+<body>
+  <main class="visor">
+    <div class="barra">
+      <span>Recibo de venta · 80 mm</span>
+      <div class="acciones">
+        <button type="button" onclick="window.close()">Cerrar</button>
+        <button class="imprimir" type="button" onclick="window.print()">Imprimir</button>
+      </div>
+    </div>
+    <article class="recibo" aria-label="Recibo de venta {{ factura.numero }}">
+      <header class="cabecera">
+        <p class="etiqueta">Recibo de venta POS</p>
+        <h1>{{ empresa.nombre }}</h1>
+        <p class="contacto">NIT {{ empresa.nit }}
+          {% if empresa.direccion %}<br>{{ empresa.direccion }}{% endif %}
+          {% if empresa.telefono %}<br>Tel. {{ empresa.telefono }}{% endif %}
+        </p>
+      </header>
+      <div class="folio"><span>Venta <strong>N.º {{ factura.numero }}</strong></span><span>{{ factura.creado_en|date:"d/m/Y" }}<br>{{ factura.creado_en|date:"g:i a" }}</span></div>
+      <dl class="datos">
+        <div><dt>Cajero</dt><dd>{{ factura.creada_por.get_full_name|default:factura.creada_por.email }}</dd></div>
+        <div><dt>Cliente</dt><dd>{{ factura.cliente.nombre }}{% if not consumidor_final %}<br>{{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }}{% endif %}</dd></div>
+      </dl>
+      <table aria-label="Productos de la venta">
+        <thead><tr><th scope="col">Producto / cantidad</th><th scope="col" class="num">Importe</th></tr></thead>
+        {% for detalle in detalles %}
+        <tbody>
+          <tr class="producto"><td colspan="2">{{ detalle.producto.nombre }}</td></tr>
+          <tr class="cantidad"><td>{{ detalle.cantidad }} × ${{ detalle.precio_unitario|floatformat:"-2g" }}</td><td class="num">${{ detalle.subtotal|floatformat:"-2g" }}</td></tr>
+        </tbody>
+        {% endfor %}
+      </table>
+      <table class="totales" aria-label="Resumen de la venta">
+        <tr><td>Subtotal</td><td class="num">${{ factura.subtotal|floatformat:"-2g" }}</td></tr>
+        <tr><td>IVA</td><td class="num">${{ factura.iva|floatformat:"-2g" }}</td></tr>
+        <tr class="total"><td>TOTAL</td><td class="num">${{ factura.total|floatformat:"-2g" }}</td></tr>
+      </table>
+      <h2>Detalle del pago</h2>
+      <table aria-label="Medios de pago y cambio">
+        {% for pago in pagos %}
+        <tr><td>{{ pago.get_metodo_display }}{% if pago.recibido %}<span class="referencia">Recibido</span>{% endif %}{% if pago.referencia %}<span class="referencia">Ref. {{ pago.referencia }}</span>{% endif %}</td><td class="num">${% if pago.recibido %}{{ pago.recibido|floatformat:"-2g" }}{% else %}{{ pago.monto|floatformat:"-2g" }}{% endif %}</td></tr>
+        {% endfor %}
+        {% if cambio %}<tr class="cambio"><td>Cambio</td><td class="num">${{ cambio|floatformat:"-2g" }}</td></tr>{% endif %}
+      </table>
+      <footer><strong>¡Gracias por tu compra!</strong><p>Conserva este recibo como soporte de tu compra.</p><p>{{ empresa.nombre }}</p></footer>
+    </article>
+  </main>
+  {% if imprimir %}<script>addEventListener("load", function () { window.print(); });</script>{% endif %}
+</body>
+</html>

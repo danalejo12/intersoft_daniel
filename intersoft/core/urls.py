@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from . import views, views_compra, views_tienda
+from . import views, views_compra, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
@@ -28,6 +28,17 @@ panel_urlpatterns = [
     path("facturas/<uuid:pk>/", views.FacturaDetailView.as_view(), name="facturas_detalle"),
     path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
     path("facturas/<uuid:pk>/cobrar/", views.FacturaCobrarView.as_view(), name="facturas_cobrar"),
+
+    # Punto de venta (mostrador)
+    path("pos/", views_pos.PosView.as_view(), name="pos"),
+    path("pos/abrir/", views_pos.AbrirTurnoView.as_view(), name="pos_abrir"),
+    path("pos/productos/", views_pos.BuscarProductosView.as_view(), name="pos_productos"),
+    path("pos/clientes/", views_pos.BuscarClientesView.as_view(), name="pos_clientes"),
+    path("pos/vender/", views_pos.VenderView.as_view(), name="pos_vender"),
+    path("pos/cerrar/", views_pos.CerrarTurnoView.as_view(), name="pos_cerrar"),
+    path("pos/cajas/", views_pos.TurnosView.as_view(), name="pos_turnos"),
+    path("pos/cajas/<uuid:pk>/", views_pos.TurnoView.as_view(), name="pos_turno"),
+    path("pos/ticket/<uuid:pk>/", views_pos.TicketView.as_view(), name="pos_ticket"),
 
     # Pagos
     path("pagos/<uuid:pk>/resultado/", views.PagoResultadoView.as_view(), name="pagos_resultado"),

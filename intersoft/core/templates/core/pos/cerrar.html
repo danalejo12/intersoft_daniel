@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+{% block titulo %}Cerrar caja · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Cerrar caja</h1>
+    <a href="{% url 'pos' %}">← Volver al punto de venta</a>
+  </div>
+
+  <form method="post" class="formulario pos-abrir">
+    {% csrf_token %}
+    <p class="nota">Abriste a las {{ turno.creado_en|date:"g:i a" }} y registraste {{ ventas }} venta{{ ventas|pluralize }}.</p>
+    <p class="nota">Cuenta todo el efectivo que hay en la caja, incluida la base. Al cerrar te mostramos si cuadra.</p>
+    <div class="campo">
+      <label for="contado">Efectivo contado</label>
+      <input type="text" id="contado" name="contado" inputmode="decimal" autocomplete="off" required autofocus>
+    </div>
+    <div class="campo">
+      <label for="observaciones">Observaciones (opcional)</label>
+      <textarea id="observaciones" name="observaciones" rows="2" maxlength="1000"></textarea>
+    </div>
+    <div class="acciones">
+      <a href="{% url 'pos' %}">Cancelar</a>
+      <button type="submit" onclick="return confirm('¿Cerrar la caja? Después no podrás vender en este turno.');">Cerrar caja</button>
+    </div>
+  </form>
+{% endblock %}

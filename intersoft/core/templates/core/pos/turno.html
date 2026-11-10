@@ -1,0 +1,72 @@
+{% extends "core/base.html" %}
+{% block titulo %}Caja · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Caja de {{ turno.cajero.get_full_name|default:turno.cajero.email }}</h1>
+    <a href="{% url 'pos_turnos' %}">← Historial de cajas</a>
+  </div>
+  <p class="nota">
+    Abierta {{ turno.creado_en|date:"d/m/Y g:i a" }}
+    {% if turno.cerrado_en %} · cerrada {{ turno.cerrado_en|date:"d/m/Y g:i a" }}{% else %} · <strong>sigue abierta</strong>{% endif %}
+  </p>
+
+  <section class="kpis">
+    <article class="kpi"><div class="kpi-cabecera"><span>Ventas</span></div><strong>{{ resumen.ventas }}</strong></article>
+    <article class="kpi verde"><div class="kpi-cabecera"><span>Total vendido</span></div><strong>$ {{ resumen.total_vendido|floatformat:"0g" }}</strong></article>
+    {% if turno.cerrado_en %}
+      <article class="kpi {% if turno.diferencia == 0 %}verde{% else %}rojo{% endif %}">
+        <div class="kpi-cabecera"><span>Diferencia en efectivo</span></div>
+        <strong>$ {{ turno.diferencia|floatformat:"0g" }}</strong>
+        <small>{% if turno.diferencia == 0 %}La caja cuadra{% elif turno.diferencia > 0 %}Sobra dinero{% else %}Falta dinero{% endif %}</small>
+      </article>
+    {% endif %}
+  </section>
+
+  <section class="paneles parejos">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Por medio de pago</h2></div>
+      <table class="tabla">
+        <tbody>
+          {% for etiqueta, total in resumen.por_metodo %}
+            <tr><td>{{ etiqueta }}</td><td class="num">$ {{ total|floatformat:"0g" }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Arqueo de efectivo</h2></div>
+      <table class="tabla">
+        <tbody>
+          <tr><td>Base inicial</td><td class="num">$ {{ turno.base_inicial|floatformat:"0g" }}</td></tr>
+          <tr><td>Ventas en efectivo</td><td class="num">$ {{ resumen.efectivo_ventas|floatformat:"0g" }}</td></tr>
+          {% if turno.cerrado_en %}
+            <tr><td>Esperado en caja</td><td class="num">$ {{ turno.efectivo_esperado|floatformat:"0g" }}</td></tr>
+            <tr><td>Contado</td><td class="num">$ {{ turno.efectivo_contado|floatformat:"0g" }}</td></tr>
+            <tr class="total"><td>Diferencia</td><td class="num">$ {{ turno.diferencia|floatformat:"0g" }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+      {% if turno.observaciones %}<p class="nota">{{ turno.observaciones }}</p>{% endif %}
+    </article>
+  </section>
+
+  <h2>Ventas del turno</h2>
+  <table class="tabla">
+    <thead><tr><th>N.º</th><th>Hora</th><th>Cliente</th><th class="num">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for factura in facturas %}
+        <tr>
+          <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
+          <td>{{ factura.creado_en|date:"g:i a" }}</td>
+          <td>{{ factura.cliente.nombre }}</td>
+          <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
+          <td><a href="{% url 'pos_ticket' factura.pk %}" target="_blank" rel="noopener">Ticket</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No hubo ventas en este turno.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

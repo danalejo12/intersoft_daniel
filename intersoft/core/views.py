@@ -22,7 +22,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 # 3. Imports de tu propia app
 from .forms import ClienteForm, DatosNegocioForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, Factura, MovimientoInventario, Pago, Pedido, Producto
+from .models import Cliente, Factura, MovimientoInventario, Pago, PagoCaja, Pedido, Producto
 from .pagos import (
     PagoNoPermitido,
     aplicar_transaccion,
@@ -205,7 +205,8 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
             .select_related("cliente")
             .annotate(
                 pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO))
-                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO)),
+                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO))
+                | Exists(PagoCaja.objects.filter(factura=OuterRef("pk"))),
                 pago_en_proceso=Exists(
                     pagos.filter(estado=Pago.Estado.PENDIENTE, creado_en__gte=recientes)
                 ),

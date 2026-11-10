@@ -63,6 +63,25 @@
     </table>
   {% endif %}
 
+  {% if factura.pagos_caja.all %}
+    <h2>Pagos en caja</h2>
+    <table class="tabla">
+      <thead><tr><th>Medio</th><th>Referencia</th><th class="num">Monto</th><th class="num">Recibido</th><th class="num">Cambio</th></tr></thead>
+      <tbody>
+        {% for pago in factura.pagos_caja.all %}
+          <tr>
+            <td>{{ pago.get_metodo_display }}</td>
+            <td>{{ pago.referencia|default:"—" }}</td>
+            <td class="num">$ {{ pago.monto|floatformat:"0g" }}</td>
+            <td class="num">{% if pago.recibido %}$ {{ pago.recibido|floatformat:"0g" }}{% else %}—{% endif %}</td>
+            <td class="num">{% if pago.cambio %}$ {{ pago.cambio|floatformat:"0g" }}{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p><a class="boton secundario" href="{% url 'pos_ticket' factura.pk %}" target="_blank" rel="noopener">Ver ticket</a></p>
+  {% endif %}
+
   {% if factura.pedido.pagos.all %}
     <h2>Pagos del pedido {{ factura.pedido.numero }}</h2>
     <table class="tabla">

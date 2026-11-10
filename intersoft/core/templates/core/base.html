@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=13">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=14">
 </head>
 <body>
 
@@ -25,6 +25,9 @@
     </a>
     <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15.5 8.5H10a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 0 1 0 3.5H8.5"/><path d="M12 7v10"/></svg>
+    </a>
+    <a href="{% url 'pos' %}" data-label="Punto de venta" aria-label="Punto de venta" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
     </a>
     {# Aquí puedes agregar tu enlace de Categorías con el mismo formato #}
 

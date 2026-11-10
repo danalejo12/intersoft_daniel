@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% block titulo %}Historial de cajas · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Historial de cajas</h1>
+    <a class="boton" href="{% url 'pos' %}">Ir al punto de venta</a>
+  </div>
+
+  <table class="tabla">
+    <thead><tr><th>Apertura</th><th>Cajero</th><th>Estado</th><th class="num">Diferencia</th><th></th></tr></thead>
+    <tbody>
+      {% for turno in turnos %}
+        <tr>
+          <td>{{ turno.creado_en|date:"d/m/Y g:i a" }}</td>
+          <td>{{ turno.cajero.get_full_name|default:turno.cajero.email }}</td>
+          <td>{% if turno.cerrado_en %}Cerrada{% else %}Abierta{% endif %}</td>
+          <td class="num">{% if turno.cerrado_en %}$ {{ turno.diferencia|floatformat:"0g" }}{% else %}—{% endif %}</td>
+          <td><a href="{% url 'pos_turno' turno.pk %}">Ver</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Todavía no se ha abierto ninguna caja.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
