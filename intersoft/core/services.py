@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from .models import Cliente, DetalleFactura, Empresa, Factura, MovimientoInventario, Producto
 
-CENTAVOS = Decimal("0.01")
+from .impuestos import CENTAVOS, calcular_iva
 
 
 class StockInsuficiente(Exception):
@@ -78,7 +78,7 @@ def crear_factura(*, empresa, usuario, cliente, items):
         cantidad = int(item["cantidad"])
         valor_linea = producto.precio * cantidad
         subtotal += valor_linea
-        iva += (valor_linea * producto.iva_porcentaje / 100).quantize(CENTAVOS)
+        iva += calcular_iva(valor_linea, producto.iva_porcentaje)
 
         DetalleFactura.objects.create(
             empresa=empresa,

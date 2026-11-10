@@ -9,7 +9,8 @@ from django.utils import timezone
 from . import reservas
 from .models import Comentario, DetallePedido, Pago, Pedido, Producto
 from .pagos import ResultadoWompi, revisar_en_wompi, sincronizar_pago
-from .services import CENTAVOS, StockInsuficiente, siguiente_consecutivo
+from .impuestos import CENTAVOS, calcular_iva
+from .services import StockInsuficiente, siguiente_consecutivo
 
 Estado = Pedido.Estado
 
@@ -39,7 +40,7 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
     for producto in productos:  # misma fórmula de services.crear_factura
         valor = producto.precio * cantidades[producto.pk]
         subtotal += valor
-        iva += (valor * producto.iva_porcentaje / 100).quantize(CENTAVOS)
+        iva += calcular_iva(valor, producto.iva_porcentaje)
 
     pedido = Pedido.objects.create(
         empresa=negocio,

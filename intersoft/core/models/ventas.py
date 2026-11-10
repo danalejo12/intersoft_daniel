@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
  
+from ..impuestos import calcular_iva
 from .base import ModeloTenant
  
  
@@ -75,5 +76,5 @@ class DetalleFactura(ModeloTenant):
  
     @property
     def valor_iva(self):
-        return (self.subtotal * self.iva_porcentaje / 100).quantize(Decimal("0.01"))
+        return calcular_iva(self.subtotal, self.iva_porcentaje)
  

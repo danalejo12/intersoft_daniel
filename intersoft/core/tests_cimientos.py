@@ -128,3 +128,48 @@ class DatosVendedorTests(TestCase):
         for dato in ("Datos del vendedor", "Panadería", "NIT 900123", "Calle 1 # 2-3", "6011234567", "ventas@pan.co"):
             with self.subTest(dato=dato):
                 self.assertContains(respuesta, dato)
+
+
+class RedondeoIvaTests(TestCase):
+    """Un caso de empate: 0,50 con IVA del 1 % da 0,005, que debe quedar en 0,01 en todas partes."""
+
+    def setUp(self):
+        from .tests_compra import crear_negocio, crear_producto, crear_usuario
+
+        self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
+        self.negocio = crear_negocio("Panadería", "900123", self.dueno)
+        self.producto = crear_producto(self.negocio, nombre="Galleta", precio="0.50", iva="1")
+
+    def test_la_funcion_redondea_la_mitad_hacia_arriba(self):
+        from decimal import Decimal
+
+        from .impuestos import calcular_iva
+
+        self.assertEqual(calcular_iva(Decimal("0.50"), Decimal("1")), Decimal("0.01"))
+        self.assertEqual(calcular_iva(Decimal("1.50"), Decimal("1")), Decimal("0.02"))  # 0,015: también hacia arriba
+
+    def test_catalogo_carrito_pedido_y_factura_dan_lo_mismo(self):
+        from decimal import Decimal
+
+        from .carrito import _linea
+        from .models import Cliente
+        from .reservas import marcar_pagado
+        from .services import crear_factura
+        from .tests_compra import DATOS_ENVIO, crear_usuario
+
+        esperado = Decimal("0.51")
+        self.assertEqual(self.producto.precio_con_iva, esperado)
+        self.assertEqual(_linea(self.producto, 1)["total"], esperado)
+
+        self.client.force_login(crear_usuario("compra@correo.co"))
+        self.client.post(reverse("carrito_agregar", args=[self.producto.pk]), {"cantidad": 1})
+        self.client.post(reverse("checkout", args=[self.negocio.slug]), DATOS_ENVIO)
+        pedido = Pedido.objects.get()
+        self.assertEqual(pedido.total, esperado)
+        marcar_pagado(pedido)
+        self.assertEqual(pedido.factura.total, esperado)
+        self.assertEqual(pedido.factura.detalles.get().valor_iva, Decimal("0.01"))
+
+        cliente = Cliente.objects.create(empresa=self.negocio, tipo_documento="CC", numero_documento="5", nombre="C")
+        factura = crear_factura(empresa=self.negocio, usuario=self.dueno, cliente=cliente, items=[{"producto": self.producto, "cantidad": 1}])
+        self.assertEqual(factura.total, esperado)
