@@ -29,6 +29,11 @@ class Pedido(ModeloTenant):
         ENVIADO = "enviado", "Enviado"
         ENTREGADO = "entregado", "Entregado"
 
+    class EstadoDispersion(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente de dispersión"
+        PROGRAMADA = "programada", "Programada"
+        LIQUIDADA = "liquidada", "Liquidada al comercio"
+
     # Mientras el pedido está pendiente, el comprador ve el estado de su último intento.
     # Los demás estados usan la etiqueta de Estado: una sola fuente para cada texto.
     ETIQUETAS_DEL_INTENTO = {
@@ -51,6 +56,11 @@ class Pedido(ModeloTenant):
     comision_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
     comision_valor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     neto_vendedor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    estado_dispersion = models.CharField(
+        max_length=15, choices=EstadoDispersion.choices, default=EstadoDispersion.PENDIENTE
+    )
+    dispersion_referencia = models.CharField(max_length=80, blank=True)
+    dispersado_en = models.DateTimeField(null=True, blank=True)
     estado_envio = models.CharField(
         max_length=20, choices=EstadoEnvio.choices, default=EstadoEnvio.PENDIENTE
     )

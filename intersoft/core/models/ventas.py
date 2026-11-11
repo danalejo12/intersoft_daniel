@@ -14,6 +14,12 @@ class Factura(ModeloTenant):
     class Estado(models.TextChoices):
         EMITIDA = "emitida", "Emitida"
         ANULADA = "anulada", "Anulada"
+
+    class EstadoDian(models.TextChoices):
+        NO_APLICA = "no_aplica", "Interna (sin envío DIAN)"
+        PENDIENTE = "pendiente", "Pendiente de envío"
+        ACEPTADA = "aceptada", "Aceptada por DIAN"
+        RECHAZADA = "rechazada", "Rechazada por DIAN"
  
     numero = models.PositiveIntegerField()  # Consecutivo por empresa (lo asigna el servicio de ventas).
     cliente = models.ForeignKey("Cliente", on_delete=models.PROTECT, related_name="facturas")
@@ -38,6 +44,15 @@ class Factura(ModeloTenant):
     empresa_nit = models.CharField(max_length=30, blank=True)
     empresa_direccion = models.CharField(max_length=250, blank=True)
     empresa_telefono = models.CharField(max_length=30, blank=True)
+    # Facturación electrónica DIAN (opcional / desacoplada por proveedor tecnológico)
+    estado_dian = models.CharField(
+        max_length=15, choices=EstadoDian.choices, default=EstadoDian.NO_APLICA
+    )
+    cufe = models.CharField("CUFE", max_length=120, blank=True)
+    dian_xml_url = models.URLField(blank=True)
+    dian_pdf_url = models.URLField(blank=True)
+    dian_respuesta = models.CharField(max_length=250, blank=True)
+    dian_emitida_en = models.DateTimeField(null=True, blank=True)
  
     class Meta:
         verbose_name = "factura"

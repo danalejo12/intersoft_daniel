@@ -608,3 +608,163 @@ class ContabilidadNominaProduccionAgendaERPTests(TestCase):
         self.assertEqual(cita1.cartera.tipo, "cobrar")
         self.assertEqual(cita1.cartera.total, Decimal("119000.00"))
 
+
+class IntegracionesFase10Tests(TestCase):
+    """Pruebas de Fase 10: adaptador DIAN, contabilización automática y calculadora de aportes."""
+
+    def setUp(self):
+        self.admin, self.empresa = _crear_empresa_con_admin("admin-f10@test.co", "Fase 10 SAS")
+        self.client.force_login(self.admin)
+
+        self.cliente = Cliente.objects.create(
+            empresa=self.empresa,
+            tipo_documento="CC",
+            numero_documento="10203040",
+            nombre="Cliente DIAN",
+        )
+        self.producto = Producto.objects.create(
+            empresa=self.empresa,
+            codigo="DIAN-1",
+            nombre="Servicio Cloud",
+            precio=Decimal("100000.00"),
+            iva_porcentaje=Decimal("19.00"),
+            stock=20,
+            stock_minimo=2,
+        )
+
+    def test_emision_factura_electronica_dian_simulada_idempotente_y_rechazo_proveedor(self):
+        from .facturacion_electronica import (
+            ProveedorFacturacionElectronica,
+            ResultadoEmisionDian,
+            emitir_factura_electronica,
+        )
+        from .models import Factura
+
+        factura = services.crear_factura(
+            empresa=self.empresa,
+            usuario=self.admin,
+            cliente=self.cliente,
+            items=[{"producto": self.producto, "cantidad": 2}],
+        )
+        self.assertEqual(factura.estado_dian, Factura.EstadoDian.NO_APLICA)
+
+        # Proveedor que rechaza primero
+        class ProveedorRechazo(ProveedorFacturacionElectronica):
+            def emitir_factura(self, fac):
+                return ResultadoEmisionDian(aceptada=False, mensaje="NIT del adquiriente inválido en RUT")
+
+        emitir_factura_electronica(factura=factura, proveedor=ProveedorRechazo())
+        factura.refresh_from_db()
+        self.assertEqual(factura.estado_dian, Factura.EstadoDian.RECHAZADA)
+        self.assertIn("RUT", factura.dian_respuesta)
+
+        # Emitir desde la vista con el simulador por defecto -> pasa a ACEPTADA con CUFE SHA-384 (96 hex chars)
+        resp = self.client.post(reverse("facturas_emitir_dian", args=[factura.pk]), follow=True)
+        self.assertEqual(resp.status_code, 200)
+        factura.refresh_from_db()
+        self.assertEqual(factura.estado_dian, Factura.EstadoDian.ACEPTADA)
+        self.assertEqual(len(factura.cufe), 96)
+        self.assertIsNotNone(factura.dian_emitida_en)
+
+        # Idempotencia: volver a llamar no cambia el CUFE ni llama al proveedor
+        cufe_original = factura.cufe
+        emitir_factura_electronica(factura=factura, proveedor=ProveedorRechazo())
+        factura.refresh_from_db()
+        self.assertEqual(factura.estado_dian, Factura.EstadoDian.ACEPTADA)
+        self.assertEqual(factura.cufe, cufe_original)
+
+    def test_contabilizacion_automatica_de_factura_compra_tesoreria_y_nomina(self):
+        import uuid
+        from .contabilidad_automatica import (
+            calcular_aportes_nomina_colombia,
+            contabilizar_compra,
+            contabilizar_factura,
+            contabilizar_movimiento_tesoreria,
+            contabilizar_nomina,
+        )
+        from .erp_services import aprobar_nomina, recibir_compra, registrar_tesoreria
+        from .models import Compra, CuentaTesoreria, LineaCompra, Proveedor
+
+        # 1. Factura -> Asiento confirmado e idempotente
+        factura = services.crear_factura(
+            empresa=self.empresa,
+            usuario=self.admin,
+            cliente=self.cliente,
+            items=[{"producto": self.producto, "cantidad": 1}],
+        )
+        asiento_fac = contabilizar_factura(factura=factura, usuario=self.admin)
+        self.assertTrue(asiento_fac.confirmado)
+        self.assertEqual(asiento_fac.pk, contabilizar_factura(factura=factura, usuario=self.admin).pk)
+
+        # 2. Compra recibida -> Asiento confirmado
+        prov = Proveedor.objects.create(empresa=self.empresa, documento="900888777", nombre="Prov Contable")
+        compra = Compra.objects.create(
+            empresa=self.empresa,
+            proveedor=prov,
+            referencia="FC-901",
+            fecha=timezone.localdate(),
+            vencimiento=timezone.localdate(),
+        )
+        LineaCompra.objects.create(
+            empresa=self.empresa,
+            compra=compra,
+            producto=self.producto,
+            cantidad=2,
+            costo=Decimal("50000.00"),
+            iva_porcentaje=Decimal("19.00"),
+        )
+        compra = recibir_compra(empresa=self.empresa, pk=compra.pk, usuario=self.admin)
+        asiento_comp = contabilizar_compra(compra=compra, usuario=self.admin)
+        self.assertTrue(asiento_comp.confirmado)
+
+        # 3. Movimiento de tesorería -> Asiento confirmado
+        banco = CuentaTesoreria.objects.create(
+            empresa=self.empresa, nombre="Banco Principal", tipo="banco", activa=True
+        )
+        mov = registrar_tesoreria(
+            empresa=self.empresa,
+            usuario=self.admin,
+            cuenta=banco,
+            monto=Decimal("119000.00"),
+            tipo="ingreso",
+            concepto="Recaudo cliente",
+            fecha=timezone.localdate(),
+            operacion=uuid.uuid4(),
+        )
+        asiento_tes = contabilizar_movimiento_tesoreria(movimiento=mov)
+        self.assertTrue(asiento_tes.confirmado)
+
+        # 4. Nómina aprobada y calculadora de aportes de ley
+        aportes = calcular_aportes_nomina_colombia(
+            salario_base=Decimal("2000000.00"),
+            auxilio_transporte=Decimal("162000.00"),
+        )
+        self.assertEqual(aportes["salud_empleado"], Decimal("80000.00"))
+        self.assertEqual(aportes["pension_empleado"], Decimal("80000.00"))
+        self.assertEqual(aportes["deducciones_empleado"], Decimal("160000.00"))
+        self.assertEqual(aportes["neto_estimado"], Decimal("2002000.00"))
+
+        emp = Empleado.objects.create(
+            empresa=self.empresa,
+            nombre="Carlos Nómina",
+            documento="10305060",
+            cargo="Contador",
+            salario_base=Decimal("2000000.00"),
+            activo=True,
+        )
+        hoy = timezone.localdate()
+        nom = LiquidacionNomina.objects.create(
+            empresa=self.empresa,
+            empleado=emp,
+            desde=hoy,
+            hasta=hoy,
+            base=Decimal("2000000.00"),
+            adicionales=Decimal("162000.00"),
+            deducciones=aportes["deducciones_empleado"],
+            neto=aportes["neto_estimado"],
+        )
+        nom = aprobar_nomina(empresa=self.empresa, pk=nom.pk)
+        asiento_nom = contabilizar_nomina(nomina=nom, usuario=self.admin)
+        self.assertTrue(asiento_nom.confirmado)
+
+

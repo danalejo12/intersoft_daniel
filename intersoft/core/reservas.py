@@ -146,3 +146,30 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
     )
     notificar_envio_actualizado(bloqueado)
     return bloqueado
+
+
+@transaction.atomic
+def registrar_dispersion_pedido(*, pedido, referencia, estado_dispersion=Pedido.EstadoDispersion.LIQUIDADA):
+    """Registra la dispersión o liquidación del neto del vendedor para un pedido pagado."""
+    bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if bloqueado.estado != Estado.PAGADO:
+        raise ValueError("Solo se puede dispersar un pedido pagado.")
+    if estado_dispersion not in Pedido.EstadoDispersion.values:
+        raise ValueError("Estado de dispersión no válido.")
+    referencia_limpia = (referencia or "").strip()
+    if not referencia_limpia:
+        raise ValueError("Debes indicar la referencia de la transferencia o dispersión.")
+
+    bloqueado.estado_dispersion = estado_dispersion
+    bloqueado.dispersion_referencia = referencia_limpia[:80]
+    if estado_dispersion == Pedido.EstadoDispersion.LIQUIDADA:
+        bloqueado.dispersado_en = timezone.now()
+    bloqueado.save(
+        update_fields=[
+            "estado_dispersion",
+            "dispersion_referencia",
+            "dispersado_en",
+            "actualizado_en",
+        ]
+    )
+    return bloqueado

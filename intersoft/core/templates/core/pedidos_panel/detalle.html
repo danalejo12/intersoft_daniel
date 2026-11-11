@@ -40,8 +40,29 @@
           <tr><td><strong>Total cobrado al comprador</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>
           <tr><td>Comisión plataforma ({{ pedido.comision_porcentaje|floatformat:"-2g" }}%)</td><td class="num">- $ {{ pedido.comision_valor|floatformat:"-2g" }}</td></tr>
           <tr class="total"><td><strong>Neto para tu negocio</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
+          <tr>
+            <td>Estado de dispersión</td>
+            <td class="num">
+              {{ pedido.get_estado_dispersion_display }}
+              {% if pedido.dispersion_referencia %}<small class="nota">({{ pedido.dispersion_referencia }})</small>{% endif %}
+            </td>
+          </tr>
         </tbody>
       </table>
+      {% if pedido.estado == "pagado" and puede_reembolsar and pedido.estado_dispersion != "liquidada" %}
+        <form method="post" class="formulario" style="margin-top: 0.75rem;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="registrar_dispersion">
+          <input type="hidden" name="estado_dispersion" value="liquidada">
+          <div class="campo">
+            <label for="id_dispersion_referencia">Referencia de dispersión bancaria</label>
+            <input id="id_dispersion_referencia" type="text" name="dispersion_referencia" maxlength="80" required placeholder="Ej.: DISP-ACH-202611">
+          </div>
+          <div class="acciones">
+            <button type="submit" class="boton secundario">Marcar dispersión liquidada</button>
+          </div>
+        </form>
+      {% endif %}
     </article>
   </section>
 

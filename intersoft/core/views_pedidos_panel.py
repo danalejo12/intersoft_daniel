@@ -97,6 +97,7 @@ class PedidoPanelDetailView(PermisoRequeridoMixin, DetailView):
         contexto["puede_reembolsar"] = _puede_reembolsar(membresia)
         contexto["puede_gestionar_envio"] = _puede_gestionar_envio(membresia)
         contexto["estados_envio"] = Pedido.EstadoEnvio.choices
+        contexto["estados_dispersion"] = Pedido.EstadoDispersion.choices
         return contexto
 
     def post(self, request, *args, **kwargs):
@@ -134,6 +135,26 @@ class PedidoPanelDetailView(PermisoRequeridoMixin, DetailView):
                 messages.error(request, str(error))
             else:
                 messages.success(request, f"Estado de envío del pedido #{pedido.numero} actualizado.")
+            return redirect("pedidos_panel_detalle", pk=pedido.pk)
+
+        if accion == "registrar_dispersion":
+            if not _puede_reembolsar(membresia):
+                raise PermissionDenied("No tienes permiso para registrar la dispersión del pedido.")
+            try:
+                reservas.registrar_dispersion_pedido(
+                    pedido=pedido,
+                    referencia=request.POST.get("dispersion_referencia", ""),
+                    estado_dispersion=request.POST.get(
+                        "estado_dispersion", Pedido.EstadoDispersion.LIQUIDADA
+                    ),
+                )
+            except ValueError as error:
+                messages.error(request, str(error))
+            else:
+                messages.success(
+                    request,
+                    f"Dispersión del pedido #{pedido.numero} registrada correctamente.",
+                )
             return redirect("pedidos_panel_detalle", pk=pedido.pk)
 
         messages.error(request, "Acción no reconocida.")

@@ -987,5 +987,30 @@ class MarketplaceFase6Tests(PedidoBase):
             ).status_code,
             403,
         )
+        self.assertEqual(
+            self.client.post(
+                reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+                {"accion": "registrar_dispersion", "dispersion_referencia": "DISP-1"},
+            ).status_code,
+            403,
+        )
+
+        # El dueño sí puede registrar la dispersión bancaria del pedido pagado
+        self.client.force_login(self.dueno)
+        resp_disp = self.client.post(
+            reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+            {
+                "accion": "registrar_dispersion",
+                "estado_dispersion": Pedido.EstadoDispersion.LIQUIDADA,
+                "dispersion_referencia": "DISP-ACH-9988",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp_disp.status_code, 200)
+        self.recargar()
+        self.assertEqual(self.pedido.estado_dispersion, Pedido.EstadoDispersion.LIQUIDADA)
+        self.assertEqual(self.pedido.dispersion_referencia, "DISP-ACH-9988")
+        self.assertIsNotNone(self.pedido.dispersado_en)
+
 
 

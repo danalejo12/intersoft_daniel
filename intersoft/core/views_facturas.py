@@ -14,6 +14,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView
 
+from .facturacion_electronica import emitir_factura_electronica
 from .forms import FacturaForm, LineasFacturaFormSet
 from .mixins import PermisoRequeridoMixin
 from .models import CuentaCartera, Factura, Pago, PagoCaja, Pedido
@@ -89,6 +90,11 @@ class FacturaDetailView(PermisoRequeridoMixin, DetailView):
             factura = super().get_object(queryset)  # recarga los pagos ya actualizados
         return factura
 
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["puede_emitir_dian"] = self.request.membresia.tiene_permiso("ventas.crear")
+        return contexto
+
 
 class FacturaCreateView(PermisoRequeridoMixin, View):
     """Vista manual (View): maneja DOS formularios a la vez, algo que CreateView no hace."""
@@ -144,6 +150,26 @@ class FacturaAnularView(PermisoRequeridoMixin, View):
         except ValueError as error:
             messages.error(request, str(error))
         return redirect("facturas_lista")
+
+
+class FacturaEmitirDianView(PermisoRequeridoMixin, View):
+    """Emite o sincroniza el documento electrónico de la factura ante el adaptador DIAN."""
+
+    http_method_names = ["post"]
+    permiso_requerido = "ventas.crear"
+
+    def post(self, request, pk):
+        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
+        try:
+            factura = emitir_factura_electronica(factura=factura)
+        except ValueError as error:
+            messages.error(request, str(error))
+        else:
+            if factura.estado_dian == Factura.EstadoDian.ACEPTADA:
+                messages.success(request, f"Factura #{factura.numero} validada ante DIAN (CUFE generado).")
+            else:
+                messages.warning(request, f"Respuesta DIAN: {factura.dian_respuesta}")
+        return redirect("facturas_detalle", pk=factura.pk)
 
 
 class FacturaCobrarView(PermisoRequeridoMixin, View):

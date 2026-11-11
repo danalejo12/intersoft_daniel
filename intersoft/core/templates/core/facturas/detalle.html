@@ -11,8 +11,15 @@
     <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
     <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
     <strong>Estado:</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>Pagada</strong>{% endif %} ·
+    <strong>DIAN:</strong> {{ factura.get_estado_dian_display }}{% if factura.cufe %} (<small>CUFE: <code>{{ factura.cufe|slice:":24" }}…</code></small>){% endif %} ·
     {% if factura.pedido %}<strong>Origen:</strong> Compra en el marketplace{% else %}<strong>Vendedor:</strong> {{ factura.creada_por.email }}{% endif %}
   </p>
+  {% if factura.estado == "emitida" and factura.estado_dian != "aceptada" and puede_emitir_dian %}
+    <form method="post" action="{% url 'facturas_emitir_dian' factura.pk %}" style="margin-bottom: 1rem;">
+      {% csrf_token %}
+      <button type="submit" class="boton secundario">Emitir factura electrónica DIAN</button>
+    </form>
+  {% endif %}
 
   <table class="tabla">
     <thead>

@@ -20,6 +20,6 @@
 
 ## Alcance funcional actual
 
-- La nómina opera con importes revisados e ingresados manualmente (base, adicionales y deducciones); no realiza liquidación automática de aportes parafiscales ni seguridad social.
-- La contabilidad registra comprobantes de diario con validación de partida doble manual.
-- La numeración de facturación es interna por empresa (no incluye envío electrónico a la DIAN).
+- **Facturación electrónica DIAN desacoplada (`core/facturacion_electronica.py`)**: interfaz de proveedor (`ProveedorFacturacionElectronica`), simulador determinístico con cálculo de CUFE SHA-384 (`ProveedorSimuladoDian`) y servicio transaccional idempotente (`emitir_factura_electronica`) integrable con proveedores tecnológicos autorizados.
+- **Automatización contable y calculadora de aportes (`core/contabilidad_automatica.py`)**: creación idempotente de cuentas base PUC (`asegurar_cuentas_puc`), generación de asientos confirmados para facturas (`contabilizar_factura`), compras recibidas (`contabilizar_compra`), movimientos de tesorería (`contabilizar_movimiento_tesoreria`) y nóminas aprobadas (`contabilizar_nomina`), además de calculadora de aportes de seguridad social y parafiscales en Colombia (`calcular_aportes_nomina_colombia`).
+- **Liquidación y dispersión de pagos en el marketplace**: control de estado de dispersión al comercio (`estado_dispersion`, `dispersion_referencia` y `dispersado_en` en `Pedido`) mediante `registrar_dispersion_pedido`.
