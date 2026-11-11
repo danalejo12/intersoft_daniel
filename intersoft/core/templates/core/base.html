@@ -17,19 +17,42 @@
     <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 21v-6.5h4V21"/></svg>
     </a>
+    {% if nav_permisos.ver_clientes %}
     <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg>
     </a>
+    {% endif %}
+    {% if nav_permisos.ver_productos %}
     <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg>
     </a>
+    <a href="{% url 'categorias_lista' %}" data-label="Categorías" aria-label="Categorías" class="{% if 'categorias' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42L12 2Z"/><path d="M7 7h.01"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.ver_facturas %}
     <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15.5 8.5H10a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 0 1 0 3.5H8.5"/><path d="M12 7v10"/></svg>
     </a>
+    <a href="{% url 'pedidos_panel_lista' %}" data-label="Pedidos web" aria-label="Pedidos web" class="{% if 'pedidos_panel' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.ver_pos %}
     <a href="{% url 'pos' %}" data-label="Punto de venta" aria-label="Punto de venta" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
     </a>
-    {# Aquí puedes agregar tu enlace de Categorías con el mismo formato #}
+    {% endif %}
+    {% if nav_permisos.ver_erp %}
+    <a href="{% url 'erp_inicio' %}" data-label="Gestión ERP" aria-label="Gestión ERP" class="{% if ruta|slice:':3' == 'erp' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.ver_equipo %}
+    <a href="{% url 'equipo_lista' %}" data-label="Equipo y roles" aria-label="Equipo y roles" class="{% if 'equipo' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </a>
+    {% endif %}
 
     <span class="dock-espacio"></span>
 
@@ -50,6 +73,20 @@
         </span>
         {{ request.empresa.nombre|default:"Intersoft" }}
       </a>
+
+      {% if request.membresias_activas|length > 1 %}
+      <form class="selector-negocio" method="post" action="{% url 'negocio_cambiar' %}">
+        {% csrf_token %}
+        <select name="empresa_id" aria-label="Cambiar negocio activo" onchange="this.form.submit()">
+          {% for m in request.membresias_activas %}
+            <option value="{{ m.empresa_id }}" {% if m.empresa_id == request.empresa.id %}selected{% endif %}>
+              {{ m.empresa.nombre }} · {{ m.rol.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+        <noscript><button type="submit" class="boton secundario">Cambiar</button></noscript>
+      </form>
+      {% endif %}
 
       <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
         <input type="search" name="q" placeholder="Buscar productos" aria-label="Buscar productos">

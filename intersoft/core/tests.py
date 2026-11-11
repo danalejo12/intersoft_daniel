@@ -10,8 +10,21 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .forms import ProductoForm
-from .models import Cliente, Empresa, Factura, Membresia, MovimientoInventario, Pago, Producto, Rol, Usuario
+from .forms import CategoriaForm, ProductoForm
+from .models import (
+    Categoria,
+    Cliente,
+    Empresa,
+    Factura,
+    Membresia,
+    MovimientoInventario,
+    Pago,
+    Pedido,
+    Permiso,
+    Producto,
+    Rol,
+    Usuario,
+)
 from .pagos import (
     PagoNoPermitido,
     calcular_checksum,
@@ -509,6 +522,7 @@ class AislamientoPanelTests(TestCase):
         self.client.force_login(self.usuario)
 
         dueno_ajeno = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x")
+        self.categoria = Categoria.objects.create(empresa=self.ajena, nombre="Categoría Ajena")
         self.cliente = Cliente.objects.create(empresa=self.ajena, tipo_documento="CC", numero_documento="9", nombre="Ajeno")
         self.producto = Producto.objects.create(
             empresa=self.ajena, codigo="AJ1", nombre="Ajeno", precio=Decimal("1000"), stock=10
@@ -516,6 +530,23 @@ class AislamientoPanelTests(TestCase):
         self.factura = crear_factura(
             empresa=self.ajena, usuario=dueno_ajeno, cliente=self.cliente,
             items=[{"producto": self.producto, "cantidad": 1}],
+        )
+        from datetime import timedelta
+        from django.utils import timezone
+        self.pedido = Pedido.objects.create(
+            empresa=self.ajena,
+            comprador=dueno_ajeno,
+            numero=1,
+            total=Decimal("1000"),
+            expira_en=timezone.now() + timedelta(minutes=30),
+            tipo_documento="CC",
+            numero_documento="9",
+            nombre="Ajeno",
+            email="otro@test.co",
+            telefono="3001234567",
+            departamento="Meta",
+            ciudad="Acacías",
+            direccion="Calle 1",
         )
 
     def test_clientes_editar(self):
@@ -555,3 +586,88 @@ class AislamientoPanelTests(TestCase):
         self.assertEqual(self.factura.estado, Factura.Estado.EMITIDA)
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock, 9)
+
+    def test_categorias_editar_y_eliminar(self):
+        url_editar = reverse("categorias_editar", args=[self.categoria.pk])
+        self.assertEqual(self.client.get(url_editar).status_code, 404)
+        self.assertEqual(self.client.post(url_editar, {"nombre": "Cambiada"}).status_code, 404)
+        url_eliminar = reverse("categorias_eliminar", args=[self.categoria.pk])
+        self.assertEqual(self.client.post(url_eliminar).status_code, 404)
+        self.categoria.refresh_from_db()
+        self.assertEqual(self.categoria.nombre, "Categoría Ajena")
+        self.assertTrue(self.categoria.activa)
+
+    def test_pedidos_panel_detalle(self):
+        url = reverse("pedidos_panel_detalle", args=[self.pedido.pk])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(
+            self.client.post(url, {"accion": "actualizar_envio", "estado_envio": "enviado"}).status_code,
+            404,
+        )
+
+
+class CategoriasCRUDTests(TestCase):
+    """Pruebas del CRUD de categorías en el panel, bloqueo por productos activos y permisos."""
+
+    def setUp(self):
+        self.empresa = Empresa.objects.create(nombre="Cat Test", nit="900000180", slug="cat-test")
+        self.admin = Usuario.objects.create_user(username="admin-cat@test.co", email="admin-cat@test.co", password="x")
+        rol_admin = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.admin, empresa=self.empresa, rol=rol_admin)
+        self.client.force_login(self.admin)
+
+    def test_crear_listar_editar_y_evitar_duplicados(self):
+        resp_crear = self.client.post(reverse("categorias_crear"), {"nombre": "  Panadería artesanal  "}, follow=True)
+        self.assertEqual(resp_crear.status_code, 200)
+        categoria = Categoria.objects.get(empresa=self.empresa)
+        self.assertEqual(categoria.nombre, "Panadería artesanal")
+
+        # No permite duplicar el nombre en la misma empresa
+        form_dup = CategoriaForm(data={"nombre": "panadería artesanal"}, empresa=self.empresa)
+        self.assertFalse(form_dup.is_valid())
+        self.assertIn("nombre", form_dup.errors)
+
+        # Editar
+        resp_editar = self.client.post(
+            reverse("categorias_editar", args=[categoria.pk]),
+            {"nombre": "Repostería"},
+            follow=True,
+        )
+        self.assertEqual(resp_editar.status_code, 200)
+        categoria.refresh_from_db()
+        self.assertEqual(categoria.nombre, "Repostería")
+
+    def test_bloquea_eliminar_categoria_con_productos_activos_y_permite_cuando_se_desactivan(self):
+        categoria = Categoria.objects.create(empresa=self.empresa, nombre="Bebidas")
+        producto = Producto.objects.create(
+            empresa=self.empresa,
+            categoria=categoria,
+            codigo="BEB-1",
+            nombre="Café",
+            precio=Decimal("5000"),
+            activo=True,
+        )
+        resp_bloqueada = self.client.post(reverse("categorias_eliminar", args=[categoria.pk]), follow=True)
+        self.assertContains(resp_bloqueada, "productos activos asociados")
+        categoria.refresh_from_db()
+        self.assertTrue(categoria.activa)
+
+        # Al desactivar el producto, sí permite eliminar lógicamente la categoría
+        producto.activo = False
+        producto.save(update_fields=["activo"])
+        resp_ok = self.client.post(reverse("categorias_eliminar", args=[categoria.pk]), follow=True)
+        self.assertEqual(resp_ok.status_code, 200)
+        categoria.refresh_from_db()
+        self.assertFalse(categoria.activa)
+
+    def test_permisos_de_inventario_en_categorias(self):
+        lector = Usuario.objects.create_user(username="lector-cat@test.co", email="lector-cat@test.co", password="x")
+        rol_lector = Rol.objects.create(empresa=self.empresa, nombre="Solo ver", es_admin=False)
+        perm_ver, _ = Permiso.objects.get_or_create(codigo="inventario.ver", defaults={"descripcion": "Ver inventario"})
+        rol_lector.permisos.add(perm_ver)
+        Membresia.objects.create(usuario=lector, empresa=self.empresa, rol=rol_lector)
+
+        self.client.force_login(lector)
+        self.assertEqual(self.client.get(reverse("categorias_lista")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("categorias_crear")).status_code, 403)
+

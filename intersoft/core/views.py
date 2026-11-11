@@ -1,44 +1,51 @@
-# 1. Imports de Python
-import json
+"""Vistas principales del panel: inicio, configuración del negocio, clientes y re-exportaciones."""
 from datetime import date, timedelta
 
-# 2. Imports de Django
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db import transaction
-from django.db.models import Count, Exists, F, OuterRef, Q, Sum
+from django.core.exceptions import ValidationError
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.utils.formats import date_format
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
-# 3. Imports de tu propia app
-from .forms import ClienteForm, DatosNegocioForm, FacturaForm, LineasFacturaFormSet, MovimientoForm, ProductoForm
+from .forms import ClienteForm, DatosNegocioForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, Factura, MovimientoInventario, Pago, PagoCaja, Pedido, Producto
-from .pagos import (
-    PagoNoPermitido,
-    aplicar_transaccion,
-    crear_evento_simulado,
-    crear_pago,
-    evento_es_valido,
-    pasarela_simulada,
-    sincronizar_pago,
-    sincronizar_pendientes,
-    url_checkout,
+from .models import Cliente, Factura, Membresia, Producto
+from .redirecciones import destino_seguro
+from .views_facturas import (
+    FacturaAnularView,
+    FacturaCobrarView,
+    FacturaCreateView,
+    FacturaDetailView,
+    FacturaListView,
+    PagoResultadoView,
+    PagoSimuladorView,
+    WompiWebhookView,
 )
-from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
+from .views_inventario import (
+    CategoriaCreateView,
+    CategoriaDeleteView,
+    CategoriaFormMixin,
+    CategoriaListView,
+    CategoriaUpdateView,
+    EliminarLogicoView,
+    MovimientoCreateView,
+    ProductoCreateView,
+    ProductoDeleteView,
+    ProductoFormMixin,
+    ProductoKardexView,
+    ProductoListView,
+    ProductoUpdateView,
+)
 
 
 # ---------------------------------------------------------------
-# Dashboard
+# Dashboard y Negocio
 # ---------------------------------------------------------------
 class DashboardView(TenantMixin, TemplateView):
     template_name = "core/dashboard.html"
@@ -66,16 +73,28 @@ class DashboardView(TenantMixin, TemplateView):
             round(100 * (total_productos - n_stock_bajo) / total_productos) if total_productos else 100
         )
 
-        # Ventas: solo facturas de esta empresa, sin las anuladas
-        ventas = Factura.objects.de_empresa(empresa).exclude(estado=Factura.Estado.ANULADA)
-        ahora = timezone.localtime()
-        inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        del_mes = ventas.filter(creado_en__gte=inicio_mes).aggregate(total=Sum("total"), cantidad=Count("id"))
-        contexto["ventas_mes"] = del_mes["total"] or 0
-        contexto["facturas_mes"] = del_mes["cantidad"]
-        contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
-        contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
-        contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
+        # Ventas: solo si el rol tiene permiso de ver ventas o reportes
+        puede_ver_ventas = (
+            self.request.membresia.tiene_permiso("ventas.ver")
+            or self.request.membresia.tiene_permiso("reportes.ver")
+        )
+        contexto["puede_ver_ventas"] = puede_ver_ventas
+        if puede_ver_ventas:
+            ventas = Factura.objects.de_empresa(empresa).exclude(estado=Factura.Estado.ANULADA)
+            ahora = timezone.localtime()
+            inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            del_mes = ventas.filter(creado_en__gte=inicio_mes).aggregate(total=Sum("total"), cantidad=Count("id"))
+            contexto["ventas_mes"] = del_mes["total"] or 0
+            contexto["facturas_mes"] = del_mes["cantidad"]
+            contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
+            contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
+            contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
+        else:
+            contexto["ventas_mes"] = 0
+            contexto["facturas_mes"] = 0
+            contexto["ultimas_facturas"] = []
+            contexto["serie_meses"] = {"etiquetas": [], "valores": []}
+            contexto["serie_dias"] = {"etiquetas": [], "valores": []}
         return contexto
 
     @staticmethod
@@ -131,6 +150,37 @@ class DatosNegocioView(PermisoRequeridoMixin, SuccessMessageMixin, UpdateView):
         return super(TenantMixin, self).form_valid(form)
 
 
+class CambiarNegocioView(TenantMixin, View):
+    """Cambia la empresa activa en la sesión solo si el usuario tiene membresía activa en ella."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        empresa_id = (request.POST.get("empresa_id") or "").strip()
+        if not empresa_id:
+            raise Http404("Negocio no especificado.")
+        try:
+            membresia = (
+                Membresia.objects.select_related("empresa")
+                .filter(
+                    usuario=request.user,
+                    empresa_id=empresa_id,
+                    activa=True,
+                    empresa__activa=True,
+                )
+                .first()
+            )
+        except (ValueError, ValidationError) as error:
+            raise Http404("Identificador de negocio inválido.") from error
+
+        if membresia is None:
+            raise Http404("No tienes una membresía activa en ese negocio.")
+
+        request.session["empresa_id"] = str(membresia.empresa_id)
+        messages.success(request, f"Cambiaste al negocio «{membresia.empresa.nombre}».")
+        return HttpResponseRedirect(destino_seguro(request) or reverse("dashboard"))
+
+
 # ---------------------------------------------------------------
 # Clientes
 # ---------------------------------------------------------------
@@ -158,7 +208,7 @@ class ClienteListView(PermisoRequeridoMixin, ListView):
         # La plantilla no puede llamar tiene_permiso("..."): se lo damos ya resuelto
         contexto["puede_crear"] = membresia.tiene_permiso("clientes.crear")
         contexto["puede_editar"] = membresia.tiene_permiso("clientes.editar")
-        contexto["puede_eliminar"] = self.request.membresia.tiene_permiso("clientes.eliminar")  # ← nueva
+        contexto["puede_eliminar"] = self.request.membresia.tiene_permiso("clientes.eliminar")
         return contexto
 
 
@@ -184,252 +234,6 @@ class ClienteCreateView(PermisoRequeridoMixin, ClienteFormMixin, SuccessMessageM
 class ClienteUpdateView(PermisoRequeridoMixin, ClienteFormMixin, SuccessMessageMixin, UpdateView):
     permiso_requerido = "clientes.editar"
 
-# ---------------------------------------------------------------
-# Facturas
-# ---------------------------------------------------------------
-class FacturaListView(PermisoRequeridoMixin, ListView):
-    model = Factura
-    permiso_requerido = "ventas.ver"
-    template_name = "core/facturas/lista.html"
-    context_object_name = "facturas"
-    paginate_by = 20
-
-    def get_queryset(self):
-        # select_related trae el cliente en la MISMA consulta (evita N+1)
-        # pagada y pago_en_proceso se calculan en la misma consulta con EXISTS (no una por fila)
-        pagos = Pago.objects.filter(factura=OuterRef("pk"))
-        # Un intento de los últimos 30 min puede estar pagado en Wompi: primero hay que verificarlo
-        recientes = timezone.now() - timedelta(minutes=30)
-        return (
-            super().get_queryset()
-            .select_related("cliente")
-            .annotate(
-                pagada=Exists(pagos.filter(estado=Pago.Estado.APROBADO))
-                | Exists(Pedido.objects.filter(factura=OuterRef("pk"), estado=Pedido.Estado.PAGADO))
-                | Exists(PagoCaja.objects.filter(factura=OuterRef("pk"))),
-                pago_en_proceso=Exists(
-                    pagos.filter(estado=Pago.Estado.PENDIENTE, creado_en__gte=recientes)
-                ),
-            )
-            .order_by("-numero")
-        )
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto["puede_cobrar"] = self.request.membresia.tiene_permiso("ventas.cobrar")
-        return contexto
-
-
-class FacturaDetailView(PermisoRequeridoMixin, DetailView):
-    model = Factura
-    permiso_requerido = "ventas.ver"
-    template_name = "core/facturas/detalle.html"
-    context_object_name = "factura"
-
-    def get_queryset(self):
-        # prefetch_related trae TODAS las líneas con su producto en una sola consulta extra
-        return (
-            super().get_queryset()
-            .select_related("cliente", "creada_por")
-            .prefetch_related("detalles__producto", "pagos")
-        )
-
-    def get_object(self, queryset=None):
-        factura = super().get_object(queryset)
-        if factura.pagos.filter(estado=Pago.Estado.PENDIENTE).exists():
-            sincronizar_pendientes(factura)
-            factura = super().get_object(queryset)  # recarga los pagos ya actualizados
-        return factura
-
-
-class FacturaCreateView(PermisoRequeridoMixin, View):
-    """Vista manual (View): maneja DOS formularios a la vez, algo que CreateView no hace."""
-
-    permiso_requerido = "ventas.crear"
-    template_name = "core/facturas/form.html"
-
-    def get(self, request):
-        form = FacturaForm(empresa=request.empresa)
-        lineas = LineasFacturaFormSet(form_kwargs={"empresa": request.empresa})
-        return self.mostrar(form, lineas)
-
-    def post(self, request):
-        empresa = request.empresa
-        form = FacturaForm(request.POST, empresa=empresa)
-        lineas = LineasFacturaFormSet(request.POST, form_kwargs={"empresa": empresa})
-
-        # Validamos los dos POR SEPARADO para que ambos muestren sus errores
-        form_ok = form.is_valid()
-        lineas_ok = lineas.is_valid()
-
-        if form_ok and lineas_ok:
-            # Cada fila llena trae {"producto": <Producto>, "cantidad": n}: justo lo que pide el servicio
-            items = [linea.cleaned_data for linea in lineas if linea.cleaned_data]
-            try:
-                factura = crear_factura(
-                    empresa=empresa,
-                    usuario=request.user,
-                    cliente=form.cleaned_data["cliente"],
-                    items=items,
-                )
-            except StockInsuficiente as error:
-                messages.error(request, str(error))   # se muestra y se vuelve a pintar el formulario
-            else:
-                messages.success(request, f"Factura N.º {factura.numero} creada correctamente.")
-                return redirect("facturas_detalle", pk=factura.pk)   # Post/Redirect/Get
-
-        return self.mostrar(form, lineas)
-
-    def mostrar(self, form, lineas):
-        return render(self.request, self.template_name, {"form": form, "lineas": lineas})
-
-# ---------------------------------------------------------------
-# Inventario
-# ---------------------------------------------------------------
-class ProductoListView(PermisoRequeridoMixin, ListView):
-    model = Producto
-    permiso_requerido = "inventario.ver"
-    template_name = "core/productos/lista.html"
-    context_object_name = "productos"
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = super().get_queryset().filter(activo=True).select_related("categoria").order_by("nombre")
-        self.q = self.request.GET.get("q", "").strip()
-        if self.q:
-            queryset = queryset.filter(Q(nombre__icontains=self.q) | Q(codigo__icontains=self.q))
-        # ?bajo=1 -> solo productos en o por debajo del mínimo
-        self.solo_bajo = self.request.GET.get("bajo") == "1"
-        if self.solo_bajo:
-            queryset = queryset.filter(stock__lte=F("stock_minimo"))
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        membresia = self.request.membresia
-        contexto["q"] = self.q
-        contexto["solo_bajo"] = self.solo_bajo
-        contexto["puede_crear"] = membresia.tiene_permiso("inventario.crear")
-        contexto["puede_editar"] = membresia.tiene_permiso("inventario.editar")
-        contexto["puede_mover"] = membresia.tiene_permiso("inventario.movimientos")
-        contexto["puede_eliminar"] = membresia.tiene_permiso("inventario.eliminar")
-        return contexto
-
-
-class ProductoFormMixin:
-    model = Producto
-    form_class = ProductoForm
-    template_name = "core/productos/form.html"
-    success_url = reverse_lazy("productos_lista")
-    success_message = "Producto «%(nombre)s» guardado correctamente."
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["empresa"] = self.request.empresa
-        return kwargs
-
-
-class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, CreateView):
-    permiso_requerido = "inventario.crear"
-
-    def form_valid(self, form):
-        # Producto + entrada inicial: TODO O NADA
-        with transaction.atomic():
-            respuesta = super().form_valid(form)   # guarda el producto (stock 0)
-            cantidad = form.cleaned_data.get("stock_inicial") or 0
-            if cantidad > 0:
-                registrar_movimiento(
-                    empresa=self.request.empresa,
-                    producto=self.object,           # el producto recién creado
-                    tipo=MovimientoInventario.Tipo.ENTRADA,
-                    cantidad=cantidad,
-                    usuario=self.request.user,
-                    referencia="Stock inicial",
-                )
-        return respuesta
-
-
-class ProductoUpdateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, UpdateView):
-    permiso_requerido = "inventario.editar"
-
-
-class ProductoKardexView(PermisoRequeridoMixin, DetailView):
-    """El kardex: historial de TODOS los movimientos de un producto."""
-
-    model = Producto
-    permiso_requerido = "inventario.ver"
-    template_name = "core/productos/kardex.html"
-    context_object_name = "producto"
-
-    def get_context_data(self, **kwargs):
-        contexto = super().get_context_data(**kwargs)
-        contexto["movimientos"] = (
-            self.object.movimientos.select_related("usuario").order_by("-creado_en")[:100]
-        )
-        contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
-        return contexto
-
-
-class MovimientoCreateView(PermisoRequeridoMixin, View):
-    """Registrar una entrada o un ajuste de stock para un producto."""
-
-    permiso_requerido = "inventario.movimientos"
-    template_name = "core/productos/movimiento.html"
-
-    def obtener_producto(self, pk):
-        # Filtramos por empresa: un producto de otra empresa responde 404
-        return get_object_or_404(Producto, pk=pk, empresa=self.request.empresa, activo=True)
-
-    def get(self, request, pk):
-        return self.mostrar(self.obtener_producto(pk), MovimientoForm())
-
-    def post(self, request, pk):
-        producto = self.obtener_producto(pk)
-        form = MovimientoForm(request.POST)
-        if form.is_valid():
-            try:
-                # cleaned_data trae tipo, cantidad y referencia: justo lo que pide el servicio
-                registrar_movimiento(
-                    empresa=request.empresa, producto=producto, usuario=request.user, **form.cleaned_data
-                )
-            except StockInsuficiente as error:
-                form.add_error("cantidad", str(error))
-            else:
-                messages.success(request, f"Movimiento registrado para «{producto.nombre}».")
-                return redirect("productos_kardex", pk=producto.pk)
-        return self.mostrar(producto, form)
-
-    def mostrar(self, producto, form):
-        return render(self.request, self.template_name, {"producto": producto, "form": form})
-
-# Eliminar -- Eliminar -- Eliminar 
-class EliminarLogicoView(PermisoRequeridoMixin, View):
-    """Desactiva un registro sin borrarlo. Solo acepta POST."""
-    http_method_names = ["post"]
-    model = None
-    campo_activo = "activo"
-    url_lista = None
-
-    def motivo_bloqueo(self, objeto):
-        return None  # Cada subclase puede impedir la eliminación
-
-    def post(self, request, pk):
-        # Filtrar por empresa impide tocar registros de otro tenant (da 404)
-        objeto = get_object_or_404(
-            self.model.objects.de_empresa(request.empresa),
-            pk=pk,
-            **{self.campo_activo: True},
-        )
-        motivo = self.motivo_bloqueo(objeto)
-        if motivo:
-            messages.error(request, motivo)
-            return redirect(self.url_lista)
-
-        setattr(objeto, self.campo_activo, False)
-        objeto.save(update_fields=[self.campo_activo, "actualizado_en"])
-        messages.success(request, f"«{objeto}» se eliminó correctamente.")
-        return redirect(self.url_lista)
-
 
 class ClienteDeleteView(EliminarLogicoView):
     model = Cliente
@@ -437,113 +241,34 @@ class ClienteDeleteView(EliminarLogicoView):
     url_lista = "clientes_lista"
 
 
-class ProductoDeleteView(EliminarLogicoView):
-    model = Producto
-    permiso_requerido = "inventario.eliminar"
-    url_lista = "productos_lista"
-
-
-class FacturaAnularView(PermisoRequeridoMixin, View):
-    http_method_names = ["post"]
-    permiso_requerido = "facturas.anular"
-
-    def post(self, request, pk):
-        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
-        try:
-            anular_factura(factura=factura, usuario=request.user)
-            messages.success(request, f"Factura {factura.numero} anulada.")
-        except ValueError as error:
-            messages.error(request, str(error))
-        return redirect("facturas_lista")
-
-
-class FacturaCobrarView(PermisoRequeridoMixin, View):
-    """Crea el intento de pago y envía al cliente a la pasarela."""
-    http_method_names = ["post"]
-    permiso_requerido = "ventas.cobrar"
-
-    def post(self, request, pk):
-        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
-        sincronizar_pendientes(factura, forzar=True)  # evita cobrar dos veces si un intento ya se aprobó
-        try:
-            pago = crear_pago(factura=factura)
-        except PagoNoPermitido as error:
-            messages.error(request, str(error))
-            return redirect("facturas_lista")
-
-        if pasarela_simulada():
-            return redirect("pagos_simulador", pk=pago.pk)
-
-        redirect_url = request.build_absolute_uri(reverse("pagos_resultado", args=[pago.pk]))
-        return redirect(url_checkout(pago=pago, redirect_url=redirect_url))
-
-
-class PagoResultadoView(PermisoRequeridoMixin, View):
-    """Muestra el estado guardado. Esta página nunca marca un pago como aprobado."""
-    permiso_requerido = "ventas.ver"
-
-    def get(self, request, pk):
-        pago = get_object_or_404(
-            Pago.objects.de_empresa(request.empresa).select_related("factura"), pk=pk
-        )
-        # Con ?id=<transacción> (redirect de Wompi) se consulta ese id; sin él, por referencia
-        transaccion_id = request.GET.get("id", "")
-        if not pasarela_simulada():
-            pago = sincronizar_pago(pago=pago, transaccion_id=transaccion_id)
-        return render(
-            request, "core/pagos/resultado.html", {"pago": pago, "transaccion_id": transaccion_id}
-        )
-
-
-class PagoSimuladorView(PermisoRequeridoMixin, View):
-    """Reemplaza el checkout solo en desarrollo. No mueve dinero real."""
-    permiso_requerido = "ventas.cobrar"
-    RESULTADOS = {"APPROVED", "DECLINED", "ERROR"}
-
-    def dispatch(self, request, *args, **kwargs):
-        if not pasarela_simulada():
-            raise Http404
-        return super().dispatch(request, *args, **kwargs)
-
-    def obtener_pago(self, request, pk):
-        return get_object_or_404(
-            Pago.objects.de_empresa(request.empresa).select_related("factura"),
-            pk=pk,
-            estado=Pago.Estado.PENDIENTE,
-            factura__isnull=False,  # el simulador solo cubre el cobro de facturas del panel
-        )
-
-    def get(self, request, pk):
-        pago = self.obtener_pago(request, pk)
-        return render(request, "core/pagos/simulador.html", {"pago": pago})
-
-    def post(self, request, pk):
-        pago = self.obtener_pago(request, pk)
-        resultado = request.POST.get("resultado")
-        if resultado not in self.RESULTADOS:
-            return HttpResponseBadRequest("Resultado no válido.")
-
-        evento = crear_evento_simulado(
-            pago=pago, status=resultado, secreto=settings.WOMPI_EVENTS_SECRET
-        )
-        if evento_es_valido(evento, settings.WOMPI_EVENTS_SECRET):
-            aplicar_transaccion(evento["data"]["transaction"])
-        return redirect("pagos_resultado", pk=pago.pk)
-
-
-@method_decorator(csrf_exempt, name="dispatch")  # Wompi no tiene tu token CSRF; lo protege la firma
-class WompiWebhookView(View):
-    http_method_names = ["post"]
-
-    def post(self, request):
-        try:
-            evento = json.loads(request.body)
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            return HttpResponseBadRequest("JSON no válido.")
-
-        if not isinstance(evento, dict) or not evento_es_valido(evento, settings.WOMPI_EVENTS_SECRET):
-            return HttpResponseBadRequest("Firma no válida.")
-
-        if evento.get("event") == "transaction.updated":
-            aplicar_transaccion(evento["data"]["transaction"])
-        return HttpResponse(status=200)
+__all__ = [
+    "DashboardView",
+    "DatosNegocioView",
+    "CambiarNegocioView",
+    "ClienteListView",
+    "ClienteFormMixin",
+    "ClienteCreateView",
+    "ClienteUpdateView",
+    "ClienteDeleteView",
+    "CategoriaListView",
+    "CategoriaFormMixin",
+    "CategoriaCreateView",
+    "CategoriaUpdateView",
+    "CategoriaDeleteView",
+    "ProductoListView",
+    "ProductoFormMixin",
+    "ProductoCreateView",
+    "ProductoUpdateView",
+    "ProductoKardexView",
+    "MovimientoCreateView",
+    "ProductoDeleteView",
+    "EliminarLogicoView",
+    "FacturaListView",
+    "FacturaDetailView",
+    "FacturaCreateView",
+    "FacturaAnularView",
+    "FacturaCobrarView",
+    "PagoResultadoView",
+    "PagoSimuladorView",
+    "WompiWebhookView",
+]

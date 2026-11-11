@@ -1,12 +1,21 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from . import views, views_compra, views_pos, views_tienda
+from . import views, views_compra, views_equipo, views_erp, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("negocio/", views.DatosNegocioView.as_view(), name="negocio_datos"),
+    path("negocio/cambiar/", views.CambiarNegocioView.as_view(), name="negocio_cambiar"),
+
+    # Equipo y roles
+    path("equipo/", views_equipo.EquipoView.as_view(), name="equipo_lista"),
+    path("equipo/miembros/nuevo/", views_equipo.MiembroCreateView.as_view(), name="equipo_miembro_crear"),
+    path("equipo/miembros/<uuid:pk>/editar/", views_equipo.MiembroUpdateView.as_view(), name="equipo_miembro_editar"),
+    path("equipo/roles/nuevo/", views_equipo.RolCreateView.as_view(), name="equipo_rol_crear"),
+    path("equipo/roles/<uuid:pk>/editar/", views_equipo.RolUpdateView.as_view(), name="equipo_rol_editar"),
+    path("equipo/roles/<uuid:pk>/eliminar/", views_equipo.RolDeleteView.as_view(), name="equipo_rol_eliminar"),
 
     # Clientes
     path("clientes/", views.ClienteListView.as_view(), name="clientes_lista"),
@@ -14,7 +23,11 @@ panel_urlpatterns = [
     path("clientes/<uuid:pk>/editar/", views.ClienteUpdateView.as_view(), name="clientes_editar"),
     path("clientes/<uuid:pk>/eliminar/", views.ClienteDeleteView.as_view(), name="clientes_eliminar"),
 
-    # Productos
+    # Categorías y Productos
+    path("categorias/", views.CategoriaListView.as_view(), name="categorias_lista"),
+    path("categorias/nueva/", views.CategoriaCreateView.as_view(), name="categorias_crear"),
+    path("categorias/<uuid:pk>/editar/", views.CategoriaUpdateView.as_view(), name="categorias_editar"),
+    path("categorias/<uuid:pk>/eliminar/", views.CategoriaDeleteView.as_view(), name="categorias_eliminar"),
     path("productos/", views.ProductoListView.as_view(), name="productos_lista"),
     path("productos/nuevo/", views.ProductoCreateView.as_view(), name="productos_crear"),
     path("productos/<uuid:pk>/", views.ProductoKardexView.as_view(), name="productos_kardex"),
@@ -22,12 +35,14 @@ panel_urlpatterns = [
     path("productos/<uuid:pk>/movimiento/", views.MovimientoCreateView.as_view(), name="productos_movimiento"),
     path("productos/<uuid:pk>/eliminar/", views.ProductoDeleteView.as_view(), name="productos_eliminar"),
 
-    # Facturas
+    # Facturas y pedidos del marketplace
     path("facturas/", views.FacturaListView.as_view(), name="facturas_lista"),
     path("facturas/nueva/", views.FacturaCreateView.as_view(), name="facturas_crear"),
     path("facturas/<uuid:pk>/", views.FacturaDetailView.as_view(), name="facturas_detalle"),
     path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
     path("facturas/<uuid:pk>/cobrar/", views.FacturaCobrarView.as_view(), name="facturas_cobrar"),
+    path("pedidos/", views_pedidos_panel.PedidoPanelListView.as_view(), name="pedidos_panel_lista"),
+    path("pedidos/<uuid:pk>/", views_pedidos_panel.PedidoPanelDetailView.as_view(), name="pedidos_panel_detalle"),
 
     # Punto de venta (mostrador)
     path("pos/", views_pos.PosView.as_view(), name="pos"),
@@ -43,6 +58,14 @@ panel_urlpatterns = [
     # Pagos
     path("pagos/<uuid:pk>/resultado/", views.PagoResultadoView.as_view(), name="pagos_resultado"),
     path("pagos/<uuid:pk>/simulador/", views.PagoSimuladorView.as_view(), name="pagos_simulador"),
+
+    # Módulos ERP y reportes
+    path("erp/", views_erp.InicioERP.as_view(), name="erp_inicio"),
+    path("erp/reportes/", views_erp.ReportesERP.as_view(), name="erp_reportes"),
+    path("erp/cartera/factura/", views_erp.CarteraFacturaERP.as_view(), name="erp_cartera_factura"),
+    path("erp/<slug:modulo>/", views_erp.ListaERP.as_view(), name="erp_lista"),
+    path("erp/<slug:modulo>/nuevo/", views_erp.CrearERP.as_view(), name="erp_crear"),
+    path("erp/<slug:modulo>/<uuid:pk>/", views_erp.DetalleERP.as_view(), name="erp_detalle"),
 ]
 
 urlpatterns = [

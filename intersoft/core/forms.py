@@ -118,22 +118,52 @@ LineasFacturaFormSet = forms.formset_factory(
 
 
 # ---------------------------------------------------------------
-# Inventario
+# Inventario: Categorías y Productos
 # ---------------------------------------------------------------
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ["nombre"]
+        labels = {"nombre": "Nombre de la categoría"}
+
+    def __init__(self, *args, empresa=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.empresa = empresa
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data["nombre"].strip()
+        if not nombre:
+            raise forms.ValidationError("El nombre de la categoría no puede estar vacío.")
+        if self.empresa is not None:
+            existe = (
+                Categoria.objects.filter(empresa=self.empresa, nombre__iexact=nombre)
+                .exclude(pk=self.instance.pk)
+                .exists()
+            )
+            if existe:
+                raise forms.ValidationError("Ya existe una categoría con este nombre en tu empresa.")
+        return nombre
+
+
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
         # "stock" NO está: el stock solo cambia con movimientos (kardex), nunca a mano
-        fields = ["codigo", "nombre", "categoria", "precio", "iva_porcentaje", "stock_minimo", "descripcion", "imagen", "publicado"]
+        fields = [
+            "codigo", "nombre", "categoria", "precio", "iva_porcentaje",
+            "stock_minimo", "peso_gramos", "descripcion", "imagen", "publicado",
+        ]
         labels = {
             "codigo": "Código",
             "categoria": "Categoría",
             "iva_porcentaje": "IVA (%)",
             "stock_minimo": "Stock mínimo",
+            "peso_gramos": "Peso por unidad (gramos)",
             "descripcion": "Descripción",
             "publicado": "Publicar en el marketplace",
         }
         help_texts = {
+            "peso_gramos": "Opcional. Se usa para calcular el envío por peso (0 si no aplica).",
             "publicado": "Si lo marcas, cualquier persona podrá ver este producto en el catálogo.",
             "imagen": "JPG, PNG o WEBP, máximo 5 MB.",
         }
@@ -151,12 +181,13 @@ class ProductoForm(forms.ModelForm):
     # Orden en que se muestran los campos
     field_order = [
         "codigo", "nombre", "categoria", "precio", "iva_porcentaje",
-        "stock_inicial", "stock_minimo", "descripcion", "imagen", "publicado",
+        "stock_inicial", "stock_minimo", "peso_gramos", "descripcion", "imagen", "publicado",
     ]
 
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.empresa = empresa
+        self.fields["peso_gramos"].required = False
         # Al EDITAR no se muestra: el stock de un producto existente solo cambia con movimientos.
         # _state.adding es True solo si el producto aún no está guardado en la base.
         if not self.instance._state.adding:
@@ -166,6 +197,9 @@ class ProductoForm(forms.ModelForm):
             Categoria.objects.de_empresa(empresa).filter(activa=True).order_by("nombre")
         )
         self.fields["categoria"].empty_label = "Sin categoría"
+
+    def clean_peso_gramos(self):
+        return self.cleaned_data.get("peso_gramos") or 0
 
     def clean_imagen(self):
         imagen = self.cleaned_data.get("imagen")
@@ -192,15 +226,30 @@ class ProductoForm(forms.ModelForm):
 
 
 class DatosNegocioForm(forms.ModelForm):
-    """Datos legales que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
+    """Datos legales y de logística que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
 
     class Meta:
         model = Empresa
-        fields = ["direccion", "telefono", "email"]
+        fields = [
+            "direccion",
+            "telefono",
+            "email",
+            "tarifa_envio_base",
+            "tarifa_envio_por_kg",
+            "envio_gratis_desde",
+        ]
         labels = {
             "direccion": "Dirección de notificaciones",
             "telefono": "Teléfono",
             "email": "Correo del negocio",
+            "tarifa_envio_base": "Tarifa base de envío ($)",
+            "tarifa_envio_por_kg": "Recargo por kilogramo ($)",
+            "envio_gratis_desde": "Envío gratis desde ($)",
+        }
+        help_texts = {
+            "tarifa_envio_base": "Deja 0 si coordinas el envío directamente o no cobras tarifa base.",
+            "tarifa_envio_por_kg": "Valor adicional por cada kg (o fracción) según el peso de los productos.",
+            "envio_gratis_desde": "Si los productos del pedido alcanzan este monto, el envío cuesta $0.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -208,6 +257,20 @@ class DatosNegocioForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
         hacer_obligatorios_datos_legales(self)
+        for campo in ("tarifa_envio_base", "tarifa_envio_por_kg", "envio_gratis_desde"):
+            self.fields[campo].required = False
+
+    def clean_tarifa_envio_base(self):
+        from decimal import Decimal
+        return self.cleaned_data.get("tarifa_envio_base") or Decimal("0")
+
+    def clean_tarifa_envio_por_kg(self):
+        from decimal import Decimal
+        return self.cleaned_data.get("tarifa_envio_por_kg") or Decimal("0")
+
+    def clean_envio_gratis_desde(self):
+        from decimal import Decimal
+        return self.cleaned_data.get("envio_gratis_desde") or Decimal("0")
 
 
 class MovimientoForm(forms.Form):

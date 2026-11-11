@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% block titulo %}Categorías · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Categorías</h1>
+    <div class="acciones-fila">
+      <a class="boton secundario" href="{% url 'productos_lista' %}">Ver productos</a>
+      {% if puede_crear %}
+        <a class="boton" href="{% url 'categorias_crear' %}">Nueva categoría</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="get" class="buscador">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar categoría por nombre">
+    <button type="submit">Buscar</button>
+  </form>
+
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th class="num">Productos activos</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for categoria in categorias %}
+        <tr>
+          <td>{{ categoria.nombre }}</td>
+          <td class="num">{{ categoria.total_productos }}</td>
+          <td class="acciones-fila">
+            {% if puede_editar %}
+              <a href="{% url 'categorias_editar' categoria.pk %}">Editar</a>
+            {% endif %}
+            {% if puede_eliminar %}
+              <form method="post" action="{% url 'categorias_eliminar' categoria.pk %}"
+                    style="display:inline"
+                    onsubmit="return confirm('¿Seguro que quieres eliminar esta categoría?');">
+                {% csrf_token %}
+                <button type="submit">Eliminar</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="3">
+            {% if q %}Ninguna categoría coincide con «{{ q }}».{% else %}Aún no hay categorías creadas.{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <nav class="paginacion">
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}
