@@ -1,0 +1,100 @@
+{% extends "core/base.html" %}
+{% block titulo %}Equipo y roles · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>Equipo del negocio</h1>
+    {% if puede_gestionar %}
+      <div class="acciones">
+        <a class="boton secundario" href="{% url 'equipo_rol_crear' %}">Nuevo rol</a>
+        <a class="boton" href="{% url 'equipo_miembro_crear' %}">Agregar miembro</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th>Persona</th>
+        <th>Correo</th>
+        <th>Rol</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in membresias %}
+        <tr>
+          <td>{{ m.usuario.get_full_name|default:"—" }}</td>
+          <td>{{ m.usuario.email }}</td>
+          <td>
+            <strong>{{ m.rol.nombre }}</strong>
+            {% if m.rol.es_admin %}<small>(Admin)</small>{% endif %}
+          </td>
+          <td>{% if m.activa %}Activo{% else %}Inactivo{% endif %}</td>
+          <td>
+            {% if puede_gestionar %}
+              <a href="{% url 'equipo_miembro_editar' m.pk %}">Editar</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No hay miembros registrados en este negocio.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="encabezado" style="margin-top: 2rem;">
+    <h2>Roles y permisos</h2>
+  </div>
+
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th>Rol</th>
+        <th>Descripción</th>
+        <th>Permisos</th>
+        <th class="num">Miembros</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rol in roles %}
+        <tr>
+          <td><strong>{{ rol.nombre }}</strong></td>
+          <td>{{ rol.descripcion|default:"—" }}</td>
+          <td>
+            {% if rol.es_admin %}
+              Acceso total al negocio
+            {% else %}
+              {% with lista_permisos=rol.permisos.all %}
+                {% if lista_permisos %}
+                  {{ lista_permisos|length }} permiso{{ lista_permisos|length|pluralize }}:
+                  {% for p in lista_permisos %}{{ p.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% else %}
+                  Sin permisos asignados
+                {% endif %}
+              {% endwith %}
+            {% endif %}
+          </td>
+          <td class="num">{{ rol.total_miembros }}</td>
+          <td>
+            {% if puede_gestionar %}
+              <a href="{% url 'equipo_rol_editar' rol.pk %}">Editar</a>
+              {% if rol.total_miembros == 0 %}
+                <form method="post" action="{% url 'equipo_rol_eliminar' rol.pk %}"
+                      style="display:inline"
+                      onsubmit="return confirm('¿Seguro que quieres eliminar este rol?');">
+                  {% csrf_token %}
+                  <button type="submit">Eliminar</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No hay roles configurados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

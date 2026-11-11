@@ -1,0 +1,69 @@
+{% extends "core/base.html" %}
+{% block titulo %}{% if es_nuevo %}Nuevo rol{% else %}Editar rol{% endif %} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <h1>{% if es_nuevo %}Nuevo rol{% else %}Editar rol «{{ rol.nombre }}»{% endif %}</h1>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <p class="error aviso">Revisa los campos marcados en rojo.</p>
+    {% endif %}
+
+    {% for error in form.non_field_errors %}
+      <p class="error">{{ error }}</p>
+    {% endfor %}
+
+    <div class="campo{% if form.nombre.errors %} con-error{% endif %} obligatorio">
+      {{ form.nombre.label_tag }}
+      {{ form.nombre }}
+      {% for error in form.nombre.errors %}
+        <p class="error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="campo{% if form.descripcion.errors %} con-error{% endif %}">
+      {{ form.descripcion.label_tag }}
+      {{ form.descripcion }}
+      {% for error in form.descripcion.errors %}
+        <p class="error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="campo{% if form.es_admin.errors %} con-error{% endif %}">
+      <label>
+        {{ form.es_admin }}
+        {{ form.es_admin.label }}
+      </label>
+      {% for error in form.es_admin.errors %}
+        <p class="error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <h2>Permisos por módulo</h2>
+    <p class="nota">Si el rol no es administrador general, marca las acciones que podrá realizar en el panel.</p>
+    {% for error in form.permisos.errors %}
+      <p class="error">{{ error }}</p>
+    {% endfor %}
+
+    {% for grupo in form.grupos_permisos %}
+      <fieldset class="tarjeta" style="margin-bottom: 1rem;">
+        <legend><strong>{{ grupo.titulo }}</strong></legend>
+        {% for p in grupo.permisos %}
+          <div style="margin: 0.4rem 0;">
+            <label>
+              <input type="checkbox" name="permisos" value="{{ p.pk }}" {% if p.marcado %}checked{% endif %}>
+              {{ p.descripcion }} <small class="nota">({{ p.codigo }})</small>
+            </label>
+          </div>
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+
+    <div class="acciones">
+      <a href="{% url 'equipo_lista' %}">Cancelar</a>
+      <button type="submit">Guardar rol</button>
+    </div>
+  </form>
+{% endblock %}
