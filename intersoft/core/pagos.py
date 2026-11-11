@@ -76,6 +76,10 @@ def crear_pago(*, factura):
         raise PagoNoPermitido("No se puede cobrar una factura anulada.")
     if factura.esta_pagada:
         raise PagoNoPermitido("Esta factura ya está pagada.")
+    if hasattr(factura, "cuentacartera"):
+        raise PagoNoPermitido(
+            "Esta factura ya se gestiona en cartera; registra sus abonos en Tesorería."
+        )
 
     monto = monto_en_centavos(factura.total)
     if monto <= 0:

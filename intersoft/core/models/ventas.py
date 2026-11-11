@@ -30,6 +30,14 @@ class Factura(ModeloTenant):
     turno = models.ForeignKey(
         "TurnoCaja", on_delete=models.PROTECT, related_name="facturas", null=True, blank=True
     )
+    operacion_pos = models.UUIDField(null=True, blank=True, editable=False)
+    # Instantánea descriptiva congelada al emitir la factura (para reimpresión fiel del ticket)
+    cliente_nombre = models.CharField(max_length=150, blank=True)
+    cliente_documento = models.CharField(max_length=30, blank=True)
+    empresa_nombre = models.CharField(max_length=150, blank=True)
+    empresa_nit = models.CharField(max_length=30, blank=True)
+    empresa_direccion = models.CharField(max_length=250, blank=True)
+    empresa_telefono = models.CharField(max_length=30, blank=True)
  
     class Meta:
         verbose_name = "factura"
@@ -37,6 +45,11 @@ class Factura(ModeloTenant):
         ordering = ["-numero"]
         constraints = [
             models.UniqueConstraint(fields=["empresa", "numero"], name="uq_factura_numero_por_empresa"),
+            models.UniqueConstraint(
+                fields=["empresa", "operacion_pos"],
+                condition=Q(operacion_pos__isnull=False),
+                name="uq_factura_operacion_pos_por_empresa",
+            ),
             models.CheckConstraint(condition=Q(total__gte=0), name="ck_factura_total_no_negativo"),
         ]
         indexes = [
@@ -56,12 +69,16 @@ class Factura(ModeloTenant):
             return True
         # La factura del marketplace nace ya pagada: su pago pertenece al pedido
         pedido = getattr(self, "pedido", None)
-        return pedido is not None and pedido.estado == "pagado"
+        if pedido is not None and pedido.estado == "pagado":
+            return True
+        cartera = getattr(self, "cuentacartera", None)
+        return cartera is not None and cartera.saldo == 0
  
  
 class DetalleFactura(ModeloTenant):
     factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name="detalles")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT, related_name="detalles_factura")
+    nombre_producto = models.CharField(max_length=150, blank=True)
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     # Precio e IVA se CONGELAN al vender: si mañana cambia el precio, la factura no cambia.
     precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)

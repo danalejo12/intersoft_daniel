@@ -2,7 +2,7 @@
 import uuid
 
 from django import forms
-from django.db.models import F
+from django.db.models import Exists, F, OuterRef
 
 from . import models
 
@@ -51,4 +51,25 @@ class CarteraFacturaForm(forms.Form):
 
     def __init__(self, *args, empresa, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["factura"].queryset = models.Factura.objects.filter(empresa=empresa, estado="emitida", cuentacartera__isnull=True)
+        pagos_aprobados = models.Pago.objects.filter(
+            factura=OuterRef("pk"), estado=models.Pago.Estado.APROBADO
+        )
+        pagos_pendientes = models.Pago.objects.filter(
+            factura=OuterRef("pk"), estado=models.Pago.Estado.PENDIENTE
+        )
+        pedidos_pagados = models.Pedido.objects.filter(
+            factura=OuterRef("pk"), estado=models.Pedido.Estado.PAGADO
+        )
+        pagos_pos = models.PagoCaja.objects.filter(factura=OuterRef("pk"))
+        self.fields["factura"].queryset = (
+            models.Factura.objects.filter(
+                empresa=empresa,
+                estado=models.Factura.Estado.EMITIDA,
+                total__gt=0,
+                cuentacartera__isnull=True,
+            )
+            .exclude(Exists(pagos_aprobados))
+            .exclude(Exists(pagos_pendientes))
+            .exclude(Exists(pedidos_pagados))
+            .exclude(Exists(pagos_pos))
+        )

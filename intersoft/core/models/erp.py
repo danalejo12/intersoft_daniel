@@ -165,6 +165,13 @@ class LineaAsiento(RegistroERP):
     class Meta(RegistroERP.Meta):
         constraints = [models.CheckConstraint(condition=(Q(debito__gt=0) & Q(credito=0)) | (Q(credito__gt=0) & Q(debito=0)), name="ck_asiento_un_lado")]
 
+    def clean(self):
+        super().clean()
+        debito = self.debito or Decimal("0")
+        credito = self.credito or Decimal("0")
+        if (debito > 0 and credito > 0) or (debito <= 0 and credito <= 0):
+            raise ValidationError("Cada línea debe tener un valor mayor que cero en débito o en crédito, pero no en ambos.")
+
 
 class Empleado(RegistroERP):
     nombre = models.CharField(max_length=150)
@@ -197,6 +204,17 @@ class LiquidacionNomina(RegistroERP):
     class Meta(RegistroERP.Meta):
         constraints = [models.CheckConstraint(condition=Q(hasta__gte=models.F("desde")) & Q(neto__gte=0), name="ck_nomina_periodo_neto")]
 
+    def clean(self):
+        super().clean()
+        if self.desde and self.hasta and self.hasta < self.desde:
+            raise ValidationError({"hasta": "La fecha final del período no puede ser anterior a la inicial."})
+        base = self.base if self.base is not None else Decimal("0")
+        adicionales = self.adicionales if self.adicionales is not None else Decimal("0")
+        deducciones = self.deducciones if self.deducciones is not None else Decimal("0")
+        self.neto = base + adicionales - deducciones
+        if self.neto <= 0:
+            raise ValidationError("El neto a pagar (base + adicionales − deducciones) debe ser mayor que cero.")
+
     def __str__(self):
         return f"{self.empleado} · {self.desde} / {self.hasta}"
 
@@ -222,6 +240,11 @@ class InsumoProduccion(RegistroERP):
 
     class Meta(RegistroERP.Meta):
         constraints = [models.UniqueConstraint(fields=["orden", "producto"], name="uq_produccion_insumo"), models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_insumo_cantidad")]
+
+    def clean(self):
+        super().clean()
+        if self.orden_id and self.producto_id and self.orden.producto_id == self.producto_id:
+            raise ValidationError("El producto terminado no puede ser su propio insumo.")
 
 
 class Servicio(RegistroERP):

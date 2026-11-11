@@ -82,7 +82,14 @@ class InicioERP(AccesoERP):
         for slug, config in MODULOS.items():
             if request.membresia.tiene_permiso(f"{config['permiso']}.ver"):
                 tarjetas.append(dict(slug=slug, titulo=config["titulo"], cantidad=config["model"].objects.filter(empresa=request.empresa).count()))
-        return render(request, "core/erp/inicio.html", {"tarjetas": tarjetas})
+        puede_ver_reportes = request.membresia.tiene_permiso("reportes.ver")
+        if not tarjetas and not puede_ver_reportes:
+            raise PermissionDenied
+        return render(
+            request,
+            "core/erp/inicio.html",
+            {"tarjetas": tarjetas, "puede_ver_reportes": puede_ver_reportes},
+        )
 
 
 class ListaERP(AccesoERP):
@@ -118,9 +125,11 @@ class ListaERP(AccesoERP):
                 escritor.writerow(["'" + v if v.lstrip().startswith(("=", "+", "-", "@", "\t", "\r")) else v for v in fila])
             return respuesta
         pagina = Paginator(qs, 25).get_page(request.GET.get("page"))
+        puede_gestionar = self.puede_gestionar()
         return render(request, "core/erp/lista.html", dict(config=config, modulo=modulo, cabeceras=cabeceras,
             filas=[dict(pk=o.pk, valores=[valor(o, c) for c in columnas]) for o in pagina], pagina=pagina,
-            q=q, estado=estado, puede_gestionar=self.puede_gestionar()))
+            q=q, estado=estado, puede_gestionar=puede_gestionar,
+            puede_llevar_factura=modulo == "cartera" and puede_gestionar and request.membresia.tiene_permiso("ventas.ver")))
 
 
 class CrearERP(AccesoERP):
@@ -183,10 +192,20 @@ class DetalleERP(AccesoERP):
             if form is None and not cerrado and self.puede_gestionar():
                 form = formulario(config["linea"], campos)(empresa=request.empresa)
         campos_detalle = list(dict.fromkeys(config["campos"] + config["columnas"]))
+        cartera_rel = None
+        if modulo in ("nomina", "agenda"):
+            cartera_rel = getattr(obj, "cartera", None)
+        elif modulo == "compras":
+            cartera_rel = getattr(obj, "cuentacartera", None)
+        abonos = (
+            list(obj.abonos.select_related("cuenta", "usuario").order_by("-fecha", "-creado_en"))
+            if modulo == "cartera"
+            else []
+        )
         return render(request, "core/erp/detalle.html", dict(config=config, modulo=modulo, obj=obj,
             datos=[(etiqueta(config["model"], c), valor(obj, c)) for c in campos_detalle],
             lineas=lineas, cabeceras=cabeceras, form=form, cerrado=cerrado, puede_gestionar=self.puede_gestionar(),
-            cartera=getattr(obj, "cartera", None) if modulo in ("nomina", "agenda") else None))
+            cartera=cartera_rel, abonos=abonos))
 
     def get(self, request, modulo, pk):
         return self.mostrar(request, modulo, self.objeto(request, pk))
@@ -226,6 +245,16 @@ class DetalleERP(AccesoERP):
                 elif modulo == "tesoreria" and accion == "conciliar":
                     obj.conciliado = True
                     s.guardar(obj)
+                elif accion == "eliminar_borrador" and "cerrado" in self.config:
+                    if getattr(obj, self.config["cerrado"]):
+                        raise ValidationError("El documento ya está confirmado y no se puede eliminar.")
+                    if "linea" in self.config:
+                        self.config["linea"].objects.filter(
+                            empresa=request.empresa, **{self.config["relacion"]: obj}
+                        ).delete()
+                    obj.delete()
+                    messages.success(request, "Borrador eliminado.")
+                    return redirect("erp_lista", modulo=modulo)
                 else:
                     raise ValidationError("Acción no válida para este documento.")
             messages.success(request, "Operación realizada.")

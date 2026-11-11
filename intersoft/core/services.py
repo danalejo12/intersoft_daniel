@@ -52,30 +52,44 @@ def crear_factura(*, empresa, usuario, cliente, items):
         .order_by("id")
     }
 
-    # 2. Validar TODO antes de escribir nada.
+    # 2. Validar TODO antes de escribir nada (acumulando líneas repetidas del mismo producto).
+    acumulado = {}
     for item in items:
         producto = productos.get(item["producto"].id)
-        cantidad = int(item["cantidad"])
+        raw_cantidad = item["cantidad"]
+        if isinstance(raw_cantidad, bool):
+            raise ValueError("La cantidad debe ser un número entero.")
+        cantidad = int(raw_cantidad)
         if producto is None:
             raise ValueError("Producto inexistente, inactivo o de otra empresa.")
         if cantidad <= 0:
             raise ValueError("La cantidad debe ser mayor que cero.")
-        if producto.stock < cantidad:
+        total_producto = acumulado.get(producto.id, 0) + cantidad
+        if producto.stock < total_producto:
             raise StockInsuficiente(
-                f"Stock insuficiente de {producto.nombre}: hay {producto.stock}, se piden {cantidad}."
+                f"Stock insuficiente de {producto.nombre}: hay {producto.stock}, se piden {total_producto}."
             )
+        acumulado[producto.id] = total_producto
 
-    # 3. Consecutivo sin duplicados.
+    # 3. Consecutivo sin duplicados e instantánea descriptiva.
     factura = Factura.objects.create(
-        empresa=empresa, numero=siguiente_consecutivo(Factura, empresa), cliente=cliente, creada_por=usuario
+        empresa=empresa,
+        numero=siguiente_consecutivo(Factura, empresa),
+        cliente=cliente,
+        cliente_nombre=cliente.nombre,
+        cliente_documento=f"{cliente.tipo_documento} {cliente.numero_documento}",
+        empresa_nombre=empresa.nombre,
+        empresa_nit=empresa.nit,
+        empresa_direccion=empresa.direccion,
+        empresa_telefono=empresa.telefono,
+        creada_por=usuario,
     )
 
     # 4. Líneas, descuento de stock y kardex.
     subtotal = Decimal("0")
     iva = Decimal("0")
-    for item in items:
-        producto = productos[item["producto"].id]
-        cantidad = int(item["cantidad"])
+    for producto_id, cantidad in acumulado.items():
+        producto = productos[producto_id]
         valor_linea = producto.precio * cantidad
         subtotal += valor_linea
         iva += calcular_iva(valor_linea, producto.iva_porcentaje)
@@ -84,6 +98,7 @@ def crear_factura(*, empresa, usuario, cliente, items):
             empresa=empresa,
             factura=factura,
             producto=producto,
+            nombre_producto=producto.nombre,
             cantidad=cantidad,
             precio_unitario=producto.precio,          # precio CONGELADO al vender
             iva_porcentaje=producto.iva_porcentaje,
@@ -122,20 +137,28 @@ def crear_factura_desde_pedido(pedido):
             "direccion": pedido.direccion,
         },
     )
+    empresa = pedido.empresa
     factura = Factura.objects.create(
         empresa_id=pedido.empresa_id,
-        numero=siguiente_consecutivo(Factura, pedido.empresa),
+        numero=siguiente_consecutivo(Factura, empresa),
         cliente=cliente,
+        cliente_nombre=cliente.nombre,
+        cliente_documento=f"{cliente.tipo_documento} {cliente.numero_documento}",
+        empresa_nombre=empresa.nombre,
+        empresa_nit=empresa.nit,
+        empresa_direccion=empresa.direccion,
+        empresa_telefono=empresa.telefono,
         creada_por=pedido.comprador,
         subtotal=pedido.subtotal,
         iva=pedido.iva,
         total=pedido.total,
     )
-    for linea in pedido.lineas.all():
+    for linea in pedido.lineas.select_related("producto"):
         DetalleFactura.objects.create(
             empresa_id=pedido.empresa_id,
             factura=factura,
             producto_id=linea.producto_id,
+            nombre_producto=linea.producto.nombre,
             cantidad=linea.cantidad,
             precio_unitario=linea.precio_unitario,
             iva_porcentaje=linea.iva_porcentaje,
@@ -152,6 +175,12 @@ def anular_factura(*, factura, usuario):
 
     if factura.esta_pagada:
         raise ValueError("No se puede anular una factura pagada; primero debe reembolsarse.")
+
+    cartera = getattr(factura, "cuentacartera", None)
+    if cartera is not None:
+        if cartera.abonado > 0:
+            raise ValueError("No se puede anular una factura con abonos registrados en cartera.")
+        cartera.delete()
 
     for detalle in factura.detalles.all():
         Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") + detalle.cantidad)

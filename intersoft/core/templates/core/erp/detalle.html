@@ -1,0 +1,172 @@
+{% extends "core/base.html" %}
+{% block titulo %}{{ config.titulo }} · Detalle · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>{{ config.titulo }}</h1>
+      <p class="nota">{{ obj }}</p>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <a class="boton secundario" href="{% url 'erp_lista' modulo %}">← Volver a {{ config.titulo|lower }}</a>
+      {% if puede_gestionar and config.accion and not cerrado %}
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="{{ config.accion }}">
+          <button type="submit">{{ config.etiqueta }}</button>
+        </form>
+        {% if modulo != "tesoreria" %}
+          <form method="post" style="margin: 0;" onsubmit="return confirm('¿Eliminar este borrador?');">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="eliminar_borrador">
+            <button type="submit" class="boton secundario">Eliminar borrador</button>
+          </form>
+        {% endif %}
+      {% endif %}
+      {% if puede_gestionar and modulo == "agenda" and obj.estado == "pendiente" %}
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="atendida">
+          <button type="submit">Marcar atendida</button>
+        </form>
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="cancelada">
+          <button type="submit" class="boton secundario">Cancelar cita</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-bottom: 22px;">
+    <div class="tarjeta-cabecera">
+      <h2>Información del registro</h2>
+      {% if cerrado %}
+        <span class="etiqueta-pagada">Confirmado</span>
+      {% endif %}
+    </div>
+    <dl style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0;">
+      {% for etiqueta_campo, valor_campo in datos %}
+        <div>
+          <dt style="color: var(--suave); font-size: .82rem;">{{ etiqueta_campo }}</dt>
+          <dd style="margin: 2px 0 0; font-weight: 500;">{{ valor_campo }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+    {% if cartera %}
+      <p style="margin-top: 16px; margin-bottom: 0;">
+        <strong>Cuenta en cartera asociada:</strong>
+        <a href="{% url 'erp_detalle' 'cartera' cartera.pk %}">{{ cartera }} ({{ cartera.estado }})</a>
+      </p>
+    {% endif %}
+  </div>
+
+  {% if config.linea %}
+    <div class="tarjeta" style="margin-bottom: 22px;">
+      <div class="tarjeta-cabecera">
+        <h2>Líneas del documento</h2>
+      </div>
+      <table class="tabla" style="margin-bottom: 18px;">
+        <thead>
+          <tr>
+            {% for c in cabeceras %}
+              <th>{{ c }}</th>
+            {% endfor %}
+            {% if puede_gestionar and not cerrado %}
+              <th></th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in lineas %}
+            <tr>
+              {% for v in l.valores %}
+                <td>{{ v }}</td>
+              {% endfor %}
+              {% if puede_gestionar and not cerrado %}
+                <td class="acciones-fila">
+                  <form method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="quitar">
+                    <input type="hidden" name="linea" value="{{ l.pk }}">
+                    <button type="submit" class="boton secundario">Quitar</button>
+                  </form>
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{{ cabeceras|length|add:1 }}">Aún no se han agregado líneas.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if form and puede_gestionar and not cerrado %}
+        <h3>Agregar línea</h3>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="agregar">
+          {% if form.non_field_errors %}
+            <div class="mensaje error">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+            {% for field in form.visible_fields %}
+              <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                  <div style="color: var(--rojo); font-size: .82rem;">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+            <div>
+              <button type="submit">Agregar línea</button>
+            </div>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if modulo == "cartera" %}
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Abonos registrados en tesorería</h2>
+        {% if obj.saldo > 0 and request.membresia and request.membresia.rol.es_admin %}
+          <a class="boton secundario" href="{% url 'erp_crear' 'tesoreria' %}">Registrar abono en tesorería</a>
+        {% endif %}
+      </div>
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cuenta</th>
+            <th>Concepto</th>
+            <th>Referencia</th>
+            <th class="num">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in abonos %}
+            <tr>
+              <td>{{ a.fecha|date:"d/m/Y" }}</td>
+              <td>{{ a.cuenta.nombre }}</td>
+              <td>{{ a.concepto }}</td>
+              <td>{{ a.referencia|default:"—" }}</td>
+              <td class="num">$ {{ a.monto|floatformat:"0g" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">No hay abonos aplicados a esta cuenta todavía.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

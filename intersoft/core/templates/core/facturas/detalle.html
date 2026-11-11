@@ -98,7 +98,15 @@
     </table>
   {% endif %}
 
-  {% if factura.estado == "emitida" and not factura.esta_pagada %}
+  {% if factura.cuentacartera %}
+    <h2>Cuenta por cobrar en cartera</h2>
+    <p>
+      <strong>Estado:</strong> {{ factura.cuentacartera.estado }} ·
+      <strong>Abonado:</strong> $ {{ factura.cuentacartera.abonado|floatformat:"0g" }} ·
+      <strong>Saldo pendiente:</strong> $ {{ factura.cuentacartera.saldo|floatformat:"0g" }}
+      <a class="boton secundario" href="{% url 'erp_detalle' 'cartera' factura.cuentacartera.pk %}">Ver en cartera</a>
+    </p>
+  {% elif factura.estado == "emitida" and not factura.esta_pagada %}
     <div class="acciones">
       <form method="post" action="{% url 'facturas_cobrar' factura.pk %}" style="display:inline">
         {% csrf_token %}

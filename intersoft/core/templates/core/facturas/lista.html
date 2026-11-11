@@ -23,6 +23,8 @@
             <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Ver</a>
             {% if factura.pagada %}
               <span class="etiqueta-pagada">Pagada</span>
+            {% elif factura.en_cartera %}
+              <span class="etiqueta">En cartera</span>
             {% elif factura.pago_en_proceso %}
               <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Verificar pago</a>
             {% elif puede_cobrar and factura.estado == "emitida" %}

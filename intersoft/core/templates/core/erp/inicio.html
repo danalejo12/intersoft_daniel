@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block titulo %}Gestión ERP · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Gestión ERP</h1>
+      <p class="nota">Módulos administrativos, compras, cartera, tesorería y operación de <strong>{{ request.empresa.nombre }}</strong>.</p>
+    </div>
+    {% if puede_ver_reportes %}
+      <a class="boton" href="{% url 'erp_reportes' %}">Ver reportes operativos</a>
+    {% endif %}
+  </div>
+
+  {% if tarjetas %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+      {% for t in tarjetas %}
+        <a class="tarjeta" href="{% url 'erp_lista' t.slug %}" style="display: flex; flex-direction: column; justify-content: space-between; gap: 14px; color: var(--texto);">
+          <div class="tarjeta-cabecera" style="margin-bottom: 0;">
+            <h2>{{ t.titulo }}</h2>
+            <span class="etiqueta">{{ t.cantidad }}</span>
+          </div>
+          <small style="color: var(--azul); font-weight: 500;">Abrir módulo →</small>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="tarjeta">
+      <p>No tienes módulos ERP habilitados directamente, pero puedes consultar los reportes autorizados.</p>
+    </div>
+  {% endif %}
+{% endblock %}

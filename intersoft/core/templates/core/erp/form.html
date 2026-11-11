@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+{% block titulo %}Nuevo · {{ config.titulo }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>{{ config.titulo }}</h1>
+      {% if config.ayuda %}
+        <p class="nota">{{ config.ayuda }}</p>
+      {% endif %}
+    </div>
+    <a class="boton secundario" href="{% url 'erp_lista' modulo %}">← Volver al listado</a>
+  </div>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mensaje error">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% for hidden in form.hidden_fields %}
+      {{ hidden }}
+    {% endfor %}
+
+    {% for field in form.visible_fields %}
+      <div class="campo" style="margin-bottom: 16px;">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+          <small style="display: block; color: var(--tenue); margin-top: 4px;">{{ field.help_text }}</small>
+        {% endif %}
+        {% for error in field.errors %}
+          <div class="error-campo" style="color: var(--rojo); font-size: .85rem; margin-top: 4px;">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="acciones" style="display: flex; gap: 12px; margin-top: 20px;">
+      <button type="submit">Guardar</button>
+      <a class="boton secundario" href="{% url 'erp_lista' modulo %}">Cancelar</a>
+    </div>
+  </form>
+{% endblock %}
