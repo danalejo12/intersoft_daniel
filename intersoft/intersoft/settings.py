@@ -263,3 +263,39 @@ PEDIDO_MINUTOS_MINIMOS_PAGO = config("PEDIDO_MINUTOS_MINIMOS_PAGO", default=5, c
 PEDIDO_MAX_RENOVACIONES = config("PEDIDO_MAX_RENOVACIONES", default=2, cast=int)
 # Tiempo extra, contado desde el vencimiento, para una transacción que Wompi tiene en PENDING
 PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS = config("PEDIDO_MAX_ESPERA_PENDIENTE_MINUTOS", default=120, cast=int)
+
+
+# ---------------------------------------------------------------
+# Monitoreo opcional de errores (Sentry)
+# ---------------------------------------------------------------
+def _inicializar_monitoreo(*, dsn="", environment="production", traces_sample_rate=0.0):
+    """Inicializa Sentry solo cuando SENTRY_DSN está definido y sentry-sdk está instalado."""
+    dsn_limpio = (dsn or "").strip()
+    if not dsn_limpio:
+        return False
+    try:
+        import sentry_sdk
+    except ImportError:
+        import logging
+
+        logging.getLogger("core").warning(
+            "SENTRY_DSN está configurado pero el paquete 'sentry-sdk' no está instalado."
+        )
+        return False
+    sentry_sdk.init(
+        dsn=dsn_limpio,
+        environment=environment,
+        traces_sample_rate=traces_sample_rate,
+        send_default_pii=False,
+    )
+    return True
+
+
+SENTRY_DSN = config("SENTRY_DSN", default="")
+SENTRY_ENVIRONMENT = config("SENTRY_ENVIRONMENT", default="production")
+SENTRY_TRACES_SAMPLE_RATE = config("SENTRY_TRACES_SAMPLE_RATE", default=0.0, cast=float)
+_inicializar_monitoreo(
+    dsn=SENTRY_DSN,
+    environment=SENTRY_ENVIRONMENT,
+    traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+)

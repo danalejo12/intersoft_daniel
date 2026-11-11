@@ -155,6 +155,33 @@ Los pedidos del marketplace reservan stock por `PEDIDO_MINUTOS_RESERVA` minutos 
     -Action $accion -Trigger $disparador -Description "Libera stock de pedidos vencidos cada 5 minutos"
   ```
 
+### 4. Despliegue reproducible con Docker Compose y Nginx (`compose.prod.yml`)
+
+El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersoft.conf` listos para levantar **PostgreSQL 16 + Gunicorn + Scheduler (`liberar_pedidos_vencidos`) + Nginx**:
+
+1. Crea `intersoft/.env` a partir de `intersoft/.env.example` con `DEBUG=False`, `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
+2. Levanta los servicios desde la raíz del proyecto:
+   ```bash
+   docker compose -f compose.prod.yml --env-file intersoft/.env up -d --build
+   ```
+   El contenedor `web` ejecuta automáticamente `migrate --noinput`, `sincronizar_permisos`, `collectstatic --noinput` e inicia `gunicorn`. El contenedor `scheduler` ejecuta `liberar_pedidos_vencidos` cada 5 minutos, y `nginx` sirve `/static/` y `/media/` con `X-Content-Type-Options: nosniff`.
+
+### 5. Copias de seguridad de PostgreSQL 16 y verificación de webhook Wompi
+
+- **Respaldo comprimido (`pg_dump`):**
+  ```bash
+  pg_dump -Fc -h localhost -U postgres -d intersoft -f backup_intersoft_$(date +%F).dump
+  ```
+- **Restauración (`pg_restore`):**
+  ```bash
+  pg_restore -h localhost -U postgres -d intersoft --clean --if-exists backup_intersoft_YYYY-MM-DD.dump
+  ```
+- **Webhook de Wompi en producción:**
+  - Configura en el comercio de Wompi la URL pública `https://<tu-dominio>/webhooks/wompi/` y copia el secreto de eventos en `WOMPI_EVENTS_SECRET`.
+  - La vista [`WompiWebhookView`](intersoft/core/views_facturas.py) valida la firma SHA-256 con `hmac.compare_digest` y aplica la transacción de forma idempotente.
+- **Monitoreo opcional de errores (Sentry):**
+  - Si defines `SENTRY_DSN` en `intersoft/.env` e instalas `sentry-sdk`, `settings.py` lo inicializa automáticamente con `send_default_pii=False`.
+
 ---
 
 ## Estructura principal del proyecto

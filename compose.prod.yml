@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-intersoft}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en intersoft/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-intersoft}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - ./intersoft/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/intersoft/staticfiles
+      - media_volume:/app/intersoft/media
+      - logs_volume:/app/intersoft/logs
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py sincronizar_permisos &&
+             python manage.py collectstatic --noinput &&
+             gunicorn intersoft.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"
+
+  scheduler:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - ./intersoft/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - logs_volume:/app/intersoft/logs
+    command: >
+      sh -c "while true; do
+               python manage.py liberar_pedidos_vencidos;
+               sleep 300;
+             done"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/intersoft.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/intersoft/staticfiles:ro
+      - media_volume:/app/intersoft/media:ro
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  logs_volume:

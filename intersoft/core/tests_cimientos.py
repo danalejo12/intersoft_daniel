@@ -90,6 +90,34 @@ class RegistrosTests(TestCase):
             self.assertEqual(errores, [])
             self.assertEqual([p.id for p in problemas], [])
 
+    def test_inicializar_monitoreo_es_opcional_y_seguro_sin_sentry_sdk(self):
+        import sys
+        from intersoft.settings import _inicializar_monitoreo
+
+        # Sin DSN no hace nada
+        self.assertFalse(_inicializar_monitoreo(dsn=""))
+
+        # Con DSN pero sin el paquete instalado registra advertencia sin fallar
+        with mock.patch.dict(sys.modules, {"sentry_sdk": None}):
+            self.assertFalse(_inicializar_monitoreo(dsn="https://key@sentry.example/1"))
+
+        # Con DSN y paquete simulado llama a sentry_sdk.init con send_default_pii=False
+        falso_sentry = mock.MagicMock()
+        with mock.patch.dict(sys.modules, {"sentry_sdk": falso_sentry}):
+            self.assertTrue(
+                _inicializar_monitoreo(
+                    dsn="https://key@sentry.example/1",
+                    environment="staging",
+                    traces_sample_rate=0.25,
+                )
+            )
+        falso_sentry.init.assert_called_once_with(
+            dsn="https://key@sentry.example/1",
+            environment="staging",
+            traces_sample_rate=0.25,
+            send_default_pii=False,
+        )
+
 
 @override_settings(ADMINS=["finanzas@intersoft.example"])
 class AvisoDeReembolsoTests(PedidoBase):

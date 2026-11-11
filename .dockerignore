@@ -1,0 +1,9 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+intersoft/.env
+intersoft/logs/*
+intersoft/media/*
+intersoft/staticfiles/*
