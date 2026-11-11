@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Recibo {{ factura.numero }} · {{ empresa.nombre }}</title>
+  <title>Recibo {{ factura.numero }} · {{ factura.empresa_nombre|default:empresa.nombre }}</title>
   <style>
     @page { size: 80mm auto; margin: 4mm; }
     * { box-sizing: border-box; }
@@ -65,22 +65,24 @@
     <article class="recibo" aria-label="Recibo de venta {{ factura.numero }}">
       <header class="cabecera">
         <p class="etiqueta">Recibo de venta POS</p>
-        <h1>{{ empresa.nombre }}</h1>
-        <p class="contacto">NIT {{ empresa.nit }}
-          {% if empresa.direccion %}<br>{{ empresa.direccion }}{% endif %}
-          {% if empresa.telefono %}<br>Tel. {{ empresa.telefono }}{% endif %}
+        <h1>{{ factura.empresa_nombre|default:empresa.nombre }}</h1>
+        <p class="contacto">NIT {{ factura.empresa_nit|default:empresa.nit }}
+          {% with dir_ticket=factura.empresa_direccion|default:empresa.direccion tel_ticket=factura.empresa_telefono|default:empresa.telefono %}
+          {% if dir_ticket %}<br>{{ dir_ticket }}{% endif %}
+          {% if tel_ticket %}<br>Tel. {{ tel_ticket }}{% endif %}
+          {% endwith %}
         </p>
       </header>
       <div class="folio"><span>Venta <strong>N.º {{ factura.numero }}</strong></span><span>{{ factura.creado_en|date:"d/m/Y" }}<br>{{ factura.creado_en|date:"g:i a" }}</span></div>
       <dl class="datos">
         <div><dt>Cajero</dt><dd>{{ factura.creada_por.get_full_name|default:factura.creada_por.email }}</dd></div>
-        <div><dt>Cliente</dt><dd>{{ factura.cliente.nombre }}{% if not consumidor_final %}<br>{{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }}{% endif %}</dd></div>
+        <div><dt>Cliente</dt><dd>{{ factura.cliente_nombre|default:factura.cliente.nombre }}{% if not consumidor_final %}<br>{% if factura.cliente_documento %}{{ factura.cliente_documento }}{% else %}{{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }}{% endif %}{% endif %}</dd></div>
       </dl>
       <table aria-label="Productos de la venta">
         <thead><tr><th scope="col">Producto / cantidad</th><th scope="col" class="num">Importe</th></tr></thead>
         {% for detalle in detalles %}
         <tbody>
-          <tr class="producto"><td colspan="2">{{ detalle.producto.nombre }}</td></tr>
+          <tr class="producto"><td colspan="2">{{ detalle.nombre_producto|default:detalle.producto.nombre }}</td></tr>
           <tr class="cantidad"><td>{{ detalle.cantidad }} × ${{ detalle.precio_unitario|floatformat:"-2g" }}</td><td class="num">${{ detalle.subtotal|floatformat:"-2g" }}</td></tr>
         </tbody>
         {% endfor %}
@@ -97,7 +99,7 @@
         {% endfor %}
         {% if cambio %}<tr class="cambio"><td>Cambio</td><td class="num">${{ cambio|floatformat:"-2g" }}</td></tr>{% endif %}
       </table>
-      <footer><strong>¡Gracias por tu compra!</strong><p>Conserva este recibo como soporte de tu compra.</p><p>{{ empresa.nombre }}</p></footer>
+      <footer><strong>¡Gracias por tu compra!</strong><p>Conserva este recibo como soporte de tu compra.</p><p>{{ factura.empresa_nombre|default:empresa.nombre }}</p></footer>
     </article>
   </main>
   {% if imprimir %}<script>addEventListener("load", function () { window.print(); });</script>{% endif %}

@@ -1,12 +1,14 @@
 """Punto de venta: caja, ventas de mostrador con varios medios de pago, arqueo y ticket."""
 import json
+import threading
+import uuid
 from decimal import Decimal
 
-from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.db import IntegrityError, connections, transaction
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
-from . import caja
+from . import caja, services
 from .models import Cliente, Empresa, Factura, Membresia, PagoCaja, Permiso, Producto, Rol, TurnoCaja, Usuario
 
 
@@ -31,9 +33,11 @@ class PosBase(TestCase):
     def abrir(self, base="50000"):
         return self.client.post(reverse("pos_abrir"), {"base": base})
 
-    def vender(self, pagos, lineas=None, cliente=None):
+    def vender(self, pagos, lineas=None, cliente=None, operacion=None):
         lineas = lineas if lineas is not None else [{"producto": str(self.arroz.pk), "cantidad": 2}]
         cuerpo = {"lineas": lineas, "pagos": pagos, "cliente": cliente}
+        if operacion is not None:
+            cuerpo["operacion"] = operacion
         return self.client.post(reverse("pos_vender"), data=json.dumps(cuerpo), content_type="application/json")
 
     def stock(self, producto=None):
@@ -197,6 +201,79 @@ class VentaTests(PosBase):
         self.assertEqual(factura.estado, Factura.Estado.EMITIDA)
         self.assertContains(self.client.get(reverse("facturas_detalle", args=[factura.pk])), "Pagos en caja")
 
+    def test_rechaza_cantidades_no_enteras_booleanos_y_acumuladas_fuera_de_rango(self):
+        for cantidad_invalida in (True, False, 1.5, 2.0, "1.5", "2,5", "abc", "", None, -1, 10000):
+            with self.subTest(cantidad=cantidad_invalida):
+                respuesta = self.vender(
+                    [{"metodo": "efectivo", "recibido": "5000"}],
+                    lineas=[{"producto": str(self.arroz.pk), "cantidad": cantidad_invalida}],
+                )
+                self.assertEqual(respuesta.status_code, 400)
+        # Dos líneas que individualmente son <= 9999 pero sumadas superan 9999
+        respuesta_acumulada = self.vender(
+            [{"metodo": "efectivo", "recibido": "5000"}],
+            lineas=[
+                {"producto": str(self.arroz.pk), "cantidad": 5000},
+                {"producto": str(self.arroz.pk), "cantidad": 5000},
+            ],
+        )
+        self.assertEqual(respuesta_acumulada.status_code, 400)
+        self.assertIn("entre 1 y 9.999", respuesta_acumulada.json()["error"])
+        self.nada_creado()
+
+    def test_crear_factura_acumula_lineas_repetidas_y_valida_stock_total(self):
+        cliente = caja.consumidor_final(self.empresa)
+        with self.assertRaises(services.StockInsuficiente):
+            services.crear_factura(
+                empresa=self.empresa,
+                usuario=self.cajero,
+                cliente=cliente,
+                items=[
+                    {"producto": self.arroz, "cantidad": 6},
+                    {"producto": self.arroz, "cantidad": 6},
+                ],
+            )
+        self.nada_creado()
+
+        factura = services.crear_factura(
+            empresa=self.empresa,
+            usuario=self.cajero,
+            cliente=cliente,
+            items=[
+                {"producto": self.arroz, "cantidad": 3},
+                {"producto": self.arroz, "cantidad": 2},
+            ],
+        )
+        self.assertEqual(factura.detalles.get().cantidad, 5)
+        self.assertEqual(self.stock(), 5)
+
+    def test_idempotencia_en_venta_pos(self):
+        op = str(uuid.uuid4())
+        primera = self.vender([{"metodo": "efectivo", "recibido": "5000"}], operacion=op).json()
+        segunda = self.vender([{"metodo": "efectivo", "recibido": "5000"}], operacion=op).json()
+        self.assertTrue(primera["ok"])
+        self.assertEqual(primera, segunda)
+        self.assertEqual(Factura.objects.count(), 1)
+        self.assertEqual(PagoCaja.objects.count(), 1)
+        self.assertEqual(self.stock(), 8)
+
+        # Reutilizar la misma clave con datos distintos devuelve conflicto
+        conflicto = self.vender(
+            [{"metodo": "efectivo", "recibido": "5000"}],
+            lineas=[{"producto": str(self.arroz.pk), "cantidad": 1}],
+            operacion=op,
+        )
+        self.assertEqual(conflicto.status_code, 409)
+        self.assertEqual(Factura.objects.count(), 1)
+
+        # Clave de operación con formato inválido devuelve 400
+        for op_mala in ("no-es-uuid", 123, True):
+            with self.subTest(operacion=op_mala):
+                self.assertEqual(
+                    self.vender([{"metodo": "efectivo", "recibido": "5000"}], operacion=op_mala).status_code,
+                    400,
+                )
+
 
 class CierreTests(PosBase):
     def setUp(self):
@@ -297,18 +374,72 @@ class BusquedaYTicketTests(PosBase):
         self.assertEqual(self.client.get(reverse("pos_ticket", args=[factura.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse("pos_turno", args=[turno.pk])).status_code, 404)
 
+    def test_ticket_congela_instantanea_y_consulta_pagos_una_sola_vez(self):
+        self.abrir()
+        cliente = Cliente.objects.create(
+            empresa=self.empresa, tipo_documento="CC", numero_documento="778899", nombre="Marta Original"
+        )
+        self.vender([{"metodo": "efectivo", "recibido": "5000"}], cliente=str(cliente.pk))
+        factura = Factura.objects.get()
+
+        # Aunque luego se editen producto, cliente y empresa, la reimpresión conserva los datos originales
+        Producto.objects.filter(pk=self.arroz.pk).update(nombre="Arroz Modificado")
+        Cliente.objects.filter(pk=cliente.pk).update(nombre="Marta Editada", numero_documento="000000")
+        Empresa.objects.filter(pk=self.empresa.pk).update(
+            nombre="Tienda Nueva", direccion="Otra Calle", telefono="3000000000"
+        )
+
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as consultas:
+            respuesta = self.client.get(reverse("pos_ticket", args=[factura.pk]))
+        consultas_pagos_caja = [q["sql"] for q in consultas if "pagocaja" in q["sql"].lower()]
+        self.assertEqual(len(consultas_pagos_caja), 1)
+
+        for original in ("Tienda Centro", "Calle 5 # 6-7", "6014445566", "Marta Original", "CC 778899", "Arroz"):
+            with self.subTest(original=original):
+                self.assertContains(respuesta, original)
+        for editado in ("Arroz Modificado", "Marta Editada", "Tienda Nueva"):
+            with self.subTest(editado=editado):
+                self.assertNotContains(respuesta, editado)
+
 
 class PermisosPosTests(TestCase):
     def test_rol_sin_permiso_de_vender_no_entra(self):
         empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
         usuario = Usuario.objects.create_user(username="v@c.co", email="v@c.co", password="x")
         rol = Rol.objects.create(empresa=empresa, nombre="Bodega", es_admin=False)
-        rol.permisos.add(Permiso.objects.create(codigo="inventario.ver", descripcion="Ver inventario"))
+        perm, _ = Permiso.objects.get_or_create(codigo="inventario.ver", defaults={"descripcion": "Ver inventario"})
+        rol.permisos.add(perm)
         Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
         self.client.force_login(usuario)
         for nombre in ("pos", "pos_productos", "pos_cerrar"):
             with self.subTest(ruta=nombre):
                 self.assertEqual(self.client.get(reverse(nombre)).status_code, 403)
+
+    def test_rol_con_ventas_crear_o_ventas_ver_puede_abrir_ticket(self):
+        empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
+        admin = crear_admin(empresa, "admin@una.co")
+        producto = Producto.objects.create(empresa=empresa, codigo="P1", nombre="Pan", precio=Decimal("1000"), stock=5)
+        turno = caja.abrir_turno(empresa=empresa, usuario=admin, base="0")
+        factura = caja.registrar_venta(
+            turno=turno,
+            usuario=admin,
+            items=[{"producto": producto, "cantidad": 1}],
+            pagos=[{"metodo": "efectivo", "recibido": "2000"}],
+        )
+        url_ticket = reverse("pos_ticket", args=[factura.pk])
+
+        for codigo, esperado in (("ventas.crear", 200), ("ventas.ver", 200), ("inventario.ver", 403)):
+            with self.subTest(permiso=codigo):
+                u = Usuario.objects.create_user(username=f"{codigo}@una.co", email=f"{codigo}@una.co", password="x")
+                rol = Rol.objects.create(empresa=empresa, nombre=f"Rol {codigo}", es_admin=False)
+                perm, _ = Permiso.objects.get_or_create(codigo=codigo, defaults={"descripcion": codigo})
+                rol.permisos.add(perm)
+                Membresia.objects.create(usuario=u, empresa=empresa, rol=rol)
+                self.client.force_login(u)
+                self.assertEqual(self.client.get(url_ticket).status_code, esperado)
 
     def test_sin_sesion_pide_ingresar(self):
         self.assertEqual(self.client.get(reverse("pos")).status_code, 302)
@@ -318,7 +449,8 @@ class DineroTests(TestCase):
     def test_convierte_y_valida(self):
         self.assertEqual(caja.dinero("1,5"), Decimal("1.50"))
         self.assertEqual(caja.dinero(" 2380 "), Decimal("2380.00"))
-        for malo in ("-1", "abc", "1.234", "NaN"):
+        self.assertEqual(caja.dinero("999999999999.99"), Decimal("999999999999.99"))
+        for malo in ("-1", "abc", "1.234", "NaN", "Infinity", "-Infinity", "1000000000000", "1e50", "9" * 40, True, False, None):
             with self.subTest(valor=malo):
                 with self.assertRaises(caja.OperacionCaja):
                     caja.dinero(malo)
@@ -326,3 +458,47 @@ class DineroTests(TestCase):
     def test_formato_de_pesos(self):
         self.assertEqual(caja.pesos(Decimal("1234567.50")), "$1.234.567,50")
         self.assertEqual(caja.pesos(Decimal("2380.00")), "$2.380")
+
+
+class ConcurrenciaPosTests(TransactionTestCase):
+    def test_reintento_concurrente_con_misma_operacion_crea_una_sola_venta(self):
+        empresa = Empresa.objects.create(nombre="Tienda Concurrencia", nit="900999", slug="tienda-concurrencia")
+        cajero = crear_admin(empresa, "cajero@concurrencia.co")
+        producto = Producto.objects.create(
+            empresa=empresa, codigo="C-1", nombre="Café", precio=Decimal("1000"), iva_porcentaje=Decimal("19"), stock=10
+        )
+        turno = caja.abrir_turno(empresa=empresa, usuario=cajero, base="10000")
+        operacion = uuid.uuid4()
+        barrera = threading.Barrier(2)
+        resultados = []
+        errores = []
+
+        def intentar_venta():
+            try:
+                barrera.wait(timeout=5)
+                f = caja.registrar_venta(
+                    turno=turno,
+                    usuario=cajero,
+                    items=[{"producto": producto, "cantidad": 2}],
+                    pagos=[{"metodo": "efectivo", "recibido": "5000"}],
+                    operacion=operacion,
+                )
+                resultados.append(f.pk)
+            except Exception as exc:  # pragma: no cover
+                errores.append(exc)
+            finally:
+                connections.close_all()
+
+        hilos = [threading.Thread(target=intentar_venta) for _ in range(2)]
+        for h in hilos:
+            h.start()
+        for h in hilos:
+            h.join()
+
+        self.assertEqual(errores, [])
+        self.assertEqual(len(resultados), 2)
+        self.assertEqual(resultados[0], resultados[1])
+        self.assertEqual(Factura.objects.filter(empresa=empresa).count(), 1)
+        self.assertEqual(PagoCaja.objects.filter(empresa=empresa).count(), 1)
+        producto.refresh_from_db()
+        self.assertEqual(producto.stock, 8)

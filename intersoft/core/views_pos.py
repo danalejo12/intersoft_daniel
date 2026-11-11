@@ -1,9 +1,11 @@
 """Punto de venta del panel: ventas de mostrador con caja, varios medios de pago y ticket."""
 import json
+import re
+import uuid
 from datetime import timedelta
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -13,11 +15,24 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from . import caja
-from .mixins import PermisoRequeridoMixin
+from .mixins import PermisoRequeridoMixin, TenantMixin
 from .models import Cliente, DetalleFactura, Factura, PagoCaja, Producto, TurnoCaja
 
 MAXIMO_RESULTADOS = 20
 PRODUCTOS_FRECUENTES = 12
+
+
+def _cantidad_entera(valor):
+    """Acepta solo enteros explícitos (int o cadena de dígitos); rechaza bool y decimales."""
+    if isinstance(valor, bool):
+        raise ValueError("Booleano no permitido")
+    if isinstance(valor, int):
+        return valor
+    if isinstance(valor, str):
+        texto = valor.strip()
+        if re.fullmatch(r"-?\d+", texto):
+            return int(texto)
+    raise ValueError("Cantidad no entera")
 
 
 def datos_producto(producto):
@@ -127,21 +142,40 @@ class VenderView(PosMixin, View):
             return self.error("No tienes una caja abierta. Recarga la página para abrirla.", 409)
         try:
             datos = json.loads(request.body)
-            lineas = datos["lineas"]
-            assert isinstance(lineas, list)
-        except (ValueError, KeyError, TypeError, AssertionError):
+        except (ValueError, TypeError):
             return self.error("La venta no tiene un formato válido.")
+        if not isinstance(datos, dict) or not isinstance(datos.get("lineas"), list):
+            return self.error("La venta no tiene un formato válido.")
+        lineas = datos["lineas"]
+
+        operacion = datos.get("operacion")
+        if operacion is not None:
+            if not isinstance(operacion, str):
+                return self.error("La clave de operación no es válida.")
+            try:
+                operacion = uuid.UUID(operacion)
+            except (ValueError, AttributeError):
+                return self.error("La clave de operación no es válida.")
 
         # Se suman las cantidades repetidas y se ignora cualquier precio que mande el navegador
         cantidades = {}
         for linea in lineas:
+            if not isinstance(linea, dict):
+                return self.error("Una línea de la venta no es válida.")
+            producto_raw = linea.get("producto")
+            if not isinstance(producto_raw, str) or not producto_raw.strip():
+                return self.error("Una línea de la venta no es válida.")
             try:
-                producto_id, cantidad = str(linea["producto"]), int(linea["cantidad"])
+                producto_id = producto_raw.strip()
+                cantidad = _cantidad_entera(linea.get("cantidad"))
             except (KeyError, TypeError, ValueError):
                 return self.error("Una línea de la venta no es válida.")
             if not 1 <= cantidad <= 9999:
                 return self.error("Las cantidades deben estar entre 1 y 9.999.")
-            cantidades[producto_id] = cantidades.get(producto_id, 0) + cantidad
+            acumulada = cantidades.get(producto_id, 0) + cantidad
+            if not 1 <= acumulada <= 9999:
+                return self.error("Las cantidades deben estar entre 1 y 9.999.")
+            cantidades[producto_id] = acumulada
         try:
             productos = {
                 str(p.pk): p
@@ -168,11 +202,13 @@ class VenderView(PosMixin, View):
                 items=[{"producto": productos[i], "cantidad": c} for i, c in cantidades.items()],
                 pagos=datos.get("pagos"),
                 cliente=cliente,
+                operacion=operacion,
             )
         except caja.OperacionCaja as error:
             return self.error(str(error), 409)
 
-        cambio = sum((p.cambio for p in factura.pagos_caja.all()), 0)
+        pagos_caja = list(factura.pagos_caja.all())
+        cambio = sum((p.cambio for p in pagos_caja), 0)
         return JsonResponse({
             "ok": True,
             "numero": factura.numero,
@@ -231,19 +267,28 @@ class TurnoView(PermisoRequeridoMixin, DetailView):
         return contexto
 
 
-class TicketView(PermisoRequeridoMixin, View):
-    permiso_requerido = "ventas.ver"
+class TicketView(TenantMixin, View):
+    """Permite abrir el recibo tanto a quien consulta ventas como al cajero que cobra en el POS."""
+    permisos_permitidos = ("ventas.ver", "ventas.crear")
+
+    def dispatch(self, request, *args, **kwargs):
+        membresia = request.membresia
+        if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
+            raise PermissionDenied("No tienes permiso para esta acción.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk):
         factura = get_object_or_404(
             Factura.objects.de_empresa(request.empresa).select_related("cliente", "creada_por"), pk=pk
         )
+        pagos = list(factura.pagos_caja.all())
+        documento_cliente = factura.cliente_documento or f"{factura.cliente.tipo_documento} {factura.cliente.numero_documento}"
         return render(request, "core/pos/ticket.html", {
             "factura": factura,
             "empresa": request.empresa,
             "detalles": factura.detalles.select_related("producto"),
-            "pagos": factura.pagos_caja.all(),
-            "cambio": sum((p.cambio for p in factura.pagos_caja.all()), 0),
+            "pagos": pagos,
+            "cambio": sum((p.cambio for p in pagos), 0),
             "imprimir": request.GET.get("imprimir") == "1",
-            "consumidor_final": factura.cliente.numero_documento == caja.DOCUMENTO_CONSUMIDOR_FINAL,
+            "consumidor_final": documento_cliente.endswith(caja.DOCUMENTO_CONSUMIDOR_FINAL),
         })

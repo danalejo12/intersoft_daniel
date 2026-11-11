@@ -10,7 +10,19 @@
   var catalogo = {};   // id -> datos del producto
   var venta = [];      // [{id, cantidad}]
   var cliente = null;  // {id, nombre} o null para consumidor final
+  var operacionActual = null; // UUID único por intento de venta para evitar duplicados ante reintentos
   var MONTOS_RAPIDOS = [1000000, 2000000, 5000000, 10000000];  // en centavos: 10.000, 20.000, 50.000, 100.000
+
+  function nuevaOperacion() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
 
   JSON.parse(document.getElementById("pos-frecuentes").textContent).forEach(function (p) {
     catalogo[p.id] = p;
@@ -81,6 +93,7 @@
     } else {
       venta.push({ id: producto.id, cantidad: cantidad });
     }
+    operacionActual = null;
     avisar("Agregado: " + producto.nombre);
     pintar();
   }
@@ -98,6 +111,7 @@
     } else {
       linea.cantidad = cantidad;
     }
+    operacionActual = null;
     pintar();
   }
 
@@ -282,6 +296,7 @@
 
   function elegirCliente(c) {
     cliente = c;
+    operacionActual = null;
     $("pos-cliente-nombre").textContent = c ? c.nombre + " · " + c.documento : "Consumidor final";
     $("pos-cliente-quitar").hidden = !c;
     buscadorCliente.value = "";
@@ -408,6 +423,9 @@
     if (!venta.length) {
       return;
     }
+    if (!operacionActual) {
+      operacionActual = nuevaOperacion();
+    }
     $("pos-cobro-total").textContent = pesos(totales().total);
     Object.keys(campos).forEach(function (k) { campos[k].value = ""; });
     $("pos-tarjeta-ref").value = "";
@@ -453,6 +471,9 @@
     if (estado.falta > 0) {
       pagos.push({ metodo: "efectivo", recibido: paraServidor(estado.efectivo) });
     }
+    if (!operacionActual) {
+      operacionActual = nuevaOperacion();
+    }
     var boton = $("pos-confirmar");
     boton.disabled = true;
     boton.textContent = "Registrando…";
@@ -461,16 +482,23 @@
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
-      body: JSON.stringify({ lineas: venta.map(function (l) { return { producto: l.id, cantidad: l.cantidad }; }), cliente: cliente && cliente.id, pagos: pagos }),
+      body: JSON.stringify({
+        operacion: operacionActual,
+        lineas: venta.map(function (l) { return { producto: l.id, cantidad: l.cantidad }; }),
+        cliente: cliente && cliente.id,
+        pagos: pagos,
+      }),
     }).then(function (r) {
       return r.json();
     }).then(function (datos) {
       if (!datos.ok) {
+        operacionActual = nuevaOperacion();
         var error = $("pos-error-cobro");
         error.textContent = datos.error;
         error.hidden = false;
         return;
       }
+      operacionActual = null;
       dialogoCobro.close();
       $("pos-listo-numero").textContent = datos.numero;
       $("pos-listo-cambio").textContent = pesos(centavos(datos.cambio));

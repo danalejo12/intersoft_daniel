@@ -4,18 +4,21 @@ La venta reutiliza services.crear_factura: mismos precios, IVA, consecutivo y ka
 que el resto del sistema. Lo único nuevo es cómo se registra el pago.
 """
 from decimal import Decimal, InvalidOperation
+import uuid
 
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
 
 from .impuestos import CENTAVOS
-from .models import Cliente, PagoCaja, TurnoCaja
+from .models import Cliente, Factura, PagoCaja, TurnoCaja
 from .services import StockInsuficiente, crear_factura
 
 Metodo = PagoCaja.Metodo
 # Documento que la DIAN usa para las ventas a quien no se identifica
 DOCUMENTO_CONSUMIDOR_FINAL = "222222222222"
+# Límite de los campos DecimalField(max_digits=14, decimal_places=2)
+MAXIMO_DINERO = Decimal("999999999999.99")
 
 
 class OperacionCaja(Exception):
@@ -24,15 +27,25 @@ class OperacionCaja(Exception):
 
 def dinero(valor, campo="valor"):
     """Convierte lo que llega del navegador en pesos con dos decimales, o falla con un mensaje claro."""
+    if isinstance(valor, bool) or valor is None:
+        raise OperacionCaja(f"El {campo} no es un número válido.")
     try:
         cantidad = Decimal(str(valor).replace(",", ".").strip() or "0")
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError, TypeError):
         raise OperacionCaja(f"El {campo} no es un número válido.") from None
-    if not cantidad.is_finite() or cantidad < 0:
+    if not cantidad.is_finite():
+        raise OperacionCaja(f"El {campo} no es un número válido.")
+    if cantidad < 0:
         raise OperacionCaja(f"El {campo} no puede ser negativo.")
-    if cantidad != cantidad.quantize(CENTAVOS):
+    if cantidad > MAXIMO_DINERO:
+        raise OperacionCaja(f"El {campo} supera el monto máximo permitido.")
+    try:
+        redondeado = cantidad.quantize(CENTAVOS)
+    except InvalidOperation:
+        raise OperacionCaja(f"El {campo} no es un número válido.") from None
+    if cantidad != redondeado:
         raise OperacionCaja(f"El {campo} tiene más de dos decimales.")
-    return cantidad.quantize(CENTAVOS)
+    return redondeado
 
 
 def pesos(valor):
@@ -103,17 +116,42 @@ def _validar_pagos(pagos, total):
 
 
 @transaction.atomic
-def registrar_venta(*, turno, usuario, items, pagos, cliente=None):
+def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=None):
     """Crea la factura, descuenta el stock y registra los pagos: todo o nada."""
+    operacion_uuid = None
+    if operacion is not None:
+        if isinstance(operacion, bool):
+            raise OperacionCaja("La clave de operación no es válida.")
+        try:
+            operacion_uuid = operacion if isinstance(operacion, uuid.UUID) else uuid.UUID(str(operacion))
+        except (ValueError, TypeError, AttributeError):
+            raise OperacionCaja("La clave de operación no es válida.") from None
+
     turno = TurnoCaja.objects.select_for_update().get(pk=turno.pk)
-    if not turno.abierto:
-        raise OperacionCaja("Esta caja ya está cerrada. Abre una nueva para seguir vendiendo.")
     if turno.cajero_id != usuario.pk:
         raise OperacionCaja("Solo el cajero que abrió la caja puede vender en ella.")
     if not items:
         raise OperacionCaja("Agrega al menos un producto.")
     if cliente is not None and cliente.empresa_id != turno.empresa_id:
         raise OperacionCaja("El cliente no pertenece a este negocio.")
+
+    if operacion_uuid is not None:
+        existente = Factura.objects.filter(empresa=turno.empresa, operacion_pos=operacion_uuid).first()
+        if existente is not None:
+            if existente.turno_id != turno.pk:
+                raise OperacionCaja("Esta clave de operación ya fue usada en otra caja.")
+            cantidades_pedidas = {}
+            for item in items:
+                prod = item["producto"]
+                cantidades_pedidas[prod.pk] = cantidades_pedidas.get(prod.pk, 0) + int(item["cantidad"])
+            cantidades_existentes = {d.producto_id: d.cantidad for d in existente.detalles.all()}
+            cliente_esperado = cliente.pk if cliente is not None else consumidor_final(turno.empresa).pk
+            if cantidades_pedidas != cantidades_existentes or existente.cliente_id != cliente_esperado:
+                raise OperacionCaja("Esta clave de operación ya fue usada con otros datos.")
+            return existente
+
+    if not turno.abierto:
+        raise OperacionCaja("Esta caja ya está cerrada. Abre una nueva para seguir vendiendo.")
 
     try:
         factura = crear_factura(
@@ -123,8 +161,11 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None):
         raise OperacionCaja(str(error)) from None  # en el panel sí se muestra el stock exacto
     except ValueError as error:
         raise OperacionCaja(str(error)) from None
+    if factura.total > MAXIMO_DINERO:
+        raise OperacionCaja("El total de la venta supera el monto máximo permitido.")
     factura.turno = turno
-    factura.save(update_fields=["turno"])
+    factura.operacion_pos = operacion_uuid
+    factura.save(update_fields=["turno", "operacion_pos"])
 
     # Se valida con el total que calculó el servidor, nunca con el del navegador
     otros, efectivo = _validar_pagos(pagos, factura.total)
