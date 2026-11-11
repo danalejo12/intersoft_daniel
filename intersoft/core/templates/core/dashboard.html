@@ -4,6 +4,7 @@
 {% block contenido %}
   <!-- Indicadores: cada uno brilla con el color de lo que mide -->
   <section class="kpis">
+    {% if puede_ver_ventas %}
     <article class="kpi">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span>
@@ -13,6 +14,7 @@
       <small>{{ facturas_mes }} factura{{ facturas_mes|pluralize }} <em>este mes</em></small>
       <canvas class="sparkline" id="sparkline-ventas" aria-label="Ventas de los últimos 7 días"></canvas>
     </article>
+    {% endif %}
 
     <article class="kpi verde">
       <div class="kpi-cabecera">
@@ -61,6 +63,7 @@
       </div>
     </article>
 
+    {% if puede_ver_ventas %}
     <!-- Gráfica de ventas de los últimos 6 meses -->
     <article class="tarjeta">
       <div class="tarjeta-cabecera">
@@ -70,6 +73,7 @@
       <div class="leyenda"><span>Facturado (sin anuladas)</span></div>
       <div class="grafica"><canvas id="grafica-ventas" aria-label="Ventas por mes"></canvas></div>
     </article>
+    {% endif %}
   </section>
 
   <section class="paneles parejos">
@@ -92,6 +96,7 @@
       </table>
     </article>
 
+    {% if puede_ver_ventas %}
     <article class="tarjeta">
       <div class="tarjeta-cabecera"><h2>Últimas facturas</h2></div>
       <table class="tabla">
@@ -109,10 +114,12 @@
         </tbody>
       </table>
     </article>
+    {% endif %}
   </section>
 {% endblock %}
 
 {% block scripts %}
+  {% if puede_ver_ventas %}
   {# json_script pasa datos de Python a JavaScript de forma segura (sin riesgo de XSS) #}
   {{ serie_meses|json_script:"datos-meses" }}
   {{ serie_dias|json_script:"datos-dias" }}
@@ -183,4 +190,5 @@
       },
     });
   </script>
+  {% endif %}
 {% endblock %}

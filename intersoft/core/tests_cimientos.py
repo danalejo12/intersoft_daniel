@@ -35,6 +35,61 @@ class RegistrosTests(TestCase):
             logging.getLogger("core.pagos").critical("Sin destinatarios")
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_construir_mailers_usa_consola_como_respaldo_y_smtp_en_produccion(self):
+        from django.core.checks.mail import check_mailers_production_backend
+        from intersoft.settings import _construir_mailers
+
+        respaldo = _construir_mailers(host="")
+        self.assertEqual(
+            respaldo["default"]["BACKEND"],
+            "django.core.mail.backends.console.EmailBackend",
+        )
+
+        smtp = _construir_mailers(
+            host="smtp.intersoft.co",
+            port=587,
+            username="alertas@intersoft.co",
+            password="secreto",
+            use_tls=True,
+            use_ssl=False,
+        )
+        self.assertEqual(
+            smtp["default"]["BACKEND"],
+            "django.core.mail.backends.smtp.EmailBackend",
+        )
+        self.assertEqual(smtp["default"]["OPTIONS"]["host"], "smtp.intersoft.co")
+        self.assertEqual(smtp["default"]["OPTIONS"]["port"], 587)
+        with override_settings(MAILERS=smtp):
+            self.assertEqual(check_mailers_production_backend(None), [])
+
+    def test_check_deploy_en_configuracion_de_produccion_sin_errores_bloqueantes(self):
+        from django.core import checks
+        from intersoft.settings import _construir_mailers
+
+        smtp = _construir_mailers(
+            host="smtp.intersoft.co",
+            port=587,
+            username="alertas@intersoft.co",
+            password="secreto-smtp-produccion",
+            use_tls=True,
+        )
+        with override_settings(
+            DEBUG=False,
+            SECRET_KEY="clave-produccion-aleatoria-muy-larga-y-con-alta-entropia-2026-!@#$%^&*()_+",
+            ALLOWED_HOSTS=["tienda.intersoft.co"],
+            SECURE_SSL_REDIRECT=True,
+            SESSION_COOKIE_SECURE=True,
+            CSRF_COOKIE_SECURE=True,
+            SECURE_HSTS_SECONDS=31536000,
+            SECURE_HSTS_INCLUDE_SUBDOMAINS=True,
+            SECURE_HSTS_PRELOAD=True,
+            MAILERS=smtp,
+        ):
+            problemas = checks.run_checks(include_deployment_checks=True)
+            errores = [p for p in problemas if p.is_serious()]
+            self.assertEqual(errores, [])
+            self.assertEqual([p.id for p in problemas], [])
+
 
 @override_settings(ADMINS=["finanzas@intersoft.example"])
 class AvisoDeReembolsoTests(PedidoBase):

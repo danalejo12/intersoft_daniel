@@ -136,19 +136,56 @@ USE_TZ = True
 # Archivos
 # ---------------------------------------------------------------
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Archivos que suben los usuarios (fotos de productos). media/ no se sube a git.
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # ---------------------------------------------------------------
-# Correo (se configura en el Sprint 2)
+# Correo: SMTP en producción si se configura EMAIL_HOST; consola como respaldo
 # ---------------------------------------------------------------
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+def _construir_mailers(
+    *,
+    host="",
+    port=587,
+    username="",
+    password="",
+    use_tls=True,
+    use_ssl=False,
+):
+    if host:
+        return {
+            "default": {
+                "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+                "OPTIONS": {
+                    "host": host,
+                    "port": port,
+                    "username": username,
+                    "password": password,
+                    "use_tls": use_tls,
+                    "use_ssl": use_ssl,
+                },
+            },
+        }
+    return {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
+
+
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-responder@intersoft.local")
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+
+MAILERS = _construir_mailers(
+    host=config("EMAIL_HOST", default=""),
+    port=config("EMAIL_PORT", default=587, cast=int),
+    username=config("EMAIL_HOST_USER", default=""),
+    password=config("EMAIL_HOST_PASSWORD", default=""),
+    use_tls=config("EMAIL_USE_TLS", default=True, cast=bool),
+    use_ssl=config("EMAIL_USE_SSL", default=False, cast=bool),
+)
 
 # Reciben por correo los avisos critical (reembolsos, cobros duplicados). Separados por coma.
 ADMINS = config("ADMINS", default="", cast=Csv())

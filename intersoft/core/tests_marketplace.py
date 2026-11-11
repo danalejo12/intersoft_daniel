@@ -358,6 +358,34 @@ class NegocioElegidoTests(TestCase):
                 self.elegir(valor)
                 self.assertEqual(self.empresa_activa(), "Alfa")
 
+    def test_selector_visual_aparece_solo_con_mas_de_un_negocio_activo(self):
+        resp_dos = self.client.get(reverse("dashboard"))
+        self.assertContains(resp_dos, 'class="selector-negocio"')
+        self.assertContains(resp_dos, "Alfa")
+        self.assertContains(resp_dos, "Beta")
+
+        Membresia.objects.filter(usuario=self.usuario, empresa=self.beta).update(activa=False)
+        resp_uno = self.client.get(reverse("dashboard"))
+        self.assertNotContains(resp_uno, 'class="selector-negocio"')
+
+    def test_vista_cambiar_negocio_actualiza_sesion_y_respeta_next_seguro(self):
+        resp = self.client.post(
+            reverse("negocio_cambiar"),
+            {"empresa_id": str(self.beta.pk), "next": reverse("productos_lista")},
+        )
+        self.assertRedirects(resp, reverse("productos_lista"))
+        self.assertEqual(self.client.session["empresa_id"], str(self.beta.pk))
+        self.assertEqual(self.empresa_activa(), "Beta")
+
+    def test_vista_cambiar_negocio_rechaza_get_empresa_ajena_o_invalida(self):
+        self.assertEqual(self.client.get(reverse("negocio_cambiar")).status_code, 405)
+
+        for valor in (str(self.ajena.pk), "no-es-uuid", ""):
+            with self.subTest(valor=valor):
+                resp = self.client.post(reverse("negocio_cambiar"), {"empresa_id": valor})
+                self.assertEqual(resp.status_code, 404)
+                self.assertEqual(self.empresa_activa(), "Alfa")
+
     def test_empresa_inactiva_en_la_sesion_se_ignora(self):
         Empresa.objects.filter(pk=self.beta.pk).update(activa=False)
         self.elegir(str(self.beta.pk))
