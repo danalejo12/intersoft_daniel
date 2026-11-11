@@ -21,6 +21,13 @@ class Pedido(ModeloTenant):
         VENCIDO = "vencido", "Vencido"
         CANCELADO = "cancelado", "Cancelado"
         REQUIERE_REEMBOLSO = "requiere_reembolso", "Requiere reembolso"
+        REEMBOLSADO = "reembolsado", "Reembolsado"
+
+    class EstadoEnvio(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        PREPARANDO = "preparando", "Preparando"
+        ENVIADO = "enviado", "Enviado"
+        ENTREGADO = "entregado", "Entregado"
 
     # Mientras el pedido está pendiente, el comprador ve el estado de su último intento.
     # Los demás estados usan la etiqueta de Estado: una sola fuente para cada texto.
@@ -38,7 +45,29 @@ class Pedido(ModeloTenant):
     renovaciones = models.PositiveSmallIntegerField(default=0)
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     iva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    costo_envio = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    peso_total_gramos = models.PositiveIntegerField(default=0)
+    comision_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    comision_valor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    neto_vendedor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    estado_envio = models.CharField(
+        max_length=20, choices=EstadoEnvio.choices, default=EstadoEnvio.PENDIENTE
+    )
+    transportadora = models.CharField(max_length=80, blank=True)
+    numero_guia = models.CharField(max_length=80, blank=True)
+    enviado_en = models.DateTimeField(null=True, blank=True)
+    entregado_en = models.DateTimeField(null=True, blank=True)
+    reembolsado_en = models.DateTimeField(null=True, blank=True)
+    reembolso_referencia = models.CharField(max_length=80, blank=True)
+    reembolso_nota = models.CharField(max_length=250, blank=True)
+    reembolsado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="reembolsos_registrados",
+        null=True,
+        blank=True,
+    )
     tipo_documento = models.CharField(max_length=5)
     numero_documento = models.CharField(max_length=20)
     nombre = models.CharField(max_length=150)

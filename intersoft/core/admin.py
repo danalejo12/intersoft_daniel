@@ -18,7 +18,7 @@ class UsuarioAdmin(UserAdmin):
  
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
-    list_display = ["nombre", "nit", "plan", "activa", "creado_en"]
+    list_display = ["nombre", "nit", "plan", "comision_porcentaje", "tarifa_envio_base", "activa", "creado_en"]
     list_filter = ["plan", "activa"]
     search_fields = ["nombre", "nit"]
     prepopulated_fields = {"slug": ["nombre"]}
@@ -103,11 +103,22 @@ class DetallePedidoInline(admin.TabularInline):
 
 @admin.register(Pedido)
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = ["numero", "nombre", "estado", "total", "empresa", "expira_en", "creado_en"]
+    list_display = [
+        "numero",
+        "nombre",
+        "estado",
+        "estado_envio",
+        "total",
+        "comision_valor",
+        "neto_vendedor",
+        "empresa",
+        "expira_en",
+        "creado_en",
+    ]
     # El filtro por estado permite encontrar los pedidos en requiere_reembolso
-    list_filter = ["estado", "empresa", "departamento"]
+    list_filter = ["estado", "estado_envio", "empresa", "departamento"]
     list_select_related = ["empresa"]
-    search_fields = ["nombre", "email", "numero_documento"]
+    search_fields = ["nombre", "email", "numero_documento", "numero_guia", "reembolso_referencia"]
     inlines = [DetallePedidoInline]
 
 

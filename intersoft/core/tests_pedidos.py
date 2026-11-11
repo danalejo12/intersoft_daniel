@@ -30,7 +30,7 @@ from .pagos import (
     revisar_en_wompi,
     url_checkout,
 )
-from .reservas import marcar_pagado
+from .reservas import actualizar_envio_pedido, marcar_pagado, registrar_reembolso
 from .services import StockInsuficiente, anular_factura, crear_factura
 from .tests_compra import Base, DATOS_ENVIO, crear_negocio, crear_producto, crear_usuario, transaccion
 
@@ -739,3 +739,253 @@ class ConcurrenciaPedidosTests(TransactionTestCase):
         self.assertEqual(sorted(resultados), ["omitido", "vencido"])
         self.assertEqual(Producto.objects.get(pk=self.producto.pk).stock, 10)
         self.assertEqual(MovimientoInventario.objects.filter(tipo="entrada").count(), 1)
+
+
+class MarketplaceFase6Tests(PedidoBase):
+    """Pruebas de Fase 6: reembolsos reales, comisiones por comercio y logística/seguimiento."""
+
+    def test_flujo_completo_de_reembolso_desde_panel_y_vista_comprador(self):
+        pago = self.intento()
+        with self.assertLogs("core.pagos", "CRITICAL"):
+            aplicar_transaccion({**transaccion(pago), "amount_in_cents": pago.monto_centavos - 100})
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.REQUIERE_REEMBOLSO)
+
+        # Sin referencia falla
+        with self.assertRaises(ValueError):
+            registrar_reembolso(pedido=self.pedido, usuario=self.dueno, referencia="   ")
+
+        # Desde el panel del negocio el dueño registra el reembolso
+        self.client.force_login(self.dueno)
+        respuesta = self.client.post(
+            reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+            {
+                "accion": "reembolsar",
+                "referencia": "REV-WOMPI-9001",
+                "nota": "Reversión aprobada a tarjeta origen",
+            },
+            follow=True,
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Reembolso registrado")
+        self.assertContains(respuesta, "REV-WOMPI-9001")
+
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.REEMBOLSADO)
+        self.assertEqual(self.pedido.reembolso_referencia, "REV-WOMPI-9001")
+        self.assertEqual(self.pedido.reembolso_nota, "Reversión aprobada a tarjeta origen")
+        self.assertEqual(self.pedido.reembolsado_por, self.dueno)
+        self.assertIsNotNone(self.pedido.reembolsado_en)
+
+        # No permite reembolsar dos veces
+        with self.assertRaises(ValueError):
+            registrar_reembolso(pedido=self.pedido, usuario=self.dueno, referencia="REV-2")
+
+        # El comprador ve que su reembolso fue procesado con el comprobante
+        self.client.force_login(self.comprador)
+        vista_comprador = self.client.get(reverse("pedido_detalle", args=[self.pedido.pk]))
+        self.assertContains(vista_comprador, "Tu reembolso fue procesado")
+        self.assertContains(vista_comprador, "REV-WOMPI-9001")
+
+    def test_comision_y_liquidacion_congeladas_por_pedido(self):
+        Empresa.objects.filter(pk=self.negocio.pk).update(comision_porcentaje=Decimal("8.00"))
+        self.negocio.refresh_from_db()
+        Producto.objects.filter(pk=self.producto.pk).update(
+            precio=Decimal("10000.00"), iva_porcentaje=Decimal("19.00"), stock=10
+        )
+        self.producto.refresh_from_db()
+
+        nuevo = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 2}],
+            datos=DATOS_ENVIO,
+        )
+        # 2 * 10.000 = 20.000 + 3.800 IVA = 23.800. Comisión 8% de 23.800 = 1.904. Neto = 21.896
+        self.assertEqual(nuevo.subtotal, Decimal("20000.00"))
+        self.assertEqual(nuevo.iva, Decimal("3800.00"))
+        self.assertEqual(nuevo.total, Decimal("23800.00"))
+        self.assertEqual(nuevo.comision_porcentaje, Decimal("8.00"))
+        self.assertEqual(nuevo.comision_valor, Decimal("1904.00"))
+        self.assertEqual(nuevo.neto_vendedor, Decimal("21896.00"))
+
+        # Si el negocio cambia su comisión mañana, el pedido existente conserva su liquidación
+        Empresa.objects.filter(pk=self.negocio.pk).update(comision_porcentaje=Decimal("12.00"))
+        marcar_pagado(nuevo)
+
+        self.client.force_login(self.dueno)
+        panel = self.client.get(reverse("pedidos_panel_lista"))
+        self.assertEqual(panel.status_code, 200)
+        liquidacion = panel.context["liquidacion"]
+        self.assertEqual(liquidacion["bruto"], Decimal("23800.00"))
+        self.assertEqual(liquidacion["comision"], Decimal("1904.00"))
+        self.assertEqual(liquidacion["neto"], Decimal("21896.00"))
+        self.assertEqual(liquidacion["cantidad"], 1)
+
+    def test_calculo_envio_por_peso_y_umbral_envio_gratis(self):
+        Empresa.objects.filter(pk=self.negocio.pk).update(
+            tarifa_envio_base=Decimal("5000.00"),
+            tarifa_envio_por_kg=Decimal("2000.00"),
+            envio_gratis_desde=Decimal("50000.00"),
+            comision_porcentaje=Decimal("5.00"),
+        )
+        self.negocio.refresh_from_db()
+        Producto.objects.filter(pk=self.producto.pk).update(
+            precio=Decimal("10000.00"),
+            iva_porcentaje=Decimal("0.00"),
+            peso_gramos=600,
+            stock=10,
+        )
+        self.producto.refresh_from_db()
+
+        # 2 unidades = $20.000 y 1.200 g (2 kg redondeados hacia arriba) -> envío = 5.000 + 2 * 2.000 = $9.000
+        pedido_con_envio = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 2}],
+            datos=DATOS_ENVIO,
+        )
+        self.assertEqual(pedido_con_envio.peso_total_gramos, 1200)
+        self.assertEqual(pedido_con_envio.costo_envio, Decimal("9000.00"))
+        self.assertEqual(pedido_con_envio.total, Decimal("29000.00"))
+        # La comisión se calcula sobre los productos ($20.000 * 5% = $1.000); el envío va íntegro al comercio
+        self.assertEqual(pedido_con_envio.comision_valor, Decimal("1000.00"))
+        self.assertEqual(pedido_con_envio.neto_vendedor, Decimal("28000.00"))
+
+        # 5 unidades = $50.000 >= envio_gratis_desde ($50.000) -> envío gratis ($0)
+        pedido_gratis = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 5}],
+            datos=DATOS_ENVIO,
+        )
+        self.assertEqual(pedido_gratis.costo_envio, Decimal("0.00"))
+        self.assertEqual(pedido_gratis.total, Decimal("50000.00"))
+
+    def test_seguimiento_logistico_de_despacho_y_entrega(self):
+        # No permite despachar un pedido aún no pagado
+        with self.assertRaises(ValueError):
+            actualizar_envio_pedido(
+                pedido=self.pedido,
+                estado_envio=Pedido.EstadoEnvio.ENVIADO,
+                transportadora="Servientrega",
+                numero_guia="GUIA-123",
+            )
+
+        marcar_pagado(self.pedido)
+        self.client.force_login(self.dueno)
+        respuesta = self.client.post(
+            reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+            {
+                "accion": "actualizar_envio",
+                "estado_envio": Pedido.EstadoEnvio.ENVIADO,
+                "transportadora": "Servientrega",
+                "numero_guia": "GUIA-778899",
+            },
+            follow=True,
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.recargar()
+        self.assertEqual(self.pedido.estado_envio, Pedido.EstadoEnvio.ENVIADO)
+        self.assertEqual(self.pedido.transportadora, "Servientrega")
+        self.assertEqual(self.pedido.numero_guia, "GUIA-778899")
+        self.assertIsNotNone(self.pedido.enviado_en)
+        self.assertIsNone(self.pedido.entregado_en)
+
+        # El comprador ve la transportadora y la guía en el detalle de su pedido
+        self.client.force_login(self.comprador)
+        vista_comprador = self.client.get(reverse("pedido_detalle", args=[self.pedido.pk]))
+        self.assertContains(vista_comprador, "Servientrega")
+        self.assertContains(vista_comprador, "GUIA-778899")
+
+        # Al marcar entregado queda registrada la fecha de entrega
+        actualizar_envio_pedido(
+            pedido=self.pedido,
+            estado_envio=Pedido.EstadoEnvio.ENTREGADO,
+            transportadora="Servientrega",
+            numero_guia="GUIA-778899",
+        )
+        self.recargar()
+        self.assertEqual(self.pedido.estado_envio, Pedido.EstadoEnvio.ENTREGADO)
+        self.assertIsNotNone(self.pedido.entregado_en)
+
+    def test_notificaciones_por_correo_en_pago_despacho_y_reembolso(self):
+        from django.core import mail
+
+        mail.outbox.clear()
+        marcar_pagado(self.pedido)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(f"Pedido #{self.pedido.numero}", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, [self.pedido.email])
+
+        # Estado 'preparando' no envía correo; 'enviado' sí envía con guía
+        mail.outbox.clear()
+        actualizar_envio_pedido(
+            pedido=self.pedido,
+            estado_envio=Pedido.EstadoEnvio.PREPARANDO,
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+        actualizar_envio_pedido(
+            pedido=self.pedido,
+            estado_envio=Pedido.EstadoEnvio.ENVIADO,
+            transportadora="Coordinadora",
+            numero_guia="COORD-5544",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Enviado", mail.outbox[0].subject)
+        self.assertIn("COORD-5544", mail.outbox[0].body)
+
+        # Reembolso envía correo con el comprobante
+        otro = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 1}],
+            datos=DATOS_ENVIO,
+        )
+        Pedido.objects.filter(pk=otro.pk).update(estado=Pedido.Estado.REQUIERE_REEMBOLSO)
+        otro.refresh_from_db()
+        mail.outbox.clear()
+        registrar_reembolso(
+            pedido=otro,
+            usuario=self.dueno,
+            referencia="REV-CORREO-01",
+            nota="Devolución aprobada",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Reembolso procesado", mail.outbox[0].subject)
+        self.assertIn("REV-CORREO-01", mail.outbox[0].body)
+
+    def test_permisos_en_panel_de_pedidos(self):
+        from .models import Membresia, Permiso, Rol
+
+        lector = crear_usuario("solo-lectura-pedidos@correo.co")
+        rol_ver = Rol.objects.create(empresa=self.negocio, nombre="Auditor Ventas", es_admin=False)
+        perm_ver, _ = Permiso.objects.get_or_create(codigo="ventas.ver", defaults={"descripcion": "Ver ventas"})
+        rol_ver.permisos.add(perm_ver)
+        Membresia.objects.create(usuario=lector, empresa=self.negocio, rol=rol_ver)
+
+        marcar_pagado(self.pedido)
+        self.client.force_login(lector)
+        self.assertEqual(self.client.get(reverse("pedidos_panel_lista")).status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse("pedidos_panel_detalle", args=[self.pedido.pk])).status_code,
+            200,
+        )
+        # No puede actualizar despacho ni registrar reembolsos con solo ventas.ver
+        self.assertEqual(
+            self.client.post(
+                reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+                {"accion": "actualizar_envio", "estado_envio": "enviado"},
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+                {"accion": "reembolsar", "referencia": "REV-X"},
+            ).status_code,
+            403,
+        )
+
+

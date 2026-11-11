@@ -53,6 +53,7 @@ class Producto(ModeloTenant):
     )
     stock = models.IntegerField(default=0)
     stock_minimo = models.IntegerField(default=0)  # Para alertas de reabastecimiento.
+    peso_gramos = models.PositiveIntegerField("Peso (gramos)", default=0)
     activo = models.BooleanField(default=True)
     publicado = models.BooleanField(default=False)  # Cada negocio decide qué se ve en el marketplace.
     imagen = models.ImageField(

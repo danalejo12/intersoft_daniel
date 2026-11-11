@@ -37,7 +37,18 @@
         {% endfor %}
       </ul>
       <dl>
-        <div><dt>Envío</dt><dd>Lo coordinas con el negocio</dd></div>
+        <div>
+          <dt>Envío</dt>
+          <dd>
+            {% if grupo.costo_envio %}
+              ${{ grupo.costo_envio|floatformat:"-2g" }}
+            {% elif negocio.envio_gratis_desde and grupo.subtotal >= negocio.envio_gratis_desde %}
+              Gratis
+            {% else %}
+              Lo coordinas con el negocio
+            {% endif %}
+          </dd>
+        </div>
         <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
       </dl>
       <button type="submit" class="boton boton-grande boton-ancho">Continuar al pago</button>

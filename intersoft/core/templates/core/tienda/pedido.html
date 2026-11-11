@@ -38,6 +38,15 @@
         <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
       </div>
 
+    {% elif estado == "reembolsado" %}
+      <div class="sello sello-ok" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="trazo" d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+      <h1 class="titulo-compra">Tu reembolso fue procesado</h1>
+      <p>Devolvimos el dinero de este pedido{% if pedido.reembolso_referencia %} (comprobante <strong>{{ pedido.reembolso_referencia }}</strong>){% endif %}.{% if pedido.reembolso_nota %} {{ pedido.reembolso_nota }}{% endif %}</p>
+      <div class="estado-acciones">
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+        <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
+      </div>
+
     {% elif estado == "vencido" %}
       <div class="sello" aria-hidden="true">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -129,8 +138,20 @@
       <dl>
         <div><dt>Productos</dt><dd>${{ pedido.subtotal|floatformat:"-2g" }}</dd></div>
         <div><dt>IVA</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
+        {% if pedido.costo_envio %}
+          <div><dt>Envío</dt><dd>${{ pedido.costo_envio|floatformat:"-2g" }}</dd></div>
+        {% endif %}
         <div class="resumen-total"><dt>Total</dt><dd>${{ pedido.total|floatformat:"-2g" }}</dd></div>
       </dl>
+
+      {% if pedido.estado == "pagado" %}
+        <h3 class="titulo-vendedor">Estado del envío</h3>
+        <p class="direccion">
+          <strong>{{ pedido.get_estado_envio_display }}</strong>
+          {% if pedido.transportadora %}<br>Transportadora: {{ pedido.transportadora }}{% endif %}
+          {% if pedido.numero_guia %}<br>Guía: <strong>{{ pedido.numero_guia }}</strong>{% endif %}
+        </p>
+      {% endif %}
 
       <h3 class="titulo-vendedor">Datos del vendedor</h3>
       <p class="direccion">

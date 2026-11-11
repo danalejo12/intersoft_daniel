@@ -5,8 +5,14 @@ Quien llama debe tener bloqueado el pedido (select_for_update) dentro de una tra
 import logging
 
 from django.db import transaction
+from django.utils import timezone
 
 from .models import MovimientoInventario, Pedido
+from .notificaciones import (
+    notificar_envio_actualizado,
+    notificar_pedido_pagado,
+    notificar_reembolso_registrado,
+)
 from .services import StockInsuficiente, crear_factura_desde_pedido, registrar_movimiento
 
 logger = logging.getLogger(__name__)
@@ -49,6 +55,7 @@ def marcar_pagado(pedido):
     pedido.factura = crear_factura_desde_pedido(pedido)
     pedido.estado = Estado.PAGADO
     pedido.save(update_fields=["factura", "estado", "actualizado_en"])
+    notificar_pedido_pagado(pedido)
 
 
 def _pasar_a_reembolso(pedido, motivo):
@@ -79,3 +86,63 @@ def registrar_monto_invalido(pedido):
         logger.critical("Pedido %s (empresa %s) requiere reembolso: monto o moneda distintos", pedido.numero, pedido.empresa_id)
     elif pedido.estado in (Estado.VENCIDO, Estado.CANCELADO):
         _pasar_a_reembolso(pedido, "monto o moneda distintos")
+
+
+@transaction.atomic
+def registrar_reembolso(*, pedido, usuario, referencia, nota=""):
+    """Marca un pedido en 'requiere_reembolso' como reembolsado dejando trazabilidad completa."""
+    bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if bloqueado.estado != Estado.REQUIERE_REEMBOLSO:
+        raise ValueError("Solo se pueden reembolsar pedidos en estado 'Requiere reembolso'.")
+    referencia_limpia = (referencia or "").strip()
+    if not referencia_limpia:
+        raise ValueError("Debes indicar la referencia o comprobante del reembolso.")
+    bloqueado.estado = Estado.REEMBOLSADO
+    bloqueado.reembolsado_en = timezone.now()
+    bloqueado.reembolso_referencia = referencia_limpia[:80]
+    bloqueado.reembolso_nota = (nota or "").strip()[:250]
+    bloqueado.reembolsado_por = usuario
+    bloqueado.save(
+        update_fields=[
+            "estado",
+            "reembolsado_en",
+            "reembolso_referencia",
+            "reembolso_nota",
+            "reembolsado_por",
+            "actualizado_en",
+        ]
+    )
+    notificar_reembolso_registrado(bloqueado)
+    return bloqueado
+
+
+@transaction.atomic
+def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_guia=""):
+    """Actualiza el estado logístico y datos de guía de un pedido pagado."""
+    bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if bloqueado.estado != Estado.PAGADO:
+        raise ValueError("Solo se puede gestionar el envío de pedidos pagados.")
+    if estado_envio not in Pedido.EstadoEnvio.values:
+        raise ValueError("Estado de envío no válido.")
+
+    ahora = timezone.now()
+    bloqueado.estado_envio = estado_envio
+    bloqueado.transportadora = (transportadora or "").strip()[:80]
+    bloqueado.numero_guia = (numero_guia or "").strip()[:80]
+    if estado_envio in (Pedido.EstadoEnvio.ENVIADO, Pedido.EstadoEnvio.ENTREGADO) and bloqueado.enviado_en is None:
+        bloqueado.enviado_en = ahora
+    if estado_envio == Pedido.EstadoEnvio.ENTREGADO and bloqueado.entregado_en is None:
+        bloqueado.entregado_en = ahora
+
+    bloqueado.save(
+        update_fields=[
+            "estado_envio",
+            "transportadora",
+            "numero_guia",
+            "enviado_en",
+            "entregado_en",
+            "actualizado_en",
+        ]
+    )
+    notificar_envio_actualizado(bloqueado)
+    return bloqueado

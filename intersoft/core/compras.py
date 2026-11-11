@@ -23,6 +23,20 @@ def _nuevo_vencimiento():
     return timezone.now() + timedelta(minutes=settings.PEDIDO_MINUTOS_RESERVA)
 
 
+def calcular_costo_envio(*, negocio, total_productos, peso_total_gramos=0):
+    """Calcula el costo de envío según tarifa base, peso total y umbral de envío gratis del negocio."""
+    base = negocio.tarifa_envio_base or Decimal("0")
+    por_kg = negocio.tarifa_envio_por_kg or Decimal("0")
+    gratis_desde = negocio.envio_gratis_desde or Decimal("0")
+    if base <= 0 and por_kg <= 0:
+        return Decimal("0.00")
+    if gratis_desde > 0 and total_productos >= gratis_desde:
+        return Decimal("0.00")
+    peso = max(int(peso_total_gramos or 0), 0)
+    kilos = Decimal((peso + 999) // 1000) if peso > 0 else Decimal("0")
+    return (base + por_kg * kilos).quantize(CENTAVOS)
+
+
 @transaction.atomic
 def crear_pedido(*, usuario, negocio, lineas, datos):
     """Crea el pedido con precios congelados y reserva el stock: todo o nada. No crea factura."""
@@ -37,19 +51,41 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         raise ValueError("Producto inexistente, inactivo o de otro negocio.")
 
     subtotal = iva = Decimal("0")
+    peso_total_gramos = 0
     for producto in productos:  # misma fórmula de services.crear_factura
-        valor = producto.precio * cantidades[producto.pk]
+        cantidad = cantidades[producto.pk]
+        valor = producto.precio * cantidad
         subtotal += valor
         iva += calcular_iva(valor, producto.iva_porcentaje)
+        peso_total_gramos += (producto.peso_gramos or 0) * cantidad
+
+    subtotal_redondeado = subtotal.quantize(CENTAVOS)
+    total_productos = (subtotal_redondeado + iva).quantize(CENTAVOS)
+    costo_envio = calcular_costo_envio(
+        negocio=negocio,
+        total_productos=total_productos,
+        peso_total_gramos=peso_total_gramos,
+    )
+    total = (total_productos + costo_envio).quantize(CENTAVOS)
+    comision_porcentaje = (
+        negocio.comision_porcentaje if negocio.comision_porcentaje is not None else Decimal("5.00")
+    ).quantize(CENTAVOS)
+    comision_valor = calcular_iva(total_productos, comision_porcentaje)
+    neto_vendedor = (total - comision_valor).quantize(CENTAVOS)
 
     pedido = Pedido.objects.create(
         empresa=negocio,
         comprador=usuario,
         numero=siguiente_consecutivo(Pedido, negocio),
         expira_en=_nuevo_vencimiento(),
-        subtotal=subtotal.quantize(CENTAVOS),
+        subtotal=subtotal_redondeado,
         iva=iva,
-        total=(subtotal + iva).quantize(CENTAVOS),
+        costo_envio=costo_envio,
+        total=total,
+        peso_total_gramos=peso_total_gramos,
+        comision_porcentaje=comision_porcentaje,
+        comision_valor=comision_valor,
+        neto_vendedor=neto_vendedor,
         tipo_documento=datos["tipo_documento"],
         numero_documento=datos["numero_documento"],
         nombre=datos["nombre"],

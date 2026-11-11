@@ -1,0 +1,173 @@
+{% extends "core/base.html" %}
+{% block titulo %}Pedido #{{ pedido.numero }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Pedido N.º {{ pedido.numero }}</h1>
+      <p class="nota">
+        Creado el {{ pedido.creado_en|date:"d/m/Y H:i" }} ·
+        Estado: <strong>{{ pedido.get_estado_display }}</strong>
+        {% if pedido.factura %}
+          · Factura: <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a>
+        {% endif %}
+      </p>
+    </div>
+    <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">← Volver a pedidos</a>
+  </div>
+
+  <section class="paneles parejos" style="margin-bottom: 1.5rem;">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Comprador y entrega</h2></div>
+      <p>
+        <strong>{{ pedido.nombre }}</strong> ({{ pedido.tipo_documento }} {{ pedido.numero_documento }})<br>
+        {{ pedido.direccion }}{% if pedido.indicaciones %} · {{ pedido.indicaciones }}{% endif %}<br>
+        {{ pedido.ciudad }}, {{ pedido.departamento }}<br>
+        Tel.: {{ pedido.telefono }} · <a href="mailto:{{ pedido.email }}">{{ pedido.email }}</a>
+      </p>
+      {% if pedido.peso_total_gramos %}
+        <p class="nota">Peso estimado del paquete: <strong>{{ pedido.peso_total_gramos }} g</strong></p>
+      {% endif %}
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Liquidación financiera</h2></div>
+      <table class="tabla">
+        <tbody>
+          <tr><td>Subtotal productos</td><td class="num">$ {{ pedido.subtotal|floatformat:"-2g" }}</td></tr>
+          <tr><td>IVA</td><td class="num">$ {{ pedido.iva|floatformat:"-2g" }}</td></tr>
+          <tr><td>Costo de envío</td><td class="num">$ {{ pedido.costo_envio|floatformat:"-2g" }}</td></tr>
+          <tr><td><strong>Total cobrado al comprador</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>
+          <tr><td>Comisión plataforma ({{ pedido.comision_porcentaje|floatformat:"-2g" }}%)</td><td class="num">- $ {{ pedido.comision_valor|floatformat:"-2g" }}</td></tr>
+          <tr class="total"><td><strong>Neto para tu negocio</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
+        </tbody>
+      </table>
+    </article>
+  </section>
+
+  <h2>Líneas del pedido</h2>
+  <table class="tabla" style="margin-bottom: 1.5rem;">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th class="num">Cantidad</th>
+        <th class="num">Precio unit.</th>
+        <th class="num">IVA (%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for linea in pedido.lineas.all %}
+        <tr>
+          <td>{{ linea.producto.codigo }} · {{ linea.producto.nombre }}</td>
+          <td class="num">{{ linea.cantidad }}</td>
+          <td class="num">$ {{ linea.precio_unitario|floatformat:"-2g" }}</td>
+          <td class="num">{{ linea.iva_porcentaje|floatformat:"-2g" }}%</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pedido.estado == "pagado" %}
+    <section class="tarjeta" style="margin-bottom: 1.5rem;">
+      <div class="tarjeta-cabecera">
+        <h2>Logística y seguimiento de envío</h2>
+        <span class="etiqueta">{{ pedido.get_estado_envio_display }}</span>
+      </div>
+      {% if pedido.enviado_en or pedido.entregado_en %}
+        <p class="nota">
+          {% if pedido.enviado_en %}Despachado: {{ pedido.enviado_en|date:"d/m/Y H:i" }}{% endif %}
+          {% if pedido.entregado_en %} · Entregado: {{ pedido.entregado_en|date:"d/m/Y H:i" }}{% endif %}
+        </p>
+      {% endif %}
+      {% if puede_gestionar_envio %}
+        <form method="post" class="formulario">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="actualizar_envio">
+          <div class="campo">
+            <label for="id_estado_envio">Estado del envío</label>
+            <select id="id_estado_envio" name="estado_envio">
+              {% for valor, etiqueta in estados_envio %}
+                <option value="{{ valor }}" {% if pedido.estado_envio == valor %}selected{% endif %}>{{ etiqueta }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="campo">
+            <label for="id_transportadora">Transportadora</label>
+            <input id="id_transportadora" type="text" name="transportadora" maxlength="80" value="{{ pedido.transportadora }}" placeholder="Ej.: Servientrega, Coordinadora, Mensajería propia">
+          </div>
+          <div class="campo">
+            <label for="id_numero_guia">Número de guía</label>
+            <input id="id_numero_guia" type="text" name="numero_guia" maxlength="80" value="{{ pedido.numero_guia }}" placeholder="Ej.: GUIA-992831">
+          </div>
+          <div class="acciones">
+            <button type="submit">Actualizar envío</button>
+          </div>
+        </form>
+      {% else %}
+        <p>
+          <strong>Transportadora:</strong> {{ pedido.transportadora|default:"Sin asignar" }} ·
+          <strong>Guía:</strong> {{ pedido.numero_guia|default:"Sin guía" }}
+        </p>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if pedido.estado == "requiere_reembolso" %}
+    <section class="tarjeta rojo" style="margin-bottom: 1.5rem;">
+      <div class="tarjeta-cabecera">
+        <h2>Reembolso pendiente</h2>
+      </div>
+      <p>Este pedido recibió un pago en Wompi que no pudo completarse (por vencimiento sin stock, cancelación previa o diferencia de monto). Registra aquí el comprobante de devolución al comprador.</p>
+      {% if puede_reembolsar %}
+        <form method="post" class="formulario">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="reembolsar">
+          <div class="campo">
+            <label for="id_referencia">Referencia o comprobante de reembolso</label>
+            <input id="id_referencia" type="text" name="referencia" maxlength="80" required placeholder="Ej.: REV-WOMPI-00124">
+          </div>
+          <div class="campo">
+            <label for="id_nota">Nota de auditoría (opcional)</label>
+            <input id="id_nota" type="text" name="nota" maxlength="250" placeholder="Ej.: Devolución a cuenta origen del comprador">
+          </div>
+          <div class="acciones">
+            <button type="submit">Confirmar reembolso</button>
+          </div>
+        </form>
+      {% else %}
+        <p class="nota">Pídele a un usuario con permiso de anulación de ventas o tesorería que registre el reembolso.</p>
+      {% endif %}
+    </section>
+  {% elif pedido.estado == "reembolsado" %}
+    <section class="tarjeta verde" style="margin-bottom: 1.5rem;">
+      <div class="tarjeta-cabecera">
+        <h2>Reembolso registrado</h2>
+      </div>
+      <p>
+        <strong>Referencia:</strong> {{ pedido.reembolso_referencia }}<br>
+        <strong>Fecha:</strong> {{ pedido.reembolsado_en|date:"d/m/Y H:i" }}<br>
+        {% if pedido.reembolsado_por %}<strong>Registrado por:</strong> {{ pedido.reembolsado_por.email }}<br>{% endif %}
+        {% if pedido.reembolso_nota %}<strong>Nota:</strong> {{ pedido.reembolso_nota }}{% endif %}
+      </p>
+    </section>
+  {% endif %}
+
+  {% if pedido.pagos.all %}
+    <h2>Intentos de pago en Wompi</h2>
+    <table class="tabla">
+      <thead>
+        <tr><th>Fecha</th><th>Referencia</th><th>ID Wompi</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for pago in pedido.pagos.all %}
+          <tr>
+            <td>{{ pago.creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{{ pago.referencia }}</td>
+            <td>{{ pago.wompi_transaccion_id|default:"—" }}</td>
+            <td>{{ pago.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

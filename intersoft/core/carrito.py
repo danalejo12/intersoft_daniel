@@ -5,6 +5,7 @@ de la base de datos, para que nadie pueda alterarlos desde el navegador.
 """
 from decimal import Decimal
 
+from .compras import calcular_costo_envio
 from .marketplace import productos_publicos
 from .impuestos import CENTAVOS, calcular_iva
 
@@ -59,7 +60,15 @@ def _linea(producto, cantidad):
     # Misma fórmula de services.crear_factura: lo que se muestra es exactamente lo que se cobra
     subtotal = producto.precio * cantidad
     iva = calcular_iva(subtotal, producto.iva_porcentaje)
-    return {"producto": producto, "cantidad": cantidad, "subtotal": subtotal, "iva": iva, "total": subtotal + iva}
+    peso_gramos = (producto.peso_gramos or 0) * cantidad
+    return {
+        "producto": producto,
+        "cantidad": cantidad,
+        "subtotal": subtotal,
+        "iva": iva,
+        "total": subtotal + iva,
+        "peso_gramos": peso_gramos,
+    }
 
 
 def grupos(request):
@@ -86,14 +95,24 @@ def grupos(request):
     resultado = []
     for lineas in por_negocio.values():
         lineas.sort(key=lambda linea: linea["producto"].nombre.lower())
-        subtotal = sum((linea["subtotal"] for linea in lineas), Decimal("0"))
+        negocio = lineas[0]["producto"].empresa
+        subtotal = sum((linea["subtotal"] for linea in lineas), Decimal("0")).quantize(CENTAVOS)
         iva = sum((linea["iva"] for linea in lineas), Decimal("0"))
+        peso_total_gramos = sum(linea["peso_gramos"] for linea in lineas)
+        total_productos = (subtotal + iva).quantize(CENTAVOS)
+        costo_envio = calcular_costo_envio(
+            negocio=negocio,
+            total_productos=total_productos,
+            peso_total_gramos=peso_total_gramos,
+        )
         resultado.append({
-            "negocio": lineas[0]["producto"].empresa,
+            "negocio": negocio,
             "lineas": lineas,
-            "subtotal": subtotal.quantize(CENTAVOS),
+            "subtotal": subtotal,
             "iva": iva,
-            "total": (subtotal + iva).quantize(CENTAVOS),
+            "costo_envio": costo_envio,
+            "peso_total_gramos": peso_total_gramos,
+            "total": (total_productos + costo_envio).quantize(CENTAVOS),
             "unidades": sum(linea["cantidad"] for linea in lineas),
         })
     resultado.sort(key=lambda grupo: grupo["negocio"].nombre.lower())
