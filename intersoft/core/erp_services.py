@@ -10,7 +10,7 @@ from django.utils import timezone
 from .impuestos import calcular_iva
 from .models import (
     Empresa, Factura, Compra, CuentaCartera, MovimientoTesoreria, CuentaTesoreria,
-    AsientoContable, LiquidacionNomina, Empleado, OrdenProduccion, Producto, Cita,
+    AsientoContable, LiquidacionNomina, Empleado, OrdenProduccion, Producto, Cita, TurnoCaja,
 )
 from .services import registrar_movimiento
 
@@ -187,3 +187,32 @@ def cambiar_cita(*, empresa, pk, estado):
                  concepto=f"Servicio: {cita.servicio.nombre}"[:200], total=cita.total, vencimiento=timezone.localdate()))
     cita.estado = estado
     return guardar(cita)
+
+
+@transaction.atomic
+def trasladar_turno_a_tesoreria(*, empresa, turno, cuenta_tesoreria, usuario):
+    """Traslada de forma idempotente el efectivo contado de un turno POS cerrado hacia una cuenta de tesorería."""
+    turno_bloqueado = bloquear(TurnoCaja, empresa, turno.pk)
+    if turno_bloqueado.abierto:
+        raise ValidationError("Solo se puede trasladar a tesorería una caja cerrada.")
+    monto = turno_bloqueado.efectivo_contado or Decimal("0.00")
+    if monto <= Decimal("0.00"):
+        raise ValidationError("El turno cerrado no tiene efectivo contado positivo para trasladar.")
+
+    existente = MovimientoTesoreria.objects.filter(empresa=empresa, operacion=turno_bloqueado.pk).first()
+    if existente is not None:
+        return existente
+
+    nombre_cajero = turno_bloqueado.cajero.get_full_name() or turno_bloqueado.cajero.email
+    fecha_cierre = timezone.localdate(turno_bloqueado.cerrado_en) if turno_bloqueado.cerrado_en else timezone.localdate()
+    return registrar_tesoreria(
+        empresa=empresa,
+        usuario=usuario,
+        cuenta=cuenta_tesoreria,
+        monto=monto,
+        tipo="ingreso",
+        concepto=f"Cierre de caja POS ({nombre_cajero})"[:200],
+        fecha=fecha_cierre,
+        operacion=turno_bloqueado.pk,
+        referencia=f"POS-{str(turno_bloqueado.pk)[:8]}",
+    )

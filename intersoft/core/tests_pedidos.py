@@ -995,6 +995,27 @@ class MarketplaceFase6Tests(PedidoBase):
             403,
         )
 
+        # Un usuario de Bodega (con inventario.movimientos sin ventas.ver) puede entrar y despachar
+        bodeguero = crear_usuario("bodega-despacho@correo.co")
+        rol_bodega = Rol.objects.create(empresa=self.negocio, nombre="Despacho Bodega", es_admin=False)
+        perm_mov, _ = Permiso.objects.get_or_create(
+            codigo="inventario.movimientos", defaults={"descripcion": "Movimientos de inventario"}
+        )
+        rol_bodega.permisos.add(perm_mov)
+        Membresia.objects.create(usuario=bodeguero, empresa=self.negocio, rol=rol_bodega)
+        self.client.force_login(bodeguero)
+        self.assertEqual(self.client.get(reverse("pedidos_panel_lista")).status_code, 200)
+        resp_envio = self.client.post(
+            reverse("pedidos_panel_detalle", args=[self.pedido.pk]),
+            {
+                "accion": "actualizar_envio",
+                "estado_envio": "enviado",
+                "transportadora": "Coordinadora",
+                "numero_guia": "GUIA-BOD-01",
+            },
+        )
+        self.assertEqual(resp_envio.status_code, 302)
+
         # El dueño sí puede registrar la dispersión bancaria del pedido pagado
         self.client.force_login(self.dueno)
         resp_disp = self.client.post(
@@ -1011,6 +1032,50 @@ class MarketplaceFase6Tests(PedidoBase):
         self.assertEqual(self.pedido.estado_dispersion, Pedido.EstadoDispersion.LIQUIDADA)
         self.assertEqual(self.pedido.dispersion_referencia, "DISP-ACH-9988")
         self.assertIsNotNone(self.pedido.dispersado_en)
+
+    def test_comando_procesar_reservas_y_alertas_libera_stock_y_notifica_bodega(self):
+        from datetime import timedelta
+        from io import StringIO
+        from django.core import mail
+        from django.core.management import call_command
+        from .models import Membresia, Permiso, Producto, Rol
+
+        # 1. Crear miembro de Bodega con inventario.movimientos
+        bodeguero = crear_usuario("alerta-bodega@correo.co")
+        rol_bodega = Rol.objects.create(empresa=self.negocio, nombre="Jefe Bodega", es_admin=False)
+        perm_mov, _ = Permiso.objects.get_or_create(
+            codigo="inventario.movimientos", defaults={"descripcion": "Movimientos"}
+        )
+        rol_bodega.permisos.add(perm_mov)
+        Membresia.objects.create(usuario=bodeguero, empresa=self.negocio, rol=rol_bodega)
+
+        # 2. Vencer el pedido pendiente y configurar stock_minimo alto para disparar alerta de stock
+        Pedido.objects.filter(pk=self.pedido.pk).update(expira_en=timezone.now() - timedelta(minutes=5))
+        Producto.objects.filter(pk=self.producto.pk).update(stock_minimo=50)
+        mail.outbox.clear()
+
+        salida = StringIO()
+        call_command("procesar_reservas_y_alertas", stdout=salida)
+        texto = salida.getvalue()
+        self.assertIn("Reservas vencidas: 1", texto)
+        self.assertIn("Productos en stock crítico: 1", texto)
+
+        # El pedido quedó VENCIDO y devolvió las 2 unidades reservadas al inventario (de 3 vuelve a 5)
+        self.recargar()
+        self.assertEqual(self.pedido.estado, Pedido.Estado.VENCIDO)
+        self.assertEqual(self.producto.stock, 5)
+
+        # Se envió correo de alerta de stock tanto al dueño (admin) como al jefe de bodega
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Alerta de stock mínimo", mail.outbox[0].subject)
+        self.assertIn(self.dueno.email, mail.outbox[0].to)
+        self.assertIn("alerta-bodega@correo.co", mail.outbox[0].to)
+
+        # Segunda ejecución es idempotente respecto a reservas vencidas (0 nuevas vencidas)
+        salida_2 = StringIO()
+        call_command("procesar_reservas_y_alertas", "--sin-correo", stdout=salida_2)
+        self.assertIn("Reservas vencidas: 0", salida_2.getvalue())
+
 
 
 

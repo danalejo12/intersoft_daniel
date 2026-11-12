@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=16">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=17">
 </head>
 <body>
 
@@ -34,6 +34,8 @@
     <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15.5 8.5H10a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 0 1 0 3.5H8.5"/><path d="M12 7v10"/></svg>
     </a>
+    {% endif %}
+    {% if nav_permisos.ver_pedidos %}
     <a href="{% url 'pedidos_panel_lista' %}" data-label="Pedidos web" aria-label="Pedidos web" class="{% if 'pedidos_panel' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     </a>
@@ -133,7 +135,7 @@
 </div>
 {% endif %}
 
-<script defer src="{% static 'core/js/app.js' %}?v=1"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=2"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

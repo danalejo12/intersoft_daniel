@@ -259,6 +259,17 @@ def aplicar_transaccion(transaccion):
         return pago
 
     _guardar_resultado(pago, nuevo_estado, transaccion)
+    if nuevo_estado == Pago.Estado.APROBADO:
+        from .contabilidad_automatica import contabilizar_recaudo_factura
+        from .models import AsientoContable
+
+        if AsientoContable.objects.filter(empresa_id=factura.empresa_id, referencia=f"FACT-{factura.numero}").exists():
+            contabilizar_recaudo_factura(
+                factura=factura,
+                monto=factura.total,
+                referencia_pago=pago.referencia,
+                usuario=factura.creada_por,
+            )
     return pago
 
 

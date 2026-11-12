@@ -14,9 +14,9 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from . import caja
+from . import caja, erp_services
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, DetalleFactura, Factura, PagoCaja, Producto, TurnoCaja
+from .models import Cliente, CuentaTesoreria, DetalleFactura, Factura, MovimientoTesoreria, PagoCaja, Producto, TurnoCaja
 
 MAXIMO_RESULTADOS = 20
 PRODUCTOS_FRECUENTES = 12
@@ -262,9 +262,48 @@ class TurnoView(PermisoRequeridoMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["resumen"] = caja.resumen_turno(self.object)
-        contexto["facturas"] = self.object.facturas.select_related("cliente").order_by("-numero")
+        turno = self.object
+        empresa = self.request.empresa
+        membresia = self.request.membresia
+        movimiento_tesoreria = (
+            MovimientoTesoreria.objects.filter(empresa=empresa, operacion=turno.pk)
+            .select_related("cuenta")
+            .first()
+        )
+        puede_trasladar_tesoreria = bool(membresia and membresia.tiene_permiso("tesoreria.gestionar"))
+        contexto["resumen"] = caja.resumen_turno(turno)
+        contexto["facturas"] = turno.facturas.select_related("cliente").order_by("-numero")
+        contexto["movimiento_tesoreria"] = movimiento_tesoreria
+        contexto["puede_trasladar_tesoreria"] = puede_trasladar_tesoreria
+        contexto["cuentas_tesoreria"] = (
+            CuentaTesoreria.objects.filter(empresa=empresa, activa=True).order_by("nombre")
+            if (puede_trasladar_tesoreria and not turno.abierto and movimiento_tesoreria is None)
+            else []
+        )
         return contexto
+
+    def post(self, request, pk):
+        if not (request.membresia and request.membresia.tiene_permiso("tesoreria.gestionar")):
+            raise PermissionDenied("No tienes permiso para trasladar fondos a tesorería.")
+        turno = self.get_object()
+        cuenta = get_object_or_404(
+            CuentaTesoreria,
+            empresa=request.empresa,
+            activa=True,
+            pk=request.POST.get("cuenta_tesoreria"),
+        )
+        try:
+            mov = erp_services.trasladar_turno_a_tesoreria(
+                empresa=request.empresa,
+                turno=turno,
+                cuenta_tesoreria=cuenta,
+                usuario=request.user,
+            )
+        except ValidationError as error:
+            messages.error(request, " ".join(error.messages))
+        else:
+            messages.success(request, f"Efectivo trasladado a tesorería ({mov.cuenta.nombre}).")
+        return redirect("pos_turno", pk=turno.pk)
 
 
 class TicketView(TenantMixin, View):

@@ -20,6 +20,7 @@ from .redirecciones import destino_seguro
 from .views_facturas import (
     FacturaAnularView,
     FacturaCobrarView,
+    FacturaContabilizarView,
     FacturaCreateView,
     FacturaDetailView,
     FacturaEmitirDianView,

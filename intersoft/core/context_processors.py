@@ -16,6 +16,8 @@ def carrito(request):
             "ver_clientes": membresia.tiene_permiso("clientes.ver"),
             "ver_productos": membresia.tiene_permiso("inventario.ver"),
             "ver_facturas": membresia.tiene_permiso("ventas.ver"),
+            "ver_pedidos": membresia.tiene_permiso("ventas.ver")
+            or membresia.tiene_permiso("inventario.movimientos"),
             "ver_pos": membresia.tiene_permiso("ventas.crear"),
             "ver_erp": any(
                 membresia.tiene_permiso(p)

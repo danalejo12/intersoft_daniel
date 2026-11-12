@@ -1,9 +1,9 @@
 (() => {
   const sinAnimacion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // 1. Efecto spotlight que sigue el cursor sobre tarjetas ERP y KPIs
+  // 1. Efecto spotlight que sigue el cursor sobre tarjetas ERP, KPIs y Roles
   if (!sinAnimacion) {
-    document.querySelectorAll(".erp-modulo-card, .kpi").forEach((el) => {
+    document.querySelectorAll(".erp-modulo-card, .kpi, .rol-card").forEach((el) => {
       el.addEventListener("pointermove", (ev) => {
         const rect = el.getBoundingClientRect();
         el.style.setProperty("--mx", `${ev.clientX - rect.left}px`);
@@ -16,7 +16,14 @@
   if (!sinAnimacion) {
     document.addEventListener("click", (ev) => {
       const btn = ev.target.closest("button, .boton");
-      if (!btn || btn.classList.contains("dock-salir") || btn.classList.contains("mensaje-cerrar") || btn.classList.contains("erp-chip") || btn.disabled) {
+      if (
+        !btn ||
+        btn.classList.contains("dock-salir") ||
+        btn.classList.contains("mensaje-cerrar") ||
+        btn.classList.contains("erp-chip") ||
+        btn.classList.contains("boton-hamburguesa") ||
+        btn.disabled
+      ) {
         return;
       }
       const rect = btn.getBoundingClientRect();
@@ -103,4 +110,72 @@
       buscador.addEventListener("input", aplicarFiltro);
     }
   }
+
+  // 6. Menú hamburguesa en cuadros de Roles y Permisos (colapsa/expande sin saturar la vista)
+  const alternarGaveta = (btn, forzarEstado) => {
+    const idGaveta = btn.getAttribute("aria-controls");
+    const gaveta = idGaveta ? document.getElementById(idGaveta) : null;
+    if (!gaveta) return;
+    const abrir = typeof forzarEstado === "boolean" ? forzarEstado : gaveta.hidden;
+    gaveta.hidden = !abrir;
+    btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+    const contenedor = btn.closest(".rol-card, .equipo-permiso-grupo");
+    if (contenedor) {
+      contenedor.classList.toggle("abierto", abrir);
+    }
+  };
+
+  document.addEventListener("click", (ev) => {
+    const btnHamb = ev.target.closest("[data-hamburguesa]");
+    if (btnHamb) {
+      ev.preventDefault();
+      alternarGaveta(btnHamb);
+      return;
+    }
+
+    const cabeceraGrupo = ev.target.closest(".equipo-grupo-cabecera");
+    if (cabeceraGrupo && !ev.target.closest("button")) {
+      const btn = cabeceraGrupo.querySelector("[data-hamburguesa]");
+      if (btn) alternarGaveta(btn);
+      return;
+    }
+
+    const btnTodos = ev.target.closest("[data-toggle-todos]");
+    if (btnTodos) {
+      const selector = btnTodos.dataset.toggleTodos;
+      const botones = Array.from(document.querySelectorAll(selector));
+      const algunoCerrado = botones.some((b) => b.getAttribute("aria-expanded") !== "true");
+      botones.forEach((b) => alternarGaveta(b, algunoCerrado));
+      btnTodos.textContent = algunoCerrado ? "Contraer todos" : "Expandir todos";
+      return;
+    }
+
+    const btnMarcar = ev.target.closest("[data-marcar-modulo]");
+    if (btnMarcar) {
+      const grupo = btnMarcar.closest(".equipo-permiso-grupo");
+      if (!grupo) return;
+      const checks = Array.from(grupo.querySelectorAll('input[type="checkbox"][name="permisos"]'));
+      const todosMarcados = checks.every((c) => c.checked);
+      checks.forEach((c) => {
+        c.checked = !todosMarcados;
+      });
+      actualizarContadorGrupo(grupo);
+    }
+  });
+
+  // 7. Contador en vivo de permisos seleccionados por módulo en Crear/Editar Rol
+  const actualizarContadorGrupo = (grupo) => {
+    const checks = Array.from(grupo.querySelectorAll('input[type="checkbox"][name="permisos"]'));
+    const marcados = checks.filter((c) => c.checked).length;
+    const badge = grupo.querySelector("[data-contador-permisos]");
+    if (badge) {
+      badge.textContent = `${marcados} / ${checks.length}`;
+      badge.className = `badge ${marcados > 0 ? "info" : "neutro"}`;
+    }
+  };
+
+  document.querySelectorAll(".equipo-permiso-grupo").forEach((grupo) => {
+    actualizarContadorGrupo(grupo);
+    grupo.addEventListener("change", () => actualizarContadorGrupo(grupo));
+  });
 })();

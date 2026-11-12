@@ -16,6 +16,12 @@ from django.views import View
 
 from . import models as m, erp_services as s
 from .caja import pesos
+from .contabilidad_automatica import (
+    calcular_aportes_nomina_colombia,
+    contabilizar_compra,
+    contabilizar_movimiento_tesoreria,
+    contabilizar_nomina,
+)
 from .erp_forms import formulario, MovimientoForm, CarteraFacturaForm
 from .mixins import TenantMixin
 from .services import StockInsuficiente
@@ -67,8 +73,14 @@ class AccesoERP(TenantMixin, View):
         if kwargs.get("modulo") and self.config is None:
             raise Http404
         if request.user.is_authenticated and request.membresia and self.config:
+            es_contabilizar = (
+                request.method == "POST"
+                and request.POST.get("accion") == "contabilizar"
+                and request.membresia.tiene_permiso("contabilidad.gestionar")
+                and request.membresia.tiene_permiso(f"{self.config['permiso']}.ver")
+            )
             accion = "ver" if request.method == "GET" else "gestionar"
-            if not request.membresia.tiene_permiso(f"{self.config['permiso']}.{accion}"):
+            if not es_contabilizar and not request.membresia.tiene_permiso(f"{self.config['permiso']}.{accion}"):
                 raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
@@ -220,10 +232,32 @@ class DetalleERP(AccesoERP):
             if modulo == "cartera"
             else []
         )
+        prefijos_ref = {
+            "compras": f"COMP-{obj.pk}",
+            "tesoreria": f"TES-{getattr(obj, 'operacion', obj.pk)}",
+            "nomina": f"NOM-{obj.pk}",
+        }
+        asiento_contable = (
+            m.AsientoContable.objects.filter(empresa=request.empresa, referencia=prefijos_ref[modulo]).first()
+            if modulo in prefijos_ref
+            else None
+        )
+        puede_contabilizar = (
+            modulo in prefijos_ref
+            and (cerrado or modulo == "tesoreria")
+            and request.membresia.tiene_permiso("contabilidad.gestionar")
+        )
+        puede_tesoreria = request.membresia.tiene_permiso("tesoreria.gestionar")
+        aportes_ley = (
+            calcular_aportes_nomina_colombia(salario_base=obj.base, auxilio_transporte=obj.adicionales)
+            if modulo == "nomina"
+            else None
+        )
         return render(request, "core/erp/detalle.html", dict(config=config, modulo=modulo, obj=obj,
             datos=[(etiqueta(config["model"], c), valor(obj, c)) for c in campos_detalle],
             lineas=lineas, cabeceras=cabeceras, form=form, cerrado=cerrado, puede_gestionar=self.puede_gestionar(),
-            cartera=cartera_rel, abonos=abonos))
+            cartera=cartera_rel, abonos=abonos, asiento_contable=asiento_contable,
+            puede_contabilizar=puede_contabilizar, puede_tesoreria=puede_tesoreria, aportes_ley=aportes_ley))
 
     def get(self, request, modulo, pk):
         return self.mostrar(request, modulo, self.objeto(request, pk))
@@ -263,6 +297,24 @@ class DetalleERP(AccesoERP):
                 elif modulo == "tesoreria" and accion == "conciliar":
                     obj.conciliado = True
                     s.guardar(obj)
+                elif modulo == "nomina" and accion == "calcular_aportes":
+                    if obj.aprobada:
+                        raise ValidationError("La nómina ya fue aprobada.")
+                    aportes = calcular_aportes_nomina_colombia(
+                        salario_base=obj.base, auxilio_transporte=obj.adicionales
+                    )
+                    obj.deducciones = aportes["deducciones_empleado"]
+                    obj.neto = obj.base + obj.adicionales - obj.deducciones
+                    s.guardar(obj)
+                elif accion == "contabilizar" and modulo in ("compras", "tesoreria", "nomina"):
+                    if not request.membresia.tiene_permiso("contabilidad.gestionar"):
+                        raise PermissionDenied
+                    if modulo == "compras":
+                        contabilizar_compra(compra=obj, usuario=request.user)
+                    elif modulo == "tesoreria":
+                        contabilizar_movimiento_tesoreria(movimiento=obj, usuario=request.user)
+                    elif modulo == "nomina":
+                        contabilizar_nomina(nomina=obj, usuario=request.user)
                 elif accion == "eliminar_borrador" and "cerrado" in self.config:
                     if getattr(obj, self.config["cerrado"]):
                         raise ValidationError("El documento ya está confirmado y no se puede eliminar.")

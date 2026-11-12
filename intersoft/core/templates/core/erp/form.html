@@ -33,6 +33,16 @@
       <div class="campo">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
+        {% if modulo == "nomina" and field.name == "deducciones" %}
+          <button
+            type="button"
+            class="boton secundario pequeno"
+            style="align-self: flex-start; margin-top: 4px;"
+            onclick="const b=parseFloat(document.getElementById('id_base')?.value||0); if(b>0){document.getElementById('id_deducciones').value=(Math.round(b*0.08*100)/100).toFixed(2);}"
+          >
+            Calcular 8% de ley (Salud 4% + Pensión 4%)
+          </button>
+        {% endif %}
         {% if field.help_text %}
           <small class="ayuda">{{ field.help_text }}</small>
         {% endif %}

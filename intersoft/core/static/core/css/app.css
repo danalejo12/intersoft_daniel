@@ -1115,26 +1115,181 @@ button.pos-enlace:hover { background: none; box-shadow: none; text-decoration: u
   font-size: .88rem;
   flex-shrink: 0;
 }
-.permisos-lista { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.permisos-lista { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .permiso-chip {
   display: inline-flex;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, .07);
-  border: 1px solid rgba(255, 255, 255, .10);
-  color: var(--suave);
-  font-size: .74rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  color: var(--texto);
+  font-size: .76rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* ---------- Tarjetas de Roles con Menú Hamburguesa ---------- */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.rol-card {
+  --color: var(--violeta);
+  position: relative;
+  padding: 20px 22px;
+  border-radius: var(--radio-tarjeta);
+  background: var(--tarjeta);
+  border: 1px solid var(--tarjeta-borde);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  transition: border-color .25s, background-color .25s, transform .25s var(--suave-curva), box-shadow .25s;
+}
+.rol-card.es-admin { --color: var(--verde); }
+.rol-card:hover, .rol-card.abierto {
+  background: rgba(255, 255, 255, .085);
+  border-color: color-mix(in srgb, var(--color) 48%, rgba(255, 255, 255, .18));
+  box-shadow: 0 20px 42px -24px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+.rol-card-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.rol-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.rol-card-titulo h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+.rol-card-desc {
+  margin: 10px 0 14px;
+  color: var(--suave);
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.rol-card-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Botón Hamburguesa (☰) */
+button.boton-hamburguesa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .14);
+  color: var(--texto);
+  font-size: .82rem;
+  font-weight: 600;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+button.boton-hamburguesa::before { display: none; }
+button.boton-hamburguesa:hover {
+  background: rgba(91, 140, 255, .20);
+  border-color: rgba(91, 140, 255, .45);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+button.boton-hamburguesa[aria-expanded="true"] {
+  background: rgba(91, 140, 255, .26);
+  border-color: rgba(91, 140, 255, .6);
+  color: #fff;
+}
+.icono-hamburguesa {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.5px;
+  width: 16px;
+  height: 14px;
+}
+.icono-hamburguesa span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform .22s var(--suave-curva), opacity .2s;
+}
+button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child(1) {
+  transform: translateY(5.5px) rotate(45deg);
+}
+button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child(2) {
+  opacity: 0;
+}
+button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child(3) {
+  transform: translateY(-5.5px) rotate(-45deg);
+}
+
+/* Gaveta desplegable dentro de cada cuadro */
+.rol-gaveta {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linea);
+  animation: desplegar-gaveta .22s var(--suave-curva) both;
+}
+.rol-gaveta[hidden] { display: none !important; }
+@keyframes desplegar-gaveta {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.rol-gaveta-acciones {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--linea);
+}
+
+/* Cuadros de módulos en Crear/Editar Rol con menú hamburguesa */
 .equipo-permisos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
   margin-top: 12px;
 }
-.equipo-permiso-grupo { padding: 20px; }
-.equipo-permiso-grupo legend { padding: 0 8px; font-size: 1rem; font-weight: 600; color: #b7cdff; }
+.equipo-permiso-grupo {
+  margin: 0;
+  padding: 16px 18px;
+  transition: border-color .22s, background-color .22s;
+}
+.equipo-permiso-grupo.abierto {
+  background: rgba(255, 255, 255, .085);
+  border-color: rgba(91, 140, 255, .42);
+}
+.equipo-grupo-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.equipo-grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #b7cdff;
+}
 .equipo-permiso-item {
   display: flex;
   align-items: flex-start;

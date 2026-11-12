@@ -11,15 +11,42 @@
     <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
     <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
     <strong>Estado:</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>Pagada</strong>{% endif %} ·
-    <strong>DIAN:</strong> {{ factura.get_estado_dian_display }}{% if factura.cufe %} (<small>CUFE: <code>{{ factura.cufe|slice:":24" }}…</code></small>){% endif %} ·
+    <strong>DIAN:</strong> {{ factura.get_estado_dian_display }}{% if factura.cufe %} (<small>CUFE: <code>{{ factura.cufe|slice:":24" }}…</code></small>){% endif %}{% if factura.cude_nota_credito %} · <strong>Nota Crédito (CUDE):</strong> <small><code>{{ factura.cude_nota_credito|slice:":24" }}…</code></small>{% endif %} ·
     {% if factura.pedido %}<strong>Origen:</strong> Compra en el marketplace{% else %}<strong>Vendedor:</strong> {{ factura.creada_por.email }}{% endif %}
   </p>
-  {% if factura.estado == "emitida" and factura.estado_dian != "aceptada" and puede_emitir_dian %}
-    <form method="post" action="{% url 'facturas_emitir_dian' factura.pk %}" style="margin-bottom: 1rem;">
-      {% csrf_token %}
-      <button type="submit" class="boton secundario">Emitir factura electrónica DIAN</button>
-    </form>
-  {% endif %}
+  <div class="acciones" style="margin-bottom: 1rem;">
+    {% if factura.estado == "emitida" and factura.estado_dian != "aceptada" and puede_emitir_dian %}
+      <form method="post" action="{% url 'facturas_emitir_dian' factura.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="boton secundario">Emitir factura electrónica DIAN</button>
+      </form>
+    {% endif %}
+    {% if asiento_contable %}
+      <a class="boton secundario" href="{% url 'erp_detalle' 'contabilidad' asiento_contable.pk %}">
+        Comprobante contable ({{ asiento_contable.referencia }})
+      </a>
+    {% elif factura.estado == "emitida" and puede_contabilizar %}
+      <form method="post" action="{% url 'facturas_contabilizar' factura.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="boton secundario">Generar comprobante contable</button>
+      </form>
+    {% endif %}
+    {% if asiento_recaudo %}
+      <a class="boton exito" href="{% url 'erp_detalle' 'contabilidad' asiento_recaudo.pk %}">
+        Recaudo contable ({{ asiento_recaudo.referencia }})
+      </a>
+    {% elif asiento_contable and factura.estado == "emitida" and factura.esta_pagada and puede_contabilizar %}
+      <form method="post" action="{% url 'facturas_contabilizar' factura.pk %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="boton exito">Contabilizar recaudo (Caja/Bancos)</button>
+      </form>
+    {% endif %}
+    {% if asiento_anulacion %}
+      <a class="boton peligro" href="{% url 'erp_detalle' 'contabilidad' asiento_anulacion.pk %}">
+        Reversión contable ({{ asiento_anulacion.referencia }})
+      </a>
+    {% endif %}
+  </div>
 
   <table class="tabla">
     <thead>
@@ -113,7 +140,7 @@
       <strong>Saldo pendiente:</strong> $ {{ factura.cuentacartera.saldo|floatformat:"0g" }}
       <a class="boton secundario" href="{% url 'erp_detalle' 'cartera' factura.cuentacartera.pk %}">Ver en cartera</a>
     </p>
-  {% elif factura.estado == "emitida" and not factura.esta_pagada %}
+  {% elif factura.estado == "emitida" and not factura.esta_pagada and puede_cobrar %}
     <div class="acciones">
       <form method="post" action="{% url 'facturas_cobrar' factura.pk %}" style="display:inline">
         {% csrf_token %}

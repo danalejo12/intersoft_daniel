@@ -196,6 +196,15 @@ def anular_factura(*, factura, usuario):
     factura.estado = Factura.Estado.ANULADA
     factura.anulada_en = timezone.now()
     factura.save(update_fields=["estado", "anulada_en"])
+
+    from .contabilidad_automatica import reversar_asiento_factura
+    from .facturacion_electronica import emitir_nota_credito_electronica
+
+    reversar_asiento_factura(factura=factura, usuario=usuario)
+    if factura.estado_dian == Factura.EstadoDian.ACEPTADA and factura.cufe:
+        factura = emitir_nota_credito_electronica(
+            factura=factura, motivo=f"Anulación factura #{factura.numero}"
+        )
     return factura
 
 @transaction.atomic

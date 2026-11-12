@@ -89,69 +89,108 @@
     </tbody>
   </table>
 
-  <div class="encabezado" style="margin-top: 2.2rem;">
+  <div class="encabezado" style="margin-top: 2.4rem;">
     <div class="titulo-con-icono">
       <span class="icono-caja violeta" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </span>
       <div>
         <h2 style="font-size: 1.35rem; margin: 0;">Roles y permisos</h2>
-        <p class="nota" style="margin: 0;">Define qué puede ver o gestionar cada perfil dentro de la plataforma.</p>
+        <p class="nota" style="margin: 0;">Abre el menú ☰ de cada cuadro para ver sus permisos y acciones sin saturar la pantalla.</p>
       </div>
     </div>
+    {% if roles %}
+      <button type="button" class="boton secundario pequeno" data-toggle-todos="#roles-grid [data-hamburguesa]">
+        Expandir todos
+      </button>
+    {% endif %}
   </div>
 
-  <table class="tabla">
-    <thead>
-      <tr>
-        <th>Rol</th>
-        <th>Descripción</th>
-        <th>Permisos</th>
-        <th class="num">Miembros</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
+  {% if roles %}
+    <div class="roles-grid" id="roles-grid">
       {% for rol in roles %}
-        <tr>
-          <td><strong>{{ rol.nombre }}</strong></td>
-          <td>{{ rol.descripcion|default:"—" }}</td>
-          <td>
+        <article class="rol-card {% if rol.es_admin %}es-admin{% endif %}">
+          <div class="rol-card-cabecera">
+            <div class="rol-card-titulo">
+              <span class="icono-caja {% if rol.es_admin %}verde{% else %}violeta{% endif %}" style="width: 38px; height: 38px; border-radius: 12px;" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <div>
+                <h3>{{ rol.nombre }}</h3>
+                <small style="color: var(--tenue);">{{ rol.total_miembros }} miembro{{ rol.total_miembros|pluralize }}</small>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="boton-hamburguesa"
+              data-hamburguesa
+              aria-expanded="false"
+              aria-controls="gaveta-rol-{{ rol.pk }}"
+              aria-label="Ver permisos y opciones de {{ rol.nombre }}"
+            >
+              <span class="icono-hamburguesa" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+              Opciones
+            </button>
+          </div>
+
+          <p class="rol-card-desc">{{ rol.descripcion|default:"Sin descripción adicional." }}</p>
+
+          <div class="rol-card-resumen">
             {% if rol.es_admin %}
               <span class="badge exito">Acceso total al negocio</span>
             {% else %}
               {% with lista_permisos=rol.permisos.all %}
                 {% if lista_permisos %}
                   <span class="badge info">{{ lista_permisos|length }} permiso{{ lista_permisos|length|pluralize }}</span>
-                  <div class="permisos-lista">
-                    {% for p in lista_permisos %}
-                      <span class="permiso-chip">{{ p.codigo }}</span>
-                    {% endfor %}
-                  </div>
                 {% else %}
                   <span class="badge alerta">Sin permisos asignados</span>
                 {% endif %}
               {% endwith %}
             {% endif %}
-          </td>
-          <td class="num"><span class="badge neutro">{{ rol.total_miembros }}</span></td>
-          <td class="acciones-fila">
-            {% if puede_gestionar %}
-              <a class="boton secundario pequeno" href="{% url 'equipo_rol_editar' rol.pk %}">Editar</a>
-              {% if rol.total_miembros == 0 %}
-                <form method="post" action="{% url 'equipo_rol_eliminar' rol.pk %}"
-                      style="display:inline"
-                      onsubmit="return confirm('¿Seguro que quieres eliminar este rol?');">
-                  {% csrf_token %}
-                  <button type="submit" class="boton peligro pequeno">Eliminar</button>
-                </form>
-              {% endif %}
+          </div>
+
+          <!-- Gaveta colapsable con menú hamburguesa -->
+          <div class="rol-gaveta" id="gaveta-rol-{{ rol.pk }}" hidden>
+            {% if rol.es_admin %}
+              <p class="nota" style="margin: 0; font-size: .88rem;">
+                Este perfil tiene autorización completa sobre todos los módulos actuales y futuros del negocio.
+              </p>
+            {% else %}
+              {% with lista_permisos=rol.permisos.all %}
+                {% if lista_permisos %}
+                  <small style="display: block; color: var(--suave); font-weight: 600; margin-bottom: 6px;">Permisos habilitados:</small>
+                  <div class="permisos-lista">
+                    {% for p in lista_permisos %}
+                      <span class="permiso-chip" title="{{ p.descripcion }}">{{ p.codigo }}</span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="nota" style="margin: 0; font-size: .88rem;">No tiene permisos específicos asignados todavía.</p>
+                {% endif %}
+              {% endwith %}
             {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5"><div class="erp-vacio">No hay roles configurados.</div></td></tr>
+
+            {% if puede_gestionar %}
+              <div class="rol-gaveta-acciones">
+                <a class="boton secundario pequeno" href="{% url 'equipo_rol_editar' rol.pk %}">Editar rol</a>
+                {% if rol.total_miembros == 0 %}
+                  <form method="post" action="{% url 'equipo_rol_eliminar' rol.pk %}"
+                        style="margin: 0;"
+                        onsubmit="return confirm('¿Seguro que quieres eliminar este rol?');">
+                    {% csrf_token %}
+                    <button type="submit" class="boton peligro pequeno">Eliminar</button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </article>
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+  {% else %}
+    <div class="tarjeta erp-vacio">No hay roles configurados.</div>
+  {% endif %}
 {% endblock %}

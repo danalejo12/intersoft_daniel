@@ -692,9 +692,16 @@ class IntegracionesFase10Tests(TestCase):
             cliente=self.cliente,
             items=[{"producto": self.producto, "cantidad": 1}],
         )
-        asiento_fac = contabilizar_factura(factura=factura, usuario=self.admin)
+        resp_fac_cont = self.client.post(reverse("facturas_contabilizar", args=[factura.pk]))
+        self.assertRedirects(resp_fac_cont, reverse("facturas_detalle", args=[factura.pk]))
+        asiento_fac = AsientoContable.objects.get(empresa=self.empresa, referencia=f"FACT-{factura.numero}")
         self.assertTrue(asiento_fac.confirmado)
         self.assertEqual(asiento_fac.pk, contabilizar_factura(factura=factura, usuario=self.admin).pk)
+
+        # Si se anula una factura contabilizada, genera el asiento de reversión automático ANUL-FACT-{numero}
+        services.anular_factura(factura=factura, usuario=self.admin)
+        asiento_anul = AsientoContable.objects.get(empresa=self.empresa, referencia=f"ANUL-FACT-{factura.numero}")
+        self.assertTrue(asiento_anul.confirmado)
 
         # 2. Compra recibida -> Asiento confirmado
         prov = Proveedor.objects.create(empresa=self.empresa, documento="900888777", nombre="Prov Contable")
@@ -717,7 +724,7 @@ class IntegracionesFase10Tests(TestCase):
         asiento_comp = contabilizar_compra(compra=compra, usuario=self.admin)
         self.assertTrue(asiento_comp.confirmado)
 
-        # 3. Movimiento de tesorería -> Asiento confirmado
+        # 3. Movimiento de tesorería -> Asiento confirmado desde la vista ERP
         banco = CuentaTesoreria.objects.create(
             empresa=self.empresa, nombre="Banco Principal", tipo="banco", activa=True
         )
@@ -731,7 +738,12 @@ class IntegracionesFase10Tests(TestCase):
             fecha=timezone.localdate(),
             operacion=uuid.uuid4(),
         )
-        asiento_tes = contabilizar_movimiento_tesoreria(movimiento=mov)
+        resp_tes_cont = self.client.post(
+            reverse("erp_detalle", args=["tesoreria", mov.pk]),
+            {"accion": "contabilizar"},
+        )
+        self.assertRedirects(resp_tes_cont, reverse("erp_detalle", args=["tesoreria", mov.pk]))
+        asiento_tes = AsientoContable.objects.get(empresa=self.empresa, referencia=f"TES-{mov.operacion}")
         self.assertTrue(asiento_tes.confirmado)
 
         # 4. Nómina aprobada y calculadora de aportes de ley
@@ -743,6 +755,9 @@ class IntegracionesFase10Tests(TestCase):
         self.assertEqual(aportes["pension_empleado"], Decimal("80000.00"))
         self.assertEqual(aportes["deducciones_empleado"], Decimal("160000.00"))
         self.assertEqual(aportes["neto_estimado"], Decimal("2002000.00"))
+        self.assertEqual(aportes["total_seguridad_social_empleador"], Decimal("420400.00"))
+        self.assertEqual(aportes["total_parafiscales"], Decimal("180000.00"))
+        self.assertGreater(aportes["costo_total_empleador"], Decimal("3000000.00"))
 
         emp = Empleado.objects.create(
             empresa=self.empresa,
@@ -760,11 +775,128 @@ class IntegracionesFase10Tests(TestCase):
             hasta=hoy,
             base=Decimal("2000000.00"),
             adicionales=Decimal("162000.00"),
-            deducciones=aportes["deducciones_empleado"],
-            neto=aportes["neto_estimado"],
+            deducciones=Decimal("0.00"),
+            neto=Decimal("2162000.00"),
         )
+        # Aplicar deducciones de ley desde la vista antes de aprobar
+        resp_calc = self.client.post(
+            reverse("erp_detalle", args=["nomina", nom.pk]),
+            {"accion": "calcular_aportes"},
+        )
+        self.assertRedirects(resp_calc, reverse("erp_detalle", args=["nomina", nom.pk]))
+        nom.refresh_from_db()
+        self.assertEqual(nom.deducciones, Decimal("160000.00"))
+        self.assertEqual(nom.neto, Decimal("2002000.00"))
+
         nom = aprobar_nomina(empresa=self.empresa, pk=nom.pk)
-        asiento_nom = contabilizar_nomina(nomina=nom, usuario=self.admin)
+        # Generar comprobante contable directamente desde la vista de detalle ERP
+        resp_cont = self.client.post(
+            reverse("erp_detalle", args=["nomina", nom.pk]),
+            {"accion": "contabilizar"},
+        )
+        self.assertRedirects(resp_cont, reverse("erp_detalle", args=["nomina", nom.pk]))
+        asiento_nom = AsientoContable.objects.get(empresa=self.empresa, referencia=f"NOM-{nom.pk}")
         self.assertTrue(asiento_nom.confirmado)
+
+    def test_fase_a_contabilizacion_recaudo_wompi_y_pos_deja_saldo_1305_en_cero(self):
+        from .contabilidad_automatica import (
+            contabilizar_factura,
+            saldo_contable_cliente_factura,
+        )
+
+        # 1. Factura causada -> saldo en 1305 igual al total; luego pago Wompi aprobado -> saldo 1305 en 0
+        factura_wompi = services.crear_factura(
+            empresa=self.empresa,
+            usuario=self.admin,
+            cliente=self.cliente,
+            items=[{"producto": self.producto, "cantidad": 1}],
+        )
+        contabilizar_factura(factura=factura_wompi, usuario=self.admin)
+        self.assertEqual(saldo_contable_cliente_factura(factura=factura_wompi), factura_wompi.total)
+
+        intento = pagos.crear_pago(factura=factura_wompi)
+        pagos.aplicar_transaccion(
+            {
+                "id": "wompi-tx-fase-a",
+                "reference": intento.referencia,
+                "status": "APPROVED",
+                "amount_in_cents": intento.monto_centavos,
+                "currency": "COP",
+                "payment_method_type": "CARD",
+            }
+        )
+        asiento_rec_wompi = AsientoContable.objects.get(
+            empresa=self.empresa,
+            referencia=f"REC-FACT-{factura_wompi.numero}-{intento.referencia}"[:100],
+        )
+        self.assertTrue(asiento_rec_wompi.confirmado)
+        self.assertEqual(saldo_contable_cliente_factura(factura=factura_wompi), Decimal("0.00"))
+
+        # 2. Venta en POS -> al contabilizar desde la vista de factura genera FACT-n y REC-FACT-n-POS (saldo 1305 = 0)
+        turno = caja.abrir_turno(empresa=self.empresa, usuario=self.admin, base="50000")
+        factura_pos = caja.registrar_venta(
+            turno=turno,
+            usuario=self.admin,
+            items=[{"producto": self.producto, "cantidad": 1}],
+            pagos=[{"metodo": "efectivo", "recibido": "120000"}],
+        )
+        resp = self.client.post(reverse("facturas_contabilizar", args=[factura_pos.pk]))
+        self.assertRedirects(resp, reverse("facturas_detalle", args=[factura_pos.pk]))
+        self.assertTrue(
+            AsientoContable.objects.filter(
+                empresa=self.empresa, referencia=f"FACT-{factura_pos.numero}", confirmado=True
+            ).exists()
+        )
+        self.assertTrue(
+            AsientoContable.objects.filter(
+                empresa=self.empresa, referencia=f"REC-FACT-{factura_pos.numero}-POS", confirmado=True
+            ).exists()
+        )
+        self.assertEqual(saldo_contable_cliente_factura(factura=factura_pos), Decimal("0.00"))
+
+    def test_fase_c_anular_factura_aceptada_por_dian_genera_nota_credito_cude_y_reversion_contable(self):
+        from .contabilidad_automatica import (
+            contabilizar_factura,
+            saldo_contable_cliente_factura,
+        )
+        from .facturacion_electronica import (
+            emitir_factura_electronica,
+            emitir_nota_credito_electronica,
+        )
+
+        factura = services.crear_factura(
+            empresa=self.empresa,
+            usuario=self.admin,
+            cliente=self.cliente,
+            items=[{"producto": self.producto, "cantidad": 2}],
+        )
+        factura = emitir_factura_electronica(factura=factura)
+        self.assertEqual(len(factura.cufe), 96)
+        contabilizar_factura(factura=factura, usuario=self.admin)
+
+        # Al anular la factura aceptada por DIAN, emite automáticamente la Nota Crédito Electrónica (CUDE) y revierte el asiento
+        factura = services.anular_factura(factura=factura, usuario=self.admin)
+        self.assertEqual(factura.estado, Factura.Estado.ANULADA)
+        self.assertEqual(len(factura.cude_nota_credito), 96)
+        self.assertNotEqual(factura.cude_nota_credito, factura.cufe)
+
+        # Idempotencia de emitir_nota_credito_electronica
+        cude_original = factura.cude_nota_credito
+        self.assertEqual(emitir_nota_credito_electronica(factura=factura).cude_nota_credito, cude_original)
+
+        # Asiento de reversión confirmado y saldo en cuenta 1305 igual a 0
+        self.assertTrue(
+            AsientoContable.objects.filter(
+                empresa=self.empresa, referencia=f"ANUL-FACT-{factura.numero}", confirmado=True
+            ).exists()
+        )
+        self.assertEqual(saldo_contable_cliente_factura(factura=factura), Decimal("0.00"))
+
+        # La vista de detalle muestra el CUDE de la Nota Crédito
+        resp_detalle = self.client.get(reverse("facturas_detalle", args=[factura.pk]))
+        self.assertContains(resp_detalle, "Nota Crédito (CUDE):")
+        self.assertContains(resp_detalle, factura.cude_nota_credito[:24])
+
+
 
 

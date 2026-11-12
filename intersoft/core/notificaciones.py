@@ -72,3 +72,39 @@ def notificar_reembolso_registrado(pedido):
     if pedido.reembolso_nota:
         lineas.append(f"Nota: {pedido.reembolso_nota}")
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email])
+
+
+def notificar_alerta_stock_minimo(*, empresa, productos_criticos):
+    """Notifica a los miembros con rol Administrador o Bodega (inventario.movimientos / compras.gestionar) sobre stock crítico."""
+    from .models import Membresia
+
+    productos = list(productos_criticos)
+    if not productos:
+        return 0
+
+    membresias = (
+        Membresia.objects.filter(empresa=empresa, activa=True, usuario__is_active=True)
+        .select_related("usuario", "rol")
+        .prefetch_related("rol__permisos")
+    )
+    destinatarios = [empresa.email] if empresa.email else []
+    for m in membresias:
+        if (
+            m.rol.es_admin
+            or m.tiene_permiso("inventario.movimientos")
+            or m.tiene_permiso("compras.gestionar")
+        ):
+            destinatarios.append(m.usuario.email)
+
+    asunto = f"Alerta de stock mínimo ({len(productos)} producto(s)) · {empresa.nombre}"
+    lineas = [
+        f"Hola equipo de {empresa.nombre},",
+        "",
+        "Los siguientes productos activos alcanzaron o están por debajo de su stock mínimo configurado:",
+        "",
+    ]
+    for prod in productos:
+        lineas.append(f"- {prod.codigo} · {prod.nombre}: stock actual {prod.stock} (mínimo {prod.stock_minimo})")
+    lineas.append("")
+    lineas.append("Ingresa al panel de Inventario o Compras para reabastecerlos.")
+    return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=destinatarios)

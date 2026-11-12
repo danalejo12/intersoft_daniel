@@ -444,6 +444,60 @@ class PermisosPosTests(TestCase):
     def test_sin_sesion_pide_ingresar(self):
         self.assertEqual(self.client.get(reverse("pos")).status_code, 302)
 
+    def test_traslado_de_cierre_de_caja_a_tesoreria_idempotente_y_permisos(self):
+        from django.core.exceptions import ValidationError
+        from . import erp_services
+        from .models import CuentaTesoreria, MovimientoTesoreria
+
+        empresa = Empresa.objects.create(nombre="Tienda Tes", nit="900777", slug="tienda-tes")
+        admin = crear_admin(empresa, "admin@tes.co")
+        cuenta = CuentaTesoreria.objects.create(
+            empresa=empresa, nombre="Caja General Principal", tipo="caja", activa=True
+        )
+        turno = caja.abrir_turno(empresa=empresa, usuario=admin, base="50000")
+
+        # 1. No se puede trasladar un turno aún abierto
+        with self.assertRaises(ValidationError):
+            erp_services.trasladar_turno_a_tesoreria(
+                empresa=empresa, turno=turno, cuenta_tesoreria=cuenta, usuario=admin
+            )
+
+        # 2. Cerrar turno con $75.000 contados
+        turno = caja.cerrar_turno(turno=turno, usuario=admin, contado="75000", observaciones="Cierre OK")
+
+        # 3. Un cajero con ventas.ver pero sin tesoreria.gestionar recibe 403 al intentar trasladar
+        cajero_solo = Usuario.objects.create_user(username="caj@tes.co", email="caj@tes.co", password="x")
+        rol_caj = Rol.objects.create(empresa=empresa, nombre="Solo Ventas", es_admin=False)
+        perm_ver, _ = Permiso.objects.get_or_create(codigo="ventas.ver", defaults={"descripcion": "Ver ventas"})
+        rol_caj.permisos.add(perm_ver)
+        Membresia.objects.create(usuario=cajero_solo, empresa=empresa, rol=rol_caj)
+        self.client.force_login(cajero_solo)
+        self.assertEqual(
+            self.client.post(
+                reverse("pos_turno", args=[turno.pk]),
+                {"cuenta_tesoreria": str(cuenta.pk)},
+            ).status_code,
+            403,
+        )
+
+        # 4. Usuario con tesoreria.gestionar traslada en 1 clic desde pos_turno y es idempotente
+        self.client.force_login(admin)
+        resp = self.client.post(
+            reverse("pos_turno", args=[turno.pk]),
+            {"cuenta_tesoreria": str(cuenta.pk)},
+        )
+        self.assertRedirects(resp, reverse("pos_turno", args=[turno.pk]))
+        mov = MovimientoTesoreria.objects.get(empresa=empresa, operacion=turno.pk)
+        self.assertEqual(mov.monto, Decimal("75000.00"))
+        self.assertEqual(mov.tipo, "ingreso")
+
+        # Reintento devuelve exactamente el mismo movimiento sin duplicar el ingreso
+        mov_repetido = erp_services.trasladar_turno_a_tesoreria(
+            empresa=empresa, turno=turno, cuenta_tesoreria=cuenta, usuario=admin
+        )
+        self.assertEqual(mov.pk, mov_repetido.pk)
+        self.assertEqual(MovimientoTesoreria.objects.filter(empresa=empresa, operacion=turno.pk).count(), 1)
+
 
 class DineroTests(TestCase):
     def test_convierte_y_valida(self):

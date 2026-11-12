@@ -41,6 +41,7 @@ panel_urlpatterns = [
     path("facturas/<uuid:pk>/", views.FacturaDetailView.as_view(), name="facturas_detalle"),
     path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
     path("facturas/<uuid:pk>/emitir-dian/", views.FacturaEmitirDianView.as_view(), name="facturas_emitir_dian"),
+    path("facturas/<uuid:pk>/contabilizar/", views.FacturaContabilizarView.as_view(), name="facturas_contabilizar"),
     path("facturas/<uuid:pk>/cobrar/", views.FacturaCobrarView.as_view(), name="facturas_cobrar"),
     path("pedidos/", views_pedidos_panel.PedidoPanelListView.as_view(), name="pedidos_panel_lista"),
     path("pedidos/<uuid:pk>/", views_pedidos_panel.PedidoPanelDetailView.as_view(), name="pedidos_panel_detalle"),

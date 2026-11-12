@@ -52,27 +52,55 @@
       {% endfor %}
     </div>
 
-    <div style="grid-column: 1 / -1; margin-top: 6px;">
-      <h2 style="font-size: 1.2rem;">Permisos por módulo</h2>
-      <p class="nota">Si el rol no es administrador general, marca las acciones que podrá realizar en el panel.</p>
-      {% for error in form.permisos.errors %}
-        <p class="error">{{ error }}</p>
-      {% endfor %}
+    <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 6px;">
+      <div>
+        <h2 style="font-size: 1.2rem; margin: 0;">Permisos por módulo</h2>
+        <p class="nota" style="margin: 2px 0 0;">Abre el menú ☰ de cada módulo para marcar o desmarcar sus permisos.</p>
+      </div>
+      <button type="button" class="boton secundario pequeno" data-toggle-todos="#permisos-modulos-grid [data-hamburguesa]">
+        Expandir todos
+      </button>
     </div>
+    {% for error in form.permisos.errors %}
+      <p class="error" style="grid-column: 1 / -1;">{{ error }}</p>
+    {% endfor %}
 
-    <div class="equipo-permisos-grid">
+    <div class="equipo-permisos-grid" id="permisos-modulos-grid">
       {% for grupo in form.grupos_permisos %}
         <fieldset class="tarjeta equipo-permiso-grupo">
-          <legend>{{ grupo.titulo }}</legend>
-          {% for p in grupo.permisos %}
-            <label class="equipo-permiso-item">
-              <input type="checkbox" name="permisos" value="{{ p.pk }}" {% if p.marcado %}checked{% endif %}>
-              <span>
-                {{ p.descripcion }}
-                <small class="ayuda" style="display: block;">{{ p.codigo }}</small>
+          <div class="equipo-grupo-cabecera">
+            <div class="equipo-grupo-titulo">
+              <span>{{ grupo.titulo }}</span>
+              <span class="badge neutro" data-contador-permisos>0 / {{ grupo.permisos|length }}</span>
+            </div>
+            <button
+              type="button"
+              class="boton-hamburguesa"
+              data-hamburguesa
+              aria-expanded="false"
+              aria-controls="gaveta-mod-{{ forloop.counter }}"
+              aria-label="Desplegar permisos de {{ grupo.titulo }}"
+            >
+              <span class="icono-hamburguesa" aria-hidden="true">
+                <span></span><span></span><span></span>
               </span>
-            </label>
-          {% endfor %}
+            </button>
+          </div>
+
+          <div class="rol-gaveta" id="gaveta-mod-{{ forloop.counter }}" hidden>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
+              <button type="button" class="boton fantasma pequeno" data-marcar-modulo>Alternar todo el módulo</button>
+            </div>
+            {% for p in grupo.permisos %}
+              <label class="equipo-permiso-item">
+                <input type="checkbox" name="permisos" value="{{ p.pk }}" {% if p.marcado %}checked{% endif %}>
+                <span>
+                  {{ p.descripcion }}
+                  <small class="ayuda" style="display: block;">{{ p.codigo }}</small>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
         </fieldset>
       {% endfor %}
     </div>

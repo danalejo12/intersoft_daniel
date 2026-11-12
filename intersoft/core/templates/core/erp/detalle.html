@@ -48,6 +48,16 @@
           <button type="submit" class="boton peligro">Cancelar cita</button>
         </form>
       {% endif %}
+      {% if puede_contabilizar and not asiento_contable %}
+        <form method="post" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="contabilizar">
+          <button type="submit" class="boton secundario">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            Generar comprobante contable
+          </button>
+        </form>
+      {% endif %}
     </div>
   </div>
 
@@ -72,7 +82,60 @@
         <a class="badge info" href="{% url 'erp_detalle' 'cartera' cartera.pk %}">{{ cartera }} ({{ cartera.estado }}) →</a>
       </p>
     {% endif %}
+    {% if asiento_contable %}
+      <p style="margin-top: 12px; margin-bottom: 0;">
+        <strong>Comprobante contable asociado:</strong>
+        <a class="badge exito" href="{% url 'erp_detalle' 'contabilidad' asiento_contable.pk %}">{{ asiento_contable.referencia }} · {{ asiento_contable.concepto }} →</a>
+      </p>
+    {% endif %}
   </div>
+
+  {% if modulo == "nomina" and aportes_ley %}
+    <div class="tarjeta" style="margin-bottom: 22px;">
+      <div class="tarjeta-cabecera">
+        <h2>Asistente de aportes de ley (Colombia)</h2>
+        {% if puede_gestionar and not cerrado %}
+          <form method="post" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="calcular_aportes">
+            <button type="submit" class="boton secundario pequeno">
+              Aplicar deducciones de ley ($ {{ aportes_ley.deducciones_empleado|floatformat:"0g" }})
+            </button>
+          </form>
+        {% endif %}
+      </div>
+      <dl class="erp-datos-grid">
+        <div class="erp-dato-item">
+          <dt>Salud empleado (4%)</dt>
+          <dd>$ {{ aportes_ley.salud_empleado|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Pensión empleado (4%)</dt>
+          <dd>$ {{ aportes_ley.pension_empleado|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Total deducciones empleado</dt>
+          <dd>$ {{ aportes_ley.deducciones_empleado|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Aportes empleador (Salud/Pensión/ARL)</dt>
+          <dd>$ {{ aportes_ley.total_seguridad_social_empleador|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Parafiscales (Caja/SENA/ICBF)</dt>
+          <dd>$ {{ aportes_ley.total_parafiscales|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Neto estimado con ley</dt>
+          <dd>$ {{ aportes_ley.neto_estimado|floatformat:"0g" }}</dd>
+        </div>
+        <div class="erp-dato-item">
+          <dt>Costo total empresa (incl. prestaciones)</dt>
+          <dd>$ {{ aportes_ley.costo_total_empleador|floatformat:"0g" }}</dd>
+        </div>
+      </dl>
+    </div>
+  {% endif %}
 
   {% if config.linea %}
     <div class="tarjeta" style="margin-bottom: 22px;">
@@ -158,7 +221,7 @@
     <div class="tarjeta">
       <div class="tarjeta-cabecera">
         <h2>Abonos registrados en tesorería</h2>
-        {% if obj.saldo > 0 and request.membresia and request.membresia.rol.es_admin %}
+        {% if obj.saldo > 0 and puede_tesoreria %}
           <a class="boton exito pequeno" href="{% url 'erp_crear' 'tesoreria' %}">+ Registrar abono en tesorería</a>
         {% endif %}
       </div>

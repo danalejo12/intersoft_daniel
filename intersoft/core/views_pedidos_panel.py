@@ -8,24 +8,38 @@ from django.shortcuts import redirect
 from django.views.generic import DetailView, ListView
 
 from . import reservas
-from .mixins import PermisoRequeridoMixin
+from .mixins import TenantMixin
 from .models import Pedido
 
 
 def _puede_reembolsar(membresia):
-    return membresia.tiene_permiso("ventas.anular") or membresia.tiene_permiso("tesoreria.gestionar")
+    return any(
+        membresia.tiene_permiso(p)
+        for p in ("facturas.anular", "ventas.anular", "tesoreria.gestionar")
+    )
 
 
 def _puede_gestionar_envio(membresia):
     return any(
         membresia.tiene_permiso(p)
-        for p in ("ventas.crear", "inventario.movimientos", "ventas.anular")
+        for p in ("ventas.crear", "inventario.movimientos", "facturas.anular", "ventas.anular")
     )
 
 
-class PedidoPanelListView(PermisoRequeridoMixin, ListView):
+class AccesoPedidosPanelMixin(TenantMixin):
+    """Permite acceso a pedidos web con ventas.ver o inventario.movimientos (despacho en bodega)."""
+
+    permisos_requeridos = ("ventas.ver", "inventario.movimientos")
+
+    def dispatch(self, request, *args, **kwargs):
+        membresia = getattr(request, "membresia", None)
+        if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_requeridos):
+            raise PermissionDenied("No tienes permiso para esta acción.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
     model = Pedido
-    permiso_requerido = "ventas.ver"
     template_name = "core/pedidos_panel/lista.html"
     context_object_name = "pedidos"
     paginate_by = 20
@@ -77,9 +91,8 @@ class PedidoPanelListView(PermisoRequeridoMixin, ListView):
         return contexto
 
 
-class PedidoPanelDetailView(PermisoRequeridoMixin, DetailView):
+class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
     model = Pedido
-    permiso_requerido = "ventas.ver"
     template_name = "core/pedidos_panel/detalle.html"
     context_object_name = "pedido"
 

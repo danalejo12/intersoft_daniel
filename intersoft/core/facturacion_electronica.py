@@ -17,10 +17,22 @@ class ResultadoEmisionDian:
     mensaje: str = ""
 
 
+@dataclass(frozen=True)
+class ResultadoNotaCreditoDian:
+    aceptada: bool
+    cude: str = ""
+    xml_url: str = ""
+    pdf_url: str = ""
+    mensaje: str = ""
+
+
 class ProveedorFacturacionElectronica:
     """Interfaz base para conectar cualquier proveedor tecnológico autorizado por la DIAN."""
 
     def emitir_factura(self, factura: Factura) -> ResultadoEmisionDian:
+        raise NotImplementedError
+
+    def emitir_nota_credito(self, factura: Factura, motivo: str = "") -> ResultadoNotaCreditoDian:
         raise NotImplementedError
 
 
@@ -36,6 +48,11 @@ class ProveedorSimuladoDian(ProveedorFacturacionElectronica):
         )
         return hashlib.sha384(semilla.encode("utf-8")).hexdigest()
 
+    def calcular_cude(self, factura: Factura, motivo: str = "") -> str:
+        nit_emisor = factura.empresa_nit or factura.empresa.nit
+        semilla = f"NC|{nit_emisor}|{factura.numero}|{factura.cufe}|{factura.total:.2f}|{motivo.strip()}"
+        return hashlib.sha384(semilla.encode("utf-8")).hexdigest()
+
     def emitir_factura(self, factura: Factura) -> ResultadoEmisionDian:
         cufe = self.calcular_cufe(factura)
         return ResultadoEmisionDian(
@@ -44,6 +61,16 @@ class ProveedorSimuladoDian(ProveedorFacturacionElectronica):
             xml_url=f"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cufe}",
             pdf_url=f"https://catalogo-vpfe.dian.gov.co/Document/DownloadPDF?trackId={cufe}",
             mensaje="Documento electrónico validado exitosamente (simulador DIAN).",
+        )
+
+    def emitir_nota_credito(self, factura: Factura, motivo: str = "Anulación de operación") -> ResultadoNotaCreditoDian:
+        cude = self.calcular_cude(factura, motivo=motivo)
+        return ResultadoNotaCreditoDian(
+            aceptada=True,
+            cude=cude,
+            xml_url=f"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cude}",
+            pdf_url=f"https://catalogo-vpfe.dian.gov.co/Document/DownloadPDF?trackId={cude}",
+            mensaje=f"Nota crédito electrónica validada exitosamente ({motivo}).",
         )
 
 
@@ -86,4 +113,29 @@ def emitir_factura_electronica(*, factura: Factura, proveedor: ProveedorFacturac
             "actualizado_en",
         ]
     )
+    return bloqueada
+
+
+@transaction.atomic
+def emitir_nota_credito_electronica(
+    *,
+    factura: Factura,
+    motivo: str = "Anulación de operación",
+    proveedor: ProveedorFacturacionElectronica | None = None,
+) -> Factura:
+    """Emite de forma idempotente una Nota Crédito Electrónica (CUDE) para una factura aceptada por la DIAN."""
+    bloqueada = Factura.objects.select_for_update().select_related("empresa", "cliente").get(pk=factura.pk)
+    if bloqueada.estado_dian != Factura.EstadoDian.ACEPTADA or not bloqueada.cufe:
+        raise ValueError("Solo se puede emitir nota crédito electrónica para facturas aceptadas ante la DIAN.")
+    if bloqueada.cude_nota_credito:
+        return bloqueada
+
+    adaptador = proveedor or ProveedorSimuladoDian()
+    resultado = adaptador.emitir_nota_credito(bloqueada, motivo=motivo)
+    if not resultado.aceptada or not (resultado.cude or "").strip():
+        raise ValueError(resultado.mensaje or "El proveedor tecnológico no aprobó la nota crédito electrónica.")
+
+    bloqueada.cude_nota_credito = resultado.cude.strip()[:120]
+    bloqueada.dian_respuesta = (resultado.mensaje or "Nota crédito aceptada por DIAN")[:250]
+    bloqueada.save(update_fields=["cude_nota_credito", "dian_respuesta", "actualizado_en"])
     return bloqueada

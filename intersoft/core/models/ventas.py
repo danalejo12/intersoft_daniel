@@ -49,6 +49,7 @@ class Factura(ModeloTenant):
         max_length=15, choices=EstadoDian.choices, default=EstadoDian.NO_APLICA
     )
     cufe = models.CharField("CUFE", max_length=120, blank=True)
+    cude_nota_credito = models.CharField("CUDE Nota Crédito", max_length=120, blank=True)
     dian_xml_url = models.URLField(blank=True)
     dian_pdf_url = models.URLField(blank=True)
     dian_respuesta = models.CharField(max_length=250, blank=True)

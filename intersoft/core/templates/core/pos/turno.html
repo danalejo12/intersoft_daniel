@@ -49,6 +49,32 @@
         </tbody>
       </table>
       {% if turno.observaciones %}<p class="nota">{{ turno.observaciones }}</p>{% endif %}
+      {% if turno.cerrado_en %}
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linea);">
+          {% if movimiento_tesoreria %}
+            <a class="boton exito pequeno" href="{% url 'erp_detalle' 'tesoreria' movimiento_tesoreria.pk %}">
+              Trasladado a tesorería ({{ movimiento_tesoreria.cuenta.nombre }} · $ {{ movimiento_tesoreria.monto|floatformat:"0g" }})
+            </a>
+          {% elif puede_trasladar_tesoreria and turno.efectivo_contado > 0 %}
+            {% if cuentas_tesoreria %}
+              <form method="post" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                {% csrf_token %}
+                <label for="id_cuenta_tesoreria" style="font-size: .85rem; color: var(--suave);">Cuenta destino:</label>
+                <select id="id_cuenta_tesoreria" name="cuenta_tesoreria" required style="min-width: 180px;">
+                  {% for c in cuentas_tesoreria %}
+                    <option value="{{ c.pk }}">{{ c.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="boton secundario pequeno">Trasladar efectivo a tesorería</button>
+              </form>
+            {% else %}
+              <a class="boton secundario pequeno" href="{% url 'erp_crear' 'tesoreria_cuentas' %}">
+                + Crear cuenta de tesorería para trasladar efectivo
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
+      {% endif %}
     </article>
   </section>
 

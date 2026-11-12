@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db.models import Exists, F, OuterRef
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,10 +15,15 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView
 
+from .contabilidad_automatica import (
+    contabilizar_factura,
+    contabilizar_recaudo_factura,
+    saldo_contable_cliente_factura,
+)
 from .facturacion_electronica import emitir_factura_electronica
 from .forms import FacturaForm, LineasFacturaFormSet
-from .mixins import PermisoRequeridoMixin
-from .models import CuentaCartera, Factura, Pago, PagoCaja, Pedido
+from .mixins import PermisoRequeridoMixin, TenantMixin
+from .models import AsientoContable, CuentaCartera, Factura, Pago, PagoCaja, Pedido
 from .pagos import (
     PagoNoPermitido,
     aplicar_transaccion,
@@ -92,7 +98,27 @@ class FacturaDetailView(PermisoRequeridoMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["puede_emitir_dian"] = self.request.membresia.tiene_permiso("ventas.crear")
+        membresia = self.request.membresia
+        factura = self.object
+        contexto["puede_cobrar"] = membresia.tiene_permiso("ventas.cobrar")
+        contexto["puede_emitir_dian"] = (
+            membresia.tiene_permiso("ventas.crear") or membresia.tiene_permiso("contabilidad.gestionar")
+        )
+        contexto["puede_contabilizar"] = (
+            membresia.tiene_permiso("contabilidad.gestionar") or membresia.tiene_permiso("ventas.crear")
+        )
+        contexto["asiento_contable"] = AsientoContable.objects.filter(
+            empresa=factura.empresa, referencia=f"FACT-{factura.numero}"
+        ).first()
+        contexto["asiento_recaudo"] = AsientoContable.objects.filter(
+            empresa=factura.empresa, referencia__startswith=f"REC-FACT-{factura.numero}-"
+        ).first()
+        contexto["asiento_anulacion"] = AsientoContable.objects.filter(
+            empresa=factura.empresa, referencia=f"ANUL-FACT-{factura.numero}"
+        ).first()
+        contexto["saldo_1305"] = (
+            saldo_contable_cliente_factura(factura=factura) if contexto["asiento_contable"] else None
+        )
         return contexto
 
 
@@ -152,13 +178,20 @@ class FacturaAnularView(PermisoRequeridoMixin, View):
         return redirect("facturas_lista")
 
 
-class FacturaEmitirDianView(PermisoRequeridoMixin, View):
+class FacturaEmitirDianView(TenantMixin, View):
     """Emite o sincroniza el documento electrónico de la factura ante el adaptador DIAN."""
 
     http_method_names = ["post"]
-    permiso_requerido = "ventas.crear"
 
     def post(self, request, pk):
+        if not (
+            request.membresia
+            and (
+                request.membresia.tiene_permiso("ventas.crear")
+                or request.membresia.tiene_permiso("contabilidad.gestionar")
+            )
+        ):
+            raise PermissionDenied("No tienes permiso para emitir documentos electrónicos.")
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
         try:
             factura = emitir_factura_electronica(factura=factura)
@@ -169,6 +202,43 @@ class FacturaEmitirDianView(PermisoRequeridoMixin, View):
                 messages.success(request, f"Factura #{factura.numero} validada ante DIAN (CUFE generado).")
             else:
                 messages.warning(request, f"Respuesta DIAN: {factura.dian_respuesta}")
+        return redirect("facturas_detalle", pk=factura.pk)
+
+
+class FacturaContabilizarView(TenantMixin, View):
+    """Genera el comprobante contable en partida doble (FACT-n) para una factura emitida."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        if not (
+            request.membresia
+            and (
+                request.membresia.tiene_permiso("contabilidad.gestionar")
+                or request.membresia.tiene_permiso("ventas.crear")
+            )
+        ):
+            raise PermissionDenied("No tienes permiso para contabilizar facturas.")
+        factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
+        try:
+            asiento = contabilizar_factura(factura=factura, usuario=request.user)
+            if factura.esta_pagada:
+                pago_wompi = factura.pagos.filter(estado=Pago.Estado.APROBADO).first()
+                ref_pago = pago_wompi.referencia if pago_wompi else ("POS" if factura.pagos_caja.exists() else "PAGO")
+                asiento_rec = contabilizar_recaudo_factura(
+                    factura=factura,
+                    monto=factura.total,
+                    referencia_pago=ref_pago,
+                    usuario=request.user,
+                )
+                messages.success(
+                    request,
+                    f"Comprobantes contables {asiento.referencia} y {asiento_rec.referencia} generados.",
+                )
+            else:
+                messages.success(request, f"Comprobante contable {asiento.referencia} generado.")
+        except ValueError as error:
+            messages.error(request, str(error))
         return redirect("facturas_detalle", pk=factura.pk)
 
 

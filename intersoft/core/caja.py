@@ -183,9 +183,11 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=Non
 
 
 def resumen_turno(turno):
-    """Ventas y dinero del turno, separado por medio de pago."""
-    por_metodo = {fila["metodo"]: fila["total"] for fila in turno.pagos.values("metodo").annotate(total=Sum("monto"))}
-    ventas = turno.facturas.aggregate(cantidad=Count("id"), total=Sum("total"))
+    """Ventas y dinero del turno, separado por medio de pago (excluyendo facturas anuladas)."""
+    facturas_vigentes = turno.facturas.exclude(estado=Factura.Estado.ANULADA)
+    pagos_vigentes = turno.pagos.exclude(factura__estado=Factura.Estado.ANULADA)
+    por_metodo = {fila["metodo"]: fila["total"] for fila in pagos_vigentes.values("metodo").annotate(total=Sum("monto"))}
+    ventas = facturas_vigentes.aggregate(cantidad=Count("id"), total=Sum("total"))
     efectivo = por_metodo.get(Metodo.EFECTIVO, Decimal("0"))
     return {
         "ventas": ventas["cantidad"],
