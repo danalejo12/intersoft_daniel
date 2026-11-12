@@ -2,21 +2,35 @@
 {% block titulo %}Abrir caja · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
-    <h1>Punto de venta</h1>
-    <a class="boton secundario" href="{% url 'pos_turnos' %}">Historial de cajas</a>
+  <div class="encabezado" style="max-width: 620px; margin: 0 auto 18px;">
+    <div class="titulo-con-icono">
+      <span class="icono-caja verde" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
+      </span>
+      <div>
+        <h1>Punto de venta</h1>
+        <p class="nota" style="margin: 0;">Apertura de turno en caja</p>
+      </div>
+    </div>
+    <a class="boton secundario" href="{% url 'pos_turnos' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+      Historial de cajas
+    </a>
   </div>
 
-  <form method="post" action="{% url 'pos_abrir' %}" class="formulario pos-abrir">
+  <form method="post" action="{% url 'pos_abrir' %}" class="formulario ancho pos-abrir">
     {% csrf_token %}
-    <h2>Abre tu caja</h2>
+    <h2 style="font-size: 1.25rem; margin-bottom: 8px;">Abre tu caja</h2>
     <p class="nota">Cuenta el efectivo con el que empiezas (la base para dar cambio). Al cerrar, compararemos lo que cuentes con lo que debería haber.</p>
     <div class="campo">
       <label for="base">Base en efectivo</label>
       <input type="text" id="base" name="base" inputmode="decimal" value="0" autocomplete="off" required autofocus>
     </div>
     <div class="acciones">
-      <button type="submit">Abrir caja</button>
+      <button type="submit" class="exito">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Abrir caja
+      </button>
     </div>
   </form>
 {% endblock %}

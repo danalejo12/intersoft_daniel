@@ -2,14 +2,22 @@
 {% block titulo %}Cerrar caja · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
-    <h1>Cerrar caja</h1>
-    <a href="{% url 'pos' %}">← Volver al punto de venta</a>
+  <div class="encabezado" style="max-width: 620px; margin: 0 auto 18px;">
+    <div class="titulo-con-icono">
+      <span class="icono-caja rojo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </span>
+      <div>
+        <h1>Cerrar caja</h1>
+        <p class="nota" style="margin: 0;">Arqueo de turno</p>
+      </div>
+    </div>
+    <a class="boton secundario" href="{% url 'pos' %}">← Volver al punto de venta</a>
   </div>
 
-  <form method="post" class="formulario pos-abrir">
+  <form method="post" class="formulario ancho pos-abrir">
     {% csrf_token %}
-    <p class="nota">Abriste a las {{ turno.creado_en|date:"g:i a" }} y registraste {{ ventas }} venta{{ ventas|pluralize }}.</p>
+    <p class="nota">Abriste a las <strong>{{ turno.creado_en|date:"g:i a" }}</strong> y registraste <strong>{{ ventas }} venta{{ ventas|pluralize }}</strong>.</p>
     <p class="nota">Cuenta todo el efectivo que hay en la caja, incluida la base. Al cerrar te mostramos si cuadra.</p>
     <div class="campo">
       <label for="contado">Efectivo contado</label>
@@ -20,8 +28,8 @@
       <textarea id="observaciones" name="observaciones" rows="2" maxlength="1000"></textarea>
     </div>
     <div class="acciones">
-      <a href="{% url 'pos' %}">Cancelar</a>
-      <button type="submit" onclick="return confirm('¿Cerrar la caja? Después no podrás vender en este turno.');">Cerrar caja</button>
+      <a class="boton fantasma" href="{% url 'pos' %}">Cancelar</a>
+      <button type="submit" class="boton peligro" onclick="return confirm('¿Cerrar la caja? Después no podrás vender en este turno.');">Cerrar caja</button>
     </div>
   </form>
 {% endblock %}

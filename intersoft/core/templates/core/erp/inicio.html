@@ -8,25 +8,87 @@
       <p class="nota">Módulos administrativos, compras, cartera, tesorería y operación de <strong>{{ request.empresa.nombre }}</strong>.</p>
     </div>
     {% if puede_ver_reportes %}
-      <a class="boton" href="{% url 'erp_reportes' %}">Ver reportes operativos</a>
+      <a class="boton" href="{% url 'erp_reportes' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        Ver reportes operativos
+      </a>
     {% endif %}
   </div>
 
   {% if tarjetas %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+    <div class="erp-controles">
+      <div class="erp-filtros-chips" role="group" aria-label="Filtrar módulos por área">
+        <button type="button" class="erp-chip activo" data-categoria="todas" aria-pressed="true">Todos ({{ tarjetas|length }})</button>
+        {% for cat in categorias %}
+          <button type="button" class="erp-chip" data-categoria="{{ cat }}" aria-pressed="false">{{ cat }}</button>
+        {% endfor %}
+      </div>
+      <div class="erp-buscar-modulos">
+        <input type="search" id="erp-buscar-modulos" placeholder="Buscar módulo ERP…" aria-label="Buscar módulo ERP">
+      </div>
+    </div>
+
+    <div class="erp-grid" id="erp-grid">
       {% for t in tarjetas %}
-        <a class="tarjeta" href="{% url 'erp_lista' t.slug %}" style="display: flex; flex-direction: column; justify-content: space-between; gap: 14px; color: var(--texto);">
-          <div class="tarjeta-cabecera" style="margin-bottom: 0;">
-            <h2>{{ t.titulo }}</h2>
-            <span class="etiqueta">{{ t.cantidad }}</span>
+        <a
+          class="erp-modulo-card {{ t.color }}"
+          href="{% url 'erp_lista' t.slug %}"
+          data-categoria="{{ t.categoria }}"
+          data-texto="{{ t.titulo }} {{ t.categoria }} {{ t.descripcion }}"
+          style="--orden: {{ forloop.counter0 }};"
+        >
+          <div>
+            <div class="erp-modulo-top">
+              <span class="erp-modulo-icono" aria-hidden="true">
+                {% if t.icono == "truck" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                {% elif t.icono == "bag" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                {% elif t.icono == "wallet" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+                {% elif t.icono == "bank" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="m5 6 7-3 7 3"/><path d="M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+                {% elif t.icono == "arrows" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 6h18"/><path d="m7 22-4-4 4-4"/><path d="M21 18H3"/></svg>
+                {% elif t.icono == "book" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                {% elif t.icono == "scale" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+                {% elif t.icono == "users" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                {% elif t.icono == "receipt" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+                {% elif t.icono == "factory" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1M12 18h1M7 18h1"/></svg>
+                {% elif t.icono == "sparkles" %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                {% endif %}
+              </span>
+              <span class="etiqueta">{{ t.cantidad }} reg.</span>
+            </div>
+            <div class="erp-modulo-body" style="margin-top: 14px;">
+              <h2>{{ t.titulo }}</h2>
+              <p>{{ t.descripcion }}</p>
+            </div>
           </div>
-          <small style="color: var(--azul); font-weight: 500;">Abrir módulo →</small>
+          <div class="erp-modulo-pie">
+            <span class="erp-modulo-cat">{{ t.categoria }}</span>
+            <span class="erp-modulo-cta">Abrir módulo →</span>
+          </div>
         </a>
       {% endfor %}
     </div>
+
+    <div id="erp-sin-resultados" class="tarjeta erp-vacio" hidden>
+      <strong>No encontramos módulos que coincidan con tu búsqueda</strong>
+      Prueba seleccionando "Todos" o limpiando el texto del buscador.
+    </div>
   {% else %}
-    <div class="tarjeta">
-      <p>No tienes módulos ERP habilitados directamente, pero puedes consultar los reportes autorizados.</p>
+    <div class="tarjeta erp-vacio">
+      <strong>Sin módulos ERP habilitados directamente</strong>
+      Puedes consultar los reportes operativos autorizados para tu rol.
     </div>
   {% endif %}
 {% endblock %}

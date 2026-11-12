@@ -14,8 +14,10 @@
         <a class="boton boton-hero" href="#titulo-productos">Ver productos</a>
         {% if user.is_authenticated %}
           <a class="boton boton-hero-sec" href="{% url 'dashboard' %}">Mi panel</a>
+          <a class="boton boton-vendedor" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
         {% else %}
-          <a class="boton boton-hero-sec" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+          <a class="boton boton-vendedor" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+          <a class="boton boton-hero-sec" href="{% url 'registro' %}">Crear cuenta</a>
         {% endif %}
       </div>
     </section>

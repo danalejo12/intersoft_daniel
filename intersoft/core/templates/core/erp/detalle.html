@@ -4,22 +4,35 @@
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>{{ config.titulo }}</h1>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <h1>{{ config.titulo }}</h1>
+        {% if cerrado %}
+          <span class="badge exito">Confirmado</span>
+        {% elif config.accion %}
+          <span class="badge alerta">Borrador</span>
+        {% endif %}
+      </div>
       <p class="nota">{{ obj }}</p>
     </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <div class="erp-toolbar">
       <a class="boton secundario" href="{% url 'erp_lista' modulo %}">← Volver a {{ config.titulo|lower }}</a>
       {% if puede_gestionar and config.accion and not cerrado %}
         <form method="post" style="margin: 0;">
           {% csrf_token %}
           <input type="hidden" name="accion" value="{{ config.accion }}">
-          <button type="submit">{{ config.etiqueta }}</button>
+          <button type="submit" class="exito">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ config.etiqueta }}
+          </button>
         </form>
         {% if modulo != "tesoreria" %}
           <form method="post" style="margin: 0;" onsubmit="return confirm('¿Eliminar este borrador?');">
             {% csrf_token %}
             <input type="hidden" name="accion" value="eliminar_borrador">
-            <button type="submit" class="boton secundario">Eliminar borrador</button>
+            <button type="submit" class="boton peligro">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Eliminar borrador
+            </button>
           </form>
         {% endif %}
       {% endif %}
@@ -27,12 +40,12 @@
         <form method="post" style="margin: 0;">
           {% csrf_token %}
           <input type="hidden" name="accion" value="atendida">
-          <button type="submit">Marcar atendida</button>
+          <button type="submit" class="exito">Marcar atendida</button>
         </form>
         <form method="post" style="margin: 0;">
           {% csrf_token %}
           <input type="hidden" name="accion" value="cancelada">
-          <button type="submit" class="boton secundario">Cancelar cita</button>
+          <button type="submit" class="boton peligro">Cancelar cita</button>
         </form>
       {% endif %}
     </div>
@@ -45,18 +58,18 @@
         <span class="etiqueta-pagada">Confirmado</span>
       {% endif %}
     </div>
-    <dl style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0;">
+    <dl class="erp-datos-grid">
       {% for etiqueta_campo, valor_campo in datos %}
-        <div>
-          <dt style="color: var(--suave); font-size: .82rem;">{{ etiqueta_campo }}</dt>
-          <dd style="margin: 2px 0 0; font-weight: 500;">{{ valor_campo }}</dd>
+        <div class="erp-dato-item">
+          <dt>{{ etiqueta_campo }}</dt>
+          <dd>{{ valor_campo }}</dd>
         </div>
       {% endfor %}
     </dl>
     {% if cartera %}
       <p style="margin-top: 16px; margin-bottom: 0;">
         <strong>Cuenta en cartera asociada:</strong>
-        <a href="{% url 'erp_detalle' 'cartera' cartera.pk %}">{{ cartera }} ({{ cartera.estado }})</a>
+        <a class="badge info" href="{% url 'erp_detalle' 'cartera' cartera.pk %}">{{ cartera }} ({{ cartera.estado }}) →</a>
       </p>
     {% endif %}
   </div>
@@ -65,6 +78,7 @@
     <div class="tarjeta" style="margin-bottom: 22px;">
       <div class="tarjeta-cabecera">
         <h2>Líneas del documento</h2>
+        <span class="badge neutro">{{ lineas|length }} línea{{ lineas|length|pluralize }}</span>
       </div>
       <table class="tabla" style="margin-bottom: 18px;">
         <thead>
@@ -89,46 +103,53 @@
                     {% csrf_token %}
                     <input type="hidden" name="accion" value="quitar">
                     <input type="hidden" name="linea" value="{{ l.pk }}">
-                    <button type="submit" class="boton secundario">Quitar</button>
+                    <button type="submit" class="boton peligro pequeno">Quitar</button>
                   </form>
                 </td>
               {% endif %}
             </tr>
           {% empty %}
             <tr>
-              <td colspan="{{ cabeceras|length|add:1 }}">Aún no se han agregado líneas.</td>
+              <td colspan="{{ cabeceras|length|add:1 }}">
+                <div class="erp-vacio">Aún no se han agregado líneas a este documento.</div>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
 
       {% if form and puede_gestionar and not cerrado %}
-        <h3>Agregar línea</h3>
-        <form method="post" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="accion" value="agregar">
-          {% if form.non_field_errors %}
-            <div class="mensaje error">
-              {% for error in form.non_field_errors %}
-                <div>{{ error }}</div>
-              {% endfor %}
-            </div>
-          {% endif %}
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
-            {% for field in form.visible_fields %}
-              <div>
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% for error in field.errors %}
-                  <div style="color: var(--rojo); font-size: .82rem;">{{ error }}</div>
+        <div style="padding-top: 16px; border-top: 1px solid var(--linea);">
+          <h3 style="margin: 0 0 12px; font-size: .95rem; color: var(--suave);">Agregar línea</h3>
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="agregar">
+            {% if form.non_field_errors %}
+              <div class="mensaje error">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
                 {% endfor %}
               </div>
-            {% endfor %}
-            <div>
-              <button type="submit">Agregar línea</button>
+            {% endif %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+              {% for field in form.visible_fields %}
+                <div>
+                  <label for="{{ field.id_for_label }}" style="display: block; margin-bottom: 6px; font-size: .82rem; color: var(--suave);">{{ field.label }}</label>
+                  {{ field }}
+                  {% for error in field.errors %}
+                    <div style="color: var(--rojo); font-size: .82rem; margin-top: 4px;">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+              <div>
+                <button type="submit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  Agregar línea
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       {% endif %}
     </div>
   {% endif %}
@@ -138,7 +159,7 @@
       <div class="tarjeta-cabecera">
         <h2>Abonos registrados en tesorería</h2>
         {% if obj.saldo > 0 and request.membresia and request.membresia.rol.es_admin %}
-          <a class="boton secundario" href="{% url 'erp_crear' 'tesoreria' %}">Registrar abono en tesorería</a>
+          <a class="boton exito pequeno" href="{% url 'erp_crear' 'tesoreria' %}">+ Registrar abono en tesorería</a>
         {% endif %}
       </div>
       <table class="tabla">

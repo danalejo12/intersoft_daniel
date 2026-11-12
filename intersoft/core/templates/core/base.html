@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=14">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=16">
 </head>
 <body>
 
@@ -133,6 +133,7 @@
 </div>
 {% endif %}
 
+<script defer src="{% static 'core/js/app.js' %}?v=1"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

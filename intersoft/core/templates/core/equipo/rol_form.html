@@ -2,7 +2,18 @@
 {% block titulo %}{% if es_nuevo %}Nuevo rol{% else %}Editar rol{% endif %} · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>{% if es_nuevo %}Nuevo rol{% else %}Editar rol «{{ rol.nombre }}»{% endif %}</h1>
+  <div class="encabezado" style="max-width: 920px; margin: 0 auto 18px;">
+    <div class="titulo-con-icono">
+      <span class="icono-caja violeta" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </span>
+      <div>
+        <h1>{% if es_nuevo %}Nuevo rol{% else %}Editar rol «{{ rol.nombre }}»{% endif %}</h1>
+        <p class="nota" style="margin: 0;">Configura el alcance de permisos para este perfil.</p>
+      </div>
+    </div>
+    <a class="boton secundario" href="{% url 'equipo_lista' %}">← Volver al equipo</a>
+  </div>
 
   <form method="post" class="formulario" novalidate>
     {% csrf_token %}
@@ -31,39 +42,47 @@
       {% endfor %}
     </div>
 
-    <div class="campo{% if form.es_admin.errors %} con-error{% endif %}">
-      <label>
+    <div class="campo{% if form.es_admin.errors %} con-error{% endif %}" style="grid-column: 1 / -1;">
+      <label class="equipo-permiso-item" style="background: rgba(91, 140, 255, .10); border: 1px solid rgba(91, 140, 255, .28);">
         {{ form.es_admin }}
-        {{ form.es_admin.label }}
+        <span><strong>{{ form.es_admin.label }}</strong> — Concede acceso completo a todos los módulos del negocio.</span>
       </label>
       {% for error in form.es_admin.errors %}
         <p class="error">{{ error }}</p>
       {% endfor %}
     </div>
 
-    <h2>Permisos por módulo</h2>
-    <p class="nota">Si el rol no es administrador general, marca las acciones que podrá realizar en el panel.</p>
-    {% for error in form.permisos.errors %}
-      <p class="error">{{ error }}</p>
-    {% endfor %}
+    <div style="grid-column: 1 / -1; margin-top: 6px;">
+      <h2 style="font-size: 1.2rem;">Permisos por módulo</h2>
+      <p class="nota">Si el rol no es administrador general, marca las acciones que podrá realizar en el panel.</p>
+      {% for error in form.permisos.errors %}
+        <p class="error">{{ error }}</p>
+      {% endfor %}
+    </div>
 
-    {% for grupo in form.grupos_permisos %}
-      <fieldset class="tarjeta" style="margin-bottom: 1rem;">
-        <legend><strong>{{ grupo.titulo }}</strong></legend>
-        {% for p in grupo.permisos %}
-          <div style="margin: 0.4rem 0;">
-            <label>
+    <div class="equipo-permisos-grid">
+      {% for grupo in form.grupos_permisos %}
+        <fieldset class="tarjeta equipo-permiso-grupo">
+          <legend>{{ grupo.titulo }}</legend>
+          {% for p in grupo.permisos %}
+            <label class="equipo-permiso-item">
               <input type="checkbox" name="permisos" value="{{ p.pk }}" {% if p.marcado %}checked{% endif %}>
-              {{ p.descripcion }} <small class="nota">({{ p.codigo }})</small>
+              <span>
+                {{ p.descripcion }}
+                <small class="ayuda" style="display: block;">{{ p.codigo }}</small>
+              </span>
             </label>
-          </div>
-        {% endfor %}
-      </fieldset>
-    {% endfor %}
+          {% endfor %}
+        </fieldset>
+      {% endfor %}
+    </div>
 
     <div class="acciones">
-      <a href="{% url 'equipo_lista' %}">Cancelar</a>
-      <button type="submit">Guardar rol</button>
+      <a class="boton fantasma" href="{% url 'equipo_lista' %}">Cancelar</a>
+      <button type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Guardar rol
+      </button>
     </div>
   </form>
 {% endblock %}

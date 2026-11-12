@@ -11,10 +11,26 @@
 
   <section class="pos-catalogo" aria-label="Productos">
     <div class="encabezado pos-encabezado">
-      <h1>Punto de venta</h1>
+      <div class="titulo-con-icono">
+        <span class="icono-caja ambar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
+        </span>
+        <div>
+          <h1>Punto de venta</h1>
+          <div class="pos-turno">
+            <span class="badge exito">Caja abierta · {{ turno.creado_en|date:"g:i a" }}</span>
+          </div>
+        </div>
+      </div>
       <div class="pos-turno">
-        <span class="nota">Caja abierta desde las {{ turno.creado_en|date:"g:i a" }}</span>
-        <a class="boton secundario" href="{% url 'pos_cerrar' %}">Cerrar caja</a>
+        <a class="boton secundario" href="{% url 'pos_turnos' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          Turnos
+        </a>
+        <a class="boton peligro" href="{% url 'pos_cerrar' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Cerrar caja
+        </a>
       </div>
     </div>
 

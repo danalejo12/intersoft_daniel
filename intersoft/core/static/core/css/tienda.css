@@ -2,39 +2,49 @@
 :root {
   color-scheme: light dark;
 
-  --fondo: #F7F8FC;
+  --fondo: #F8FAFC;
   --superficie: #FFFFFF;
   --texto: #12162B;
   --texto-suave: #4A5270;
-  --borde: #E2E6F0;
-  --primario: #2747D9;
-  --primario-hover: #1C35AE;
+  --borde: #E2E8F0;
+  --primario: #1E3A8A;
+  --primario-hover: #172E6E;
   --primario-suave: #E9EDFD;
   --sobre-primario: #FFFFFF;
-  --acento: #0FA391;
-  --exito: #11845B;
-  --exito-texto: #0E7650;  /* --exito sobre su fondo da 4,21:1; este pasa AA */
-  --exito-fondo: #E7F6EF;
-  --peligro: #C2362B;
-  --peligro-fondo: #FDECEA;
-  --barra-fondo: rgba(255, 255, 255, .82);
-  --anillo: rgba(39, 71, 217, .22);
+  --cta: #FF5A1F;
+  --cta-hover: #E04810;
+  --sobre-cta: #FFFFFF;
+  --vendedor: #10B981;
+  --vendedor-hover: #059669;
+  --sobre-vendedor: #FFFFFF;
+  --destacado-fondo: #FACC15;
+  --destacado-texto: #1E293B;
+  --descuento-fondo: #EF4444;
+  --descuento-texto: #FFFFFF;
+  --acento: #0F766E;
+  --exito: #10B981;
+  --exito-texto: #065F46;
+  --exito-fondo: #ECFDF5;
+  --peligro: #EF4444;
+  --peligro-fondo: #FEF2F2;
+  --barra-fondo: rgba(255, 255, 255, .88);
+  --anillo: rgba(255, 90, 31, .22);
   --foco: #2747D9;
 
-  --sombra-s: 0 1px 2px rgba(29, 46, 120, .06), 0 2px 6px rgba(29, 46, 120, .05);
-  --sombra-m: 0 4px 12px rgba(29, 46, 120, .08), 0 2px 4px rgba(29, 46, 120, .05);
-  --sombra-l: 0 16px 32px rgba(29, 46, 120, .14), 0 4px 8px rgba(29, 46, 120, .06);
+  --sombra-s: 0 1px 2px rgba(15, 23, 42, .05), 0 2px 6px rgba(15, 23, 42, .04);
+  --sombra-m: 0 6px 16px rgba(15, 23, 42, .08), 0 2px 4px rgba(15, 23, 42, .04);
+  --sombra-l: 0 16px 32px rgba(15, 23, 42, .12), 0 4px 8px rgba(15, 23, 42, .06);
 
-  --hero-inicio: var(--primario);
-  --hero-fin: var(--acento);
+  --hero-inicio: #0F2A6B;
+  --hero-fin: #0F766E;
   /* El velo crece hacia el verde, que es donde el texto claro no alcanza AA por sí solo */
-  --hero-velo-inicio: rgba(18, 22, 43, .12);
-  --hero-velo-fin: rgba(18, 22, 43, .40);
-  --hero-mancha: rgba(255, 255, 255, .22);
+  --hero-velo-inicio: rgba(15, 23, 42, .12);
+  --hero-velo-fin: rgba(15, 23, 42, .38);
+  --hero-mancha: rgba(255, 255, 255, .18);
   --hero-texto: #FFFFFF;
-  --hero-boton-fondo: #FFFFFF;
-  --hero-boton-texto: #2747D9;
-  --hero-boton-hover: #E9EDFD;
+  --hero-boton-fondo: var(--cta);
+  --hero-boton-texto: var(--sobre-cta);
+  --hero-boton-hover: var(--cta-hover);
   --hero-secundario-hover: rgba(255, 255, 255, .16);
 
   --tono-texto: #1C2550;
@@ -80,13 +90,14 @@
     --sombra-m: 0 4px 12px rgba(2, 6, 24, .55), 0 2px 4px rgba(2, 6, 24, .35);
     --sombra-l: 0 16px 32px rgba(2, 6, 24, .70), 0 4px 8px rgba(2, 6, 24, .40);
 
-    --hero-inicio: #2747D9;
-    --hero-fin: #0FA391;
-    --hero-velo-inicio: rgba(11, 16, 32, .30);
-    --hero-velo-fin: rgba(11, 16, 32, .50);
+    --hero-inicio: #0F2A6B;
+    --hero-fin: #0F766E;
+    --hero-velo-inicio: rgba(11, 16, 32, .25);
+    --hero-velo-fin: rgba(11, 16, 32, .45);
     --hero-mancha: rgba(255, 255, 255, .14);
-    --hero-boton-fondo: #FFFFFF;
-    --hero-boton-texto: #2747D9;
+    --hero-boton-fondo: var(--cta);
+    --hero-boton-texto: var(--sobre-cta);
+    --hero-boton-hover: var(--cta-hover);
 
     --estrella: #FFC24D;
 
@@ -172,13 +183,25 @@ main.contenedor { flex: 1; padding-top: 24px; padding-bottom: 56px; }
 .buscador input { flex: 1; min-width: 0; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--texto); font: inherit; font-size: 1rem; }
 .buscador input:focus-visible { outline: none; }
 .buscador input::placeholder { color: var(--texto-suave); opacity: 1; }
-.buscador .boton { padding: 0 18px; }
+.buscador .boton {
+  padding: 0 20px;
+  border-color: var(--cta);
+  background: var(--cta);
+  color: var(--sobre-cta);
+  box-shadow: 0 4px 12px rgba(255, 90, 31, .28);
+}
+.buscador .boton:hover {
+  border-color: var(--cta-hover);
+  background: var(--cta-hover);
+  color: var(--sobre-cta);
+}
 
 /* ---------- Botones ---------- */
 .boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-width: 44px;
   min-height: 44px;
   padding: 0 22px;
@@ -195,10 +218,24 @@ main.contenedor { flex: 1; padding-top: 24px; padding-bottom: 56px; }
 }
 .boton:hover { border-color: var(--primario-hover); background: var(--primario-hover); color: var(--sobre-primario); text-decoration: none; transform: translateY(-1px); }
 .boton:active { transform: scale(.98); }
+.boton-cta {
+  border-color: var(--cta);
+  background: var(--cta);
+  color: var(--sobre-cta);
+  box-shadow: 0 6px 16px rgba(255, 90, 31, .28);
+}
+.boton-cta:hover { border-color: var(--cta-hover); background: var(--cta-hover); color: var(--sobre-cta); }
+.boton-vendedor {
+  border-color: var(--vendedor);
+  background: var(--vendedor);
+  color: var(--sobre-vendedor);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, .24);
+}
+.boton-vendedor:hover { border-color: var(--vendedor-hover); background: var(--vendedor-hover); color: var(--sobre-vendedor); }
 .boton-claro { background: transparent; color: var(--primario); }
 .boton-claro:hover { border-color: var(--primario-hover); background: var(--primario-suave); color: var(--primario-hover); }
 .boton-ancho { width: 100%; min-height: 48px; margin-top: 12px; }
-.menu .boton { padding: 0 12px; }
+.menu .boton { padding: 0 14px; }
 
 .enlace { min-width: 44px; min-height: 44px; padding: 0 6px; border: 0; background: none; color: var(--primario); font: inherit; cursor: pointer; transition: color var(--transicion); }
 .enlace:hover { color: var(--primario-hover); text-decoration: underline; }
@@ -225,7 +262,12 @@ main.contenedor { flex: 1; padding-top: 24px; padding-bottom: 56px; }
 .mancha-3 { top: 10%; left: 48%; width: 240px; height: 240px; animation-duration: 34s; animation-delay: -12s; }
 
 .portada-acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
-.boton-hero { border-color: var(--hero-boton-fondo); background: var(--hero-boton-fondo); color: var(--hero-boton-texto); }
+.boton-hero {
+  border-color: var(--hero-boton-fondo);
+  background: var(--hero-boton-fondo);
+  color: var(--hero-boton-texto);
+  box-shadow: 0 10px 24px rgba(255, 90, 31, .36);
+}
 .boton-hero:hover { border-color: var(--hero-boton-hover); background: var(--hero-boton-hover); color: var(--hero-boton-texto); }
 .boton-hero-sec { border-color: var(--hero-texto); background: transparent; color: var(--hero-texto); }
 .boton-hero-sec:hover { border-color: var(--hero-texto); background: var(--hero-secundario-hover); color: var(--hero-texto); }
@@ -282,7 +324,38 @@ main.contenedor { flex: 1; padding-top: 24px; padding-bottom: 56px; }
 }
 .tarjeta:hover { color: var(--texto); text-decoration: none; }
 
-.tarjeta-imagen { display: block; overflow: hidden; aspect-ratio: 4 / 3; }
+.tarjeta-imagen { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 3; }
+.tarjeta-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+.badge-venta {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--pildora);
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1.25;
+  box-shadow: var(--sombra-s);
+}
+.badge-destacado, .badge-envio {
+  background: var(--destacado-fondo);
+  color: var(--destacado-texto);
+}
+.badge-descuento {
+  background: var(--descuento-fondo);
+  color: var(--descuento-texto);
+}
 .tarjeta-fondo { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 3rem; transition: transform var(--transicion); }
 
 .tarjeta-foto { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--transicion); }

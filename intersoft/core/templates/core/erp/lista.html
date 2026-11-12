@@ -4,38 +4,56 @@
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>{{ config.titulo }}</h1>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <h1>{{ config.titulo }}</h1>
+        <span class="badge info">{{ total_registros }} registro{{ total_registros|pluralize }}</span>
+      </div>
       {% if config.ayuda %}
         <p class="nota">{{ config.ayuda }}</p>
       {% else %}
         <p class="nota"><a href="{% url 'erp_inicio' %}">← Volver a Gestión ERP</a></p>
       {% endif %}
     </div>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <a class="boton secundario" href="{% url 'erp_inicio' %}">Módulos ERP</a>
-      <a class="boton secundario" href="?q={{ q|urlencode }}&estado={{ estado|urlencode }}&exportar=csv">Exportar CSV</a>
+    <div class="erp-toolbar">
+      <a class="boton secundario" href="{% url 'erp_inicio' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Módulos ERP
+      </a>
+      <a class="boton secundario" href="?q={{ q|urlencode }}&estado={{ estado|urlencode }}&exportar=csv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </a>
       {% if puede_llevar_factura %}
-        <a class="boton secundario" href="{% url 'erp_cartera_factura' %}">Llevar factura a cartera</a>
+        <a class="boton secundario" href="{% url 'erp_cartera_factura' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Llevar factura a cartera
+        </a>
       {% endif %}
       {% if puede_gestionar %}
-        <a class="boton" href="{% url 'erp_crear' modulo %}">Nuevo registro</a>
+        <a class="boton" href="{% url 'erp_crear' modulo %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Nuevo registro
+        </a>
       {% endif %}
     </div>
   </div>
 
-  <form method="get" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center;">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar en {{ config.titulo|lower }}…" aria-label="Buscar" style="max-width: 320px;">
+  <form method="get" class="erp-filtros-barra">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar en {{ config.titulo|lower }}…" aria-label="Buscar">
     {% if modulo == "cartera" %}
-      <select name="estado" aria-label="Filtrar por estado" style="max-width: 200px;">
+      <select name="estado" aria-label="Filtrar por estado">
         <option value="" {% if not estado %}selected{% endif %}>Todos los estados</option>
         <option value="pendiente" {% if estado == "pendiente" %}selected{% endif %}>Pendientes</option>
         <option value="vencida" {% if estado == "vencida" %}selected{% endif %}>Vencidas</option>
         <option value="pagada" {% if estado == "pagada" %}selected{% endif %}>Pagadas</option>
       </select>
     {% endif %}
-    <button type="submit" class="boton secundario">Filtrar</button>
+    <button type="submit" class="boton secundario">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filtrar
+    </button>
     {% if q or estado %}
-      <a class="boton secundario" href="{% url 'erp_lista' modulo %}">Limpiar</a>
+      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">Limpiar</a>
     {% endif %}
   </form>
 
@@ -52,22 +70,41 @@
       {% for fila in filas %}
         <tr>
           {% for v in fila.valores %}
-            <td>{{ v }}</td>
+            <td>
+              {% if v == "Sí" or v == "Pagada" or v == "Atendida" %}
+                <span class="badge exito">{{ v }}</span>
+              {% elif v == "No" or v == "Pendiente" %}
+                <span class="badge alerta">{{ v }}</span>
+              {% elif v == "Vencida" or v == "Cancelada" %}
+                <span class="badge peligro">{{ v }}</span>
+              {% else %}
+                {{ v }}
+              {% endif %}
+            </td>
           {% endfor %}
           <td class="acciones-fila">
-            <a class="boton secundario" href="{% url 'erp_detalle' modulo fila.pk %}">Ver detalle</a>
+            <a class="boton secundario pequeno" href="{% url 'erp_detalle' modulo fila.pk %}">Ver detalle →</a>
           </td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="{{ cabeceras|length|add:1 }}">No hay registros para mostrar.</td>
+          <td colspan="{{ cabeceras|length|add:1 }}">
+            <div class="erp-vacio">
+              <strong>No hay registros para mostrar</strong>
+              {% if q or estado %}
+                Prueba cambiando o limpiando los filtros de búsqueda.
+              {% elif puede_gestionar %}
+                Crea el primer registro con el botón "Nuevo registro".
+              {% endif %}
+            </div>
+          </td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
 
   {% if pagina.has_other_pages %}
-    <nav class="paginacion">
+    <nav class="paginacion" aria-label="Paginación">
       {% if pagina.has_previous %}
         <a href="?page={{ pagina.previous_page_number }}&q={{ q|urlencode }}&estado={{ estado|urlencode }}">← Anterior</a>
       {% endif %}

@@ -7,6 +7,8 @@
       <h1>{{ config.titulo }}</h1>
       {% if config.ayuda %}
         <p class="nota">{{ config.ayuda }}</p>
+      {% else %}
+        <p class="nota">Completa los datos para registrar en <strong>{{ request.empresa.nombre }}</strong>.</p>
       {% endif %}
     </div>
     <a class="boton secundario" href="{% url 'erp_lista' modulo %}">← Volver al listado</a>
@@ -28,21 +30,24 @@
     {% endfor %}
 
     {% for field in form.visible_fields %}
-      <div class="campo" style="margin-bottom: 16px;">
+      <div class="campo">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.help_text %}
-          <small style="display: block; color: var(--tenue); margin-top: 4px;">{{ field.help_text }}</small>
+          <small class="ayuda">{{ field.help_text }}</small>
         {% endif %}
         {% for error in field.errors %}
-          <div class="error-campo" style="color: var(--rojo); font-size: .85rem; margin-top: 4px;">{{ error }}</div>
+          <div class="error">{{ error }}</div>
         {% endfor %}
       </div>
     {% endfor %}
 
-    <div class="acciones" style="display: flex; gap: 12px; margin-top: 20px;">
-      <button type="submit">Guardar</button>
-      <a class="boton secundario" href="{% url 'erp_lista' modulo %}">Cancelar</a>
+    <div class="acciones">
+      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">Cancelar</a>
+      <button type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar
+      </button>
     </div>
   </form>
 {% endblock %}

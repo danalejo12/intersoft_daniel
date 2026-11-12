@@ -7,20 +7,32 @@
       <h1>{{ titulo }}</h1>
       <p class="nota">Consolidado financiero y contable de <strong>{{ request.empresa.nombre }}</strong>.</p>
     </div>
-    <a class="boton secundario" href="{% url 'erp_inicio' %}">← Volver a Gestión ERP</a>
+    <div class="erp-toolbar">
+      <button type="button" class="boton secundario" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir reporte
+      </button>
+      <a class="boton secundario" href="{% url 'erp_inicio' %}">← Volver a Gestión ERP</a>
+    </div>
   </div>
 
   {% if cartera is not None %}
     <div class="tarjeta" style="margin-bottom: 20px;">
       <div class="tarjeta-cabecera">
         <h2>Saldos pendientes de cartera</h2>
-        <a class="boton secundario" href="{% url 'erp_lista' 'cartera' %}">Ver cartera</a>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'cartera' %}">Ver cartera →</a>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+      <div class="kpis" style="margin-bottom: 0;">
         {% for item in cartera %}
-          <div class="kpi">
-            <span>{{ item.tipo }}</span>
+          <div class="kpi {% if 'cobrar' in item.tipo|lower %}verde{% else %}ambar{% endif %}">
+            <div class="kpi-cabecera">
+              <span class="kpi-icono">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+              </span>
+              <span>{{ item.tipo }}</span>
+            </div>
             <strong class="num">$ {{ item.total|floatformat:"0g" }}</strong>
+            <small>Saldo pendiente acumulado</small>
           </div>
         {% endfor %}
       </div>
@@ -31,7 +43,7 @@
     <div class="tarjeta" style="margin-bottom: 20px;">
       <div class="tarjeta-cabecera">
         <h2>Saldos en cajas y bancos</h2>
-        <a class="boton secundario" href="{% url 'erp_lista' 'tesoreria' %}">Ver movimientos</a>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'tesoreria' %}">Ver movimientos →</a>
       </div>
       <table class="tabla">
         <thead>
@@ -55,7 +67,7 @@
     <div class="tarjeta">
       <div class="tarjeta-cabecera">
         <h2>Balance de comprobación (asientos confirmados)</h2>
-        <a class="boton secundario" href="{% url 'erp_lista' 'contabilidad' %}">Ver comprobantes</a>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'contabilidad' %}">Ver comprobantes →</a>
       </div>
       <table class="tabla">
         <thead>
@@ -69,7 +81,7 @@
         <tbody>
           {% for fila in balance %}
             <tr>
-              <td>{{ fila.cuenta__codigo }}</td>
+              <td><span class="badge neutro">{{ fila.cuenta__codigo }}</span></td>
               <td>{{ fila.cuenta__nombre }}</td>
               <td class="num">$ {{ fila.debito|floatformat:"0g" }}</td>
               <td class="num">$ {{ fila.credito|floatformat:"0g" }}</td>

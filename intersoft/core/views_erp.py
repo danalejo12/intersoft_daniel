@@ -22,18 +22,18 @@ from .services import StockInsuficiente
 
 
 MODULOS = {
-    "proveedores": dict(model=m.Proveedor, titulo="Proveedores", permiso="compras", campos=["nombre", "documento", "email", "telefono", "direccion", "activo"], columnas=["nombre", "documento", "telefono", "activo"], buscar=["nombre", "documento"]),
-    "compras": dict(model=m.Compra, titulo="Compras", permiso="compras", campos=["proveedor", "referencia", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
-    "cartera": dict(model=m.CuentaCartera, titulo="Cuentas por cobrar y pagar", permiso="cartera", campos=["tipo", "tercero", "concepto", "fecha", "vencimiento", "total"], columnas=["tipo", "tercero", "concepto", "vencimiento", "total", "saldo", "estado"], buscar=["tercero", "concepto"]),
-    "cuentas": dict(model=m.CuentaTesoreria, titulo="Cajas y bancos", permiso="tesoreria", campos=["nombre", "tipo", "activa"], columnas=["nombre", "tipo", "activa"], buscar=["nombre"]),
-    "tesoreria": dict(model=m.MovimientoTesoreria, titulo="Ingresos y egresos", permiso="tesoreria", campos=[], columnas=["fecha", "cuenta", "tipo", "concepto", "monto", "conciliado"], buscar=["concepto", "referencia"], accion="conciliar", etiqueta="Marcar conciliado", cerrado="conciliado"),
-    "plan-contable": dict(model=m.CuentaContable, titulo="Plan de cuentas", permiso="contabilidad", campos=["codigo", "nombre", "naturaleza"], columnas=["codigo", "nombre", "naturaleza"], buscar=["codigo", "nombre"]),
-    "contabilidad": dict(model=m.AsientoContable, titulo="Comprobantes contables", permiso="contabilidad", campos=["fecha", "concepto", "referencia"], columnas=["fecha", "concepto", "referencia", "confirmado"], buscar=["concepto", "referencia"], linea=m.LineaAsiento, relacion="asiento", campos_linea=["cuenta", "debito", "credito"], accion="confirmar", etiqueta="Confirmar comprobante", cerrado="confirmado"),
-    "empleados": dict(model=m.Empleado, titulo="Empleados y profesionales", permiso="nomina", campos=["nombre", "documento", "cargo", "salario_base", "fecha_ingreso", "activo"], columnas=["nombre", "documento", "cargo", "salario_base", "activo"], buscar=["nombre", "documento"]),
-    "nomina": dict(model=m.LiquidacionNomina, titulo="Liquidaciones de nómina", permiso="nomina", campos=["empleado", "desde", "hasta", "base", "adicionales", "deducciones", "observaciones"], columnas=["empleado", "desde", "hasta", "neto", "aprobada"], buscar=["empleado__nombre"], accion="aprobar", etiqueta="Aprobar y generar cuenta por pagar", cerrado="aprobada", ayuda="Registra los valores revisados de cada período. Base, adicionales y deducciones se ingresan manualmente; no se calculan aportes ni prestaciones automáticamente."),
-    "produccion": dict(model=m.OrdenProduccion, titulo="Órdenes de producción", permiso="produccion", campos=["producto", "cantidad", "fecha", "observaciones"], columnas=["producto", "cantidad", "fecha", "completada"], buscar=["producto__nombre"], linea=m.InsumoProduccion, relacion="orden", campos_linea=["producto", "cantidad"], accion="producir", etiqueta="Consumir insumos y recibir producto", cerrado="completada", ayuda="Indica las cantidades totales de insumos para esta orden, en unidades enteras."),
-    "servicios": dict(model=m.Servicio, titulo="Catálogo de servicios", permiso="agenda", campos=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], columnas=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], buscar=["nombre"]),
-    "agenda": dict(model=m.Cita, titulo="Agenda de servicios", permiso="agenda", campos=["cliente", "empleado", "servicio", "inicio", "observaciones"], columnas=["inicio", "fin", "cliente", "empleado", "servicio", "total", "estado"], buscar=["cliente__nombre", "empleado__nombre", "servicio__nombre"], ayuda="Al atender una cita se genera una cuenta por cobrar. Registra su cobro desde Ingresos y egresos."),
+    "proveedores": dict(model=m.Proveedor, titulo="Proveedores", permiso="compras", categoria="Abastecimiento", color="azul", icono="truck", descripcion="Directorio de proveedores, NIT y datos de contacto.", campos=["nombre", "documento", "email", "telefono", "direccion", "activo"], columnas=["nombre", "documento", "telefono", "activo"], buscar=["nombre", "documento"]),
+    "compras": dict(model=m.Compra, titulo="Compras", permiso="compras", categoria="Abastecimiento", color="azul", icono="bag", descripcion="Órdenes de compra, recepción en Kardex y cuentas por pagar.", campos=["proveedor", "referencia", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
+    "cartera": dict(model=m.CuentaCartera, titulo="Cuentas por cobrar y pagar", permiso="cartera", categoria="Finanzas", color="ambar", icono="wallet", descripcion="Control de vencimientos, saldos pendientes y abonos.", campos=["tipo", "tercero", "concepto", "fecha", "vencimiento", "total"], columnas=["tipo", "tercero", "concepto", "vencimiento", "total", "saldo", "estado"], buscar=["tercero", "concepto"]),
+    "cuentas": dict(model=m.CuentaTesoreria, titulo="Cajas y bancos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="bank", descripcion="Cuentas bancarias y cajas disponibles para recaudos y pagos.", campos=["nombre", "tipo", "activa"], columnas=["nombre", "tipo", "activa"], buscar=["nombre"]),
+    "tesoreria": dict(model=m.MovimientoTesoreria, titulo="Ingresos y egresos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="arrows", descripcion="Movimientos de caja/banco, abonos a cartera y conciliación.", campos=[], columnas=["fecha", "cuenta", "tipo", "concepto", "monto", "conciliado"], buscar=["concepto", "referencia"], accion="conciliar", etiqueta="Marcar conciliado", cerrado="conciliado"),
+    "plan-contable": dict(model=m.CuentaContable, titulo="Plan de cuentas", permiso="contabilidad", categoria="Contabilidad", color="violeta", icono="book", descripcion="Catálogo PUC de cuentas de débito y crédito por empresa.", campos=["codigo", "nombre", "naturaleza"], columnas=["codigo", "nombre", "naturaleza"], buscar=["codigo", "nombre"]),
+    "contabilidad": dict(model=m.AsientoContable, titulo="Comprobantes contables", permiso="contabilidad", categoria="Contabilidad", color="violeta", icono="scale", descripcion="Asientos de diario con validación de partida doble.", campos=["fecha", "concepto", "referencia"], columnas=["fecha", "concepto", "referencia", "confirmado"], buscar=["concepto", "referencia"], linea=m.LineaAsiento, relacion="asiento", campos_linea=["cuenta", "debito", "credito"], accion="confirmar", etiqueta="Confirmar comprobante", cerrado="confirmado"),
+    "empleados": dict(model=m.Empleado, titulo="Empleados y profesionales", permiso="nomina", categoria="Talento Humano", color="azul", icono="users", descripcion="Personal activo, cargos, salarios base y agenda.", campos=["nombre", "documento", "cargo", "salario_base", "fecha_ingreso", "activo"], columnas=["nombre", "documento", "cargo", "salario_base", "activo"], buscar=["nombre", "documento"]),
+    "nomina": dict(model=m.LiquidacionNomina, titulo="Liquidaciones de nómina", permiso="nomina", categoria="Talento Humano", color="ambar", icono="receipt", descripcion="Liquidaciones por período con generación de cuenta por pagar.", campos=["empleado", "desde", "hasta", "base", "adicionales", "deducciones", "observaciones"], columnas=["empleado", "desde", "hasta", "neto", "aprobada"], buscar=["empleado__nombre"], accion="aprobar", etiqueta="Aprobar y generar cuenta por pagar", cerrado="aprobada", ayuda="Registra los valores revisados de cada período. Base, adicionales y deducciones se ingresan manualmente; no se calculan aportes ni prestaciones automáticamente."),
+    "produccion": dict(model=m.OrdenProduccion, titulo="Órdenes de producción", permiso="produccion", categoria="Operación", color="violeta", icono="factory", descripcion="Transformación de insumos en producto terminado en Kardex.", campos=["producto", "cantidad", "fecha", "observaciones"], columnas=["producto", "cantidad", "fecha", "completada"], buscar=["producto__nombre"], linea=m.InsumoProduccion, relacion="orden", campos_linea=["producto", "cantidad"], accion="producir", etiqueta="Consumir insumos y recibir producto", cerrado="completada", ayuda="Indica las cantidades totales de insumos para esta orden, en unidades enteras."),
+    "servicios": dict(model=m.Servicio, titulo="Catálogo de servicios", permiso="agenda", categoria="Operación", color="verde", icono="sparkles", descripcion="Servicios ofertados, tarifas, IVA y duración estimada.", campos=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], columnas=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], buscar=["nombre"]),
+    "agenda": dict(model=m.Cita, titulo="Agenda de servicios", permiso="agenda", categoria="Operación", color="azul", icono="calendar", descripcion="Programación de citas sin cruces y facturación en cartera.", campos=["cliente", "empleado", "servicio", "inicio", "observaciones"], columnas=["inicio", "fin", "cliente", "empleado", "servicio", "total", "estado"], buscar=["cliente__nombre", "empleado__nombre", "servicio__nombre"], ayuda="Al atender una cita se genera una cuenta por cobrar. Registra su cobro desde Ingresos y egresos."),
 }
 
 DINERO = {"total", "subtotal", "iva", "abonado", "saldo", "monto", "precio", "salario_base", "base", "adicionales", "deducciones", "neto", "costo", "debito", "credito"}
@@ -79,16 +79,34 @@ class AccesoERP(TenantMixin, View):
 class InicioERP(AccesoERP):
     def get(self, request):
         tarjetas = []
+        categorias = []
         for slug, config in MODULOS.items():
             if request.membresia.tiene_permiso(f"{config['permiso']}.ver"):
-                tarjetas.append(dict(slug=slug, titulo=config["titulo"], cantidad=config["model"].objects.filter(empresa=request.empresa).count()))
+                categoria = config.get("categoria", "General")
+                if categoria not in categorias:
+                    categorias.append(categoria)
+                tarjetas.append(
+                    dict(
+                        slug=slug,
+                        titulo=config["titulo"],
+                        cantidad=config["model"].objects.filter(empresa=request.empresa).count(),
+                        categoria=categoria,
+                        color=config.get("color", "azul"),
+                        icono=config.get("icono", "grid"),
+                        descripcion=config.get("descripcion", ""),
+                    )
+                )
         puede_ver_reportes = request.membresia.tiene_permiso("reportes.ver")
         if not tarjetas and not puede_ver_reportes:
             raise PermissionDenied
         return render(
             request,
             "core/erp/inicio.html",
-            {"tarjetas": tarjetas, "puede_ver_reportes": puede_ver_reportes},
+            {
+                "tarjetas": tarjetas,
+                "categorias": categorias,
+                "puede_ver_reportes": puede_ver_reportes,
+            },
         )
 
 
@@ -128,7 +146,7 @@ class ListaERP(AccesoERP):
         puede_gestionar = self.puede_gestionar()
         return render(request, "core/erp/lista.html", dict(config=config, modulo=modulo, cabeceras=cabeceras,
             filas=[dict(pk=o.pk, valores=[valor(o, c) for c in columnas]) for o in pagina], pagina=pagina,
-            q=q, estado=estado, puede_gestionar=puede_gestionar,
+            total_registros=pagina.paginator.count, q=q, estado=estado, puede_gestionar=puede_gestionar,
             puede_llevar_factura=modulo == "cartera" and puede_gestionar and request.membresia.tiene_permiso("ventas.ver")))
 
 
