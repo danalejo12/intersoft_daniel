@@ -7,9 +7,15 @@
       <h1>{{ producto.nombre }}</h1>
       <p class="nota">{{ producto.codigo }} · Stock actual: <strong>{{ producto.stock }}</strong> · Mínimo: {{ producto.stock_minimo }}</p>
     </div>
-    {% if puede_mover %}
-      <a class="boton" href="{% url 'productos_movimiento' producto.pk %}">Registrar movimiento</a>
-    {% endif %}
+    <div class="acciones-fila">
+      <a class="boton secundario" href="{% url 'productos_lista' %}">← Volver a productos</a>
+      {% if puede_mover %}
+        <a class="boton" href="{% url 'productos_movimiento' producto.pk %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Registrar movimiento
+        </a>
+      {% endif %}
+    </div>
   </div>
 
   <h2>Kardex</h2>

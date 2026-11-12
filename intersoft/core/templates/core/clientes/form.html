@@ -2,7 +2,10 @@
 {% block titulo %}{% if object %}Editar{% else %}Nuevo{% endif %} cliente · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
+  <div class="encabezado">
+    <h1>{% if object %}Editar cliente{% else %}Nuevo cliente{% endif %}</h1>
+    <a class="boton secundario" href="{% url 'clientes_lista' %}">← Volver a clientes</a>
+  </div>
 
   <form method="post" class="formulario" novalidate>
     {% csrf_token %}
@@ -29,8 +32,11 @@
     {% endfor %}
 
     <div class="acciones">
-      <a href="{% url 'clientes_lista' %}">Cancelar</a>
-      <button type="submit">Guardar</button>
+      <a class="boton secundario" href="{% url 'clientes_lista' %}">Cancelar</a>
+      <button type="submit" class="boton">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        Guardar cliente
+      </button>
     </div>
   </form>
 {% endblock %}

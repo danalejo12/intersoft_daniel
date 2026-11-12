@@ -2,7 +2,10 @@
 {% block titulo %}{% if object %}Editar{% else %}Nuevo{% endif %} producto · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
+  <div class="encabezado">
+    <h1>{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
+    <a class="boton secundario" href="{% url 'productos_lista' %}">← Volver a productos</a>
+  </div>
 
   <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
@@ -15,8 +18,11 @@
       </div>
     {% endfor %}
     <div class="acciones">
-      <a href="{% url 'productos_lista' %}">Cancelar</a>
-      <button type="submit">Guardar</button>
+      <a class="boton secundario" href="{% url 'productos_lista' %}">Cancelar</a>
+      <button type="submit" class="boton">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        Guardar producto
+      </button>
     </div>
   </form>
 {% endblock %}
