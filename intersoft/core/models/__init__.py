@@ -8,9 +8,9 @@ from .base import ModeloBase, ModeloTenant, TenantQuerySet
 from .empresas import Empresa
 from .usuarios import Usuario, Permiso, Rol, Membresia
 from .clientes import Cliente
-from .inventario import Categoria, Producto, MovimientoInventario
+from .inventario import FOTOS_EXTRA_MAXIMO, Categoria, FotoProducto, MovimientoInventario, Producto
 from .ventas import Factura, DetalleFactura
-from .pagos import Pago
+from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
 from .pedidos import Comentario, DetallePedido, Pedido
 from .caja import PagoCaja, TurnoCaja
 from .erp import (
@@ -24,6 +24,6 @@ __all__ = [
     "Empresa",
     "Usuario", "Permiso", "Rol", "Membresia",
     "Cliente",
-    "Categoria", "Producto", "MovimientoInventario",
+    "Categoria", "Producto", "FotoProducto", "FOTOS_EXTRA_MAXIMO", "MovimientoInventario",
     "Factura", "DetalleFactura",
 ]

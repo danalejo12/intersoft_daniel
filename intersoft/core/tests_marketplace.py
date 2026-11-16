@@ -251,6 +251,7 @@ class ProductoFormularioTests(TestCase):
         self.assertFalse(producto.publicado)
 
 
+@override_settings(WOMPI_COBRAR_TARIFA_AL_COMPRADOR=False)  # prueba el IVA, no la pasarela
 class PrecioConIvaTests(TestCase):
     @classmethod
     def setUpTestData(cls):

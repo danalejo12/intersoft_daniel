@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models import Q
  
 from ..impuestos import calcular_iva
+from ..tarifas import cargo_pasarela
 from .base import ModeloTenant
  
  
@@ -94,8 +95,40 @@ class Producto(ModeloTenant):
     def precio_con_iva(self):
         """Precio al consumidor: la Ley 1480 de 2011 (art. 26) exige informarlo con impuestos."""
         return self.precio + calcular_iva(self.precio, self.iva_porcentaje)
+
+    @property
+    def cargo_pasarela(self):
+        """Comisión de Wompi de comprar una unidad sola (porcentaje + fijo + IVA)."""
+        return cargo_pasarela(self.precio_con_iva, config=self.empresa.configuracion_pagos)
+
+    @property
+    def precio_marketplace(self):
+        """Lo que paga el comprador por una unidad: precio, IVA y cargo de la pasarela."""
+        return self.precio_con_iva + self.cargo_pasarela
  
  
+FOTOS_EXTRA_MAXIMO = 8  # Galería: fotos además de la principal
+
+
+class FotoProducto(ModeloTenant):
+    """Fotos adicionales de un producto para la galería del marketplace."""
+
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="fotos")
+    imagen = models.ImageField(
+        upload_to=ruta_imagen_producto,
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
+    )
+    orden = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "foto de producto"
+        verbose_name_plural = "fotos de producto"
+        ordering = ["orden", "creado_en"]
+
+    def __str__(self):
+        return f"Foto {self.orden + 1} · {self.producto.nombre}"
+
+
 class MovimientoInventario(ModeloTenant):
     """Historial inmutable de cada cambio de stock (kardex)."""
  
@@ -122,4 +155,4 @@ class MovimientoInventario(ModeloTenant):
  
     def __str__(self):
         return f"{self.get_tipo_display()} {self.cantidad} · {self.producto}"
- 
+

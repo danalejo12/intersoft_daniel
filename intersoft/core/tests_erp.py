@@ -32,6 +32,7 @@ from core.models import (
     Servicio,
 )
 from core.negocios import registrar_negocio
+from core.testing_pagos import conectar_pruebas
 
 User = get_user_model()
 
@@ -52,6 +53,7 @@ def _crear_empresa_con_admin(email, nombre):
             "telefono": "6012345678",
         },
     )
+    conectar_pruebas(empresa)
     return usuario, empresa
 
 

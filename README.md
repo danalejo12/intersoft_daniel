@@ -23,6 +23,7 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
   - Catálogo público por negocio (`/tienda/<slug>/`), opiniones con insignia de compra verificada y cumplimiento del art. 53 de la Ley 1480 (datos legales del vendedor).
   - Reserva temporal de stock al confirmar pedido con bloqueo de filas (`select_for_update`), renovación controlada y liberación automática de pedidos vencidos (`liberar_pedidos_vencidos`).
 - **Pasarela de pagos Wompi y simulador local**:
+  - Cada negocio conecta sus propias llaves cifradas en **Panel → Negocio → Pagos**, con tarifas, verificación y auditoría. [Configuración y transición](docs/PAGOS-POR-NEGOCIO.md).
   - Firma de integridad SHA-256, webhook con verificación `hmac.compare_digest`, idempotencia en pagos y alertas `CRITICAL` a `ADMINS` ante discrepancias de monto/moneda o reembolsos requeridos.
 - **Seguridad y operación**:
   - Configuración por variables de entorno con `python-decouple`.
@@ -177,8 +178,8 @@ El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersof
   pg_restore -h localhost -U postgres -d intersoft --clean --if-exists backup_intersoft_YYYY-MM-DD.dump
   ```
 - **Webhook de Wompi en producción:**
-  - Configura en el comercio de Wompi la URL pública `https://<tu-dominio>/webhooks/wompi/` y copia el secreto de eventos en `WOMPI_EVENTS_SECRET`.
-  - La vista [`WompiWebhookView`](intersoft/core/views_facturas.py) valida la firma SHA-256 con `hmac.compare_digest` y aplica la transacción de forma idempotente.
+  - Cada negocio configura la URL pública `https://<tu-dominio>/webhooks/wompi/<uuid-del-negocio>/` y sus propios secretos desde el panel.
+  - La vista `WompiWebhookNegocioView` valida firma, negocio y transacción, y aplica el resultado de forma idempotente. La URL antigua queda solo para conciliar intentos históricos.
 - **Monitoreo opcional de errores (Sentry):**
   - Si defines `SENTRY_DSN` en `intersoft/.env` e instalas `sentry-sdk`, `settings.py` lo inicializa automáticamente con `send_default_pii=False`.
 

@@ -71,6 +71,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.carrito',
+                'core.bienvenida.bienvenida',
             ],
         },
     },
@@ -251,8 +252,23 @@ WOMPI_INTEGRITY_SECRET = config("WOMPI_INTEGRITY_SECRET", default="")
 WOMPI_EVENTS_SECRET = config("WOMPI_EVENTS_SECRET", default="")
 WOMPI_PRIVATE_KEY = config("WOMPI_PRIVATE_KEY", default="")  # Solo para consultar transacciones
 WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/"
+# Cifra las llaves de Wompi de cada negocio. Varias separadas por comas: la primera cifra.
+PAGOS_CLAVES_CIFRADO = config("PAGOS_CLAVES_CIFRADO", default="")
+DEFAULT_EXCEPTION_REPORTER_FILTER = "core.cifrado.FiltroSecretosPago"
 # Solo para desarrollo: pagos.pasarela_simulada() además exige DEBUG=True
 PASARELA_SIMULADA = config("PASARELA_SIMULADA", default=False, cast=bool)
+
+# Compatibilidad de configuración antigua. Las ventas usan las tarifas guardadas por negocio.
+WOMPI_COBRAR_TARIFA_AL_COMPRADOR = config("WOMPI_COBRAR_TARIFA_AL_COMPRADOR", default=True, cast=bool)
+WOMPI_TARIFA_PORCENTAJE = config("WOMPI_TARIFA_PORCENTAJE", default="2.65")
+WOMPI_TARIFA_FIJA = config("WOMPI_TARIFA_FIJA", default="700")
+WOMPI_TARIFA_IVA = config("WOMPI_TARIFA_IVA", default="19")
+
+# Aviso de pedido pagado por WhatsApp Cloud API (opcional). La plantilla debe estar aprobada
+# por Meta, en español, con tres variables en el cuerpo: número de pedido, total y cliente.
+WHATSAPP_TOKEN = config("WHATSAPP_TOKEN", default="")
+WHATSAPP_TELEFONO_ID = config("WHATSAPP_TELEFONO_ID", default="")
+WHATSAPP_PLANTILLA_PEDIDO = config("WHATSAPP_PLANTILLA_PEDIDO", default="")
 
 
 # ---------------------------------------------------------------

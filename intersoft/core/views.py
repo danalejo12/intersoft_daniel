@@ -16,6 +16,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 from .forms import ClienteForm, DatosNegocioForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
 from .models import Cliente, Factura, Membresia, Producto
+from .primeros_pasos import pasos_del_negocio
 from .redirecciones import destino_seguro
 from .views_facturas import (
     FacturaAnularView,
@@ -58,6 +59,15 @@ class DashboardView(TenantMixin, TemplateView):
 
         # TemplateView NO pasa por get_queryset: filtramos por empresa a mano
         productos = Producto.objects.de_empresa(empresa).filter(activo=True)
+
+        # Guía de primeros pasos: solo para quien administra el negocio y mientras falte algo
+        if self.request.membresia.tiene_permiso("negocio.editar"):
+            pasos = pasos_del_negocio(empresa, self.request.user)
+            hechos = sum(paso.hecho for paso in pasos)
+            if hechos < len(pasos):
+                contexto["primeros_pasos"] = pasos
+                contexto["pasos_hechos"] = hechos
+                contexto["pasos_avance"] = round(100 * hechos / len(pasos))
 
         contexto["total_clientes"] = Cliente.objects.de_empresa(empresa).filter(activo=True).count()
         total_productos = productos.count()

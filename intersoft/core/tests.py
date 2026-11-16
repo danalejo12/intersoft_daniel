@@ -34,6 +34,9 @@ from .pagos import (
     monto_en_centavos,
 )
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
+from .testing_pagos import conectar_pruebas
+from .pasarelas import credenciales_negocio, credenciales_pago
+from dataclasses import replace
 
 class FacturacionTests(TestCase):
     def setUp(self):
@@ -174,6 +177,7 @@ class EliminacionTests(TestCase):
 class PagoTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Empresa Pago", nit="900000030", slug="empresa-pago")
+        conectar_pruebas(self.empresa)
         self.usuario = Usuario.objects.create_user(username="p@test.co", email="p@test.co", password="x")
         cliente = Cliente.objects.create(
             empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
@@ -253,6 +257,7 @@ class CobroVistaTests(TestCase):
 
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000040", slug="mia-pago")
+        conectar_pruebas(self.empresa)
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000041", slug="ajena-pago")
         self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
@@ -290,12 +295,15 @@ class FlujoPagoTests(TestCase):
         )
 
     def enviar(self, evento):
-        return self.client.post(
-            reverse("wompi_webhook"), data=json.dumps(evento), content_type="application/json"
-        )
+        with mock.patch("core.pagos.consultar_transaccion", return_value=evento["data"]["transaction"]):
+            return self.client.post(
+                reverse("wompi_webhook_negocio", args=[self.empresa.pk]),
+                data=json.dumps(evento), content_type="application/json"
+            )
 
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000050", slug="mia-flujo")
+        conectar_pruebas(self.empresa)
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000051", slug="ajena-flujo")
         self.usuario = Usuario.objects.create_user(username="f@test.co", email="f@test.co", password="x")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
@@ -378,6 +386,7 @@ class ConsultaWompiTests(TestCase):
 
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000060", slug="mia-consulta")
+        conectar_pruebas(self.empresa)
         self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
@@ -404,7 +413,7 @@ class ConsultaWompiTests(TestCase):
         return {**datos, **cambios}
 
     def volver_de_wompi(self, transaccion):
-        with mock.patch("core.pagos.consultar_transaccion", return_value=transaccion) as consulta:
+        with mock.patch("core.pagos.buscar_transaccion_por_referencia", return_value=transaccion) as consulta:
             respuesta = self.client.get(
                 reverse("pagos_resultado", args=[self.pago.pk]), {"id": "1234-5678-90"}
             )
@@ -413,7 +422,7 @@ class ConsultaWompiTests(TestCase):
 
     def test_aprobado_en_wompi_aprueba_el_pago(self):
         respuesta, consulta = self.volver_de_wompi(self.transaccion())
-        consulta.assert_called_once_with("1234-5678-90")
+        consulta.assert_called_once_with(self.pago.referencia, llaves=credenciales_pago(self.pago))
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(self.pago.estado, Pago.Estado.APROBADO)
 
@@ -434,8 +443,8 @@ class ConsultaWompiTests(TestCase):
         respuesta_api.__enter__.return_value.read.return_value = b'{"data": {"id": "1"}}'
         with mock.patch("core.pagos.urlopen", return_value=respuesta_api) as abrir:
             from .pagos import consultar_transaccion
-            self.assertEqual(consultar_transaccion("1234-5678-90"), {"id": "1"})
-            self.assertIsNone(consultar_transaccion("../admin"))  # id con formato raro: ni se consulta
+            self.assertEqual(consultar_transaccion("1234-5678-90", llaves=credenciales_pago(self.pago)), {"id": "1"})
+            self.assertIsNone(consultar_transaccion("../admin", llaves=credenciales_pago(self.pago)))
         self.assertEqual(abrir.call_count, 1)
         self.assertEqual(
             abrir.call_args.args[0].full_url, "https://sandbox.wompi.co/v1/transactions/1234-5678-90"
@@ -457,7 +466,7 @@ class WompiDesdeLocalTests(ConsultaWompiTests):
         with mock.patch("core.pagos.buscar_transaccion_por_referencia",
                         return_value=self.transaccion(status="DECLINED")) as buscar:
             self.client.get(reverse("pagos_resultado", args=[self.pago.pk]))
-        buscar.assert_called_once_with(self.pago.referencia)
+        buscar.assert_called_once_with(self.pago.referencia, llaves=credenciales_pago(self.pago))
         self.pago.refresh_from_db()
         self.assertEqual(self.pago.estado, Pago.Estado.RECHAZADO)
 
@@ -469,7 +478,7 @@ class WompiDesdeLocalTests(ConsultaWompiTests):
         ]}).encode()
         with mock.patch("core.pagos.urlopen", return_value=respuesta_api) as abrir:
             from .pagos import buscar_transaccion_por_referencia
-            self.assertEqual(buscar_transaccion_por_referencia("INT-abc")["id"], "nuevo")
+            self.assertEqual(buscar_transaccion_por_referencia("INT-abc", llaves=credenciales_pago(self.pago))["id"], "nuevo")
         peticion = abrir.call_args.args[0]
         self.assertEqual(peticion.full_url, "https://sandbox.wompi.co/v1/transactions?reference=INT-abc")
         self.assertEqual(peticion.get_header("Authorization"), "Bearer prv_test_x")
@@ -478,7 +487,7 @@ class WompiDesdeLocalTests(ConsultaWompiTests):
     def test_sin_llave_privada_no_consulta(self):
         with mock.patch("core.pagos.urlopen") as abrir:
             from .pagos import buscar_transaccion_por_referencia
-            self.assertIsNone(buscar_transaccion_por_referencia("INT-abc"))
+            self.assertIsNone(buscar_transaccion_por_referencia("INT-abc", llaves=replace(credenciales_pago(self.pago), privada="")))
         abrir.assert_not_called()
 
 

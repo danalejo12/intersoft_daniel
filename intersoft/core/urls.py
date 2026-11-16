@@ -1,13 +1,17 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from . import views, views_compra, views_equipo, views_erp, views_pedidos_panel, views_pos, views_tienda
+from . import views, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("negocio/", views.DatosNegocioView.as_view(), name="negocio_datos"),
     path("negocio/cambiar/", views.CambiarNegocioView.as_view(), name="negocio_cambiar"),
+    path("negocio/pagos/", views_pagos.PagosNegocioView.as_view(), name="negocio_pagos"),
+    path("negocio/pagos/verificar/", views_pagos.VerificarPagosView.as_view(), name="negocio_pagos_verificar"),
+    path("negocio/pagos/activar/", views_pagos.ActivarPagosView.as_view(), name="negocio_pagos_activar"),
+    path("negocio/pagos/borrar/", views_pagos.EliminarPagosView.as_view(), name="negocio_pagos_eliminar"),
 
     # Equipo y roles
     path("equipo/", views_equipo.EquipoView.as_view(), name="equipo_lista"),
@@ -75,6 +79,7 @@ urlpatterns = [
     path("", views_tienda.MarketplaceView.as_view(), name="marketplace"),
     path("tienda/producto/<uuid:pk>/", views_tienda.ProductoPublicoView.as_view(), name="tienda_producto"),
     path("tienda/<slug:slug>/", views_tienda.TiendaNegocioView.as_view(), name="tienda_negocio"),
+    path("buscar/sugerencias/", views_tienda.sugerencias_busqueda, name="sugerencias_busqueda"),
 
     # Opiniones
     path("tienda/producto/<uuid:pk>/comentar/", views_compra.ComentarView.as_view(), name="comentar"),
@@ -105,6 +110,7 @@ urlpatterns = [
     # Panel de cada negocio
     path("panel/", include(panel_urlpatterns)),
 
-    # Wompi tiene esta dirección configurada: no se mueve
+    path("webhooks/wompi/<uuid:empresa_id>/", views_facturas.WompiWebhookNegocioView.as_view(), name="wompi_webhook_negocio"),
+    # Compatibilidad con avisos de ventas anteriores a las pasarelas propias.
     path("webhooks/wompi/", views.WompiWebhookView.as_view(), name="wompi_webhook"),
 ]

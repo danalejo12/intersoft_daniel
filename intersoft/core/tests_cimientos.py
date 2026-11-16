@@ -136,6 +136,8 @@ class DatosVendedorTests(TestCase):
 
         self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
         self.negocio = crear_negocio("Panadería", "900123", self.dueno)
+        from .testing_pagos import conectar_pruebas
+        conectar_pruebas(self.negocio)
         self.producto = crear_producto(self.negocio)
 
     def quitar_datos(self):
@@ -213,6 +215,7 @@ class DatosVendedorTests(TestCase):
                 self.assertContains(respuesta, dato)
 
 
+@override_settings(WOMPI_COBRAR_TARIFA_AL_COMPRADOR=False)  # prueba el IVA, no la pasarela
 class RedondeoIvaTests(TestCase):
     """Un caso de empate: 0,50 con IVA del 1 % da 0,005, que debe quedar en 0,01 en todas partes."""
 
@@ -221,6 +224,8 @@ class RedondeoIvaTests(TestCase):
 
         self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
         self.negocio = crear_negocio("Panadería", "900123", self.dueno)
+        from .testing_pagos import conectar_pruebas
+        conectar_pruebas(self.negocio)
         self.producto = crear_producto(self.negocio, nombre="Galleta", precio="0.50", iva="1")
 
     def test_la_funcion_redondea_la_mitad_hacia_arriba(self):

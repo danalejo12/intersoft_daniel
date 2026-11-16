@@ -9,7 +9,7 @@ import re
 import time
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
-from urllib.error import URLError
+from http.client import HTTPException
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
@@ -17,9 +17,11 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from django.views.decorators.debug import sensitive_variables
 
 from . import reservas
 from .models import Factura, Pago, Pedido
+from .pasarelas import PasarelaNoDisponible, credenciales_negocio, credenciales_pago
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,7 @@ def monto_en_centavos(total):
     return int((total * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+@sensitive_variables()
 def calcular_firma_integridad(*, referencia, monto_centavos, moneda, secreto, expiracion=""):
     # Orden de la documentación de Wompi; la expiración solo va cuando se envía en el checkout
     cadena = f"{referencia}{monto_centavos}{moneda}{expiracion}{secreto}"
@@ -85,12 +88,21 @@ def crear_pago(*, factura):
     if monto <= 0:
         raise PagoNoPermitido("La factura no tiene un valor por cobrar.")
 
+    try:
+        credenciales = _credenciales_nuevas(factura.empresa_id)
+    except PagoNoPermitido:
+        if not pasarela_simulada():
+            raise
+        credenciales = ""
+
     return Pago.objects.create(
         empresa_id=factura.empresa_id,
         factura=factura,
         referencia=f"INT-{uuid.uuid4().hex}",  # Única para cada intento
         monto_centavos=monto,
         moneda="COP",
+        credenciales_cifradas=credenciales,
+        pasarela_propia=True,
     )
 
 
@@ -98,6 +110,8 @@ def crear_pago_pedido(*, pedido):
     """Intento de pago de un pedido. El monto siempre sale de pedido.total."""
     with transaction.atomic():
         pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+        if not pedido.pago_directo:
+            raise PagoNoPermitido("Este pedido usa el cobro anterior. Crea un pedido nuevo para pagar al negocio.")
         if pedido.estado != Pedido.Estado.PENDIENTE:
             raise PagoNoPermitido("Este pedido ya no se puede pagar.")
         if pedido.expira_en > timezone.now():
@@ -112,10 +126,19 @@ def crear_pago_pedido(*, pedido):
                 referencia=f"INT-{uuid.uuid4().hex}",
                 monto_centavos=monto,
                 moneda="COP",
+                credenciales_cifradas=_credenciales_nuevas(pedido.empresa_id),
+                pasarela_propia=True,
             )
         # Fuera del if: la liberación debe guardarse, así que el error se lanza al cerrar la transacción
         reservas.liberar_pedido(pedido, Pedido.Estado.VENCIDO)
     raise PagoNoPermitido("Tu reserva venció y liberamos los productos.")
+
+
+def _credenciales_nuevas(empresa_id):
+    try:
+        return credenciales_negocio(empresa_id).cifradas()
+    except PasarelaNoDisponible as error:
+        raise PagoNoPermitido(str(error)) from None
 
 
 def es_direccion_local(url):
@@ -132,17 +155,21 @@ def es_direccion_local(url):
 
 
 def url_checkout(*, pago, redirect_url):
+    try:
+        llaves = credenciales_pago(pago)
+    except PasarelaNoDisponible as error:
+        raise PagoNoPermitido(str(error)) from None
     # Un solo texto para la URL y la firma: un carácter distinto daría "firma inválida"
     expiracion = formato_expiracion(pago.pedido.expira_en) if pago.pedido_id else ""
     firma = calcular_firma_integridad(
         referencia=pago.referencia,
         monto_centavos=pago.monto_centavos,
         moneda=pago.moneda,
-        secreto=settings.WOMPI_INTEGRITY_SECRET,
+        secreto=llaves.integridad,
         expiracion=expiracion,
     )
     parametros = {
-        "public-key": settings.WOMPI_PUBLIC_KEY,
+        "public-key": llaves.publica,
         "currency": pago.moneda,
         "amount-in-cents": pago.monto_centavos,
         "reference": pago.referencia,
@@ -156,6 +183,7 @@ def url_checkout(*, pago, redirect_url):
     return f"{settings.WOMPI_CHECKOUT_URL}?{urlencode(parametros)}"
 
 
+@sensitive_variables()
 def calcular_checksum(evento, secreto):
     """Propiedades del evento + timestamp + secreto, en SHA-256."""
     cadena = ""
@@ -172,11 +200,20 @@ def evento_es_valido(evento, secreto):
     if not secreto:
         return False
     try:
+        propiedades = evento["signature"]["properties"]
+        if not isinstance(propiedades, list) or not all(isinstance(p, str) for p in propiedades):
+            return False
+        obligatorias = {"transaction.id", "transaction.status", "transaction.amount_in_cents"}
+        if not obligatorias.issubset(propiedades):
+            return False
         esperado = calcular_checksum(evento, secreto)
         recibido = str(evento["signature"]["checksum"]).lower()
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, IndexError, AttributeError, UnicodeError):
         return False
-    return hmac.compare_digest(esperado, recibido)  # Compara sin filtrar información por tiempos
+    try:
+        return hmac.compare_digest(esperado, recibido)
+    except TypeError:
+        return False
 
 
 def _guardar_resultado(pago, nuevo_estado, transaccion):
@@ -225,9 +262,14 @@ def _aplicar_en_pedido(pago, transaccion):
 
 
 @transaction.atomic
-def aplicar_transaccion(transaccion):
+def aplicar_transaccion(transaccion, *, empresa_id=None):
     """Actualiza el pago. Se puede repetir el mismo evento sin causar daño (idempotente)."""
-    pago = Pago.objects.filter(referencia=transaccion.get("reference")).first()
+    if not isinstance(transaccion, dict):
+        return None
+    pagos = Pago.objects.filter(referencia=transaccion.get("reference"))
+    if empresa_id is not None:
+        pagos = pagos.filter(empresa_id=empresa_id)
+    pago = pagos.first()
     if pago is None:
         logger.warning("Evento con referencia desconocida: %s", transaccion.get("reference"))
         return None
@@ -273,45 +315,46 @@ def aplicar_transaccion(transaccion):
     return pago
 
 
-def url_api_wompi():
-    # Las llaves pub_test_ solo existen en Sandbox; las demás van a producción
-    if settings.WOMPI_PUBLIC_KEY.startswith("pub_test_"):
-        return "https://sandbox.wompi.co/v1"
-    return "https://production.wompi.co/v1"
+def url_api_wompi(llaves):
+    return llaves.api_url
 
 
 ID_TRANSACCION = re.compile(r"^[A-Za-z0-9-]{1,60}$")
 
 
-def consultar_transaccion(transaccion_id):
+def consultar_transaccion(transaccion_id, *, llaves):
     """Pregunta a Wompi el estado real de una transacción. Devuelve su "data" o None."""
-    if not ID_TRANSACCION.match(transaccion_id or ""):
+    if not isinstance(transaccion_id, str) or not ID_TRANSACCION.fullmatch(transaccion_id):
         return None
-    url = f"{url_api_wompi()}/transactions/{quote(transaccion_id, safe='')}"
+    url = f"{url_api_wompi(llaves)}/transactions/{quote(transaccion_id, safe='')}"
     try:
         with urlopen(Request(url, headers={"Accept": "application/json"}), timeout=10) as respuesta:
-            return json.load(respuesta)["data"]
-    except (URLError, TimeoutError, ValueError, KeyError, TypeError) as error:
-        logger.warning("No se pudo consultar la transacción %s en Wompi: %s", transaccion_id, error)
+            datos = json.load(respuesta)["data"]
+            return datos if isinstance(datos, dict) else None
+    except (OSError, HTTPException, ValueError, KeyError, TypeError) as error:
+        logger.warning("No se pudo consultar la transacción %s en Wompi (%s)", transaccion_id, type(error).__name__)
         return None
 
 
-def buscar_transaccion_por_referencia(referencia):
+@sensitive_variables()
+def buscar_transaccion_por_referencia(referencia, *, llaves):
     """Busca en Wompi la transacción de una referencia. Exige la llave privada,
     que solo se usa aquí, en el servidor. Devuelve la más reciente, o None si no existe.
     Lanza WompiNoResponde si la consulta falla: no es lo mismo que "no existe"."""
-    if not settings.WOMPI_PRIVATE_KEY:
+    if not llaves.privada:
         return None
-    url = f"{url_api_wompi()}/transactions?{urlencode({'reference': referencia})}"
+    url = f"{url_api_wompi(llaves)}/transactions?{urlencode({'reference': referencia})}"
     peticion = Request(url, headers={
         "Accept": "application/json",
-        "Authorization": f"Bearer {settings.WOMPI_PRIVATE_KEY}",
+        "Authorization": f"Bearer {llaves.privada}",
     })
     try:
         with urlopen(peticion, timeout=10) as respuesta:
             transacciones = json.load(respuesta)["data"]
-    except (URLError, TimeoutError, ValueError, KeyError, TypeError) as error:
-        logger.warning("No se pudo buscar la referencia %s en Wompi: %s", referencia, error)
+            if not isinstance(transacciones, list) or not all(isinstance(t, dict) for t in transacciones):
+                raise ValueError("Respuesta inválida")
+    except (OSError, HTTPException, ValueError, KeyError, TypeError) as error:
+        logger.warning("No se pudo buscar la referencia %s en Wompi (%s)", referencia, type(error).__name__)
         raise WompiNoResponde from error
     if not transacciones:
         return None
@@ -340,21 +383,28 @@ def sincronizar_pago(*, pago, transaccion_id="", forzar=False):
     mientras tanto, se responde con lo guardado. Antes de cobrar se usa forzar=True."""
     if pago.estado != Pago.Estado.PENDIENTE:
         return pago
+    try:
+        llaves = credenciales_pago(pago)
+    except PasarelaNoDisponible:
+        return pago
     if forzar:
         Pago.objects.filter(pk=pago.pk).update(consultado_en=timezone.now())
     elif not _tomar_turno_de_consulta(pago):
         return pago
-    if transaccion_id:
-        transaccion = consultar_transaccion(transaccion_id)
-    else:
-        try:
-            transaccion = buscar_transaccion_por_referencia(pago.referencia)
-        except WompiNoResponde:
-            return pago
+    # El GET público por ID no demuestra quién recibió el dinero. El retorno del
+    # comprador solo se concilia con una consulta autenticada al comercio correcto.
+    if not llaves.privada:
+        return pago
+    try:
+        transaccion = buscar_transaccion_por_referencia(pago.referencia, llaves=llaves)
+    except WompiNoResponde:
+        return pago
     # El id debe corresponder a ESTE pago: así nadie usa el id de otra transacción
     if not transaccion or transaccion.get("reference") != pago.referencia:
         return pago
-    return aplicar_transaccion(transaccion) or pago
+    if transaccion_id and transaccion.get("id") != transaccion_id:
+        return pago
+    return aplicar_transaccion(transaccion, empresa_id=pago.empresa_id) or pago
 
 
 def revisar_en_wompi(pedido):
@@ -364,21 +414,21 @@ def revisar_en_wompi(pedido):
     pendientes = list(pedido.pagos.filter(estado=Pago.Estado.PENDIENTE))
     if not pendientes:
         return ResultadoWompi.LIBRE
-    if not settings.WOMPI_PRIVATE_KEY:
-        return ResultadoWompi.SIN_RESPUESTA
-
     resultado = ResultadoWompi.LIBRE
     for pago in pendientes:
         try:
-            transaccion = buscar_transaccion_por_referencia(pago.referencia)
-        except WompiNoResponde:
+            llaves = credenciales_pago(pago)
+            if not llaves.privada:
+                raise PasarelaNoDisponible
+            transaccion = buscar_transaccion_por_referencia(pago.referencia, llaves=llaves)
+        except (WompiNoResponde, PasarelaNoDisponible):
             if resultado == ResultadoWompi.LIBRE:
                 resultado = ResultadoWompi.SIN_RESPUESTA
             continue
         # None: el intento nunca llegó a Wompi (por ejemplo, cerraron la pestaña sin pagar)
         if not transaccion or transaccion.get("reference") != pago.referencia:
             continue
-        aplicar_transaccion(transaccion)
+        aplicar_transaccion(transaccion, empresa_id=pago.empresa_id)
         if transaccion.get("status") == "APPROVED":
             return ResultadoWompi.APROBADO
         if transaccion.get("status") == "PENDING":

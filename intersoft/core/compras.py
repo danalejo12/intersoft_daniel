@@ -7,10 +7,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from . import reservas
-from .models import Comentario, DetallePedido, Pago, Pedido, Producto
-from .pagos import ResultadoWompi, revisar_en_wompi, sincronizar_pago
 from .impuestos import CENTAVOS, calcular_iva
+from .models import Comentario, DetallePedido, Pago, Pedido, Producto
+from .pagos import PagoNoPermitido, ResultadoWompi, revisar_en_wompi, sincronizar_pago
+from .pasarelas import PasarelaNoDisponible, configuracion_activa, credenciales_negocio
 from .services import StockInsuficiente, siguiente_consecutivo
+from .tarifas import cargo_pasarela
 
 Estado = Pedido.Estado
 
@@ -40,6 +42,11 @@ def calcular_costo_envio(*, negocio, total_productos, peso_total_gramos=0):
 @transaction.atomic
 def crear_pedido(*, usuario, negocio, lineas, datos):
     """Crea el pedido con precios congelados y reserva el stock: todo o nada. No crea factura."""
+    try:
+        credenciales_negocio(negocio.pk)
+    except PasarelaNoDisponible as error:
+        raise PagoNoPermitido(str(error)) from None
+    config = configuracion_activa(negocio.pk)
     # Productos primero y empresa después, el mismo orden de crear_factura, para evitar bloqueos cruzados
     cantidades = {linea["producto"].pk: linea["cantidad"] for linea in lineas}
     productos = list(
@@ -66,21 +73,24 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         total_productos=total_productos,
         peso_total_gramos=peso_total_gramos,
     )
-    total = (total_productos + costo_envio).quantize(CENTAVOS)
-    comision_porcentaje = (
-        negocio.comision_porcentaje if negocio.comision_porcentaje is not None else Decimal("5.00")
-    ).quantize(CENTAVOS)
-    comision_valor = calcular_iva(total_productos, comision_porcentaje)
-    neto_vendedor = (total - comision_valor).quantize(CENTAVOS)
+    antes_de_pasarela = (total_productos + costo_envio).quantize(CENTAVOS)
+    cargo = cargo_pasarela(antes_de_pasarela, config=config)
+    total = (antes_de_pasarela + cargo).quantize(CENTAVOS)
+    comision_porcentaje = Decimal("0.00")
+    comision_valor = Decimal("0.00")
+    # El cargo de la pasarela se lo queda Wompi, no el negocio
+    neto_vendedor = (total - cargo - comision_valor).quantize(CENTAVOS)
 
     pedido = Pedido.objects.create(
         empresa=negocio,
+        pago_directo=True,
         comprador=usuario,
         numero=siguiente_consecutivo(Pedido, negocio),
         expira_en=_nuevo_vencimiento(),
         subtotal=subtotal_redondeado,
         iva=iva,
         costo_envio=costo_envio,
+        cargo_pasarela=cargo,
         total=total,
         peso_total_gramos=peso_total_gramos,
         comision_porcentaje=comision_porcentaje,
@@ -162,6 +172,8 @@ def vencer_pedido(pedido_id):
 @transaction.atomic
 def renovar_reserva(pedido):
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if not pedido.pago_directo:
+        raise OperacionNoPermitida("Este pedido usa el cobro anterior. Crea un pedido nuevo.")
     if pedido.renovaciones >= settings.PEDIDO_MAX_RENOVACIONES:
         raise OperacionNoPermitida("Ya renovaste esta reserva las veces permitidas. Puedes hacer un pedido nuevo.")
 

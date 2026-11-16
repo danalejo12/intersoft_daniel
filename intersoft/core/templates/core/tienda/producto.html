@@ -10,21 +10,31 @@
 
   <article class="detalle">
     <div>
+      {% with fotos=producto.fotos.all %}
       {% if producto.imagen %}
-        <img class="detalle-foto" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+        <img class="detalle-foto" src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" data-galeria-principal>
+        {% if fotos %}
+          <div class="galeria" role="group" aria-label="Fotos de {{ producto.nombre }}">
+            <a class="galeria-mini" href="{{ producto.imagen.url }}" data-galeria-foto aria-current="true" aria-label="Foto 1 de {{ fotos|length|add:1 }}"><img src="{{ producto.imagen.url }}" alt="" loading="lazy"></a>
+            {% for foto in fotos %}
+              <a class="galeria-mini" href="{{ foto.imagen.url }}" data-galeria-foto aria-label="Foto {{ forloop.counter|add:1 }} de {{ fotos|length|add:1 }}"><img src="{{ foto.imagen.url }}" alt="" loading="lazy"></a>
+            {% endfor %}
+          </div>
+        {% endif %}
         {% if producto.imagen_credito %}
           <p class="credito-foto">Foto de referencia: {% if producto.imagen_fuente %}<a href="{{ producto.imagen_fuente }}" target="_blank" rel="noopener noreferrer">{{ producto.imagen_credito }}</a>{% else %}{{ producto.imagen_credito }}{% endif %}</p>
         {% endif %}
       {% else %}
         <div class="detalle-imagen con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</div>
       {% endif %}
+      {% endwith %}
     </div>
     <div>
       <h1>{{ producto.nombre }}</h1>
       {% if producto.categoria %}<p class="categoria">{{ producto.categoria.nombre }}</p>{% endif %}
       <p class="precio precio-grande">
-        <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
-        {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
+        <span class="precio-valor">${{ producto.precio_marketplace|floatformat:"-2g" }}</span>
+        {% if producto.cargo_pasarela %}<small>{% if producto.iva_porcentaje %}IVA y {% endif %}cargo de pasarela incluidos</small>{% elif producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
       </p>
       {% include "core/tienda/disponibilidad.html" %}
       {% if opiniones.total %}
@@ -34,7 +44,9 @@
         </a>
       {% endif %}
 
-      {% if producto.stock > 0 %}
+      {% if not producto.empresa.compra_en_linea %}
+        <p class="nota">Compra en línea no disponible</p>
+      {% elif producto.stock > 0 %}
         <form class="compra" method="post" action="{% url 'carrito_agregar' producto.pk %}" data-agregar>
           {% csrf_token %}
           <div class="compra-fila">

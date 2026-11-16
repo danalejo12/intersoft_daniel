@@ -10,6 +10,7 @@ from django.utils import timezone
 from .models import MovimientoInventario, Pedido
 from .notificaciones import (
     notificar_envio_actualizado,
+    notificar_negocio_pedido_pagado,
     notificar_pedido_pagado,
     notificar_reembolso_registrado,
 )
@@ -56,6 +57,8 @@ def marcar_pagado(pedido):
     pedido.estado = Estado.PAGADO
     pedido.save(update_fields=["factura", "estado", "actualizado_en"])
     notificar_pedido_pagado(pedido)
+    # Al negocio solo cuando el pago quedó guardado de verdad (fuera de la transacción)
+    transaction.on_commit(lambda: notificar_negocio_pedido_pagado(pedido))
 
 
 def _pasar_a_reembolso(pedido, motivo):
@@ -150,6 +153,8 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
 
 @transaction.atomic
 def registrar_dispersion_pedido(*, pedido, referencia, estado_dispersion=Pedido.EstadoDispersion.LIQUIDADA):
+    if pedido.pago_directo:
+        raise ValueError("Los pagos directos no requieren dispersión de Intersoft.")
     """Registra la dispersión o liquidación del neto del vendedor para un pedido pagado."""
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.PAGADO:

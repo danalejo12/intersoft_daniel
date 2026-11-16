@@ -5,6 +5,9 @@
   <h1>Datos del negocio</h1>
   <p class="nota">Tus compradores ven estos datos en cada pedido. La ley exige que puedan identificarte y contactarte.</p>
   <p class="nota"><strong>{{ object.nombre }}</strong> · NIT {{ object.nit }}</p>
+  {% if nav_permisos.configurar_pagos %}
+    <p class="nota">¿Quieres cobrar en línea con tu propia cuenta? <a href="{% url 'negocio_pagos' %}">Conecta tu Wompi</a>.</p>
+  {% endif %}
 
   <form method="post" class="formulario" novalidate>
     {% csrf_token %}

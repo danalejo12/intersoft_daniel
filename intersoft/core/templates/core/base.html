@@ -4,9 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=17">
+  {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
+  <script>
+    try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
+    catch (e) { document.documentElement.classList.add("dock-abierto"); }
+  </script>
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=19">
 </head>
 <body>
+{% include "core/includes/bienvenida.html" %}
 
 {% if user.is_authenticated %}
 {% with ruta=request.resolver_match.url_name %}
@@ -14,6 +20,9 @@
 
   <!-- Dock: navegación principal en forma de píldora -->
   <nav class="dock" aria-label="Menú principal">
+    <button type="button" class="dock-expandir" data-dock-expandir aria-expanded="true" aria-label="Contraer menú" title="Contraer menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
     <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 21v-6.5h4V21"/></svg>
     </a>
@@ -48,6 +57,11 @@
     {% if nav_permisos.ver_erp %}
     <a href="{% url 'erp_inicio' %}" data-label="Gestión ERP" aria-label="Gestión ERP" class="{% if ruta|slice:':3' == 'erp' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.configurar_pagos %}
+    <a href="{% url 'negocio_pagos' %}" data-label="Pagos en línea" aria-label="Pagos en línea" class="{% if 'negocio_pagos' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_equipo %}
@@ -135,7 +149,7 @@
 </div>
 {% endif %}
 
-<script defer src="{% static 'core/js/app.js' %}?v=2"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=3"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

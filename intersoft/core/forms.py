@@ -1,7 +1,7 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
-from .models import Categoria, Cliente, Empresa, MovimientoInventario, Producto
+from .models import FOTOS_EXTRA_MAXIMO, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto
 
 IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
@@ -145,6 +145,31 @@ class CategoriaForm(forms.ModelForm):
         return nombre
 
 
+class EntradaVariasFotos(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class CampoVariasFotos(forms.ImageField):
+    """Varias imágenes en un solo campo: cada una se valida como imagen real (Pillow)."""
+
+    widget = EntradaVariasFotos(attrs={"accept": "image/jpeg,image/png,image/webp"})
+
+    def clean(self, data, initial=None):
+        archivos = data if isinstance(data, (list, tuple)) else ([data] if data else [])
+        limpios = []
+        for archivo in archivos:
+            limpio = super().clean(archivo, initial)
+            if limpio.size > IMAGEN_TAMANO_MAXIMO:
+                raise forms.ValidationError(f"«{limpio.name}» pesa más de 5 MB.")
+            limpios.append(limpio)
+        return limpios
+
+
+class FotoParaQuitar(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, foto):
+        return foto.imagen.url  # la plantilla la muestra como miniatura
+
+
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
@@ -178,10 +203,24 @@ class ProductoForm(forms.ModelForm):
         help_text="Unidades que tienes hoy. Se registra como una entrada en el kardex.",
     )
 
+    fotos_extra = CampoVariasFotos(
+        label="Más fotos (galería)",
+        required=False,
+        help_text=f"Hasta {FOTOS_EXTRA_MAXIMO} fotos más: otros ángulos, el corte, el empaque. JPG, PNG o WEBP de hasta 5 MB.",
+    )
+    quitar_fotos = FotoParaQuitar(
+        label="Fotos de la galería",
+        queryset=FotoProducto.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Marca las que quieras quitar.",
+    )
+
     # Orden en que se muestran los campos
     field_order = [
         "codigo", "nombre", "categoria", "precio", "iva_porcentaje",
-        "stock_inicial", "stock_minimo", "peso_gramos", "descripcion", "imagen", "publicado",
+        "stock_inicial", "stock_minimo", "peso_gramos", "descripcion", "imagen",
+        "quitar_fotos", "fotos_extra", "publicado",
     ]
 
     def __init__(self, *args, empresa=None, **kwargs):
@@ -197,6 +236,19 @@ class ProductoForm(forms.ModelForm):
             Categoria.objects.de_empresa(empresa).filter(activa=True).order_by("nombre")
         )
         self.fields["categoria"].empty_label = "Sin categoría"
+        if self.instance._state.adding or not self.instance.fotos.exists():
+            del self.fields["quitar_fotos"]
+        else:
+            self.fields["quitar_fotos"].queryset = self.instance.fotos.all()
+
+    def clean(self):
+        datos = super().clean()
+        actuales = 0 if self.instance._state.adding else self.instance.fotos.count()
+        quitadas = len(datos.get("quitar_fotos") or [])
+        nuevas = len(datos.get("fotos_extra") or [])
+        if actuales - quitadas + nuevas > FOTOS_EXTRA_MAXIMO:
+            self.add_error("fotos_extra", f"La galería admite hasta {FOTOS_EXTRA_MAXIMO} fotos además de la principal.")
+        return datos
 
     def clean_peso_gramos(self):
         return self.cleaned_data.get("peso_gramos") or 0

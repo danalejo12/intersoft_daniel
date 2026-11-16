@@ -86,9 +86,10 @@
       }
       evento.preventDefault();
       var boton = evento.submitter || formulario.querySelector("button[type=submit]");
-      var textoOriginal = boton.textContent;
+      var etiqueta = boton.querySelector("span") || boton;
+      var textoOriginal = etiqueta.textContent;
       boton.disabled = true;
-      boton.textContent = "Añadiendo…";
+      etiqueta.textContent = "Añadiendo…";
 
       fetch(formulario.action, {
         method: "POST",
@@ -100,9 +101,9 @@
       }).then(function (datos) {
         avisar(datos.mensaje, datos.ok);
         pintarCarrito(datos.cantidad_total);
-        boton.textContent = datos.ok ? "¡Añadido!" : textoOriginal;
+        etiqueta.textContent = datos.ok ? "¡Añadido!" : textoOriginal;
         window.setTimeout(function () {
-          boton.textContent = textoOriginal;
+          etiqueta.textContent = textoOriginal;
           boton.disabled = false;
         }, 1200);
       }).catch(function () {
@@ -211,6 +212,204 @@
     }
   }
 
+  // ---------- Modo día / noche ----------
+  // El tema inicial lo pone un script en <head> (sin parpadeo); aquí solo se cambia y se recuerda.
+  function iniciarTema() {
+    var raiz = document.documentElement;
+    var boton = document.querySelector("[data-tema-boton]");
+    if (!boton) {
+      return;
+    }
+    function pintar() {
+      var oscuro = raiz.getAttribute("data-tema") === "oscuro";
+      boton.setAttribute("aria-checked", oscuro ? "true" : "false");
+      boton.title = oscuro ? "Cambiar a modo día" : "Cambiar a modo noche";
+    }
+    boton.addEventListener("click", function () {
+      var nuevo = raiz.getAttribute("data-tema") === "oscuro" ? "claro" : "oscuro";
+      if (!sinMovimiento) {
+        raiz.classList.add("cambiando-tema");
+        window.setTimeout(function () { raiz.classList.remove("cambiando-tema"); }, 500);
+      }
+      raiz.setAttribute("data-tema", nuevo);
+      try { localStorage.setItem("intersoft-tema", nuevo); } catch (e) { /* modo privado: solo dura la visita */ }
+      pintar();
+    });
+    pintar();
+  }
+
+  // ---------- Menús desplegables (<details>): se cierran al hacer clic fuera o con Esc ----------
+  function iniciarDesplegables() {
+    var menus = document.querySelectorAll("[data-desplegable]");
+    document.addEventListener("click", function (evento) {
+      menus.forEach(function (menu) {
+        if (menu.open && !menu.contains(evento.target)) {
+          menu.open = false;
+        }
+      });
+    });
+    document.addEventListener("keydown", function (evento) {
+      if (evento.key !== "Escape") {
+        return;
+      }
+      menus.forEach(function (menu) {
+        if (menu.open) {
+          menu.open = false;
+          menu.querySelector("summary").focus();
+        }
+      });
+    });
+  }
+
+  // ---------- "Ordenar por" se aplica al elegir, sin botón ----------
+  function iniciarAutoenvio() {
+    document.querySelectorAll("[data-autoenvio] select").forEach(function (selector) {
+      selector.addEventListener("change", function () { selector.form.submit(); });
+    });
+  }
+
+  // ---------- Galería: la miniatura elegida pasa a la foto grande ----------
+  function iniciarGaleria() {
+    var principal = document.querySelector("[data-galeria-principal]");
+    if (!principal) {
+      return;
+    }
+    var miniaturas = document.querySelectorAll("[data-galeria-foto]");
+    miniaturas.forEach(function (mini) {
+      mini.addEventListener("click", function (evento) {
+        evento.preventDefault();
+        miniaturas.forEach(function (m) { m.removeAttribute("aria-current"); });
+        mini.setAttribute("aria-current", "true");
+        principal.classList.add("cambiando");
+        window.setTimeout(function () {
+          principal.src = mini.getAttribute("href");
+          principal.classList.remove("cambiando");
+        }, sinMovimiento ? 0 : 150);
+      });
+    });
+  }
+
+  // ---------- Sugerencias del buscador (autocompletar accesible) ----------
+  function iniciarSugerencias() {
+    var formulario = document.querySelector("[data-sugerencias]");
+    if (!formulario || !window.fetch) {
+      return;
+    }
+    var campo = formulario.querySelector('input[name="q"]');
+    var lista = document.getElementById("sugerencias");
+    var url = formulario.getAttribute("data-sugerencias");
+    var ESPERA_MS = 180;
+    var temporizador = null;
+    var pedido = 0;
+    var activa = -1;
+
+    function opciones() { return lista.querySelectorAll('[role="option"]'); }
+    function cerrar() {
+      lista.hidden = true;
+      campo.setAttribute("aria-expanded", "false");
+      campo.removeAttribute("aria-activedescendant");
+      activa = -1;
+    }
+    function marcar(indice) {
+      var todas = opciones();
+      if (!todas.length) { return; }
+      activa = (indice + todas.length) % todas.length;
+      todas.forEach(function (o, i) { o.setAttribute("aria-selected", i === activa ? "true" : "false"); });
+      campo.setAttribute("aria-activedescendant", todas[activa].id);
+      todas[activa].scrollIntoView({ block: "nearest" });
+    }
+    function opcion(id, enlace, contenido) {
+      var a = document.createElement("a");
+      a.id = id;
+      a.href = enlace;
+      a.className = "sugerencia";
+      a.setAttribute("role", "option");
+      a.setAttribute("aria-selected", "false");
+      contenido(a);
+      return a;
+    }
+    function titulo(texto) {
+      var t = document.createElement("p");
+      t.className = "sugerencias-titulo";
+      t.textContent = texto;
+      return t;
+    }
+    // Todo se arma con textContent: los nombres nunca se interpretan como HTML
+    function pintar(datos) {
+      lista.textContent = "";
+      if (datos.productos.length) {
+        lista.appendChild(titulo("Productos"));
+        datos.productos.forEach(function (p, i) {
+          lista.appendChild(opcion("sug-p-" + i, p.url, function (a) {
+            var foto = document.createElement(p.imagen ? "img" : "span");
+            foto.className = "sugerencia-foto";
+            if (p.imagen) { foto.src = p.imagen; foto.alt = ""; foto.loading = "lazy"; }
+            var texto = document.createElement("span");
+            texto.className = "sugerencia-texto";
+            var nombre = document.createElement("strong");
+            nombre.textContent = p.nombre;
+            var negocio = document.createElement("small");
+            negocio.textContent = p.negocio;
+            texto.appendChild(nombre);
+            texto.appendChild(negocio);
+            var precio = document.createElement("span");
+            precio.className = "sugerencia-precio";
+            precio.textContent = p.precio;
+            a.appendChild(foto);
+            a.appendChild(texto);
+            a.appendChild(precio);
+          }));
+        });
+      }
+      if (datos.negocios.length) {
+        lista.appendChild(titulo("Tiendas"));
+        datos.negocios.forEach(function (n, i) {
+          lista.appendChild(opcion("sug-n-" + i, n.url, function (a) {
+            var texto = document.createElement("span");
+            texto.className = "sugerencia-texto";
+            var nombre = document.createElement("strong");
+            nombre.textContent = n.nombre;
+            texto.appendChild(nombre);
+            a.appendChild(texto);
+          }));
+        });
+      }
+      lista.appendChild(opcion("sug-todo", formulario.action + "?q=" + encodeURIComponent(campo.value.trim()), function (a) {
+        a.classList.add("sugerencia-todo");
+        a.textContent = "Ver todos los resultados para «" + campo.value.trim() + "»";
+      }));
+      lista.hidden = false;
+      campo.setAttribute("aria-expanded", "true");
+      activa = -1;
+    }
+    function buscar() {
+      var q = campo.value.trim();
+      if (q.length < 2) { cerrar(); return; }
+      var numero = ++pedido;
+      fetch(url + "?q=" + encodeURIComponent(q), { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(function (r) { return r.json(); })
+        .then(function (datos) { if (numero === pedido) { pintar(datos); } })
+        .catch(cerrar);
+    }
+    campo.addEventListener("input", function () {
+      window.clearTimeout(temporizador);
+      temporizador = window.setTimeout(buscar, ESPERA_MS);
+    });
+    campo.addEventListener("keydown", function (e) {
+      if (lista.hidden) { return; }
+      if (e.key === "ArrowDown") { e.preventDefault(); marcar(activa + 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); marcar(activa - 1); }
+      else if (e.key === "Escape") { cerrar(); }
+      else if (e.key === "Enter" && activa >= 0) { e.preventDefault(); window.location.href = opciones()[activa].href; }
+    });
+    document.addEventListener("click", function (e) { if (!formulario.contains(e.target)) { cerrar(); } });
+  }
+
+  iniciarTema();
+  iniciarDesplegables();
+  iniciarAutoenvio();
+  iniciarSugerencias();
+  iniciarGaleria();
   iniciarBarra();
   iniciarTarjetas();
   iniciarAgregar();

@@ -49,6 +49,7 @@
             {% endif %}
           </dd>
         </div>
+                {% if grupo.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
         <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
       </dl>
       <button type="submit" class="boton boton-grande boton-ancho">Continuar al pago</button>

@@ -108,3 +108,99 @@ def notificar_alerta_stock_minimo(*, empresa, productos_criticos):
     lineas.append("")
     lineas.append("Ingresa al panel de Inventario o Compras para reabastecerlos.")
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=destinatarios)
+
+
+# ---------------------------------------------------------------------------
+# Aviso al negocio: entró un pedido pagado
+# ---------------------------------------------------------------------------
+WHATSAPP_API = "https://graph.facebook.com/v21.0/{telefono_id}/messages"
+WHATSAPP_TIMEOUT_S = 8
+
+
+def correos_del_negocio(empresa):
+    """Correo del negocio y de quienes pueden ver ventas en su equipo."""
+    from .models import Membresia  # evita import circular con models
+
+    correos = [empresa.email]
+    miembros = (
+        Membresia.objects.filter(empresa=empresa, activa=True, usuario__is_active=True)
+        .select_related("usuario", "rol")
+    )
+    correos += [m.usuario.email for m in miembros if m.tiene_permiso("ventas.ver")]
+    return correos
+
+
+def telefono_whatsapp(telefono):
+    """Celular colombiano en formato internacional (573001234567); None si no es celular."""
+    digitos = "".join(c for c in (telefono or "") if c.isdigit())
+    if len(digitos) == 12 and digitos.startswith("573"):
+        return digitos
+    if len(digitos) == 10 and digitos.startswith("3"):
+        return "57" + digitos
+    return None
+
+
+def _enviar_whatsapp(pedido):
+    """WhatsApp Cloud API con una plantilla aprobada por Meta. Si no está configurado, no hace nada."""
+    import json
+    import urllib.request
+
+    token = settings.WHATSAPP_TOKEN
+    telefono_id = settings.WHATSAPP_TELEFONO_ID
+    plantilla = settings.WHATSAPP_PLANTILLA_PEDIDO
+    destino = telefono_whatsapp(pedido.empresa.telefono)
+    if not (token and telefono_id and plantilla and destino):
+        return False
+    cuerpo = {
+        "messaging_product": "whatsapp",
+        "to": destino,
+        "type": "template",
+        "template": {
+            "name": plantilla,
+            "language": {"code": "es"},
+            "components": [{
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": str(pedido.numero)},
+                    {"type": "text", "text": f"$ {pedido.total:,.0f}".replace(",", ".")},
+                    {"type": "text", "text": pedido.nombre[:60]},
+                ],
+            }],
+        },
+    }
+    solicitud = urllib.request.Request(
+        WHATSAPP_API.format(telefono_id=telefono_id),
+        data=json.dumps(cuerpo).encode("utf-8"),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(solicitud, timeout=WHATSAPP_TIMEOUT_S) as respuesta:
+            return 200 <= respuesta.status < 300
+    except Exception:
+        logger.warning("No se pudo enviar WhatsApp del pedido %s", pedido.numero, exc_info=True)
+        return False
+
+
+def notificar_negocio_pedido_pagado(pedido):
+    """Avisa al negocio por correo (y WhatsApp si está configurado) que tiene un pedido pagado."""
+    lineas = [
+        "¡Tienes un pedido pagado en Intersoft!",
+        "",
+        f"Pedido #{pedido.numero} · Total cobrado: $ {pedido.total}",
+        f"Neto para tu negocio: $ {pedido.neto_vendedor}",
+        f"Cliente: {pedido.nombre} · {pedido.telefono}",
+        f"Entrega: {pedido.direccion}, {pedido.ciudad} ({pedido.departamento})",
+    ]
+    if pedido.indicaciones:
+        lineas.append(f"Indicaciones: {pedido.indicaciones}")
+    lineas += ["", "Productos:"]
+    lineas += [f"  · {linea.cantidad} × {linea.producto.nombre}" for linea in pedido.lineas.select_related("producto")]
+    lineas += ["", "Prepáralo y actualiza el envío desde tu panel, en Pedidos web."]
+    enviados = _enviar(
+        asunto=f"Nuevo pedido pagado #{pedido.numero} · $ {pedido.total}",
+        mensaje="\n".join(lineas),
+        destinatarios=correos_del_negocio(pedido.empresa),
+    )
+    whatsapp = _enviar_whatsapp(pedido)
+    return enviados, whatsapp

@@ -1,0 +1,100 @@
+{% extends "core/base.html" %}
+{% block titulo %}Pagos en línea · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="pagos">
+    <header class="pagos-encabezado">
+      <h1>Pagos en línea</h1>
+      <p class="nota">Conecta tu propia cuenta de Wompi: el dinero de tus ventas llega directo a tu banco, sin pasar por Intersoft.</p>
+      <p>En Wompi configura esta URL para los eventos de tu comercio:</p>
+      <p><code>{{ webhook_url }}</code></p>
+      <p class="nota">La verificación consulta las llaves pública y privada. Los secretos de integridad y eventos solo se validan por formato; confirma su funcionamiento con un pago de prueba.</p>
+    </header>
+
+    <section class="tarjeta pagos-estado" aria-labelledby="titulo-estado">
+      <div class="tarjeta-cabecera">
+        <h2 id="titulo-estado">Estado de la conexión</h2>
+        {% if not config %}
+          <span class="pagos-chip">Sin conectar</span>
+        {% elif config.lista_para_cobrar %}
+          <span class="pagos-chip ok">Cobrando · {{ config.get_modo_display }}</span>
+        {% elif config.verificada_en %}
+          <span class="pagos-chip pausa">Verificada · cobros en pausa</span>
+        {% else %}
+          <span class="pagos-chip alerta">Falta verificar</span>
+        {% endif %}
+      </div>
+
+      {% if config %}
+        <ol class="pagos-pasos">
+          <li class="hecho">Llaves guardadas y cifradas <small>{{ config.get_modo_display }} · pública {{ config.llave_publica|slice:":13" }}…</small></li>
+          <li class="{% if config.verificada_en %}hecho{% endif %}">
+            Verificadas con Wompi
+            <small>{% if config.verificada_en %}{{ config.comercio_verificado|default:"Comercio reconocido" }} · {{ config.verificada_en|date:"j M Y, H:i" }}{% else %}Aún no{% endif %}</small>
+          </li>
+          <li class="{% if config.activa %}hecho{% endif %}">Cobros activos <small>{% if config.activa %}Sí{% else %}No{% endif %}</small></li>
+        </ol>
+        <div class="acciones-fila">
+          <form method="post" action="{% url 'negocio_pagos_verificar' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton {% if config.verificada_en %}secundario{% endif %}">{% if config.verificada_en %}Verificar de nuevo{% else %}Verificar con Wompi{% endif %}</button>
+          </form>
+          {% if config.verificada_en %}
+            <form method="post" action="{% url 'negocio_pagos_activar' %}">
+              {% csrf_token %}
+              {% if config.activa %}
+                <input type="hidden" name="activa" value="0">
+                <button type="submit" class="boton advertencia">Pausar cobros</button>
+              {% else %}
+                <input type="hidden" name="activa" value="1">
+                <button type="submit" class="boton exito">Activar cobros</button>
+              {% endif %}
+            </form>
+          {% endif %}
+        </div>
+        {% if config.modo == "pruebas" %}
+          <p class="nota">Estás en modo de pruebas: los pagos son simulados y no mueven dinero real.</p>
+        {% endif %}
+      {% else %}
+        <ol class="pagos-pasos">
+          <li>Crea o entra a tu cuenta en <a href="https://comercios.wompi.co/" target="_blank" rel="noopener noreferrer">comercios.wompi.co</a>.</li>
+          <li>En <em>Desarrolladores › Llaves del API</em> copia la llave pública y los secretos de integridad y de eventos.</li>
+          <li>Pégalos abajo, guarda y pulsa «Verificar con Wompi».</li>
+        </ol>
+        <p class="nota">Empieza con las llaves de pruebas (<code>pub_test_…</code>) y cambia a las de producción cuando todo funcione.</p>
+      {% endif %}
+    </section>
+
+    <form method="post" class="formulario" novalidate aria-labelledby="titulo-llaves">
+      {% csrf_token %}
+      <h2 id="titulo-llaves">Llaves de Wompi</h2>
+      <p class="nota">Las guardamos cifradas y nunca las volvemos a mostrar. Para cambiar un secreto, escríbelo de nuevo; si lo dejas vacío, conservamos el que ya está.</p>
+      {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+      {% for campo in form %}
+        {% if campo.name == "cobrar_tarifa_al_comprador" %}<h3 class="pagos-subtitulo">Tarifa de la pasarela</h3>{% endif %}
+        <div class="campo{% if campo.field.widget.input_type == 'checkbox' %} check{% endif %}">
+          {% if campo.field.widget.input_type == "checkbox" %}
+            {{ campo }} {{ campo.label_tag }}
+          {% else %}
+            {{ campo.label_tag }} {{ campo }}
+          {% endif %}
+          {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <p class="nota">Las tarifas por defecto son las públicas de Wompi (2,65 % + $700, más IVA). Si negociaste otras, ponlas aquí.</p>
+      <div class="acciones">
+        <a href="{% url 'dashboard' %}">Cancelar</a>
+        <button type="submit">Guardar</button>
+      </div>
+    </form>
+
+    {% if config %}
+      <form method="post" action="{% url 'negocio_pagos_eliminar' %}" class="pagos-borrar"
+            onsubmit="return confirm('¿Borrar tus llaves de Wompi? Dejarás de recibir pagos en línea hasta que las vuelvas a poner.');">
+        {% csrf_token %}
+        <button type="submit" class="boton peligro pequeno">Borrar llaves de Intersoft</button>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -32,6 +32,9 @@ from .pagos import (
 )
 from .reservas import actualizar_envio_pedido, marcar_pagado, registrar_reembolso
 from .services import StockInsuficiente, anular_factura, crear_factura
+from .testing_pagos import conectar_pruebas
+from .pasarelas import CredencialesWompi, credenciales_pago
+from dataclasses import replace
 from .tests_compra import Base, DATOS_ENVIO, crear_negocio, crear_producto, crear_usuario, transaccion
 
 Usuario = get_user_model()
@@ -39,6 +42,7 @@ Usuario = get_user_model()
 
 def crear_pedido_simple(empresa, comprador, numero=1):
     return Pedido.objects.create(
+        pago_directo=True,
         empresa=empresa, comprador=comprador, numero=numero, total=Decimal("1190"),
         expira_en=timezone.now() + timedelta(minutes=30), tipo_documento="CC", numero_documento="1",
         nombre="Ana", email="a@c.co", telefono="3001234567", departamento="Meta", ciudad="Acacías", direccion="Calle 1",
@@ -360,13 +364,13 @@ class BusquedaWompiTests(TestCase):
     def test_falla_de_red_se_distingue(self):
         with mock.patch("core.pagos.urlopen", side_effect=URLError("sin red")):
             with self.assertRaises(WompiNoResponde):
-                buscar_transaccion_por_referencia("INT-1")
+                buscar_transaccion_por_referencia("INT-1", llaves=CredencialesWompi("pub_test_x", "pruebas", "prv_test_x", "", ""))
 
     def test_sin_transacciones_devuelve_none(self):
         respuesta = mock.MagicMock()
         respuesta.__enter__.return_value.read.return_value = b'{"data": []}'
         with mock.patch("core.pagos.urlopen", return_value=respuesta):
-            self.assertIsNone(buscar_transaccion_por_referencia("INT-1"))
+            self.assertIsNone(buscar_transaccion_por_referencia("INT-1", llaves=CredencialesWompi("pub_test_x", "pruebas", "prv_test_x", "", "")))
 
 
 class CancelarTests(PedidoBase):
@@ -403,9 +407,10 @@ class CancelarTests(PedidoBase):
         self.assertEqual(self.pedido.estado, Pedido.Estado.PENDIENTE)
 
     def test_sin_llave_privada_no_se_cancela(self):
-        self.intento()
-        with override_settings(WOMPI_PRIVATE_KEY=""):
-            self.assertEqual(revisar_en_wompi(self.pedido), ResultadoWompi.SIN_RESPUESTA)
+        pago = self.intento()
+        pago.credenciales_cifradas = replace(credenciales_pago(pago), privada="").cifradas()
+        pago.save()
+        self.assertEqual(revisar_en_wompi(self.pedido), ResultadoWompi.SIN_RESPUESTA)
 
     def test_sin_intentos_se_cancela_sin_consultar(self):
         self.cancelar()
@@ -676,6 +681,7 @@ class ConcurrenciaPedidosTests(TransactionTestCase):
     def setUp(self):
         self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
         self.negocio = crear_negocio("Panadería", "111", self.dueno)
+        conectar_pruebas(self.negocio)
         self.producto = crear_producto(self.negocio, stock=10)
         self.compradores = [crear_usuario("a@correo.co"), crear_usuario("b@correo.co")]
 
@@ -741,6 +747,7 @@ class ConcurrenciaPedidosTests(TransactionTestCase):
         self.assertEqual(MovimientoInventario.objects.filter(tipo="entrada").count(), 1)
 
 
+@override_settings(WOMPI_COBRAR_TARIFA_AL_COMPRADOR=False)  # envío y comisión, sin pasarela
 class MarketplaceFase6Tests(PedidoBase):
     """Pruebas de Fase 6: reembolsos reales, comisiones por comercio y logística/seguimiento."""
 
@@ -787,7 +794,7 @@ class MarketplaceFase6Tests(PedidoBase):
         self.assertContains(vista_comprador, "Tu reembolso fue procesado")
         self.assertContains(vista_comprador, "REV-WOMPI-9001")
 
-    def test_comision_y_liquidacion_congeladas_por_pedido(self):
+    def test_pagos_directos_ignoran_la_comision_historica(self):
         Empresa.objects.filter(pk=self.negocio.pk).update(comision_porcentaje=Decimal("8.00"))
         self.negocio.refresh_from_db()
         Producto.objects.filter(pk=self.producto.pk).update(
@@ -801,13 +808,13 @@ class MarketplaceFase6Tests(PedidoBase):
             lineas=[{"producto": self.producto, "cantidad": 2}],
             datos=DATOS_ENVIO,
         )
-        # 2 * 10.000 = 20.000 + 3.800 IVA = 23.800. Comisión 8% de 23.800 = 1.904. Neto = 21.896
+        # La comisión antigua de la empresa no se descuenta de pagos directos.
         self.assertEqual(nuevo.subtotal, Decimal("20000.00"))
         self.assertEqual(nuevo.iva, Decimal("3800.00"))
         self.assertEqual(nuevo.total, Decimal("23800.00"))
-        self.assertEqual(nuevo.comision_porcentaje, Decimal("8.00"))
-        self.assertEqual(nuevo.comision_valor, Decimal("1904.00"))
-        self.assertEqual(nuevo.neto_vendedor, Decimal("21896.00"))
+        self.assertEqual(nuevo.comision_porcentaje, Decimal("0.00"))
+        self.assertEqual(nuevo.comision_valor, Decimal("0.00"))
+        self.assertEqual(nuevo.neto_vendedor, Decimal("23800.00"))
 
         # Si el negocio cambia su comisión mañana, el pedido existente conserva su liquidación
         Empresa.objects.filter(pk=self.negocio.pk).update(comision_porcentaje=Decimal("12.00"))
@@ -818,8 +825,8 @@ class MarketplaceFase6Tests(PedidoBase):
         self.assertEqual(panel.status_code, 200)
         liquidacion = panel.context["liquidacion"]
         self.assertEqual(liquidacion["bruto"], Decimal("23800.00"))
-        self.assertEqual(liquidacion["comision"], Decimal("1904.00"))
-        self.assertEqual(liquidacion["neto"], Decimal("21896.00"))
+        self.assertEqual(liquidacion["comision"], Decimal("0.00"))
+        self.assertEqual(liquidacion["neto"], Decimal("23800.00"))
         self.assertEqual(liquidacion["cantidad"], 1)
 
     def test_calculo_envio_por_peso_y_umbral_envio_gratis(self):
@@ -848,9 +855,9 @@ class MarketplaceFase6Tests(PedidoBase):
         self.assertEqual(pedido_con_envio.peso_total_gramos, 1200)
         self.assertEqual(pedido_con_envio.costo_envio, Decimal("9000.00"))
         self.assertEqual(pedido_con_envio.total, Decimal("29000.00"))
-        # La comisión se calcula sobre los productos ($20.000 * 5% = $1.000); el envío va íntegro al comercio
-        self.assertEqual(pedido_con_envio.comision_valor, Decimal("1000.00"))
-        self.assertEqual(pedido_con_envio.neto_vendedor, Decimal("28000.00"))
+        # Productos y envío pertenecen al negocio; Intersoft no descuenta comisión.
+        self.assertEqual(pedido_con_envio.comision_valor, Decimal("0.00"))
+        self.assertEqual(pedido_con_envio.neto_vendedor, Decimal("29000.00"))
 
         # 5 unidades = $50.000 >= envio_gratis_desde ($50.000) -> envío gratis ($0)
         pedido_gratis = compras.crear_pedido(
@@ -1016,7 +1023,8 @@ class MarketplaceFase6Tests(PedidoBase):
         )
         self.assertEqual(resp_envio.status_code, 302)
 
-        # El dueño sí puede registrar la dispersión bancaria del pedido pagado
+        # El dueño conserva la gestión de dispersión de pedidos históricos.
+        Pedido.objects.filter(pk=self.pedido.pk).update(pago_directo=False)
         self.client.force_login(self.dueno)
         resp_disp = self.client.post(
             reverse("pedidos_panel_detalle", args=[self.pedido.pk]),

@@ -9,6 +9,7 @@ from .models import Cliente, Comentario, Empresa, Factura, Pago, Pedido, Product
 from .negocios import registrar_negocio
 from .reservas import marcar_pagado
 from .services import StockInsuficiente
+from .testing_pagos import conectar_pruebas
 
 Usuario = get_user_model()
 
@@ -47,6 +48,7 @@ def transaccion(pago, status="APPROVED"):
 
 
 class Base(TestCase):
+    conectar_pasarela = True
     def setUp(self):
         # Sin esto, una prueba podría terminar consultando a Wompi de verdad
         parche = mock.patch("core.pagos.buscar_transaccion_por_referencia", return_value=None)
@@ -54,6 +56,8 @@ class Base(TestCase):
         self.addCleanup(parche.stop)
         self.dueno = crear_usuario("dueno@correo.co", "Dueño", "Tienda")
         self.negocio = crear_negocio("Panadería", "111", self.dueno)
+        if self.conectar_pasarela:
+            conectar_pruebas(self.negocio)
         self.producto = crear_producto(self.negocio)
         self.comprador = crear_usuario()
 
@@ -122,6 +126,7 @@ class CarritoTests(Base):
 
     def test_agrupa_por_negocio(self):
         otro = crear_negocio("Ferretería", "222", crear_usuario("o@correo.co"))
+        conectar_pruebas(otro)
         martillo = crear_producto(otro, "Martillo")
         self.agregar()
         self.agregar(martillo)
@@ -170,6 +175,7 @@ class CheckoutTests(Base):
 
     def test_solo_compra_el_negocio_elegido(self):
         otro = crear_negocio("Ferretería", "222", crear_usuario("o@correo.co"))
+        conectar_pruebas(otro)
         martillo = crear_producto(otro, "Martillo")
         self.client.force_login(self.comprador)
         self.agregar()

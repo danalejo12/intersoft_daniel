@@ -319,19 +319,53 @@ class PagoSimuladorView(PermisoRequeridoMixin, View):
         return redirect("pagos_resultado", pk=pago.pk)
 
 
-@method_decorator(csrf_exempt, name="dispatch")  # Wompi no tiene tu token CSRF; lo protege la firma
-class WompiWebhookView(View):
+@method_decorator(csrf_exempt, name="dispatch")
+class WompiWebhookNegocioView(View):
     http_method_names = ["post"]
 
-    def post(self, request):
+    def post(self, request, empresa_id):
+        from .pagos import consultar_transaccion
+        from .pasarelas import PasarelaNoDisponible, credenciales_pago
+
         try:
             evento = json.loads(request.body)
         except (json.JSONDecodeError, UnicodeDecodeError):
             return HttpResponseBadRequest("JSON no válido.")
 
-        if not isinstance(evento, dict) or not evento_es_valido(evento, settings.WOMPI_EVENTS_SECRET):
+        if not isinstance(evento, dict):
+            return HttpResponseBadRequest("Evento no válido.")
+        datos = evento.get("data")
+        transaccion = datos.get("transaction") if isinstance(datos, dict) else None
+        if not isinstance(transaccion, dict) or not isinstance(transaccion.get("reference"), str):
+            return HttpResponseBadRequest("Transacción no válida.")
+        pagos = Pago.objects.filter(referencia=transaccion["reference"])
+        if empresa_id is None:
+            pagos = pagos.filter(pasarela_propia=False)
+        else:
+            pagos = pagos.filter(empresa_id=empresa_id, pasarela_propia=True)
+        pago = pagos.first()
+        if pago is None:
+            return HttpResponseBadRequest("Pago no válido.")
+        try:
+            llaves = credenciales_pago(pago)
+        except PasarelaNoDisponible:
+            return HttpResponse(status=503)
+        if not evento_es_valido(evento, llaves.eventos):
             return HttpResponseBadRequest("Firma no válida.")
-
         if evento.get("event") == "transaction.updated":
-            aplicar_transaccion(evento["data"]["transaction"])
+            # Wompi normalmente no firma referencia ni moneda: se toman de su API,
+            # evitando que un evento firmado se reutilice para otra venta del mismo monto.
+            real = consultar_transaccion(transaccion.get("id"), llaves=llaves)
+            if real is None:
+                return HttpResponse(status=503)
+            if real.get("reference") != pago.referencia or real.get("id") != transaccion.get("id"):
+                return HttpResponseBadRequest("Transacción no válida.")
+            aplicar_transaccion(real, empresa_id=pago.empresa_id)
         return HttpResponse(status=200)
+
+
+class WompiWebhookView(WompiWebhookNegocioView):
+    """Solo avisos históricos: usa la instantánea cifrada, nunca las llaves de .env."""
+
+    def post(self, request):
+        return super().post(request, empresa_id=None)

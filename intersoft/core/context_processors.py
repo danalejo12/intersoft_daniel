@@ -1,4 +1,5 @@
 from . import carrito as carrito_servicio
+from .marketplace import categorias_publicas
 
 
 def carrito(request):
@@ -7,6 +8,8 @@ def carrito(request):
         "carrito_cantidad": 0,
         "nav_permisos": {},
         "membresias_activas": getattr(request, "membresias_activas", []),
+        # Se pasa la función, no la lista: la plantilla solo consulta si la usa
+        "categorias_marketplace": categorias_publicas,
     }
     if hasattr(request, "session"):
         datos["carrito_cantidad"] = carrito_servicio.cantidad_total(request)
@@ -32,6 +35,7 @@ def carrito(request):
                     "reportes.ver",
                 )
             ),
+            "configurar_pagos": membresia.tiene_permiso("pagos.configurar"),
             "ver_equipo": any(
                 membresia.tiene_permiso(p)
                 for p in ("equipo.ver", "equipo.gestionar", "negocio.editar")

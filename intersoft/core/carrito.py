@@ -6,6 +6,7 @@ de la base de datos, para que nadie pueda alterarlos desde el navegador.
 from decimal import Decimal
 
 from .compras import calcular_costo_envio
+from .tarifas import cargo_pasarela
 from .marketplace import productos_publicos
 from .impuestos import CENTAVOS, calcular_iva
 
@@ -105,14 +106,17 @@ def grupos(request):
             total_productos=total_productos,
             peso_total_gramos=peso_total_gramos,
         )
+        antes_de_pasarela = (total_productos + costo_envio).quantize(CENTAVOS)
+        cargo = cargo_pasarela(antes_de_pasarela, config=negocio.configuracion_pagos)
         resultado.append({
             "negocio": negocio,
             "lineas": lineas,
             "subtotal": subtotal,
             "iva": iva,
             "costo_envio": costo_envio,
+            "cargo_pasarela": cargo,
             "peso_total_gramos": peso_total_gramos,
-            "total": (total_productos + costo_envio).quantize(CENTAVOS),
+            "total": (antes_de_pasarela + cargo).quantize(CENTAVOS),
             "unidades": sum(linea["cantidad"] for linea in lineas),
         })
     resultado.sort(key=lambda grupo: grupo["negocio"].nombre.lower())

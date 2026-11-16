@@ -1,28 +1,50 @@
 <article class="tarjeta">
   <a class="tarjeta-enlace" href="{% url 'tienda_producto' producto.pk %}">
-    <span class="tarjeta-imagen" aria-hidden="true">
+    <span class="tarjeta-imagen">
       {% if producto.imagen %}
         <img class="tarjeta-foto" src="{{ producto.imagen.url }}" alt="" loading="lazy">
       {% else %}
-        <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}">{{ producto.nombre|first|upper }}</span>
+        <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</span>
+      {% endif %}
+      {# El público solo ve si hay o no: el stock exacto es información interna del negocio #}
+      {% if producto.stock > 0 %}
+        <span class="vidrio vidrio-ok">Disponible</span>
+      {% else %}
+        <span class="vidrio vidrio-agotado">Agotado</span>
       {% endif %}
     </span>
     <span class="tarjeta-cuerpo">
       <strong class="tarjeta-nombre">{{ producto.nombre }}</strong>
-      <span class="tarjeta-negocio">{{ producto.empresa.nombre }}</span>
-      <span class="tarjeta-pie">
-        <span class="precio">
-          <span class="precio-valor">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
-          {% if producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
+      <span class="tarjeta-negocio">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.6 4h14.8L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/></svg>
+        {{ producto.empresa.nombre }}
+      </span>
+      {% if producto.num_opiniones %}
+        <span class="tarjeta-valoracion">
+          {% include "core/tienda/estrellas.html" with valor=producto.promedio %}
+          <small>({{ producto.num_opiniones }})</small>
         </span>
-        {% include "core/tienda/disponibilidad.html" %}
+      {% else %}
+        <span class="tarjeta-valoracion tarjeta-sin-opiniones">Sin opiniones aún</span>
+      {% endif %}
+      <span class="precio">
+        <span class="precio-valor">${{ producto.precio_marketplace|floatformat:"-2g" }}</span>
+        {% if producto.cargo_pasarela %}<small>{% if producto.iva_porcentaje %}IVA y {% endif %}cargo de pasarela incluidos</small>{% elif producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}
       </span>
     </span>
   </a>
-  {% if producto.stock > 0 %}
+  {% if not producto.empresa.compra_en_linea %}
+    <p class="nota">Compra en línea no disponible</p>
+  {% elif producto.stock > 0 %}
     <form class="tarjeta-accion" method="post" action="{% url 'carrito_agregar' producto.pk %}" data-agregar>
       {% csrf_token %}
-      <button type="submit" class="boton boton-claro boton-ancho">Añadir al carrito</button>
+      <button type="submit" class="boton-carrito">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
+        <span>Añadir al carrito</span>
+      </button>
+      <button type="submit" name="comprar_ahora" value="1" class="boton-rapido" aria-label="Comprar ahora {{ producto.nombre }}" title="Comprar ahora">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+      </button>
     </form>
   {% endif %}
 </article>

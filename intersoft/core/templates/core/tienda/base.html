@@ -4,45 +4,107 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft · Marketplace{% endblock %}</title>
+  {# Antes de pintar: aplica el tema guardado (o el del sistema) para que no haya parpadeo #}
+  <script>
+    (function () {
+      var tema;
+      try { tema = localStorage.getItem("intersoft-tema"); } catch (e) {}
+      if (tema !== "claro" && tema !== "oscuro") {
+        tema = window.matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+      }
+      document.documentElement.setAttribute("data-tema", tema);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
-  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=6">
-  <script src="{% static 'core/js/tienda.js' %}?v=2" defer></script>
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=10">
+  <script src="{% static 'core/js/tienda.js' %}?v=5" defer></script>
 </head>
 <body>
+{% include "core/includes/bienvenida.html" %}
   <div id="centinela-barra" aria-hidden="true"></div>
-
+  {% with cats=categorias_marketplace %}
   <header class="barra">
     <div class="contenedor barra-interior">
-      <a class="marca" href="{% url 'marketplace' %}">Intersoft</a>
+      <a class="marca" href="{% url 'marketplace' %}" aria-label="Intersoft, inicio del marketplace">
+        <span class="marca-isotipo" aria-hidden="true"></span>Intersoft
+      </a>
 
-      <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios">
-        <button type="submit" class="boton">Buscar</button>
+      <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search" data-sugerencias="{% url 'sugerencias_busqueda' %}">
+        <label class="visualmente-oculto" for="buscador-categoria">Categoría</label>
+        <select id="buscador-categoria" name="categoria" class="buscador-filtro">
+          <option value="">Todos</option>
+          {% for c in cats %}<option value="{{ c }}" {% if c == categoria_activa %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+        <div class="sugerencias" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></div>
+        {% if orden and orden != "relevancia" %}<input type="hidden" name="orden" value="{{ orden }}">{% endif %}
+        <button type="submit" class="buscador-boton" aria-label="Buscar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
       </form>
 
       <nav class="menu" aria-label="Cuenta">
+        <button type="button" class="tema" role="switch" aria-checked="false" aria-label="Modo noche" data-tema-boton>
+          <span class="tema-pista" aria-hidden="true">
+            <svg class="tema-sol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tema-luna" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
+            <span class="tema-perilla"></span>
+          </span>
+        </button>
+
+        {% if user.is_authenticated %}
+          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">Mis pedidos</a>
+        {% endif %}
+
         <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="Ver carrito de compras" data-carrito>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
           <span class="contador" data-carrito-cantidad {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
         </a>
-        {% if user.is_authenticated %}
-          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">Mis pedidos</a>
-          <a class="boton boton-claro" href="{% url 'dashboard' %}">Mi panel</a>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="enlace">Salir</button>
-          </form>
-        {% else %}
-          <a class="boton boton-vendedor" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
-          <a class="menu-enlace" href="{% url 'login' %}">Ingresar</a>
-          <a class="boton" href="{% url 'registro' %}">Crear cuenta</a>
-        {% endif %}
+
+        <details class="cuenta" data-desplegable>
+          <summary class="cuenta-boton">
+            <span class="cuenta-avatar" aria-hidden="true">{% if user.is_authenticated %}{{ user.first_name|default:user.email|first|upper }}{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>{% endif %}</span>
+            <span class="cuenta-texto">{% if user.is_authenticated %}Mi cuenta{% else %}Ingresar{% endif %}</span>
+            <svg class="cuenta-flecha" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="desplegable">
+            {% if user.is_authenticated %}
+              <p class="desplegable-quien">{{ user.get_full_name|default:user.email }}</p>
+              <a href="{% url 'dashboard' %}">Mi panel</a>
+              <a href="{% url 'mis_pedidos' %}">Mis pedidos</a>
+              <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form>
+            {% else %}
+              <a href="{% url 'login' %}">Ingresar</a>
+              <a href="{% url 'registro' %}">Crear cuenta</a>
+              <a href="{% url 'negocio_registrar' %}">Registrar mi negocio</a>
+            {% endif %}
+          </div>
+        </details>
       </nav>
     </div>
+
+    <nav class="subbarra" aria-label="Secciones del marketplace">
+      <div class="contenedor subbarra-interior">
+        <details class="subbarra-categorias" data-desplegable>
+          <summary>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            Categorías
+          </summary>
+          <div class="desplegable">
+            <a href="{% url 'marketplace' %}#titulo-productos">Todos los productos</a>
+            {% for c in cats %}<a href="{% url 'marketplace' %}?categoria={{ c|urlencode }}#titulo-productos">{{ c }}</a>{% empty %}<span class="desplegable-vacio">Aún no hay categorías</span>{% endfor %}
+          </div>
+        </details>
+        <a href="{% url 'marketplace' %}?orden=nuevos#titulo-productos">Novedades</a>
+        <a href="{% url 'marketplace' %}?orden=mejor_valorados#titulo-productos">Mejor valorados</a>
+        <a href="{% url 'marketplace' %}#tiendas">Tiendas</a>
+        <a class="subbarra-vende" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+      </div>
+    </nav>
   </header>
+  {% endwith %}
 
   <main class="contenedor">
     {% for mensaje in messages %}

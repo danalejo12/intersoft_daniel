@@ -62,4 +62,13 @@ class Empresa(ModeloBase):
     def datos_completos(self):
         """Ley 1480, art. 53: sin dirección de notificaciones y teléfono, el negocio no puede vender."""
         return bool(self.direccion.strip() and self.telefono.strip())
- 
+
+    @property
+    def configuracion_pagos(self):
+        return getattr(self, "pasarela", None)
+
+    @property
+    def compra_en_linea(self):
+        config = self.configuracion_pagos
+        return bool(config and config.lista_para_cobrar)
+

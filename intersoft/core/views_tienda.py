@@ -3,13 +3,22 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Avg, Count, Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 from django.views.generic import DetailView, FormView, ListView
 
 from .forms_tienda import RegistroCompradorForm, RegistroNegocioForm
-from .marketplace import empresas_publicas, negocios_con_productos, productos_publicos
+from .marketplace import (
+    ORDENES,
+    categorias_publicas,
+    con_valoraciones,
+    empresas_publicas,
+    negocios_con_valoracion,
+    ordenar,
+    productos_publicos,
+)
 from .negocios import registrar_negocio
 from .redirecciones import destino_seguro
 
@@ -20,18 +29,37 @@ class MarketplaceView(ListView):
     paginate_by = 24
 
     def get_queryset(self):
-        self.q = self.request.GET.get("q", "").strip()
+        self.q = self.request.GET.get("q", "").strip()[:100]
+        self.categorias = categorias_publicas()
+        categoria = self.request.GET.get("categoria", "").strip()
+        self.categoria = categoria if categoria in self.categorias else ""  # solo valores conocidos
+        orden = self.request.GET.get("orden", "")
+        self.orden = orden if orden in ORDENES else "relevancia"
+
         productos = productos_publicos()
         if self.q:
             productos = productos.filter(
                 Q(nombre__icontains=self.q) | Q(empresa__nombre__icontains=self.q)
             )
-        return productos
+        if self.categoria:
+            productos = productos.filter(categoria__nombre=self.categoria)
+        return ordenar(con_valoraciones(productos), self.orden)
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["q"] = self.q
-        contexto["negocios"] = negocios_con_productos()
+        contexto.update({
+            "q": self.q,
+            "categoria_activa": self.categoria,
+            "categorias": self.categorias,
+            "orden": self.orden,
+            "ordenes": ORDENES,
+            "negocios": negocios_con_valoracion(),
+            "filtrando": bool(self.q or self.categoria),
+        })
+        # Fotos reales de productos para la composición de la portada
+        vitrina = list(productos_publicos().exclude(imagen="")[:3])
+        contexto["vitrina"] = vitrina
+        contexto["vitrina_flotantes"] = [vitrina[-1], vitrina[0]] if len(vitrina) > 1 else vitrina
         return contexto
 
 
@@ -42,7 +70,7 @@ class TiendaNegocioView(ListView):
 
     def get_queryset(self):
         self.negocio = get_object_or_404(empresas_publicas(), slug=self.kwargs["slug"])
-        return productos_publicos().filter(empresa=self.negocio)
+        return con_valoraciones(productos_publicos().filter(empresa=self.negocio)).order_by("nombre", "id")
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -105,3 +133,34 @@ class RegistrarNegocioView(LoginRequiredMixin, FormView):
 
 def despues_de_login(request):
     return redirect("dashboard" if request.empresa else "marketplace")
+
+
+SUGERENCIAS_MAXIMO = 6
+SUGERENCIAS_MINIMO_LETRAS = 2
+
+
+@require_GET
+def sugerencias_busqueda(request):
+    """Autocompletar del buscador: pocos resultados, solo datos públicos del catálogo."""
+    q = request.GET.get("q", "").strip()[:60]
+    if len(q) < SUGERENCIAS_MINIMO_LETRAS:
+        return JsonResponse({"productos": [], "negocios": []})
+    productos = (
+        productos_publicos()
+        .filter(Q(nombre__icontains=q) | Q(empresa__nombre__icontains=q) | Q(categoria__nombre__icontains=q))
+        .order_by("nombre", "id")[:SUGERENCIAS_MAXIMO]
+    )
+    negocios = empresas_publicas().filter(nombre__icontains=q).order_by("nombre")[:3]
+    return JsonResponse({
+        "productos": [
+            {
+                "nombre": p.nombre,
+                "negocio": p.empresa.nombre,
+                "precio": f"${p.precio_marketplace:,.0f}".replace(",", "."),
+                "imagen": p.imagen.url if p.imagen else "",
+                "url": reverse("tienda_producto", args=[p.pk]),
+            }
+            for p in productos
+        ],
+        "negocios": [{"nombre": n.nombre, "url": reverse("tienda_negocio", args=[n.slug])} for n in negocios],
+    })

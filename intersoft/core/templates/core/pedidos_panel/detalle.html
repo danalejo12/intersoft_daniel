@@ -37,9 +37,14 @@
           <tr><td>Subtotal productos</td><td class="num">$ {{ pedido.subtotal|floatformat:"-2g" }}</td></tr>
           <tr><td>IVA</td><td class="num">$ {{ pedido.iva|floatformat:"-2g" }}</td></tr>
           <tr><td>Costo de envío</td><td class="num">$ {{ pedido.costo_envio|floatformat:"-2g" }}</td></tr>
+          <tr><td>Cargo pasarela (lo paga el comprador)</td><td class="num">$ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
           <tr><td><strong>Total cobrado al comprador</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>
+          {% if not pedido.pago_directo %}
           <tr><td>Comisión plataforma ({{ pedido.comision_porcentaje|floatformat:"-2g" }}%)</td><td class="num">- $ {{ pedido.comision_valor|floatformat:"-2g" }}</td></tr>
-          <tr class="total"><td><strong>Neto para tu negocio</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
+          {% endif %}
+          <tr><td>Retenido por Wompi</td><td class="num">- $ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
+          <tr class="total"><td><strong>{% if pedido.pago_directo %}Valor antes de otros descuentos de Wompi{% else %}Neto para tu negocio{% endif %}</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
+          {% if not pedido.pago_directo %}
           <tr>
             <td>Estado de dispersión</td>
             <td class="num">
@@ -47,9 +52,12 @@
               {% if pedido.dispersion_referencia %}<small class="nota">({{ pedido.dispersion_referencia }})</small>{% endif %}
             </td>
           </tr>
+          {% endif %}
         </tbody>
       </table>
-      {% if pedido.estado == "pagado" and puede_reembolsar and pedido.estado_dispersion != "liquidada" %}
+      {% if pedido.pago_directo %}
+        <p class="nota">El pago llega directamente a tu cuenta de Wompi. Intersoft no realiza dispersión.</p>
+      {% elif pedido.estado == "pagado" and puede_reembolsar and pedido.estado_dispersion != "liquidada" %}
         <form method="post" class="formulario" style="margin-top: 0.75rem;">
           {% csrf_token %}
           <input type="hidden" name="accion" value="registrar_dispersion">

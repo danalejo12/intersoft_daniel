@@ -2,7 +2,7 @@
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Max, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
@@ -10,7 +10,7 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from .forms import CategoriaForm, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin
-from .models import Categoria, MovimientoInventario, Producto
+from .models import Categoria, FotoProducto, MovimientoInventario, Producto
 from .services import StockInsuficiente, registrar_movimiento
 
 
@@ -147,6 +147,26 @@ class ProductoFormMixin:
         kwargs = super().get_form_kwargs()
         kwargs["empresa"] = self.request.empresa
         return kwargs
+
+    def form_valid(self, form):
+        # Producto y galería se guardan juntos: si algo falla no queda nada a medias
+        with transaction.atomic():
+            respuesta = super().form_valid(form)
+            self.guardar_galeria(form)
+        return respuesta
+
+    def guardar_galeria(self, form):
+        quitar = list(form.cleaned_data.get("quitar_fotos") or [])
+        archivos_viejos = [foto.imagen.name for foto in quitar]
+        FotoProducto.objects.filter(pk__in=[foto.pk for foto in quitar], producto=self.object).delete()
+        siguiente = (self.object.fotos.aggregate(m=Max("orden"))["m"] or -1) + 1
+        for i, archivo in enumerate(form.cleaned_data.get("fotos_extra") or []):
+            FotoProducto.objects.create(
+                empresa=self.request.empresa, producto=self.object, imagen=archivo, orden=siguiente + i
+            )
+        # Los archivos se borran solo si la transacción se confirmó
+        almacen = FotoProducto._meta.get_field("imagen").storage
+        transaction.on_commit(lambda: [almacen.delete(nombre) for nombre in archivos_viejos])
 
 
 class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, CreateView):

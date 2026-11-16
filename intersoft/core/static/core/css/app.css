@@ -4,7 +4,7 @@
    un ambiente nocturno, con un dock en forma de píldora y tarjetas que
    brillan con el color de lo que miden.
    ===================================================================== */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
 :root {
   color-scheme: dark;
@@ -43,7 +43,8 @@
   --radio-tarjeta: 22px;
   --radio-campo: 14px;
 
-  --fuente: "Inter", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  /* La misma letra del marketplace: un solo producto, una sola voz */
+  --fuente: "Plus Jakarta Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --suave-curva: cubic-bezier(.2, .8, .2, 1);
 }
 
@@ -1304,3 +1305,93 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
 .equipo-permiso-item:hover { background: rgba(255, 255, 255, .06); }
 .equipo-permiso-item:has(input:checked) { background: rgba(91, 140, 255, .14); }
 .equipo-permiso-item input { margin-top: 3px; flex-shrink: 0; }
+
+/* ---------- Menú lateral expandible: íconos con su nombre ---------- */
+.dock-expandir {
+  display: grid; place-items: center; width: 36px; height: 36px; margin-bottom: 4px; padding: 0;
+  border: 1px solid var(--vidrio-borde); border-radius: 50%; background: rgba(255, 255, 255, .06);
+  color: var(--suave); cursor: pointer; transition: transform .3s var(--suave-curva), background-color .2s;
+}
+.dock-expandir:hover { background: rgba(255, 255, 255, .14); color: var(--texto); }
+.dock-expandir svg { width: 18px; height: 18px; transform: rotate(180deg); transition: transform .3s var(--suave-curva); }
+.dock-abierto .dock-expandir svg { transform: none; }
+.dock-expandir:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+
+@media (min-width: 761px) {
+  .dock-abierto .escena { grid-template-columns: 210px minmax(0, 1fr); }
+  .dock-abierto .dock { align-items: stretch; padding: 14px 12px; border-radius: 28px; }
+  .dock-abierto .dock-expandir { align-self: flex-end; }
+  .dock-abierto .dock a, .dock-abierto .dock-salir {
+    display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    width: 100%; height: 44px; padding: 0 14px; border-radius: 14px;
+  }
+  .dock-abierto .dock svg { flex: none; }
+  .dock-abierto .dock [data-label]::after {
+    position: static; padding: 0; border: 0; background: none; color: inherit;
+    font-size: .9rem; font-weight: 600; opacity: 1; transform: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}
+@media (max-width: 760px) {
+  .dock-expandir { display: none; }
+}
+
+/* ---------- Guía de primeros pasos ---------- */
+.visualmente-oculto { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.guia {
+  margin-bottom: 22px; padding: 22px 24px; border: 1px solid color-mix(in srgb, var(--ambar) 40%, var(--tarjeta-borde));
+  border-radius: var(--radio-tarjeta);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ambar) 14%, transparent), var(--tarjeta) 60%);
+}
+.guia-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
+.guia-cabeza h2 { margin: 0; }
+.guia-cabeza p { margin: 2px 0 0; color: var(--suave); font-size: .9rem; }
+.guia-barra { flex: 1; max-width: 320px; min-width: 160px; height: 8px; overflow: hidden; border-radius: 999px; background: var(--hundido); }
+.guia-barra span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ambar), var(--verde)); transition: width .6s var(--suave-curva); }
+.guia-pasos { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.guia-pasos li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 14px; border-radius: 16px; background: var(--hundido); }
+.guia-marca { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border: 1.5px solid var(--tarjeta-borde); border-radius: 50%; color: var(--suave); font-weight: 700; }
+.guia-pasos li.hecho .guia-marca { border-color: var(--verde); background: color-mix(in srgb, var(--verde) 22%, transparent); color: var(--verde); }
+.guia-pasos li.hecho strong { color: var(--suave); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--verde) 70%, transparent); }
+.guia-texto { display: flex; flex: 1; flex-direction: column; min-width: 200px; }
+.guia-texto small { color: var(--suave); }
+.guia-accion { flex: none; }
+
+/* ---------- Galería en el formulario de producto ---------- */
+.etiqueta { display: block; margin-bottom: 8px; font-weight: 600; }
+.galeria-panel { display: flex; flex-wrap: wrap; gap: 10px; }
+.galeria-panel-foto { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--tarjeta-borde); border-radius: 14px; background: var(--hundido); cursor: pointer; }
+.galeria-panel-foto img { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; }
+.galeria-panel-foto input { position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; }
+.galeria-panel-foto span { color: var(--suave); font-size: .8rem; }
+.galeria-panel-foto:has(input:checked) { border-color: var(--rojo); }
+.galeria-panel-foto:has(input:checked) img { opacity: .4; }
+
+/* ---------- Pagos en línea (pasarela propia de cada negocio) ---------- */
+.pagos { display: grid; gap: 22px; max-width: 760px; }
+.pagos-encabezado h1 { margin-bottom: 6px; }
+.pagos .formulario { max-width: none; }
+.pagos .campo.check { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.pagos .campo.check .ayuda { flex-basis: 100%; }
+.pagos-subtitulo { margin: 28px 0 14px; padding-top: 20px; border-top: 1px solid var(--linea); font-size: 1rem; }
+.pagos-chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+  font-size: .8rem; font-weight: 700; background: var(--hundido); color: var(--suave); white-space: nowrap;
+}
+.pagos-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pagos-chip.ok { color: var(--verde); background: rgba(123, 214, 107, .12); }
+.pagos-chip.pausa { color: var(--azul); background: rgba(91, 140, 255, .12); }
+.pagos-chip.alerta { color: var(--ambar); background: rgba(245, 184, 76, .12); }
+.pagos-chip.ok::before { box-shadow: 0 0 0 4px rgba(123, 214, 107, .18); animation: pagos-latido 2.4s var(--suave-curva) infinite; }
+@keyframes pagos-latido { 50% { box-shadow: 0 0 0 7px rgba(123, 214, 107, 0); } }
+.pagos-pasos { list-style: none; counter-reset: paso; margin: 0 0 18px; padding: 0; display: grid; gap: 12px; }
+.pagos-pasos li { counter-increment: paso; position: relative; padding-left: 40px; color: var(--texto); line-height: 1.45; }
+.pagos-pasos li::before {
+  content: counter(paso); position: absolute; left: 0; top: -2px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-size: .8rem; font-weight: 700; background: var(--hundido); color: var(--tenue);
+}
+.pagos-pasos li.hecho::before { content: "✓"; background: rgba(123, 214, 107, .16); color: var(--verde); }
+.pagos-pasos small { display: block; color: var(--tenue); font-size: .82rem; }
+.pagos-estado .acciones-fila { justify-content: flex-start; flex-wrap: wrap; }
+.pagos-borrar { justify-self: start; }
+@media (prefers-reduced-motion: reduce) { .pagos-chip.ok::before { animation: none; } }

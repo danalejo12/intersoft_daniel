@@ -6,6 +6,7 @@ GRUPOS_PERMISOS = (
         "Negocio y equipo",
         (
             ("negocio.editar", "Editar datos del negocio"),
+            ("pagos.configurar", "Conectar y administrar la pasarela de pagos (llaves de Wompi)"),
             ("equipo.ver", "Ver miembros del equipo y roles"),
             ("equipo.gestionar", "Gestionar miembros del equipo y roles"),
         ),

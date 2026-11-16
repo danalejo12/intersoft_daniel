@@ -48,9 +48,12 @@ class Pedido(ModeloTenant):
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
     expira_en = models.DateTimeField()
     renovaciones = models.PositiveSmallIntegerField(default=0)
+    pago_directo = models.BooleanField(default=False)  # False conserva el historial del antiguo recaudador.
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     iva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     costo_envio = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # Comisión de Wompi que paga el comprador; Wompi la descuenta y no llega al negocio.
+    cargo_pasarela = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     peso_total_gramos = models.PositiveIntegerField(default=0)
     comision_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
@@ -122,7 +125,7 @@ class Pedido(ModeloTenant):
     @property
     def puede_renovar(self):
         return (
-            self.estado in (self.Estado.PENDIENTE, self.Estado.VENCIDO)
+            self.pago_directo and self.estado in (self.Estado.PENDIENTE, self.Estado.VENCIDO)
             and self.renovaciones < settings.PEDIDO_MAX_RENOVACIONES
         )
 

@@ -179,3 +179,23 @@
     grupo.addEventListener("change", () => actualizarContadorGrupo(grupo));
   });
 })();
+
+// Menú lateral: expandir (íconos con nombre) o contraer (solo íconos). Se recuerda en el navegador.
+(() => {
+  const boton = document.querySelector("[data-dock-expandir]");
+  if (!boton) return;
+  const raiz = document.documentElement;
+  const pintar = () => {
+    const abierto = raiz.classList.contains("dock-abierto");
+    boton.setAttribute("aria-expanded", String(abierto));
+    const texto = abierto ? "Contraer menú" : "Mostrar nombres del menú";
+    boton.setAttribute("aria-label", texto);
+    boton.title = texto;
+  };
+  boton.addEventListener("click", () => {
+    const abierto = raiz.classList.toggle("dock-abierto");
+    try { localStorage.setItem("intersoft-dock", abierto ? "abierto" : "cerrado"); } catch (e) { /* modo privado */ }
+    pintar();
+  });
+  pintar();
+})();

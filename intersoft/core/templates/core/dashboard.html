@@ -2,6 +2,30 @@
 {% block titulo %}Inicio · Intersoft{% endblock %}
 
 {% block contenido %}
+  {% if primeros_pasos %}
+  <section class="guia" aria-labelledby="titulo-guia">
+    <div class="guia-cabeza">
+      <div>
+        <h2 id="titulo-guia">Prepara tu negocio para vender</h2>
+        <p>{{ pasos_hechos }} de {{ primeros_pasos|length }} pasos listos</p>
+      </div>
+      <div class="guia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pasos_avance }}" aria-label="Avance de la guía"><span style="width: {{ pasos_avance }}%"></span></div>
+    </div>
+    <ol class="guia-pasos">
+      {% for paso in primeros_pasos %}
+        <li class="{% if paso.hecho %}hecho{% endif %}">
+          <span class="guia-marca" aria-hidden="true">{% if paso.hecho %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+          <div class="guia-texto">
+            <strong>{{ paso.titulo }}{% if paso.hecho %}<span class="visualmente-oculto"> (listo)</span>{% endif %}</strong>
+            <small>{{ paso.ayuda }}</small>
+          </div>
+          {% if not paso.hecho and paso.url %}<a class="boton guia-accion" href="{{ paso.url }}">{{ paso.accion }}</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
   <!-- Indicadores: cada uno brilla con el color de lo que mide -->
   <section class="kpis">
     {% if puede_ver_ventas %}

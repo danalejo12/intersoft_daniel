@@ -11,8 +11,21 @@
     {% csrf_token %}
     {% for campo in form %}
       <div class="campo">
+        {% if campo.name == "quitar_fotos" %}
+          <span class="etiqueta">{{ campo.label }}</span>
+          <div class="galeria-panel">
+            {% for opcion in campo %}
+              <label class="galeria-panel-foto">
+                {{ opcion.tag }}
+                <img src="{{ opcion.choice_label }}" alt="Foto {{ forloop.counter }} de la galería">
+                <span>Quitar</span>
+              </label>
+            {% endfor %}
+          </div>
+        {% else %}
         {{ campo.label_tag }}
         {{ campo }}
+        {% endif %}
         {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
         {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
       </div>

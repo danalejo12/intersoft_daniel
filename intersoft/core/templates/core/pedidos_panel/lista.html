@@ -5,7 +5,7 @@
   <div class="encabezado">
     <div>
       <h1>Pedidos del marketplace</h1>
-      <p class="nota">Liquidación de comisiones ({{ liquidacion.comision_actual|floatformat:"-2g" }}%), logística de despacho y reembolsos.</p>
+      <p class="nota">Cobros directos a tu cuenta, logística de despacho y reembolsos.</p>
     </div>
     <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
   </div>
@@ -18,13 +18,13 @@
     </article>
 
     <article class="kpi violeta">
-      <div class="kpi-cabecera"><span>Comisión plataforma</span></div>
+      <div class="kpi-cabecera"><span>Comisiones históricas</span></div>
       <strong>$ {{ liquidacion.comision|floatformat:"0g" }}</strong>
-      <small>Tarifa vigente: {{ liquidacion.comision_actual|floatformat:"-2g" }}%</small>
+      <small>Los pedidos nuevos no pagan comisión a Intersoft.</small>
     </article>
 
     <article class="kpi verde">
-      <div class="kpi-cabecera"><span>Neto del comercio</span></div>
+      <div class="kpi-cabecera"><span>Valor antes de otros descuentos de Wompi</span></div>
       <strong>$ {{ liquidacion.neto|floatformat:"0g" }}</strong>
       <small>Incluye $ {{ liquidacion.envio|floatformat:"0g" }} en envíos</small>
     </article>

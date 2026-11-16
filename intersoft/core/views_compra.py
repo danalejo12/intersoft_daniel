@@ -13,8 +13,8 @@ from .forms_tienda import ComentarioForm, DatosEnvioForm
 from .marketplace import empresas_publicas, productos_publicos
 from .models import Comentario, Pedido
 from .pagos import PagoNoPermitido, crear_pago_pedido, url_checkout
-from .services import StockInsuficiente
 from .redirecciones import destino_seguro
+from .services import StockInsuficiente
 
 # ---------------------------------------------------------------
 # Carrito
@@ -48,6 +48,13 @@ class AgregarAlCarritoView(View):
 
     def post(self, request, pk):
         producto = get_object_or_404(productos_publicos(), pk=pk)
+        if not producto.empresa.compra_en_linea:
+            mensaje = "Compra en línea no disponible para este negocio."
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"ok": False, "mensaje": mensaje,
+                                     "cantidad_total": carrito.cantidad_total(request)}, status=409)
+            messages.warning(request, mensaje)
+            return redirect("tienda_producto", pk=producto.pk)
         pedida = max(_entero(request.POST.get("cantidad"), 1), 1)
         agregadas = carrito.agregar(request, producto, pedida)
 
@@ -109,6 +116,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         self.negocio = get_object_or_404(empresas_publicas(), slug=kwargs["slug"])
+        if not self.negocio.compra_en_linea:
+            messages.warning(request, "Compra en línea no disponible para este negocio.")
+            return redirect("carrito")
         self.grupo, avisos = carrito.grupo_de(request, self.negocio)
         _avisar(request, avisos)
         # Si algo cambió justo al confirmar, la persona debe ver el total nuevo antes de seguir
@@ -145,6 +155,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 lineas=self.grupo["lineas"],
                 datos=form.cleaned_data,
             )
+        except PagoNoPermitido as error:
+            messages.warning(self.request, str(error))
+            return redirect("carrito")
         except (StockInsuficiente, ValueError):
             # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
             messages.warning(

@@ -51,9 +51,14 @@
           <dl>
             <div><dt>Productos ({{ grupo.unidades }})</dt><dd>${{ grupo.subtotal|floatformat:"-2g" }}</dd></div>
             <div><dt>IVA</dt><dd>${{ grupo.iva|floatformat:"-2g" }}</dd></div>
+            {% if grupo.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
             <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
           </dl>
-          <a class="boton boton-grande boton-ancho" href="{% url 'checkout' grupo.negocio.slug %}">Continuar con la compra</a>
+          {% if grupo.negocio.compra_en_linea %}
+            <a class="boton boton-grande boton-ancho" href="{% url 'checkout' grupo.negocio.slug %}">Continuar con la compra</a>
+          {% else %}
+            <p class="nota">Compra en línea no disponible</p>
+          {% endif %}
           <p class="confianza">El envío lo coordinas con {{ grupo.negocio.nombre }}.</p>
         </aside>
       </section>
