@@ -299,7 +299,12 @@ class MigracionCredencialesTests(TransactionTestCase):
     def test_conserva_credenciales_anteriores_sin_activar_negocios(self):
         antes = [("core", "0020_configuracion_pagos")]
         despues = [("core", "0021_pagos_directos_auditoria")]
-        self.addCleanup(lambda: MigrationExecutor(connection).migrate(despues))
+
+        def _restaurar_migraciones():
+            restaurador = MigrationExecutor(connection)
+            restaurador.migrate(restaurador.loader.graph.leaf_nodes())
+
+        self.addCleanup(_restaurar_migraciones)
         ejecutor = MigrationExecutor(connection)
         ejecutor.migrate(antes)
         apps = ejecutor.loader.project_state(antes).apps

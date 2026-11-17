@@ -63,6 +63,7 @@ class RegistrosTests(TestCase):
             self.assertEqual(check_mailers_production_backend(None), [])
 
     def test_check_deploy_en_configuracion_de_produccion_sin_errores_bloqueantes(self):
+        from cryptography.fernet import Fernet
         from django.core import checks
         from intersoft.settings import _construir_mailers
 
@@ -84,6 +85,7 @@ class RegistrosTests(TestCase):
             SECURE_HSTS_INCLUDE_SUBDOMAINS=True,
             SECURE_HSTS_PRELOAD=True,
             MAILERS=smtp,
+            PAGOS_CLAVES_CIFRADO=Fernet.generate_key().decode(),
         ):
             problemas = checks.run_checks(include_deployment_checks=True)
             errores = [p for p in problemas if p.is_serious()]
