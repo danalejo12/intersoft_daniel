@@ -129,27 +129,8 @@ def crear_suscripcion_inicial(empresa: Empresa) -> Suscripcion:
     return suscripcion
 
 
-@transaction.atomic
-def cambiar_plan(
-    empresa: Empresa,
-    plan,
-    ciclo: str = Suscripcion.Ciclo.MENSUAL,
-    motivo: str = "",
-) -> Suscripcion:
-    """Cambia el plan de una empresa validando límites de downgrade, beneficio fundador y auditoría."""
-    ciclo_normalizado = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
-    if ciclo_normalizado not in Suscripcion.Ciclo.values:
-        raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
-
-    plan_destino = _obtener_plan(plan)
-    crear_suscripcion_inicial(empresa)
-    suscripcion = (
-        Suscripcion.objects.select_for_update()
-        .select_related("plan")
-        .get(empresa=empresa)
-    )
-
-    # 1. Validar que el uso actual quepa dentro de los límites del nuevo plan (protección en downgrade)
+def validar_limites(empresa: Empresa, plan_destino: Plan) -> None:
+    """Lanza DowngradeNoPermitido si el uso actual de la empresa no cabe en el plan destino."""
     consumo = uso_actual(empresa)
     limites_destino = plan_destino.limites or {}
     detalles_exceso = []
@@ -176,6 +157,35 @@ def cambiar_plan(
         )
         raise DowngradeNoPermitido(mensaje, excesos=excesos_dict)
 
+
+@transaction.atomic
+def cambiar_plan(
+    empresa: Empresa,
+    plan,
+    ciclo: str = Suscripcion.Ciclo.MENSUAL,
+    motivo: str = "",
+    forzar_fundador: bool = False,
+) -> Suscripcion:
+    """Cambia el plan de una empresa validando límites de downgrade, beneficio fundador y auditoría.
+
+    Si se paga el mismo plan y ciclo que siguen vigentes (renovación), los días se suman al vencimiento
+    actual: quien renueva antes de tiempo no pierde días. forzar_fundador respeta el descuento con el
+    que ya se cobró, aunque los cupos se hayan llenado mientras la persona pagaba."""
+    ciclo_normalizado = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
+    if ciclo_normalizado not in Suscripcion.Ciclo.values:
+        raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
+
+    plan_destino = _obtener_plan(plan)
+    crear_suscripcion_inicial(empresa)
+    suscripcion = (
+        Suscripcion.objects.select_for_update()
+        .select_related("plan")
+        .get(empresa=empresa)
+    )
+
+    # 1. Validar que el uso actual quepa dentro de los límites del nuevo plan (protección en downgrade)
+    validar_limites(empresa, plan_destino)
+
     plan_anterior = suscripcion.plan
     estado_anterior = suscripcion.estado
     ahora = timezone.now()
@@ -186,8 +196,19 @@ def cambiar_plan(
         dias_vigencia = (
             DIAS_CICLO_ANUAL if ciclo_normalizado == Suscripcion.Ciclo.ANUAL else DIAS_CICLO_MENSUAL
         )
-        nuevo_vence_en = ahora + timedelta(days=dias_vigencia)
-        if not suscripcion.es_fundador:
+        es_renovacion = (
+            suscripcion.plan_id == plan_destino.pk
+            and suscripcion.estado == Suscripcion.Estado.ACTIVA
+            and suscripcion.ciclo == ciclo_normalizado
+            and suscripcion.vence_en is not None
+            and suscripcion.vence_en > ahora
+        )
+        base_vigencia = suscripcion.vence_en if es_renovacion else ahora
+        nuevo_vence_en = base_vigencia + timedelta(days=dias_vigencia)
+        if forzar_fundador and not suscripcion.es_fundador:
+            suscripcion.es_fundador = True
+            suscripcion.descuento_porcentaje = DESCUENTO_FUNDADOR
+        elif not suscripcion.es_fundador:
             total_fundadores = (
                 Suscripcion.objects.select_for_update()
                 .filter(es_fundador=True)
@@ -197,13 +218,15 @@ def cambiar_plan(
                 suscripcion.es_fundador = True
                 suscripcion.descuento_porcentaje = DESCUENTO_FUNDADOR
     else:
+        es_renovacion = False
         nuevo_vence_en = None
 
     nuevo_estado = Suscripcion.Estado.ACTIVA
     suscripcion.plan = plan_destino
     suscripcion.estado = nuevo_estado
     suscripcion.ciclo = ciclo_normalizado
-    suscripcion.inicia_en = ahora
+    if not es_renovacion:
+        suscripcion.inicia_en = ahora
     suscripcion.vence_en = nuevo_vence_en
     suscripcion.save(
         update_fields=[

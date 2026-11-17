@@ -4,7 +4,7 @@ from decimal import Decimal
 from io import StringIO
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -16,7 +16,8 @@ from rest_framework.views import APIView
 from core.models import Empresa, Membresia, Producto, Rol, Usuario
 
 from .exceptions import LimitePlanExcedido, verificar_limite
-from .models import HistorialSuscripcion, Plan, Suscripcion
+from .cobros import aplicar_transaccion
+from .models import CobroSuscripcion, HistorialSuscripcion, Plan, Suscripcion
 from .permissions import RequiereFeature
 from .services import (
     CUPOS_FUNDADOR,
@@ -28,6 +29,22 @@ from .services import (
     uso_actual,
     verificar_vencimientos,
 )
+
+
+LLAVES_PRUEBA = {
+    "SUSCRIPCIONES_WOMPI_PUBLIC_KEY": "pub_test_intersoft",
+    "SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET": "test_integrity_intersoft",
+    "SUSCRIPCIONES_WOMPI_EVENTS_SECRET": "test_events_intersoft",
+    "SUSCRIPCIONES_WOMPI_PRIVATE_KEY": "prv_test_intersoft",
+}
+
+
+def aprobar_cobro(cobro, **cambios):
+    """Simula la transacción aprobada que Wompi devolvería al consultar el cobro."""
+    return aplicar_transaccion({
+        "id": "tx-1", "reference": cobro.referencia, "status": "APPROVED",
+        "amount_in_cents": cobro.monto_centavos, "currency": "COP", "payment_method_type": "CARD", **cambios,
+    })
 
 
 def crear_empresa_con_usuario(sufijo: str):
@@ -268,6 +285,7 @@ class SuscripcionesDominioTests(TestCase):
         self.assertEqual(sub.historial.count(), 2)
 
 
+@override_settings(**LLAVES_PRUEBA)
 class SuscripcionesAPITests(TestCase):
     """Pruebas de endpoints DRF y aislamiento multi-tenant entre Empresa A y Empresa B."""
 
@@ -321,7 +339,14 @@ class SuscripcionesAPITests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(resp_post.status_code, status.HTTP_200_OK)
+        # Plan pago: responde con el enlace de pago y no cambia nada hasta que Wompi confirme
+        self.assertEqual(resp_post.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(resp_post.json()["code"], "pago_requerido")
+        cobro = CobroSuscripcion.objects.get()
+        self.assertEqual(cobro.empresa, self.empresa_a)  # el empresa_id inyectado se ignora
+        self.empresa_a.suscripcion.refresh_from_db()
+        self.assertEqual(self.empresa_a.suscripcion.estado, Suscripcion.Estado.TRIAL)
+        aprobar_cobro(cobro)
 
         # Empresa A cambió a 'pro', mientras que Empresa B sigue intacta en su TRIAL de 'negocio'
         self.empresa_a.suscripcion.refresh_from_db()
@@ -341,12 +366,9 @@ class SuscripcionesAPITests(TestCase):
         self.assertContains(resp_get, "Emprendedor")
         self.assertContains(resp_get, "Pro")
 
-        resp_post = self.client.post(
-            reverse("suscripcion_panel"),
-            {"plan": "pro", "ciclo": "ANUAL"},
-            follow=True,
-        )
-        self.assertEqual(resp_post.status_code, 200)
+        resp_post = self.client.post(reverse("suscripcion_panel"), {"plan": "pro", "ciclo": "ANUAL"})
+        self.assertTrue(resp_post.url.startswith("https://checkout.wompi.co/p/"))
+        aprobar_cobro(CobroSuscripcion.objects.get())
         self.empresa_a.suscripcion.refresh_from_db()
         self.assertEqual(self.empresa_a.suscripcion.plan.codigo, "pro")
         self.assertEqual(self.empresa_a.suscripcion.ciclo, Suscripcion.Ciclo.ANUAL)

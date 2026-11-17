@@ -1,15 +1,23 @@
 """Vista web del panel para consultar y cambiar la suscripción SaaS de la empresa activa."""
 import math
 
+import json
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.shortcuts import redirect, render
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from core.mixins import TenantMixin
+from core.pagos import consultar_transaccion, evento_es_valido
 
-from .models import Plan, Suscripcion
+from . import cobros
+from .models import CobroSuscripcion, Plan, Suscripcion
 from .services import (
     DowngradeNoPermitido,
     cambiar_plan,
@@ -73,6 +81,10 @@ class SuscripcionPanelView(TenantMixin, View):
                     "limites": lim_p,
                     "features_legibles": features_legibles,
                     "es_actual": p.pk == suscripcion.plan_id,
+                    "es_pago": cobros.es_plan_pago(p),
+                    # Lo que se cobraría hoy en cada ciclo (con descuento de fundador si aplica)
+                    "cobro_mensual": cobros.cotizar(suscripcion, p, Suscripcion.Ciclo.MENSUAL)[2],
+                    "cobro_anual": cobros.cotizar(suscripcion, p, Suscripcion.Ciclo.ANUAL)[2],
                 }
             )
 
@@ -90,6 +102,7 @@ class SuscripcionPanelView(TenantMixin, View):
             "pct_usuarios": _porcentaje(consumo.get("usuarios", 0), limites.get("usuarios")),
             "planes_ui": planes_ui,
             "historial": suscripcion.historial.select_related("plan_anterior", "plan_nuevo")[:10],
+            "cobros": CobroSuscripcion.objects.filter(empresa=empresa).select_related("plan")[:5],
             "puede_cambiar": self._puede_cambiar(request),
         }
         return render(request, self.template_name, contexto)
@@ -100,6 +113,20 @@ class SuscripcionPanelView(TenantMixin, View):
 
         codigo_plan = (request.POST.get("plan") or "").strip()
         ciclo = (request.POST.get("ciclo") or Suscripcion.Ciclo.MENSUAL).strip().upper()
+
+        plan = Plan.objects.filter(codigo=codigo_plan, activo=True).first()
+        if plan is not None and cobros.es_plan_pago(plan):
+            # Un plan pago solo se activa cuando Wompi confirma el pago
+            try:
+                cobro = cobros.iniciar_cobro(empresa=request.empresa, plan=plan, ciclo=ciclo, usuario=request.user)
+            except cobros.CobroNoDisponible as exc:
+                messages.warning(request, str(exc))
+                return redirect("suscripcion_panel")
+            except (DowngradeNoPermitido, ValidationError) as exc:
+                messages.error(request, exc.messages[0] if getattr(exc, "messages", None) else str(exc))
+                return redirect("suscripcion_panel")
+            volver = request.build_absolute_uri(reverse("suscripcion_cobro", args=[cobro.pk]))
+            return redirect(cobros.url_pago(cobro, redirect_url=volver))
 
         try:
             nueva = cambiar_plan(
@@ -117,3 +144,49 @@ class SuscripcionPanelView(TenantMixin, View):
                 f"¡Listo! Tu empresa ahora está en el plan {nueva.plan.nombre} ({nueva.get_ciclo_display()}).",
             )
         return redirect("suscripcion_panel")
+
+
+class CobroSuscripcionView(TenantMixin, View):
+    """A donde vuelve el administrador desde Wompi: consulta el pago y muestra el resultado."""
+
+    def get(self, request, pk):
+        if not SuscripcionPanelView._puede_cambiar(self, request):
+            raise PermissionDenied("Solo el administrador del negocio puede ver los cobros del plan.")
+        cobro = get_object_or_404(CobroSuscripcion.objects.select_related("plan"), pk=pk, empresa=request.empresa)
+        cobro = cobros.sincronizar_cobro(cobro, transaccion_id=request.GET.get("id", ""))
+        return render(request, "core/negocio/cobro_suscripcion.html", {"cobro": cobro})
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class WompiWebhookSuscripcionesView(View):
+    """Eventos de la cuenta de Wompi de Intersoft. Firma verificada y transacción consultada en la API."""
+
+    http_method_names = ["post"]
+
+    def post(self, request):
+        try:
+            evento = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return HttpResponseBadRequest("JSON no válido.")
+        datos = evento.get("data") if isinstance(evento, dict) else None
+        transaccion = datos.get("transaction") if isinstance(datos, dict) else None
+        if not isinstance(transaccion, dict) or not isinstance(transaccion.get("reference"), str):
+            return HttpResponseBadRequest("Transacción no válida.")
+        cobro = CobroSuscripcion.objects.filter(referencia=transaccion["reference"]).first()
+        if cobro is None:
+            return HttpResponseBadRequest("Cobro no válido.")
+        try:
+            llaves = cobros.credenciales_intersoft()
+        except cobros.CobroNoDisponible:
+            return HttpResponse(status=503)
+        if not evento_es_valido(evento, llaves.eventos):
+            return HttpResponseBadRequest("Firma no válida.")
+        if evento.get("event") == "transaction.updated":
+            # Referencia y moneda no siempre van firmadas: se toman de la API de Wompi
+            real = consultar_transaccion(transaccion.get("id"), llaves=llaves)
+            if real is None:
+                return HttpResponse(status=503)
+            if real.get("reference") != cobro.referencia or real.get("id") != transaccion.get("id"):
+                return HttpResponseBadRequest("Transacción no válida.")
+            cobros.aplicar_transaccion(real)
+        return HttpResponse(status=200)

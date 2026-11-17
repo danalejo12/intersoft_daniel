@@ -1,7 +1,7 @@
 """Configuración del Django Admin para Planes, Suscripciones e Historial."""
 from django.contrib import admin
 
-from .models import HistorialSuscripcion, Plan, Suscripcion
+from .models import CobroSuscripcion, HistorialSuscripcion, Plan, Suscripcion
 
 
 @admin.register(Plan)
@@ -87,6 +87,23 @@ class HistorialSuscripcionAdmin(admin.ModelAdmin):
         "creado_en",
         "actualizado_en",
     )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(CobroSuscripcion)
+class CobroSuscripcionAdmin(admin.ModelAdmin):
+    """Los cobros los decide Wompi: aquí solo se consultan (y se filtran los que requieren revisión)."""
+
+    list_display = ("creado_en", "empresa", "plan", "ciclo", "monto", "estado", "referencia")
+    list_filter = ("estado", "plan", "ciclo")
+    search_fields = ("referencia", "transaccion_id", "empresa__nombre")
+    list_select_related = ("empresa", "plan")
+    readonly_fields = [f.name for f in CobroSuscripcion._meta.fields]
 
     def has_add_permission(self, request):
         return False

@@ -254,6 +254,12 @@ WOMPI_INTEGRITY_SECRET = config("WOMPI_INTEGRITY_SECRET", default="")
 WOMPI_EVENTS_SECRET = config("WOMPI_EVENTS_SECRET", default="")
 WOMPI_PRIVATE_KEY = config("WOMPI_PRIVATE_KEY", default="")  # Solo para consultar transacciones
 WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/"
+# Cuenta de Wompi de INTERSOFT para cobrar los planes (no la de los negocios ni las WOMPI_* históricas).
+# Sin la llave pública, los planes pagos no se pueden contratar desde el panel.
+SUSCRIPCIONES_WOMPI_PUBLIC_KEY = config("SUSCRIPCIONES_WOMPI_PUBLIC_KEY", default="")
+SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET = config("SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET", default="")
+SUSCRIPCIONES_WOMPI_EVENTS_SECRET = config("SUSCRIPCIONES_WOMPI_EVENTS_SECRET", default="")
+SUSCRIPCIONES_WOMPI_PRIVATE_KEY = config("SUSCRIPCIONES_WOMPI_PRIVATE_KEY", default="")
 # Cifra las llaves de Wompi de cada negocio. Varias separadas por comas: la primera cifra.
 PAGOS_CLAVES_CIFRADO = config("PAGOS_CLAVES_CIFRADO", default="")
 DEFAULT_EXCEPTION_REPORTER_FILTER = "core.cifrado.FiltroSecretosPago"

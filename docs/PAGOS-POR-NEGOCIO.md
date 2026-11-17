@@ -1,6 +1,6 @@
 # Pagos directos a cada negocio
 
-Las ventas del marketplace y el cobro de facturas usan exclusivamente la cuenta de Wompi del negocio. Los precios y los cobros de membresía quedan pendientes de definición; no se activa ninguna suscripción.
+Las ventas del marketplace y el cobro de facturas usan exclusivamente la cuenta de Wompi del negocio. Los planes de Intersoft se cobran aparte, con la cuenta de Wompi de Intersoft (`SUSCRIPCIONES_WOMPI_*`): un plan pago solo se activa cuando Wompi confirma el pago (retorno, webhook `/webhooks/wompi/suscripciones/` o la tarea `conciliar_cobros_suscripcion`). Los precios se editan en `/admin/` → Planes.
 
 ## Puesta en marcha
 

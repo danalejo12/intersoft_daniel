@@ -10,6 +10,8 @@ panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("negocio/", views.DatosNegocioView.as_view(), name="negocio_datos"),
     path("suscripcion/", views_suscripciones_panel.SuscripcionPanelView.as_view(), name="suscripcion_panel"),
+    path("suscripcion/cobros/<uuid:pk>/", views_suscripciones_panel.CobroSuscripcionView.as_view(),
+         name="suscripcion_cobro"),
     path("negocio/cambiar/", views.CambiarNegocioView.as_view(), name="negocio_cambiar"),
     path("negocio/pagos/", views_pagos.PagosNegocioView.as_view(), name="negocio_pagos"),
     path("negocio/pagos/verificar/", views_pagos.VerificarPagosView.as_view(), name="negocio_pagos_verificar"),
@@ -116,6 +118,8 @@ urlpatterns = [
     # Panel de cada negocio
     path("panel/", include(panel_urlpatterns)),
 
+    path("webhooks/wompi/suscripciones/", views_suscripciones_panel.WompiWebhookSuscripcionesView.as_view(),
+         name="wompi_webhook_suscripciones"),
     path("webhooks/wompi/<uuid:empresa_id>/", views_facturas.WompiWebhookNegocioView.as_view(), name="wompi_webhook_negocio"),
     # Compatibilidad con avisos de ventas anteriores a las pasarelas propias.
     path("webhooks/wompi/", views.WompiWebhookView.as_view(), name="wompi_webhook"),

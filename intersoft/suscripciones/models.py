@@ -192,3 +192,51 @@ class HistorialSuscripcion(ModeloBase):
     def __str__(self):
         anterior = self.plan_anterior.codigo if self.plan_anterior else "ninguno"
         return f"{self.suscripcion.empresa} · {anterior} -> {self.plan_nuevo.codigo} ({self.estado_nuevo})"
+
+
+class CobroSuscripcion(ModeloBase):
+    """Un intento de pagar un plan con la cuenta de Wompi de Intersoft.
+
+    El plan SOLO se activa cuando Wompi confirma el pago (consulta del servidor o webhook firmado):
+    el navegador nunca decide. Monto, plan y ciclo quedan congelados al crear el cobro."""
+
+    class Estado(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        APROBADO = "aprobado", "Aprobado"
+        RECHAZADO = "rechazado", "Rechazado"
+        ANULADO = "anulado", "Anulado sin pago"
+        REQUIERE_REVISION = "requiere_revision", "Requiere revisión"
+
+    empresa = models.ForeignKey("core.Empresa", on_delete=models.PROTECT, related_name="cobros_suscripcion")
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="cobros")
+    ciclo = models.CharField(max_length=10, choices=Suscripcion.Ciclo.choices)
+    referencia = models.CharField(max_length=60, unique=True)
+    precio_lista = models.DecimalField(max_digits=12, decimal_places=2)
+    descuento_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    monto = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    moneda = models.CharField(max_length=3, default="COP")
+    estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE, db_index=True)
+    transaccion_id = models.CharField(max_length=60, blank=True)
+    metodo_pago = models.CharField(max_length=30, blank=True)
+    detalle = models.CharField("detalle del resultado", max_length=255, blank=True)
+    creado_por = models.ForeignKey(
+        "core.Usuario", on_delete=models.PROTECT, related_name="cobros_suscripcion", null=True, blank=True
+    )
+    resuelto_en = models.DateTimeField(null=True, blank=True)
+    ultima_consulta_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "cobro de suscripción"
+        verbose_name_plural = "cobros de suscripción"
+        ordering = ["-creado_en"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(monto__gt=0), name="ck_cobro_suscripcion_monto_positivo"),
+        ]
+        indexes = [models.Index(fields=["empresa", "-creado_en"], name="ix_cobro_sus_empresa_fecha")]
+
+    def __str__(self):
+        return f"{self.referencia} · {self.empresa} · {self.plan.codigo} ({self.estado})"
+
+    @property
+    def monto_centavos(self) -> int:
+        return int((self.monto * 100).to_integral_value())

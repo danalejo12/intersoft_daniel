@@ -143,6 +143,7 @@ Un solo comando ejecuta todas las tareas automáticas, cada una con su propio in
 | Tarea | Cada | Qué hace |
 |---|---|---|
 | `liberar_reservas` | 5 min | Vence pedidos sin pagar (`PEDIDO_MINUTOS_RESERVA`) y devuelve su stock |
+| `conciliar_cobros_suscripcion` | 15 min | Consulta en Wompi los cobros de planes pendientes y anula los abandonados (48 h) |
 | `verificar_suscripciones` | 1 h | Pasa a Gratis las suscripciones y pruebas vencidas |
 | `alertas_stock` | 1 día | Envía las alertas de stock mínimo |
 

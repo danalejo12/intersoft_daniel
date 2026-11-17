@@ -35,6 +35,8 @@ TAREAS = (
           "Vence pedidos sin pagar y devuelve su stock."),
     Tarea("verificar_suscripciones", "verificar_suscripciones", timedelta(hours=1),
           "Pasa a Gratis las suscripciones y pruebas vencidas."),
+    Tarea("conciliar_cobros_suscripcion", "conciliar_cobros_suscripcion", timedelta(minutes=15),
+          "Consulta en Wompi los cobros de planes que siguen pendientes."),
     Tarea("alertas_stock", "procesar_reservas_y_alertas", timedelta(hours=24),
           "Envía una vez al día las alertas de stock mínimo."),
 )

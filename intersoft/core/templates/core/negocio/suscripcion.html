@@ -154,28 +154,33 @@
 
         <div class="plan-acciones">
           {% if puede_cambiar %}
-            {% if item.es_actual and suscripcion.estado == "ACTIVA" %}
+            {% if item.es_actual and suscripcion.estado == "ACTIVA" and not item.es_pago %}
               <button type="button" class="boton secundario" disabled style="width: 100%;">Plan activo actualmente</button>
             {% else %}
               <form method="post" class="plan-form-cambio">
                 {% csrf_token %}
                 <input type="hidden" name="plan" value="{{ plan.codigo }}">
-                {% if plan.precio_mensual > 0 %}
+                {% if item.es_pago %}
                   <select name="ciclo" aria-label="Ciclo de cobro para {{ plan.nombre }}">
-                    <option value="MENSUAL">Ciclo Mensual ($ {{ plan.precio_mensual|floatformat:"0g" }})</option>
-                    <option value="ANUAL">Ciclo Anual ($ {{ plan.precio_anual|floatformat:"0g" }})</option>
+                    <option value="MENSUAL" {% if item.es_actual and suscripcion.ciclo == "MENSUAL" %}selected{% endif %}>Mensual: $ {{ item.cobro_mensual|floatformat:"0g" }}{% if item.cobro_mensual != plan.precio_mensual %} (antes $ {{ plan.precio_mensual|floatformat:"0g" }}){% endif %}</option>
+                    {% if plan.precio_anual > 0 %}<option value="ANUAL" {% if item.es_actual and suscripcion.ciclo == "ANUAL" %}selected{% endif %}>Anual: $ {{ item.cobro_anual|floatformat:"0g" }}{% if item.cobro_anual != plan.precio_anual %} (antes $ {{ plan.precio_anual|floatformat:"0g" }}){% endif %}</option>{% endif %}
                   </select>
                 {% else %}
                   <input type="hidden" name="ciclo" value="MENSUAL">
                 {% endif %}
                 <button type="submit" class="boton {% if item.es_actual %}exito{% elif plan.codigo == 'gratis' %}secundario{% endif %}" style="width: 100%;">
-                  {% if item.es_actual and suscripcion.estado == "TRIAL" %}
-                    Activar {{ plan.nombre }} definitivo
+                  {% if item.es_actual and suscripcion.estado == "ACTIVA" %}
+                    Renovar {{ plan.nombre }}
+                  {% elif item.es_actual and suscripcion.estado == "TRIAL" %}
+                    Pagar y activar {{ plan.nombre }}
+                  {% elif item.es_pago %}
+                    Pagar y cambiar a {{ plan.nombre }}
                   {% else %}
                     Cambiar a {{ plan.nombre }}
                   {% endif %}
                 </button>
               </form>
+              {% if item.es_pago %}<p class="nota" style="margin: 6px 0 0; text-align: center;">Pagas en Wompi. El plan se activa cuando se confirma el pago.</p>{% endif %}
             {% endif %}
           {% else %}
             <p class="nota" style="margin: 0; text-align: center;">Solo el administrador puede cambiar de plan.</p>
@@ -185,6 +190,26 @@
       {% endwith %}
     {% endfor %}
   </div>
+
+  {% if cobros %}
+  <article class="tarjeta" style="margin-bottom: 22px;">
+    <div class="tarjeta-cabecera"><h2>Pagos del plan</h2></div>
+    <table class="tabla">
+      <thead><tr><th>Fecha</th><th>Plan</th><th>Ciclo</th><th>Valor</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for c in cobros %}
+          <tr>
+            <td><a href="{% url 'suscripcion_cobro' c.pk %}">{{ c.creado_en|date:"d/m/Y H:i" }}</a></td>
+            <td>{{ c.plan.nombre }}</td>
+            <td>{{ c.get_ciclo_display }}</td>
+            <td>$ {{ c.monto|floatformat:"0g" }}</td>
+            <td>{{ c.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  {% endif %}
 
   <!-- Historial de auditoría de la suscripción -->
   <article class="tarjeta">

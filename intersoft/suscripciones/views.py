@@ -4,6 +4,9 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.urls import reverse
+
+from . import cobros
 
 from .models import Plan, Suscripcion
 from .permissions import TieneEmpresaActiva, obtener_empresa_de_request
@@ -57,9 +60,35 @@ class CambiarPlanAPIView(APIView):
         ciclo = serializer.validated_data.get("ciclo", Suscripcion.Ciclo.MENSUAL)
         motivo = serializer.validated_data.get("motivo", "")
 
-        # TODO(pasarela-pagos): Cuando se integre la pasarela de cobro recurrente para suscripciones
-        # SaaS, si el plan destino es pago, aquí se deberá generar la intención de cobro / link de
-        # checkout y confirmar el cambio definitivo tras validar el webhook de pago aprobado.
+        # Un plan pago no se activa aquí: se crea el cobro y se devuelve el enlace de pago de Wompi.
+        # El cambio ocurre cuando el servidor confirma el pago (retorno, webhook o conciliación).
+        plan = Plan.objects.filter(codigo=str(codigo_plan).strip().lower(), activo=True).first()
+        if plan is not None and cobros.es_plan_pago(plan):
+            try:
+                cobro = cobros.iniciar_cobro(empresa=empresa, plan=plan, ciclo=ciclo, usuario=request.user)
+            except cobros.CobroNoDisponible as exc:
+                return Response({"code": "cobro_no_disponible", "detail": str(exc)},
+                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            except DowngradeNoPermitido as exc:
+                return Response(
+                    {"code": "downgrade_not_allowed", "detail": exc.messages[0] if exc.messages else str(exc),
+                     "excesos": exc.excesos},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            except DjangoValidationError as exc:
+                return Response({"code": "invalid_plan_change", "detail": exc.messages[0] if exc.messages else str(exc)},
+                                status=status.HTTP_400_BAD_REQUEST)
+            volver = request.build_absolute_uri(reverse("suscripcion_cobro", args=[cobro.pk]))
+            return Response(
+                {
+                    "code": "pago_requerido",
+                    "detail": "El plan se activa cuando Wompi confirme el pago.",
+                    "cobro_id": str(cobro.pk),
+                    "monto": str(cobro.monto),
+                    "checkout_url": cobros.url_pago(cobro, redirect_url=volver),
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
         try:
             suscripcion = cambiar_plan(
                 empresa=empresa,
