@@ -74,6 +74,26 @@ class EquipoView(EquipoVerMixin, View):
 class MiembroCreateView(EquipoGestionarMixin, View):
     template_name = "core/equipo/miembro_form.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and getattr(request, "empresa", None) is not None
+            and request.membresia
+            and request.membresia.tiene_permiso("equipo.gestionar")
+        ):
+            from suscripciones.exceptions import LimitePlanExcedido, verificar_limite
+
+            try:
+                verificar_limite(request.empresa, "usuarios")
+            except LimitePlanExcedido as exc:
+                messages.error(
+                    request,
+                    f"Alcanzaste el límite de {exc.limite} usuarios activos de tu plan ({exc.plan_actual}). "
+                    "Mejora tu plan para agregar más miembros al equipo.",
+                )
+                return redirect("suscripcion_panel")
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         form = MiembroCrearForm(empresa=request.empresa)
         return render(request, self.template_name, {"form": form, "es_nuevo": True})

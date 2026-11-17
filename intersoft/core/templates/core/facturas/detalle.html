@@ -15,6 +15,10 @@
     {% if factura.pedido %}<strong>Origen:</strong> Compra en el marketplace{% else %}<strong>Vendedor:</strong> {{ factura.creada_por.email }}{% endif %}
   </p>
   <div class="acciones" style="margin-bottom: 1rem;">
+    <a class="boton secundario" href="{% url 'facturas_pdf' factura.pk %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descargar PDF
+    </a>
     {% if factura.estado == "emitida" and factura.estado_dian != "aceptada" and puede_emitir_dian %}
       <form method="post" action="{% url 'facturas_emitir_dian' factura.pk %}" style="display: inline;">
         {% csrf_token %}

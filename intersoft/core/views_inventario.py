@@ -172,6 +172,26 @@ class ProductoFormMixin:
 class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, CreateView):
     permiso_requerido = "inventario.crear"
 
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and getattr(request, "empresa", None) is not None
+            and request.membresia
+            and request.membresia.tiene_permiso(self.permiso_requerido)
+        ):
+            from suscripciones.exceptions import LimitePlanExcedido, verificar_limite
+
+            try:
+                verificar_limite(request.empresa, "productos")
+            except LimitePlanExcedido as exc:
+                messages.error(
+                    request,
+                    f"Alcanzaste el límite de {exc.limite} productos activos de tu plan ({exc.plan_actual}). "
+                    "Mejora tu plan para agregar más productos.",
+                )
+                return redirect("suscripcion_panel")
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         # Producto + entrada inicial: TODO O NADA
         with transaction.atomic():

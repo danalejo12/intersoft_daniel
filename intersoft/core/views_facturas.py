@@ -20,6 +20,7 @@ from .contabilidad_automatica import (
     contabilizar_recaudo_factura,
     saldo_contable_cliente_factura,
 )
+from .exportaciones import generar_factura_pdf
 from .facturacion_electronica import emitir_factura_electronica
 from .forms import FacturaForm, LineasFacturaFormSet
 from .mixins import PermisoRequeridoMixin, TenantMixin
@@ -176,6 +177,24 @@ class FacturaAnularView(PermisoRequeridoMixin, View):
         except ValueError as error:
             messages.error(request, str(error))
         return redirect("facturas_lista")
+
+
+class FacturaPDFView(PermisoRequeridoMixin, View):
+    """Genera y descarga el PDF oficial de la factura."""
+
+    permiso_requerido = "ventas.ver"
+
+    def get(self, request, pk):
+        factura = get_object_or_404(
+            Factura.objects.de_empresa(request.empresa)
+            .select_related("empresa", "cliente")
+            .prefetch_related("detalles__producto"),
+            pk=pk,
+        )
+        contenido = generar_factura_pdf(factura)
+        respuesta = HttpResponse(contenido, content_type="application/pdf")
+        respuesta["Content-Disposition"] = f'attachment; filename="factura-{factura.numero}.pdf"'
+        return respuesta
 
 
 class FacturaEmitirDianView(TenantMixin, View):

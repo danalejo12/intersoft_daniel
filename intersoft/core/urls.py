@@ -47,6 +47,7 @@ panel_urlpatterns = [
     path("facturas/", views.FacturaListView.as_view(), name="facturas_lista"),
     path("facturas/nueva/", views.FacturaCreateView.as_view(), name="facturas_crear"),
     path("facturas/<uuid:pk>/", views.FacturaDetailView.as_view(), name="facturas_detalle"),
+    path("facturas/<uuid:pk>/pdf/", views.FacturaPDFView.as_view(), name="facturas_pdf"),
     path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
     path("facturas/<uuid:pk>/emitir-dian/", views.FacturaEmitirDianView.as_view(), name="facturas_emitir_dian"),
     path("facturas/<uuid:pk>/contabilizar/", views.FacturaContabilizarView.as_view(), name="facturas_contabilizar"),
@@ -72,6 +73,7 @@ panel_urlpatterns = [
     # Módulos ERP y reportes
     path("erp/", views_erp.InicioERP.as_view(), name="erp_inicio"),
     path("erp/reportes/", views_erp.ReportesERP.as_view(), name="erp_reportes"),
+    path("erp/reportes/exportar/", views_erp.ReportesExportarExcelView.as_view(), name="erp_reportes_excel"),
     path("erp/cartera/factura/", views_erp.CarteraFacturaERP.as_view(), name="erp_cartera_factura"),
     path("erp/<slug:modulo>/", views_erp.ListaERP.as_view(), name="erp_lista"),
     path("erp/<slug:modulo>/nuevo/", views_erp.CrearERP.as_view(), name="erp_crear"),
