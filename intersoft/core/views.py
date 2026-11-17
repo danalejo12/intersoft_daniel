@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Count, F, Q, Sum
@@ -13,7 +14,7 @@ from django.utils.formats import date_format
 from django.views import View
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
-from .forms import ClienteForm, DatosNegocioForm
+from .forms import ClienteForm, DatosNegocioForm, PerfilUsuarioForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
 from .models import Cliente, Factura, Membresia, Producto
 from .primeros_pasos import pasos_del_negocio
@@ -247,6 +248,25 @@ class ClienteUpdateView(PermisoRequeridoMixin, ClienteFormMixin, SuccessMessageM
     permiso_requerido = "clientes.editar"
 
 
+class PerfilView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    """Permite a cualquier usuario autenticado ver su perfil, descripción y editar foto o datos."""
+
+    form_class = PerfilUsuarioForm
+    template_name = "core/perfil.html"
+    success_url = reverse_lazy("perfil")
+    success_message = "Tu perfil se actualizó correctamente."
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["plantilla_base"] = (
+            "core/base.html" if getattr(self.request, "empresa", None) else "core/tienda/base.html"
+        )
+        return contexto
+
+
 class ClienteDeleteView(EliminarLogicoView):
     model = Cliente
     permiso_requerido = "clientes.eliminar"
@@ -257,6 +277,7 @@ __all__ = [
     "DashboardView",
     "DatosNegocioView",
     "CambiarNegocioView",
+    "PerfilView",
     "ClienteListView",
     "ClienteFormMixin",
     "ClienteCreateView",

@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
-  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=11">
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=12">
   <script src="{% static 'core/js/tienda.js' %}?v=5" defer></script>
 </head>
 <body>
@@ -69,13 +69,14 @@
 
         <details class="cuenta" data-desplegable>
           <summary class="cuenta-boton">
-            <span class="cuenta-avatar" aria-hidden="true">{% if user.is_authenticated %}{{ user.first_name|default:user.email|first|upper }}{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>{% endif %}</span>
+            <span class="cuenta-avatar" aria-hidden="true">{% if user.is_authenticated and user.foto %}<img src="{{ user.foto.url }}" alt="">{% elif user.is_authenticated %}{{ user.first_name|default:user.email|first|upper }}{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>{% endif %}</span>
             <span class="cuenta-texto">{% if user.is_authenticated %}Mi cuenta{% else %}Ingresar{% endif %}</span>
             <svg class="cuenta-flecha" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="desplegable">
             {% if user.is_authenticated %}
               <p class="desplegable-quien">{{ user.get_full_name|default:user.email }}</p>
+              <a href="{% url 'perfil' %}">Mi perfil</a>
               <a href="{% url 'dashboard' %}">Mi panel</a>
               <a href="{% url 'mis_pedidos' %}">Mis pedidos</a>
               <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form>

@@ -19,6 +19,9 @@ class Empresa(ModeloBase):
     email = models.EmailField(blank=True)
     telefono = models.CharField(max_length=20, blank=True)
     direccion = models.CharField(max_length=200, blank=True)
+    logo = models.ImageField("logo del negocio", upload_to="negocios/", blank=True, null=True)
+    descripcion = models.TextField("descripción del negocio", max_length=500, blank=True)
+    sitio_web = models.URLField("sitio web o red social", blank=True)
     plan = models.CharField(max_length=20, choices=Plan.choices, default=Plan.GRATIS)
     activa = models.BooleanField(default=True)
     comision_porcentaje = models.DecimalField(

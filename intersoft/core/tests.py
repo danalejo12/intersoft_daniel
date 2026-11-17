@@ -680,3 +680,115 @@ class CategoriasCRUDTests(TestCase):
         self.assertEqual(self.client.get(reverse("categorias_lista")).status_code, 200)
         self.assertEqual(self.client.get(reverse("categorias_crear")).status_code, 403)
 
+
+
+
+class PerfilUsuarioTests(TestCase):
+    def setUp(self):
+        self.usuario = Usuario.objects.create_user(
+            username="perfil@test.co",
+            email="perfil@test.co",
+            password="Clave#2026",
+            first_name="Miguel",
+            last_name="Ortiz",
+        )
+
+    def test_perfil_requiere_login(self):
+        respuesta = self.client.get(reverse("perfil"))
+        self.assertEqual(respuesta.status_code, 302)
+
+    def test_usuario_sin_empresa_ve_y_edita_su_perfil_con_foto(self):
+        import io
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        buffer = io.BytesIO()
+        Image.new("RGB", (40, 40), color=(15, 42, 92)).save(buffer, format="PNG")
+        foto = SimpleUploadedFile("avatar.png", buffer.getvalue(), content_type="image/png")
+
+        self.client.force_login(self.usuario)
+        with tempfile.TemporaryDirectory() as media_tmp, override_settings(MEDIA_ROOT=media_tmp):
+            resp_get = self.client.get(reverse("perfil"))
+            self.assertEqual(resp_get.status_code, 200)
+            self.assertContains(resp_get, "Miguel Ortiz")
+
+            resp_post = self.client.post(
+                reverse("perfil"),
+                {
+                    "first_name": "Miguel Angel",
+                    "last_name": "Ortiz Castillo",
+                    "telefono": "3001112233",
+                    "cargo": "Director General",
+                    "descripcion": "Apasionado por el desarrollo de software y ERP.",
+                    "foto": foto,
+                },
+                follow=True,
+            )
+            self.assertEqual(resp_post.status_code, 200)
+            self.usuario.refresh_from_db()
+            self.assertEqual(self.usuario.first_name, "Miguel Angel")
+            self.assertEqual(self.usuario.last_name, "Ortiz Castillo")
+            self.assertEqual(self.usuario.cargo, "Director General")
+            self.assertEqual(self.usuario.telefono, "3001112233")
+            self.assertIn("Apasionado por el desarrollo", self.usuario.descripcion)
+            self.assertTrue(bool(self.usuario.foto.name))
+            self.assertContains(resp_post, self.usuario.foto.url)
+
+    def test_usuario_con_empresa_tiene_enlace_a_perfil_en_panel(self):
+        empresa = Empresa.objects.create(nombre="InterSoft Demo", nit="900900111", slug="intersoft-demo")
+        rol = Rol.objects.create(empresa=empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=empresa, rol=rol)
+        self.client.force_login(self.usuario)
+        resp_panel = self.client.get(reverse("dashboard"))
+        self.assertContains(resp_panel, reverse("perfil"))
+        resp_perfil = self.client.get(reverse("perfil"))
+        self.assertContains(resp_perfil, "InterSoft Demo")
+
+
+    def test_admin_actualiza_perfil_de_negocio_con_logo_y_descripcion(self):
+        import io
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        empresa = Empresa.objects.create(
+            nombre="InterSoft Tienda",
+            nit="900900222",
+            slug="intersoft-tienda",
+            direccion="Calle 10 # 20-30",
+            telefono="3004445566",
+        )
+        rol = Rol.objects.create(empresa=empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.usuario, empresa=empresa, rol=rol)
+        self.client.force_login(self.usuario)
+
+        buffer = io.BytesIO()
+        Image.new("RGB", (40, 40), color=(16, 185, 129)).save(buffer, format="PNG")
+        logo = SimpleUploadedFile("logo.png", buffer.getvalue(), content_type="image/png")
+
+        with tempfile.TemporaryDirectory() as media_tmp, override_settings(MEDIA_ROOT=media_tmp):
+            resp_get = self.client.get(reverse("negocio_datos"))
+            self.assertEqual(resp_get.status_code, 200)
+            self.assertContains(resp_get, "Perfil del negocio")
+
+            resp_post = self.client.post(
+                reverse("negocio_datos"),
+                {
+                    "direccion": "Carrera 15 # 80-20",
+                    "telefono": "6015559988",
+                    "email": "hola@intersoft.co",
+                    "sitio_web": "https://intersoft.co",
+                    "descripcion": "Soluciones ERP y tecnología para comercios.",
+                    "logo": logo,
+                },
+            )
+            self.assertRedirects(resp_post, reverse("dashboard"))
+            empresa.refresh_from_db()
+            self.assertEqual(empresa.sitio_web, "https://intersoft.co")
+            self.assertIn("Soluciones ERP", empresa.descripcion)
+            self.assertTrue(bool(empresa.logo.name))
+
+            resp_tienda = self.client.get(reverse("tienda_negocio", args=[empresa.slug]))
+            self.assertContains(resp_tienda, "Soluciones ERP y tecnología para comercios.")
+            self.assertContains(resp_tienda, empresa.logo.url)

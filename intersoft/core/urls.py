@@ -106,6 +106,7 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("entrar/", views_tienda.despues_de_login, name="despues_login"),
+    path("perfil/", views.PerfilView.as_view(), name="perfil"),
 
     # Panel de cada negocio
     path("panel/", include(panel_urlpatterns)),

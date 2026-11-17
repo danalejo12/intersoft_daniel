@@ -17,6 +17,10 @@ class Usuario(AbstractUser):
  
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField("correo electrónico", unique=True)
+    foto = models.ImageField("foto de perfil", upload_to="perfiles/", blank=True, null=True)
+    telefono = models.CharField("teléfono", max_length=20, blank=True)
+    cargo = models.CharField("cargo o especialidad", max_length=80, blank=True)
+    descripcion = models.TextField("descripción", max_length=400, blank=True)
  
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]  # Lo pide createsuperuser además de email y contraseña.

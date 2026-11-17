@@ -12,7 +12,7 @@
     try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
     catch (e) { document.documentElement.classList.add("dock-abierto"); }
   </script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=20">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=22">
 </head>
 <body>
 {% include "core/includes/bienvenida.html" %}
@@ -62,6 +62,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
     </a>
     {% endif %}
+    {% if nav_permisos.editar_negocio %}
+    <a href="{% url 'negocio_datos' %}" data-label="Perfil negocio" aria-label="Perfil negocio" class="{% if ruta == 'negocio_datos' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+    </a>
+    {% endif %}
     {% if nav_permisos.configurar_pagos %}
     <a href="{% url 'negocio_pagos' %}" data-label="Pagos en línea" aria-label="Pagos en línea" class="{% if 'negocio_pagos' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
@@ -88,7 +93,11 @@
     <header class="barra">
       <a class="marca" href="{% url 'dashboard' %}">
         <span class="marca-icono">
-          <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
+          {% if request.empresa and request.empresa.logo %}
+            <img src="{{ request.empresa.logo.url }}" alt="{{ request.empresa.nombre }}" width="30" height="30" style="border-radius: 50%; object-fit: cover;">
+          {% else %}
+            <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
+          {% endif %}
         </span>
         {{ request.empresa.nombre|default:"Intersoft" }}
       </a>
@@ -116,11 +125,19 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 3-5h14l3 5"/><path d="M2 8v1.5a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0 3.33 3.33 0 0 0 6.67 0V8Z"/><path d="M4 12.5V21h16v-8.5"/><path d="M10 21v-5h4v5"/></svg>
           Ir al marketplace
         </a>
-        <span class="cuenta-texto">
-          <strong>{{ user.get_full_name|default:user.email }}</strong>
-          <small>{{ request.membresia.rol.nombre }}</small>
-        </span>
-        <span class="avatar" aria-hidden="true">{{ user.email|first|upper }}</span>
+        <a class="cuenta-perfil" href="{% url 'perfil' %}" title="Ver y editar mi perfil">
+          <span class="cuenta-texto">
+            <strong>{{ user.get_full_name|default:user.email }}</strong>
+            <small>{{ request.membresia.rol.nombre }}</small>
+          </span>
+          <span class="avatar" aria-hidden="true">
+            {% if user.foto %}
+              <img src="{{ user.foto.url }}" alt="{{ user.get_full_name|default:user.email }}">
+            {% else %}
+              {{ user.first_name|default:user.email|first|upper }}
+            {% endif %}
+          </span>
+        </a>
       </div>
     </header>
 {% endwith %}

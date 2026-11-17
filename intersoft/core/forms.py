@@ -1,7 +1,7 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
-from .models import FOTOS_EXTRA_MAXIMO, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto
+from .models import FOTOS_EXTRA_MAXIMO, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto, Usuario
 
 IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
@@ -278,27 +278,48 @@ class ProductoForm(forms.ModelForm):
 
 
 class DatosNegocioForm(forms.ModelForm):
-    """Datos legales y de logística que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
+    """Datos legales, identidad pública y logística que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
+
+    quitar_logo = forms.BooleanField(required=False, label="Quitar logo actual")
 
     class Meta:
         model = Empresa
         fields = [
+            "logo",
             "direccion",
             "telefono",
             "email",
+            "sitio_web",
+            "descripcion",
             "tarifa_envio_base",
             "tarifa_envio_por_kg",
             "envio_gratis_desde",
         ]
         labels = {
+            "logo": "Logo del negocio",
             "direccion": "Dirección de notificaciones",
             "telefono": "Teléfono",
             "email": "Correo del negocio",
+            "sitio_web": "Sitio web o red social",
+            "descripcion": "Descripción pública del negocio",
             "tarifa_envio_base": "Tarifa base de envío ($)",
             "tarifa_envio_por_kg": "Recargo por kilogramo ($)",
             "envio_gratis_desde": "Envío gratis desde ($)",
         }
+        widgets = {
+            "logo": forms.FileInput(
+                attrs={"accept": "image/jpeg,image/png,image/webp", "class": "perfil-input-archivo"}
+            ),
+            "sitio_web": forms.URLInput(attrs={"placeholder": "https://tu-tienda.com o Instagram"}),
+            "descripcion": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Describe qué vende tu negocio, horarios de atención o tiempos de despacho...",
+                }
+            ),
+        }
         help_texts = {
+            "logo": "Formatos JPG, PNG o WebP · Tamaño máximo 5 MB.",
             "tarifa_envio_base": "Deja 0 si coordinas el envío directamente o no cobras tarifa base.",
             "tarifa_envio_por_kg": "Valor adicional por cada kg (o fracción) según el peso de los productos.",
             "envio_gratis_desde": "Si los productos del pedido alcanzan este monto, el envío cuesta $0.",
@@ -311,6 +332,20 @@ class DatosNegocioForm(forms.ModelForm):
         hacer_obligatorios_datos_legales(self)
         for campo in ("tarifa_envio_base", "tarifa_envio_por_kg", "envio_gratis_desde"):
             self.fields[campo].required = False
+
+    def clean_logo(self):
+        archivo = self.cleaned_data.get("logo")
+        if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
+            raise forms.ValidationError("El logo no puede superar los 5 MB.")
+        return archivo
+
+    def save(self, commit=True):
+        empresa = super().save(commit=False)
+        if self.cleaned_data.get("quitar_logo") and not isinstance(self.cleaned_data.get("logo"), UploadedFile):
+            empresa.logo = None
+        if commit:
+            empresa.save()
+        return empresa
 
     def clean_tarifa_envio_base(self):
         from decimal import Decimal
@@ -354,3 +389,55 @@ class MovimientoForm(forms.Form):
             if tipo == MovimientoInventario.Tipo.AJUSTE and cantidad == 0:
                 self.add_error("cantidad", "Un ajuste no puede ser cero.")
         return datos
+
+
+class PerfilUsuarioForm(forms.ModelForm):
+    quitar_foto = forms.BooleanField(required=False, label="Quitar foto actual")
+
+    class Meta:
+        model = Usuario
+        fields = ["foto", "first_name", "last_name", "cargo", "telefono", "descripcion"]
+        labels = {
+            "foto": "Foto de perfil",
+            "first_name": "Nombres",
+            "last_name": "Apellidos",
+            "cargo": "Cargo o especialidad",
+            "telefono": "Teléfono de contacto",
+            "descripcion": "Sobre mí / descripción",
+        }
+        widgets = {
+            "foto": forms.FileInput(
+                attrs={"accept": "image/jpeg,image/png,image/webp", "class": "perfil-input-archivo"}
+            ),
+            "descripcion": forms.Textarea(
+                attrs={"rows": 4, "placeholder": "Cuéntanos brevemente sobre ti, tu rol o tu experiencia..."}
+            ),
+            "cargo": forms.TextInput(attrs={"placeholder": "Ej. Administrador, Asesor comercial, Contador..."}),
+            "telefono": forms.TextInput(attrs={"placeholder": "Ej. 300 123 4567"}),
+        }
+        help_texts = {
+            "foto": "Formatos JPG, PNG o WebP · Tamaño máximo 5 MB.",
+        }
+
+    def clean_first_name(self):
+        valor = (self.cleaned_data.get("first_name") or "").strip()
+        if not valor:
+            raise forms.ValidationError("Ingresa tu nombre.")
+        return valor
+
+    def clean_last_name(self):
+        return (self.cleaned_data.get("last_name") or "").strip()
+
+    def clean_foto(self):
+        archivo = self.cleaned_data.get("foto")
+        if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
+            raise forms.ValidationError("La foto no puede superar los 5 MB.")
+        return archivo
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        if self.cleaned_data.get("quitar_foto") and not isinstance(self.cleaned_data.get("foto"), UploadedFile):
+            usuario.foto = None
+        if commit:
+            usuario.save()
+        return usuario

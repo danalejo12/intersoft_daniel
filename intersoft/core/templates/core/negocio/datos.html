@@ -1,27 +1,177 @@
 {% extends "core/base.html" %}
-{% block titulo %}Datos del negocio · Intersoft{% endblock %}
+{% block titulo %}Perfil del negocio · {{ object.nombre }} · Intersoft{% endblock %}
 
 {% block contenido %}
-  <h1>Datos del negocio</h1>
-  <p class="nota">Tus compradores ven estos datos en cada pedido. La ley exige que puedan identificarte y contactarte.</p>
-  <p class="nota"><strong>{{ object.nombre }}</strong> · NIT {{ object.nit }}</p>
-  {% if nav_permisos.configurar_pagos %}
-    <p class="nota">¿Quieres cobrar en línea con tu propia cuenta? <a href="{% url 'negocio_pagos' %}">Conecta tu Wompi</a>.</p>
-  {% endif %}
-
-  <form method="post" class="formulario" novalidate>
-    {% csrf_token %}
-    {% for campo in form %}
-      <div class="campo">
-        {{ campo.label_tag }}
-        {{ campo }}
-        {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
-        {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-      </div>
-    {% endfor %}
-    <div class="acciones">
-      <a href="{% url 'dashboard' %}">Cancelar</a>
-      <button type="submit">Guardar</button>
+  <div class="encabezado">
+    <div>
+      <h1>Perfil del negocio</h1>
+      <p class="nota">Tus compradores ven estos datos en tu tienda y en cada pedido. La ley exige dirección y teléfono visibles para publicar en el marketplace.</p>
     </div>
-  </form>
+    <div class="acciones-fila">
+      {% if object.datos_completos %}
+        <a class="boton exito" href="{% url 'tienda_negocio' object.slug %}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Ver tienda pública
+        </a>
+      {% endif %}
+      {% if nav_permisos.configurar_pagos %}
+        <a class="boton secundario" href="{% url 'negocio_pagos' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Pagos en línea
+        </a>
+      {% endif %}
+      <a class="boton secundario" href="{% url 'dashboard' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <section class="perfil-layout">
+    <article class="tarjeta perfil-resumen">
+      <div class="perfil-cabecera">
+        <span class="perfil-foto-grande">
+          {% if object.logo %}
+            <img src="{{ object.logo.url }}" alt="{{ object.nombre }}">
+          {% else %}
+            <span>{{ object.nombre|first|upper }}</span>
+          {% endif %}
+        </span>
+        <div class="perfil-identidad">
+          <h2 class="perfil-nombre">{{ object.nombre }}</h2>
+          <p class="perfil-correo">NIT {{ object.nit }} · Slug: <code>/tienda/{{ object.slug }}/</code></p>
+          <div class="perfil-etiquetas">
+            <span class="badge info">Plan {{ object.get_plan_display }}</span>
+            {% if object.datos_completos %}
+              <span class="badge exito">Visible en Marketplace</span>
+            {% else %}
+              <span class="badge advertencia">Faltan datos legales</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <dl class="perfil-detalles">
+        <div class="perfil-dato">
+          <dt>Dirección de notificaciones</dt>
+          <dd>{{ object.direccion|default:"Pendiente por registrar" }}</dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Teléfono de contacto</dt>
+          <dd>{{ object.telefono|default:"Pendiente por registrar" }}</dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Correo del negocio</dt>
+          <dd>{{ object.email|default:"Sin correo configurado" }}</dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Sitio web / red social</dt>
+          <dd>
+            {% if object.sitio_web %}
+              <a class="boton secundario pequeno" href="{{ object.sitio_web }}" target="_blank" rel="noopener" style="margin-top: 4px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Visitar sitio web
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            {% else %}
+              <span style="color: var(--tenue);">No registrado</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div class="perfil-dato perfil-dato-ancho">
+          <dt>Descripción pública del negocio</dt>
+          <dd>{{ object.descripcion|default:"Agrega una descripción para contarle a tus clientes qué ofrece tu negocio."|linebreaksbr }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <h2>Editar perfil del negocio</h2>
+      <p class="nota">El nombre legal y el NIT son fijos por seguridad fiscal. Puedes actualizar tu logo, descripción, contacto y tarifas de envío.</p>
+
+      {% if form.errors %}
+        <p class="error aviso">Revisa los campos marcados antes de guardar.</p>
+      {% endif %}
+
+      <div class="campo campo-ancho perfil-foto-editor{% if form.logo.errors %} con-error{% endif %}">
+        <label for="{{ form.logo.id_for_label }}">{{ form.logo.label }}</label>
+        <div class="perfil-foto-controles">
+          <span class="perfil-foto-mini" id="negocio-logo-preview">
+            {% if object.logo %}
+              <img src="{{ object.logo.url }}" alt="Logo de {{ object.nombre }}">
+            {% else %}
+              <span>{{ object.nombre|first|upper }}</span>
+            {% endif %}
+          </span>
+          <div class="perfil-foto-acciones">
+            <div class="perfil-foto-botones">
+              <label for="{{ form.logo.id_for_label }}" class="boton secundario pequeno">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                {% if object.logo %}Cambiar logo{% else %}Subir logo{% endif %}
+              </label>
+              <span class="perfil-nombre-archivo" id="negocio-logo-nombre">
+                {% if object.logo %}Logo actual cargado{% else %}Ningún archivo seleccionado{% endif %}
+              </span>
+            </div>
+            {{ form.logo }}
+            <small class="ayuda">{{ form.logo.help_text }}</small>
+            {% if object.logo %}
+              <label class="perfil-quitar-check">
+                {{ form.quitar_logo }}
+                <span>Quitar logo actual al guardar</span>
+              </label>
+            {% endif %}
+          </div>
+        </div>
+        {% for error in form.logo.errors %}
+          <p class="error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      {% for campo in form %}
+        {% if campo.name != "logo" and campo.name != "quitar_logo" %}
+          <div class="campo{% if campo.name == 'descripcion' %} campo-ancho{% endif %}{% if campo.errors %} con-error{% endif %}{% if campo.field.required %} obligatorio{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+            {% for error in campo.errors %}
+              <p class="error">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <div class="acciones">
+        <a class="boton secundario" href="{% url 'dashboard' %}">Cancelar</a>
+        <button type="submit" class="boton">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Guardar perfil del negocio
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <script>
+    (function () {
+      var input = document.getElementById("{{ form.logo.id_for_label }}");
+      var preview = document.getElementById("negocio-logo-preview");
+      var nombre = document.getElementById("negocio-logo-nombre");
+      if (!input || !preview || !nombre) return;
+      input.addEventListener("change", function () {
+        var archivo = input.files && input.files[0];
+        if (!archivo) return;
+        nombre.textContent = archivo.name;
+        var lector = new FileReader();
+        lector.onload = function (ev) {
+          preview.innerHTML = "";
+          var img = document.createElement("img");
+          img.src = ev.target.result;
+          img.alt = "Vista previa del logo";
+          preview.appendChild(img);
+        };
+        lector.readAsDataURL(archivo);
+      });
+    })();
+  </script>
 {% endblock %}
