@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_spectacular',
     'axes',
     'core',
     'suscripciones',
@@ -324,4 +325,12 @@ _inicializar_monitoreo(
 # ---------------------------------------------------------------
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "suscripciones.exceptions.manejador_excepciones_suscripciones",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "InterSoft API",
+    "DESCRIPTION": "API REST multi-tenant de InterSoft (planes, suscripciones, límites y comisiones).",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

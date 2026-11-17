@@ -6,3 +6,4 @@ django-axes==9.0.0
 gunicorn==23.0.0
 cryptography==50.0.2
 djangorestframework==3.18.3
+drf-spectacular==0.30.0

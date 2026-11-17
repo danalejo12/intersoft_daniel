@@ -792,3 +792,41 @@ class PerfilUsuarioTests(TestCase):
             resp_tienda = self.client.get(reverse("tienda_negocio", args=[empresa.slug]))
             self.assertContains(resp_tienda, "Soluciones ERP y tecnología para comercios.")
             self.assertContains(resp_tienda, empresa.logo.url)
+
+
+    def test_recuperacion_de_contrasena_flujo_completo(self):
+        from django.core import mail
+
+        resp_login = self.client.get(reverse("login"))
+        self.assertContains(resp_login, reverse("password_reset"))
+
+        resp_solicitud = self.client.post(
+            reverse("password_reset"),
+            {"email": self.usuario.email},
+            follow=True,
+        )
+        self.assertEqual(resp_solicitud.status_code, 200)
+        self.assertContains(resp_solicitud, "Revisa tu correo")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("recuperar-contrasena/", mail.outbox[0].body)
+
+        # Extraer URL de confirmación desde el correo enviado
+        import re
+        coincidencia = re.search(r"https?://[^/]+(/recuperar-contrasena/[^\s]+)", mail.outbox[0].body)
+        self.assertIsNotNone(coincidencia)
+        url_confirmar = coincidencia.group(1)
+
+        resp_form = self.client.get(url_confirmar, follow=True)
+        self.assertEqual(resp_form.status_code, 200)
+        url_set_password = resp_form.redirect_chain[-1][0]
+
+        resp_confirm = self.client.post(
+            url_set_password,
+            {"new_password1": "NuevaClave#2026!", "new_password2": "NuevaClave#2026!"},
+            follow=True,
+        )
+        self.assertEqual(resp_confirm.status_code, 200)
+        self.assertContains(resp_confirm, "Contraseña actualizada")
+
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password("NuevaClave#2026!"))

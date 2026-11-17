@@ -110,6 +110,30 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("entrar/", views_tienda.despues_de_login, name="despues_login"),
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
+    path(
+        "recuperar-contrasena/",
+        auth_views.PasswordResetView.as_view(
+            template_name="core/auth/password_reset_form.html",
+            email_template_name="core/auth/password_reset_email.txt",
+            subject_template_name="core/auth/password_reset_subject.txt",
+        ),
+        name="password_reset",
+    ),
+    path(
+        "recuperar-contrasena/enviado/",
+        auth_views.PasswordResetDoneView.as_view(template_name="core/auth/password_reset_done.html"),
+        name="password_reset_done",
+    ),
+    path(
+        "recuperar-contrasena/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(template_name="core/auth/password_reset_confirm.html"),
+        name="password_reset_confirm",
+    ),
+    path(
+        "recuperar-contrasena/listo/",
+        auth_views.PasswordResetCompleteView.as_view(template_name="core/auth/password_reset_complete.html"),
+        name="password_reset_complete",
+    ),
 
     # Panel de cada negocio
     path("panel/", include(panel_urlpatterns)),

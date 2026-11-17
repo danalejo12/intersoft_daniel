@@ -351,3 +351,13 @@ class SuscripcionesAPITests(TestCase):
         self.assertEqual(self.empresa_a.suscripcion.plan.codigo, "pro")
         self.assertEqual(self.empresa_a.suscripcion.ciclo, Suscripcion.Ciclo.ANUAL)
         self.assertTrue(self.empresa_a.suscripcion.es_fundador)
+
+
+    def test_documentacion_openapi_y_swagger_disponibles(self):
+        resp_schema = self.client_api.get(reverse("api_schema"))
+        self.assertEqual(resp_schema.status_code, status.HTTP_200_OK)
+        self.assertIn("/api/planes/", resp_schema.content.decode("utf-8"))
+
+        resp_docs = self.client_api.get(reverse("api_docs"))
+        self.assertEqual(resp_docs.status_code, status.HTTP_200_OK)
+        self.assertContains(resp_docs, "SwaggerUIBundle")
