@@ -48,11 +48,9 @@ services:
         condition: service_healthy
     volumes:
       - logs_volume:/app/intersoft/logs
-    command: >
-      sh -c "while true; do
-               python manage.py liberar_pedidos_vencidos;
-               sleep 300;
-             done"
+    # Reservas (5 min), suscripciones (1 h), cobros de planes (15 min) y alertas de stock (1 día).
+    # Cada tarea guarda en la base cuándo corrió: un reinicio no la repite antes de tiempo.
+    command: python manage.py tareas_periodicas --bucle --pausa 60
 
   nginx:
     image: nginx:1.27-alpine

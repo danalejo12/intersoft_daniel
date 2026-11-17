@@ -5,8 +5,18 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
     MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario, DetallePedido,
-    PagoCaja, TurnoCaja,
+    PagoCaja, TurnoCaja, EjecucionTarea,
 )
+
+
+@admin.register(EjecucionTarea)
+class EjecucionTareaAdmin(admin.ModelAdmin):
+    list_display = ["nombre", "ultima_ejecucion", "ejecuciones", "fallos_seguidos", "ultimo_error"]
+    readonly_fields = ["nombre", "ultima_ejecucion", "ultimo_resultado", "ultimo_error", "ejecuciones",
+                       "fallos_seguidos"]
+
+    def has_add_permission(self, request):
+        return False
  
  
 @admin.register(Usuario)

@@ -136,36 +136,46 @@ Cuando `DEBUG=False`, Django **no** sirve archivos estáticos ni las fotos subid
    - Sirve `/static/` apuntando a `<ruta-repo>/intersoft/staticfiles/`.
    - Sirve `/media/` apuntando a `<ruta-repo>/intersoft/media/` con cabeceras `X-Content-Type-Options: nosniff` y sin ejecución de scripts.
 
-### 3. Tarea programada: liberación de pedidos vencidos
+### 3. Tareas periódicas (`tareas_periodicas`)
 
-Los pedidos del marketplace reservan stock por `PEDIDO_MINUTOS_RESERVA` minutos (por defecto 30). El comando `liberar_pedidos_vencidos` es idempotente y devuelve el stock de los pedidos cuyo plazo expiró sin pago confirmado.
+Un solo comando ejecuta todas las tareas automáticas, cada una con su propio intervalo:
 
-- **En Linux (cron, cada 5 minutos):**
+| Tarea | Cada | Qué hace |
+|---|---|---|
+| `liberar_reservas` | 5 min | Vence pedidos sin pagar (`PEDIDO_MINUTOS_RESERVA`) y devuelve su stock |
+| `verificar_suscripciones` | 1 h | Pasa a Gratis las suscripciones y pruebas vencidas |
+| `alertas_stock` | 1 día | Envía las alertas de stock mínimo |
+
+Cada tarea guarda en la base cuándo corrió (`EjecucionTarea`, visible en `/admin/`): un reinicio no la repite antes de tiempo y dos programadores a la vez no la ejecutan dos veces. Tres fallos seguidos generan una alerta `CRITICAL` a `ADMINS`.
+
+- **Docker:** el contenedor `scheduler` ya ejecuta `tareas_periodicas --bucle`.
+- **Linux (cron, cada 5 minutos):**
   ```cron
-  */5 * * * * cd /ruta/a/intersoft_daniel-main && /ruta/a/venv/bin/python intersoft/manage.py liberar_pedidos_vencidos >> /ruta/a/intersoft_daniel-main/intersoft/logs/cron_reservas.log 2>&1
+  */5 * * * * cd /ruta/a/intersoft_daniel && /ruta/a/venv/bin/python intersoft/manage.py tareas_periodicas >> /ruta/a/intersoft_daniel/intersoft/logs/tareas.log 2>&1
   ```
-
-- **En Windows (Programador de tareas / PowerShell, cada 5 minutos):**
+- **Windows (Programador de tareas, cada 5 minutos):**
   ```powershell
-  $accion = New-ScheduledTaskAction -Execute "C:\Python314\python.exe" `
-    -Argument "intersoft\manage.py liberar_pedidos_vencidos" `
-    -WorkingDirectory "C:\intersoft_daniel-main"
+  $accion = New-ScheduledTaskAction -Execute "C:\ruta\a\intersoft_daniel\env\Scripts\python.exe" `
+    -Argument "intersoft\manage.py tareas_periodicas" `
+    -WorkingDirectory "C:\ruta\a\intersoft_daniel"
   $disparador = New-ScheduledTaskTrigger -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes 5)
-  Register-ScheduledTask -TaskName "IntersoftLiberarPedidos" `
-    -Action $accion -Trigger $disparador -Description "Libera stock de pedidos vencidos cada 5 minutos"
+  Register-ScheduledTask -TaskName "IntersoftTareasPeriodicas" `
+    -Action $accion -Trigger $disparador -Description "Tareas periódicas de Intersoft"
   ```
+
+Opciones: `--forzar` ejecuta aunque no les toque, `--solo alertas_stock liberar_reservas` limita la pasada.
 
 ### 4. Despliegue reproducible con Docker Compose y Nginx (`compose.prod.yml`)
 
-El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersoft.conf` listos para levantar **PostgreSQL 16 + Gunicorn + Scheduler (`liberar_pedidos_vencidos`) + Nginx**:
+El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersoft.conf` listos para levantar **PostgreSQL 16 + Gunicorn + Scheduler (`tareas_periodicas`) + Nginx**:
 
 1. Crea `intersoft/.env` a partir de `intersoft/.env.example` con `DEBUG=False`, `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
 2. Levanta los servicios desde la raíz del proyecto:
    ```bash
    docker compose -f compose.prod.yml --env-file intersoft/.env up -d --build
    ```
-   El contenedor `web` ejecuta automáticamente `migrate --noinput`, `sincronizar_permisos`, `collectstatic --noinput` e inicia `gunicorn`. El contenedor `scheduler` ejecuta `liberar_pedidos_vencidos` cada 5 minutos, y `nginx` sirve `/static/` y `/media/` con `X-Content-Type-Options: nosniff`.
+   El contenedor `web` ejecuta automáticamente `migrate --noinput`, `sincronizar_permisos`, `collectstatic --noinput` e inicia `gunicorn`. El contenedor `scheduler` ejecuta `tareas_periodicas --bucle` (ver sección 3), y `nginx` sirve `/static/` y `/media/` con `X-Content-Type-Options: nosniff`.
 
 ### 5. Copias de seguridad de PostgreSQL 16 y verificación de webhook Wompi
 

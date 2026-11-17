@@ -13,6 +13,7 @@ from .ventas import Factura, DetalleFactura
 from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
 from .pedidos import Comentario, DetallePedido, Pedido
 from .caja import PagoCaja, TurnoCaja
+from .tareas import EjecucionTarea
 from .erp import (
     Proveedor, Compra, LineaCompra, CuentaTesoreria, CuentaCartera,
     MovimientoTesoreria, CuentaContable, AsientoContable, LineaAsiento,
