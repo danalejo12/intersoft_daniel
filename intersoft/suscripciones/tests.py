@@ -373,3 +373,74 @@ class SuscripcionesAPITests(TestCase):
         self.assertEqual(self.empresa_a.suscripcion.plan.codigo, "pro")
         self.assertEqual(self.empresa_a.suscripcion.ciclo, Suscripcion.Ciclo.ANUAL)
         self.assertTrue(self.empresa_a.suscripcion.es_fundador)
+
+
+    def test_documentacion_openapi_y_swagger_disponibles(self):
+        resp_schema = self.client_api.get(reverse("api_schema"))
+        self.assertEqual(resp_schema.status_code, status.HTTP_200_OK)
+        self.assertIn("/api/planes/", resp_schema.content.decode("utf-8"))
+
+        resp_docs = self.client_api.get(reverse("api_docs"))
+        self.assertEqual(resp_docs.status_code, status.HTTP_200_OK)
+        self.assertContains(resp_docs, "SwaggerUIBundle")
+
+
+    def test_limites_y_features_de_suscripcion_aplicados_en_panel_core(self):
+        from core.models import Cliente, Factura
+        from core.services import crear_factura
+
+        self.client.force_login(self.usuario_a)
+
+        # 1. En plan 'gratis' (1 usuario, 20 productos, sin POS), POS y MiembroCreateView bloquean y llevan a /panel/suscripcion/
+        cambiar_plan(self.empresa_a, "gratis")
+        resp_pos = self.client.get(reverse("pos"))
+        self.assertRedirects(resp_pos, reverse("suscripcion_panel"))
+
+        resp_miembro = self.client.get(reverse("equipo_miembro_crear"))
+        self.assertRedirects(resp_miembro, reverse("suscripcion_panel"))
+
+        # Crear 20 productos para alcanzar el límite de 'gratis' -> el producto #21 redirige a suscripcion_panel
+        Producto.objects.bulk_create(
+            [
+                Producto(
+                    empresa=self.empresa_a,
+                    codigo=f"LIM-{i}",
+                    nombre=f"Prod {i}",
+                    precio=Decimal("1000.00"),
+                    stock=5,
+                    activo=True,
+                )
+                for i in range(20)
+            ]
+        )
+        resp_prod = self.client.get(reverse("productos_crear"))
+        self.assertRedirects(resp_prod, reverse("suscripcion_panel"))
+
+        # 2. Exportación a Excel (.xlsx) exige feature 'exportacion' (solo plan Pro)
+        resp_excel_bloqueado = self.client.get(reverse("erp_reportes_excel"))
+        self.assertRedirects(resp_excel_bloqueado, reverse("suscripcion_panel"))
+
+        cambiar_plan(self.empresa_a, "pro")
+        resp_excel_ok = self.client.get(reverse("erp_reportes_excel"))
+        self.assertEqual(resp_excel_ok.status_code, 200)
+        self.assertIn(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            resp_excel_ok["Content-Type"],
+        )
+        self.assertTrue(resp_excel_ok.content.startswith(b"PK"))
+
+        # 3. Descarga de Factura en PDF funciona correctamente
+        cliente = Cliente.objects.create(
+            empresa=self.empresa_a, tipo_documento="CC", numero_documento="123456", nombre="Cliente PDF"
+        )
+        prod = Producto.objects.filter(empresa=self.empresa_a).first()
+        factura = crear_factura(
+            empresa=self.empresa_a,
+            usuario=self.usuario_a,
+            cliente=cliente,
+            items=[{"producto": prod, "cantidad": 2}],
+        )
+        resp_pdf = self.client.get(reverse("facturas_pdf", args=[factura.pk]))
+        self.assertEqual(resp_pdf.status_code, 200)
+        self.assertEqual(resp_pdf["Content-Type"], "application/pdf")
+        self.assertTrue(resp_pdf.content.startswith(b"%PDF-"))

@@ -1,0 +1,247 @@
+"""Generación de documentos descargables: Factura en PDF (ReportLab) y Reportes ERP en Excel (OpenPyXL)."""
+import io
+from decimal import Decimal
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+
+def _pesos(valor) -> str:
+    cantidad = Decimal(str(valor or 0))
+    return f"$ {cantidad:,.0f}".replace(",", ".")
+
+
+def generar_factura_pdf(factura) -> bytes:
+    """Construye el PDF oficial de una factura (incluyendo datos fiscales y CUFE/CUDE DIAN)."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title=f"Factura {factura.numero}",
+    )
+
+    estilos = getSampleStyleSheet()
+    azul = colors.HexColor("#0F2A5C")
+    esmeralda = colors.HexColor("#10B981")
+    gris_claro = colors.HexColor("#F8FAFC")
+    gris_borde = colors.HexColor("#CBD5E1")
+
+    estilo_titulo = ParagraphStyle(
+        "TituloFactura", parent=estilos["Heading1"], fontSize=18, textColor=azul, spaceAfter=4
+    )
+    estilo_sub = ParagraphStyle(
+        "SubFactura", parent=estilos["Normal"], fontSize=9.5, textColor=colors.HexColor("#475569"), leading=13
+    )
+    estilo_celda = ParagraphStyle("Celda", parent=estilos["Normal"], fontSize=9, leading=12)
+
+    empresa = factura.empresa
+    emisor_nombre = factura.empresa_nombre or empresa.nombre
+    emisor_nit = factura.empresa_nit or empresa.nit
+    emisor_dir = factura.empresa_direccion or empresa.direccion or "Sin dirección registrada"
+    emisor_tel = factura.empresa_telefono or empresa.telefono or "Sin teléfono"
+
+    cliente_nombre = factura.cliente_nombre or factura.cliente.nombre
+    cliente_doc = factura.cliente_documento or f"{factura.cliente.tipo_documento} {factura.cliente.numero_documento}"
+
+    elementos = []
+
+    cabecera = Table(
+        [
+            [
+                Paragraph(
+                    f"<b>{emisor_nombre}</b><br/>"
+                    f"NIT: {emisor_nit}<br/>"
+                    f"{emisor_dir}<br/>"
+                    f"Tel: {emisor_tel}",
+                    estilo_sub,
+                ),
+                Paragraph(
+                    f"<font size='16' color='#0F2A5C'><b>FACTURA N.º {factura.numero}</b></font><br/>"
+                    f"<b>Fecha:</b> {factura.creado_en.strftime('%d/%m/%Y %H:%M')}<br/>"
+                    f"<b>Estado:</b> {factura.get_estado_display()}<br/>"
+                    f"<b>DIAN:</b> {factura.get_estado_dian_display()}",
+                    ParagraphStyle("Der", parent=estilo_sub, alignment=2),
+                ),
+            ]
+        ],
+        colWidths=[95 * mm, 85 * mm],
+    )
+    cabecera.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LINEBELOW", (0, 0), (-1, 0), 2, esmeralda),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+            ]
+        )
+    )
+    elementos.append(cabecera)
+    elementos.append(Spacer(1, 10))
+
+    elementos.append(
+        Paragraph(
+            f"<b>Cliente:</b> {cliente_nombre} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Documento:</b> {cliente_doc}",
+            estilo_celda,
+        )
+    )
+    elementos.append(Spacer(1, 10))
+
+    filas_items = [["Código", "Producto", "Cant.", "Precio unit.", "IVA %", "Subtotal"]]
+    for d in factura.detalles.select_related("producto").all():
+        filas_items.append(
+            [
+                d.producto.codigo,
+                Paragraph(d.nombre_producto or d.producto.nombre, estilo_celda),
+                str(d.cantidad),
+                _pesos(d.precio_unitario),
+                f"{d.iva_porcentaje:.0f}%",
+                _pesos(d.subtotal),
+            ]
+        )
+
+    tabla_items = Table(
+        filas_items,
+        colWidths=[24 * mm, 72 * mm, 16 * mm, 26 * mm, 16 * mm, 26 * mm],
+        repeatRows=1,
+    )
+    tabla_items.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), azul),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+                ("ALIGN", (0, 0), (1, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, gris_claro]),
+                ("GRID", (0, 0), (-1, -1), 0.5, gris_borde),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    elementos.append(tabla_items)
+    elementos.append(Spacer(1, 12))
+
+    tabla_totales = Table(
+        [
+            ["", "Subtotal", _pesos(factura.subtotal)],
+            ["", "IVA", _pesos(factura.iva)],
+            ["", "TOTAL A PAGAR", _pesos(factura.total)],
+        ],
+        colWidths=[106 * mm, 42 * mm, 32 * mm],
+    )
+    tabla_totales.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+                ("FONTNAME", (1, 2), (-1, 2), "Helvetica-Bold"),
+                ("FONTSIZE", (1, 2), (-1, 2), 11),
+                ("TEXTCOLOR", (1, 2), (-1, 2), azul),
+                ("LINEABOVE", (1, 2), (-1, 2), 1.5, azul),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    elementos.append(tabla_totales)
+
+    if factura.cufe or factura.cude_nota_credito:
+        elementos.append(Spacer(1, 14))
+        texto_dian = "<b>Validación Electrónica DIAN</b><br/>"
+        if factura.cufe:
+            texto_dian += f"<b>CUFE:</b> {factura.cufe}<br/>"
+        if factura.cude_nota_credito:
+            texto_dian += f"<b>CUDE Nota Crédito (Anulación):</b> {factura.cude_nota_credito}<br/>"
+        elementos.append(Paragraph(texto_dian, estilo_sub))
+
+    elementos.append(Spacer(1, 16))
+    elementos.append(
+        Paragraph(
+            "Documento generado por <b>InterSoft</b> · Tu negocio, conectado.",
+            ParagraphStyle("Pie", parent=estilo_sub, alignment=1, fontSize=8.5),
+        )
+    )
+
+    doc.build(elementos)
+    return buffer.getvalue()
+
+
+def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=None) -> bytes:
+    """Genera un libro Excel (.xlsx) con las secciones financieras autorizadas para el usuario."""
+    wb = Workbook()
+    # Quitamos la hoja vacía por defecto al final si creamos hojas específicas
+    hoja_inicial = wb.active
+    hoja_inicial.title = "Resumen"
+    hoja_inicial.append(["Reporte Financiero y Contable — InterSoft"])
+    hoja_inicial.append(["Empresa", empresa.nombre])
+    hoja_inicial.append(["NIT", empresa.nit])
+
+    fill_header = PatternFill("solid", fgColor="0F2A5C")
+    font_header = Font(bold=True, color="FFFFFF")
+    font_titulo = Font(bold=True, size=13, color="0F2A5C")
+    hoja_inicial["A1"].font = font_titulo
+
+    def _estilizar_cabecera(ws, fila=1):
+        for cell in ws[fila]:
+            cell.fill = fill_header
+            cell.font = font_header
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    def _auto_ancho(ws):
+        for col in ws.columns:
+            max_len = max((len(str(c.value or "")) for c in col), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(45, max(14, max_len + 4))
+
+    if cartera is not None:
+        ws = wb.create_sheet("Cartera")
+        ws.append(["Tipo de cartera", "Saldo pendiente (COP)"])
+        _estilizar_cabecera(ws)
+        for item in cartera:
+            ws.append([item["tipo"], float(item["total"] or 0)])
+        for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
+            row[0].number_format = '"$ "#,##0'
+        _auto_ancho(ws)
+
+    if cuentas is not None:
+        ws = wb.create_sheet("Tesoreria")
+        ws.append(["Cuenta de caja / banco", "Saldo actual (COP)"])
+        _estilizar_cabecera(ws)
+        for c in cuentas:
+            ws.append([c["nombre"], float(c["saldo"] or 0)])
+        for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
+            row[0].number_format = '"$ "#,##0'
+        _auto_ancho(ws)
+
+    if balance is not None:
+        ws = wb.create_sheet("Balance de Prueba")
+        ws.append(["Código PUC", "Cuenta contable", "Débito (COP)", "Crédito (COP)"])
+        _estilizar_cabecera(ws)
+        for b in balance:
+            ws.append(
+                [
+                    b["cuenta__codigo"],
+                    b["cuenta__nombre"],
+                    float(b["debito"] or 0),
+                    float(b["credito"] or 0),
+                ]
+            )
+        for row in ws.iter_rows(min_row=2, min_col=3, max_col=4):
+            for cell in row:
+                cell.number_format = '"$ "#,##0'
+        _auto_ancho(ws)
+
+    _auto_ancho(hoja_inicial)
+    salida = io.BytesIO()
+    wb.save(salida)
+    return salida.getvalue()

@@ -1,9 +1,13 @@
 .git
+.gitignore
 .venv
 venv
 __pycache__
 *.pyc
+*.pyo
+*.pyd
 intersoft/.env
-intersoft/logs/*
-intersoft/media/*
-intersoft/staticfiles/*
+intersoft/logs
+intersoft/staticfiles
+intersoft/media
+docs

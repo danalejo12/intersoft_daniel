@@ -358,24 +358,74 @@ class CarteraFacturaERP(AccesoERP):
         return self.mostrar(request, form)
 
 
+def _datos_reportes(request):
+    datos = {"titulo": "Reportes operativos"}
+    if request.membresia.tiene_permiso("cartera.ver"):
+        cartera = m.CuentaCartera.objects.filter(empresa=request.empresa)
+        datos["cartera"] = [
+            dict(
+                tipo=titulo,
+                total=cartera.filter(tipo=tipo).aggregate(v=Sum(F("total") - F("abonado")))["v"] or 0,
+            )
+            for tipo, titulo in [("cobrar", "Por cobrar"), ("pagar", "Por pagar")]
+        ]
+    if request.membresia.tiene_permiso("tesoreria.ver"):
+        movimientos = m.MovimientoTesoreria.objects.filter(empresa=request.empresa)
+        agrupados = movimientos.values("cuenta_id", "tipo").annotate(total=Sum("monto"))
+        saldos = {}
+        for fila in agrupados:
+            saldos[fila["cuenta_id"]] = saldos.get(fila["cuenta_id"], 0) + (
+                fila["total"] if fila["tipo"] == "ingreso" else -fila["total"]
+            )
+        datos["cuentas"] = [
+            dict(nombre=c.nombre, saldo=saldos.get(c.pk, 0))
+            for c in m.CuentaTesoreria.objects.filter(empresa=request.empresa)
+        ]
+    if request.membresia.tiene_permiso("contabilidad.ver"):
+        lineas = m.LineaAsiento.objects.filter(empresa=request.empresa, asiento__confirmado=True)
+        datos["balance"] = list(
+            lineas.values("cuenta__codigo", "cuenta__nombre")
+            .annotate(debito=Sum("debito"), credito=Sum("credito"))
+            .order_by("cuenta__codigo")
+        )
+    return datos
+
+
 class ReportesERP(AccesoERP):
     def get(self, request):
         if not request.membresia.tiene_permiso("reportes.ver"):
             raise PermissionDenied
-        # Cada sección exige además permiso sobre sus datos.
-        datos = {"titulo": "Reportes operativos"}
-        if request.membresia.tiene_permiso("cartera.ver"):
-            cartera = m.CuentaCartera.objects.filter(empresa=request.empresa)
-            datos["cartera"] = [dict(tipo=titulo, total=cartera.filter(tipo=tipo).aggregate(v=Sum(F("total") - F("abonado")))["v"] or 0)
-                                for tipo, titulo in [("cobrar", "Por cobrar"), ("pagar", "Por pagar")]]
-        if request.membresia.tiene_permiso("tesoreria.ver"):
-            movimientos = m.MovimientoTesoreria.objects.filter(empresa=request.empresa)
-            agrupados = movimientos.values("cuenta_id", "tipo").annotate(total=Sum("monto"))
-            saldos = {}
-            for fila in agrupados:
-                saldos[fila["cuenta_id"]] = saldos.get(fila["cuenta_id"], 0) + (fila["total"] if fila["tipo"] == "ingreso" else -fila["total"])
-            datos["cuentas"] = [dict(nombre=c.nombre, saldo=saldos.get(c.pk, 0)) for c in m.CuentaTesoreria.objects.filter(empresa=request.empresa)]
-        if request.membresia.tiene_permiso("contabilidad.ver"):
-            lineas = m.LineaAsiento.objects.filter(empresa=request.empresa, asiento__confirmado=True)
-            datos["balance"] = list(lineas.values("cuenta__codigo", "cuenta__nombre").annotate(debito=Sum("debito"), credito=Sum("credito")).order_by("cuenta__codigo"))
-        return render(request, "core/erp/reportes.html", datos)
+        return render(request, "core/erp/reportes.html", _datos_reportes(request))
+
+
+class ReportesExportarExcelView(AccesoERP):
+    """Exporta los reportes financieros a Excel (.xlsx), sujeto a la feature 'exportacion' del plan."""
+
+    def get(self, request):
+        if not request.membresia.tiene_permiso("reportes.ver"):
+            raise PermissionDenied
+        from suscripciones.services import crear_suscripcion_inicial
+
+        sub = crear_suscripcion_inicial(request.empresa)
+        if not sub.puede("exportacion"):
+            messages.error(
+                request,
+                f"La exportación a Excel está disponible en el plan Pro (tu plan actual es {sub.plan.nombre}).",
+            )
+            return redirect("suscripcion_panel")
+
+        from .exportaciones import generar_reporte_erp_excel
+
+        datos = _datos_reportes(request)
+        contenido = generar_reporte_erp_excel(
+            empresa=request.empresa,
+            cartera=datos.get("cartera"),
+            cuentas=datos.get("cuentas"),
+            balance=datos.get("balance"),
+        )
+        respuesta = HttpResponse(
+            contenido,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        respuesta["Content-Disposition"] = f'attachment; filename="reporte-{request.empresa.slug}.xlsx"'
+        return respuesta

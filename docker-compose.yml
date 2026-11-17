@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-intersoft}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-intersoft2026}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-intersoft}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-clave-local-docker-desarrollo-cambiar-en-produccion-2026-!@#}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+      DB_NAME: ${DB_NAME:-intersoft}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-intersoft2026}
+      DB_HOST: db
+      DB_PORT: 5432
+      PASARELA_SIMULADA: ${PASARELA_SIMULADA:-True}
+      PAGOS_CLAVES_CIFRADO: ${PAGOS_CLAVES_CIFRADO:-}
+    volumes:
+      - media_data:/app/intersoft/media
+      - logs_data:/app/intersoft/logs
+
+volumes:
+  postgres_data:
+  media_data:
+  logs_data:

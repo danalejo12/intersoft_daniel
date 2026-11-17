@@ -26,6 +26,7 @@
       <button type="submit" class="boton boton-ancho">Ingresar</button>
     </form>
 
+    <p class="nota"><a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a></p>
     <p class="nota">¿No tienes cuenta? <a href="{% url 'registro' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Créala aquí</a></p>
   </section>
 {% endblock %}

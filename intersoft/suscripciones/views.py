@@ -37,6 +37,7 @@ class SuscripcionDetalleAPIView(APIView):
     """GET /api/suscripcion/ — Devuelve la suscripción vigente de la empresa del usuario autenticado."""
 
     permission_classes = [IsAuthenticated, TieneEmpresaActiva]
+    serializer_class = SuscripcionDetalleSerializer
 
     def get(self, request):
         # Aislamiento multi-tenant: la empresa siempre sale del usuario autenticado, nunca de parámetros externos
@@ -50,6 +51,7 @@ class CambiarPlanAPIView(APIView):
     """POST /api/suscripcion/cambiar-plan/ — Cambia el plan de la empresa activa."""
 
     permission_classes = [IsAuthenticated, TieneEmpresaActiva]
+    serializer_class = CambiarPlanSerializer
 
     def post(self, request):
         serializer = CambiarPlanSerializer(data=request.data)

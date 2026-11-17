@@ -1,5 +1,6 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from suscripciones import views_panel as views_suscripciones_panel
 
@@ -53,6 +54,7 @@ panel_urlpatterns = [
     path("facturas/", views.FacturaListView.as_view(), name="facturas_lista"),
     path("facturas/nueva/", views.FacturaCreateView.as_view(), name="facturas_crear"),
     path("facturas/<uuid:pk>/", views.FacturaDetailView.as_view(), name="facturas_detalle"),
+    path("facturas/<uuid:pk>/pdf/", views.FacturaPDFView.as_view(), name="facturas_pdf"),
     path("facturas/<uuid:pk>/anular/", views.FacturaAnularView.as_view(), name="facturas_anular"),
     path("facturas/<uuid:pk>/emitir-dian/", views.FacturaEmitirDianView.as_view(), name="facturas_emitir_dian"),
     path("facturas/<uuid:pk>/contabilizar/", views.FacturaContabilizarView.as_view(), name="facturas_contabilizar"),
@@ -78,6 +80,7 @@ panel_urlpatterns = [
     # Módulos ERP y reportes
     path("erp/", views_erp.InicioERP.as_view(), name="erp_inicio"),
     path("erp/reportes/", views_erp.ReportesERP.as_view(), name="erp_reportes"),
+    path("erp/reportes/exportar/", views_erp.ReportesExportarExcelView.as_view(), name="erp_reportes_excel"),
     path("erp/cartera/factura/", views_erp.CarteraFacturaERP.as_view(), name="erp_cartera_factura"),
     path("erp/<slug:modulo>/", views_erp.ListaERP.as_view(), name="erp_lista"),
     path("erp/<slug:modulo>/nuevo/", views_erp.CrearERP.as_view(), name="erp_crear"),
@@ -119,6 +122,34 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("entrar/", views_tienda.despues_de_login, name="despues_login"),
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
+    path(
+        "recuperar-contrasena/",
+        views.RecuperarContrasenaView.as_view(),
+        name="password_reset",
+    ),
+    path(
+        "recuperar-contrasena/enviado/",
+        views.RecuperarContrasenaEnviadoView.as_view(),
+        name="password_reset_done",
+    ),
+    path(
+        "recuperar-contrasena/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(template_name="core/auth/password_reset_confirm.html"),
+        name="password_reset_confirm",
+    ),
+    path(
+        "recuperar-contrasena/listo/",
+        auth_views.PasswordResetCompleteView.as_view(template_name="core/auth/password_reset_complete.html"),
+        name="password_reset_complete",
+    ),
+    path(
+        "recuperar-contrasena/<path:invalido>",
+        TemplateView.as_view(
+            template_name="core/auth/password_reset_confirm.html",
+            extra_context={"validlink": False},
+        ),
+        name="password_reset_invalid",
+    ),
 
     # Panel de cada negocio
     path("panel/", include(panel_urlpatterns)),

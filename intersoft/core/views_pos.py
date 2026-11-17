@@ -83,6 +83,29 @@ def productos_frecuentes(empresa):
 class PosMixin(PermisoRequeridoMixin):
     permiso_requerido = "ventas.crear"
 
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and getattr(request, "empresa", None) is not None
+            and request.membresia
+            and request.membresia.tiene_permiso(self.permiso_requerido)
+        ):
+            from suscripciones.services import crear_suscripcion_inicial
+
+            sub = crear_suscripcion_inicial(request.empresa)
+            if not sub.puede("pos"):
+                if request.content_type == "application/json":
+                    return JsonResponse(
+                        {"ok": False, "error": "Tu plan actual no incluye Punto de Venta (POS)."},
+                        status=403,
+                    )
+                messages.error(
+                    request,
+                    f"Tu plan actual ({sub.plan.nombre}) no incluye Punto de Venta (POS). Actualiza tu plan para usar la caja.",
+                )
+                return redirect("suscripcion_panel")
+        return super().dispatch(request, *args, **kwargs)
+
     def turno(self):
         return caja.turno_abierto(self.request.empresa, self.request.user)
 
