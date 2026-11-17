@@ -1,12 +1,15 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
+from suscripciones import views_panel as views_suscripciones_panel
+
 from . import views, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("negocio/", views.DatosNegocioView.as_view(), name="negocio_datos"),
+    path("suscripcion/", views_suscripciones_panel.SuscripcionPanelView.as_view(), name="suscripcion_panel"),
     path("negocio/cambiar/", views.CambiarNegocioView.as_view(), name="negocio_cambiar"),
     path("negocio/pagos/", views_pagos.PagosNegocioView.as_view(), name="negocio_pagos"),
     path("negocio/pagos/verificar/", views_pagos.VerificarPagosView.as_view(), name="negocio_pagos_verificar"),

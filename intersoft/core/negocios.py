@@ -28,4 +28,7 @@ def registrar_negocio(*, usuario, datos):
     )
     crear_roles_base(empresa)
     Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
+    from suscripciones.services import crear_suscripcion_inicial
+
+    crear_suscripcion_inicial(empresa)
     return empresa

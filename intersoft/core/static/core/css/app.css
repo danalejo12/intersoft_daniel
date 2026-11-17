@@ -1519,3 +1519,116 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
   border: 1px solid rgba(255, 255, 255, .06);
 }
 .perfil-dato dd { color: var(--texto); }
+
+
+/* ---------- Panel de Suscripción y Planes (/panel/suscripcion/) ---------- */
+.plan-progreso-pista {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  overflow: hidden;
+}
+.plan-progreso-barra {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  transition: width .3s ease;
+}
+.plan-progreso-barra.peligro {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+.planes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.plan-tarjeta {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.plan-tarjeta:hover {
+  transform: translateY(-2px);
+  border-color: rgba(91, 140, 255, .45);
+}
+.plan-tarjeta.plan-actual {
+  border: 1.5px solid rgba(16, 185, 129, .75);
+  box-shadow: 0 18px 40px -18px rgba(16, 185, 129, .28);
+}
+.plan-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.plan-cabecera h3 { margin: 0 0 4px; font-size: 1.25rem; }
+.plan-precios {
+  padding: 14px 0;
+  margin-bottom: 14px;
+  border-top: 1px solid var(--linea);
+  border-bottom: 1px solid var(--linea);
+}
+.plan-precio-principal {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--texto);
+  line-height: 1.2;
+}
+.plan-precio-principal small {
+  font-size: .88rem;
+  font-weight: 400;
+  color: var(--tenue);
+}
+.plan-limites-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: .9rem;
+}
+.plan-features-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  font-size: .88rem;
+  color: var(--suave);
+}
+.plan-features-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.plan-features-lista svg {
+  width: 16px;
+  height: 16px;
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.plan-acciones {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--linea);
+}
+.plan-form-cambio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+.plan-form-cambio select {
+  padding: 9px 12px;
+  font-size: .88rem;
+  border-radius: 12px;
+}

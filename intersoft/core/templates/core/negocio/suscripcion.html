@@ -1,0 +1,222 @@
+{% extends "core/base.html" %}
+{% block titulo %}Plan y suscripción · {{ request.empresa.nombre }} · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Plan y suscripción</h1>
+      <p class="nota">Administra tu plan de InterSoft, revisa el consumo de productos y usuarios frente a tus límites y consulta tus beneficios activos.</p>
+    </div>
+    <div class="acciones-fila">
+      <a class="boton secundario" href="{% url 'negocio_datos' %}">Perfil del negocio</a>
+      <a class="boton secundario" href="{% url 'dashboard' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- Resumen de la suscripción actual -->
+  <section class="kpis" style="margin-bottom: 22px;">
+    <article class="kpi">
+      <div class="kpi-cabecera"><span>Plan actual</span></div>
+      <strong>{{ suscripcion.plan.nombre }}</strong>
+      <small>
+        {% if suscripcion.estado == "TRIAL" %}
+          <span class="badge info">Prueba gratis (TRIAL)</span>
+        {% elif suscripcion.estado == "ACTIVA" %}
+          <span class="badge exito">Suscripción activa</span>
+        {% else %}
+          <span class="badge advertencia">{{ suscripcion.get_estado_display }}</span>
+        {% endif %}
+        {% if suscripcion.es_fundador %}
+          · <span class="badge exito">★ Fundador (-{{ suscripcion.descuento_porcentaje|floatformat:"0" }}% de por vida)</span>
+        {% endif %}
+      </small>
+    </article>
+
+    <article class="kpi">
+      <div class="kpi-cabecera"><span>Vigencia y ciclo</span></div>
+      <strong>
+        {% if dias_restantes is not None %}
+          {{ dias_restantes }} día{{ dias_restantes|pluralize }}
+        {% else %}
+          Sin vencimiento
+        {% endif %}
+      </strong>
+      <small>
+        Ciclo: {{ suscripcion.get_ciclo_display }}
+        {% if suscripcion.vence_en %} · Vence el {{ suscripcion.vence_en|date:"d/m/Y" }}{% endif %}
+      </small>
+    </article>
+
+    <article class="kpi verde">
+      <div class="kpi-cabecera"><span>Comisión de venta</span></div>
+      <strong>{{ suscripcion.plan.comision_porcentaje|floatformat:"2" }}%</strong>
+      <small>Solo en ventas Marketplace · <strong>POS mostrador: 0%</strong></small>
+    </article>
+  </section>
+
+  <!-- Consumo actual vs límites del plan -->
+  <section class="paneles parejos" style="margin-bottom: 26px;">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Productos activos</h2>
+        <span class="badge {% if limites.productos is not None and uso.productos >= limites.productos %}peligro{% else %}info{% endif %}">
+          {{ uso.productos }} / {% if limites.productos is None %}Ilimitados{% else %}{{ limites.productos }}{% endif %}
+        </span>
+      </div>
+      <div class="plan-progreso-pista">
+        <div class="plan-progreso-barra {% if limites.productos is not None and uso.productos >= limites.productos %}peligro{% endif %}" style="width: {{ pct_productos }}%;"></div>
+      </div>
+      <p class="nota" style="margin: 10px 0 0;">
+        {% if limites.productos is None %}
+          Tu plan <strong>{{ suscripcion.plan.nombre }}</strong> permite publicar productos ilimitados.
+        {% else %}
+          Has utilizado {{ uso.productos }} de {{ limites.productos }} productos activos permitidos en tu plan.
+        {% endif %}
+      </p>
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Miembros del equipo (usuarios)</h2>
+        <span class="badge {% if limites.usuarios is not None and uso.usuarios >= limites.usuarios %}peligro{% else %}info{% endif %}">
+          {{ uso.usuarios }} / {% if limites.usuarios is None %}Ilimitados{% else %}{{ limites.usuarios }}{% endif %}
+        </span>
+      </div>
+      <div class="plan-progreso-pista">
+        <div class="plan-progreso-barra {% if limites.usuarios is not None and uso.usuarios >= limites.usuarios %}peligro{% endif %}" style="width: {{ pct_usuarios }}%;"></div>
+      </div>
+      <p class="nota" style="margin: 10px 0 0;">
+        {% if limites.usuarios is None %}
+          Tu plan <strong>{{ suscripcion.plan.nombre }}</strong> permite miembros de equipo ilimitados.
+        {% else %}
+          Tienes {{ uso.usuarios }} de {{ limites.usuarios }} miembros activos en <strong>{{ request.empresa.nombre }}</strong>.
+        {% endif %}
+      </p>
+    </article>
+  </section>
+
+  <!-- Catálogo comparativo de los 4 planes -->
+  <h2 style="margin-bottom: 14px;">Planes disponibles</h2>
+  <div class="planes-grid" style="margin-bottom: 30px;">
+    {% for item in planes_ui %}
+      {% with plan=item.obj lim=item.limites %}
+      <article class="tarjeta plan-tarjeta {% if item.es_actual %}plan-actual{% endif %}">
+        <div class="plan-cabecera">
+          <div>
+            <h3>{{ plan.nombre }}</h3>
+            <span class="nota">Comisión Marketplace: <strong>{{ plan.comision_porcentaje|floatformat:"1" }}%</strong></span>
+          </div>
+          {% if item.es_actual %}
+            <span class="badge exito">Plan actual</span>
+          {% elif plan.codigo == "negocio" %}
+            <span class="badge info">Recomendado</span>
+          {% endif %}
+        </div>
+
+        <div class="plan-precios">
+          <div class="plan-precio-principal">
+            $ {{ plan.precio_mensual|floatformat:"0g" }} <small>/ mes</small>
+          </div>
+          <div class="nota">
+            {% if plan.precio_anual > 0 %}
+              Plan anual: <strong>$ {{ plan.precio_anual|floatformat:"0g" }} / año</strong> (ahorras 2 meses)
+            {% else %}
+              Gratis para siempre · Sin tarjeta
+            {% endif %}
+          </div>
+        </div>
+
+        <ul class="plan-limites-lista">
+          <li>
+            <strong>Productos:</strong>
+            {% if lim.productos is None %}Ilimitados{% else %}Hasta {{ lim.productos }} productos{% endif %}
+          </li>
+          <li>
+            <strong>Usuarios en equipo:</strong>
+            {% if lim.usuarios is None %}Ilimitados{% else %}Hasta {{ lim.usuarios }} usuario{{ lim.usuarios|pluralize }}{% endif %}
+          </li>
+          <li>
+            <strong>Ventas en POS mostrador:</strong> 0% comisión
+          </li>
+        </ul>
+
+        <ul class="plan-features-lista">
+          {% for feat in item.features_legibles %}
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <span>{{ feat }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="plan-acciones">
+          {% if puede_cambiar %}
+            {% if item.es_actual and suscripcion.estado == "ACTIVA" %}
+              <button type="button" class="boton secundario" disabled style="width: 100%;">Plan activo actualmente</button>
+            {% else %}
+              <form method="post" class="plan-form-cambio">
+                {% csrf_token %}
+                <input type="hidden" name="plan" value="{{ plan.codigo }}">
+                {% if plan.precio_mensual > 0 %}
+                  <select name="ciclo" aria-label="Ciclo de cobro para {{ plan.nombre }}">
+                    <option value="MENSUAL">Ciclo Mensual ($ {{ plan.precio_mensual|floatformat:"0g" }})</option>
+                    <option value="ANUAL">Ciclo Anual ($ {{ plan.precio_anual|floatformat:"0g" }})</option>
+                  </select>
+                {% else %}
+                  <input type="hidden" name="ciclo" value="MENSUAL">
+                {% endif %}
+                <button type="submit" class="boton {% if item.es_actual %}exito{% elif plan.codigo == 'gratis' %}secundario{% endif %}" style="width: 100%;">
+                  {% if item.es_actual and suscripcion.estado == "TRIAL" %}
+                    Activar {{ plan.nombre }} definitivo
+                  {% else %}
+                    Cambiar a {{ plan.nombre }}
+                  {% endif %}
+                </button>
+              </form>
+            {% endif %}
+          {% else %}
+            <p class="nota" style="margin: 0; text-align: center;">Solo el administrador puede cambiar de plan.</p>
+          {% endif %}
+        </div>
+      </article>
+      {% endwith %}
+    {% endfor %}
+  </div>
+
+  <!-- Historial de auditoría de la suscripción -->
+  <article class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Historial de cambios de suscripción</h2>
+      <span class="badge neutro">{{ historial|length }} registro{{ historial|length|pluralize }}</span>
+    </div>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Plan anterior</th>
+          <th>Plan nuevo</th>
+          <th>Estado</th>
+          <th>Motivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historial %}
+          <tr>
+            <td>{{ h.fecha|date:"d/m/Y H:i" }}</td>
+            <td>{% if h.plan_anterior %}{{ h.plan_anterior.nombre }}{% else %}—{% endif %}</td>
+            <td><strong>{{ h.plan_nuevo.nombre }}</strong></td>
+            <td>{{ h.get_estado_nuevo_display }}</td>
+            <td>{{ h.motivo|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">No hay cambios registrados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+{% endblock %}

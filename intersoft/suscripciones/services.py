@@ -1,0 +1,327 @@
+"""Capa de servicios de negocio para planes, suscripciones, límites y comisiones.
+
+Toda la lógica de dominio vive aquí (nunca en vistas ni serializers) para que
+pueda invocarse por igual desde endpoints DRF, comandos de gestión, señales o tests.
+"""
+from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
+
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
+
+from core.models import Empresa, Membresia, Producto
+
+from .models import HistorialSuscripcion, Plan, Suscripcion
+
+CENTAVOS = Decimal("0.01")
+DIAS_TRIAL = 14
+DIAS_CICLO_MENSUAL = 30
+DIAS_CICLO_ANUAL = 365
+CUPOS_FUNDADOR = 50
+DESCUENTO_FUNDADOR = Decimal("50.00")
+
+
+class CanalVenta:
+    MARKETPLACE = "MARKETPLACE"
+    POS = "POS"
+    VALORES = (MARKETPLACE, POS)
+
+
+class DowngradeNoPermitido(ValidationError):
+    """Se lanza cuando una empresa intenta bajar a un plan cuyos límites son menores a su uso actual."""
+
+    def __init__(self, mensaje, *, excesos=None):
+        super().__init__(mensaje)
+        self.excesos = excesos or {}
+
+
+def _obtener_plan(plan_o_codigo) -> Plan:
+    if isinstance(plan_o_codigo, Plan):
+        return plan_o_codigo
+    codigo = str(plan_o_codigo or "").strip().lower()
+    try:
+        return Plan.objects.get(codigo=codigo, activo=True)
+    except Plan.DoesNotExist as exc:
+        raise ValidationError(f"El plan '{codigo}' no existe o no está activo.") from exc
+
+
+def uso_actual(empresa: Empresa) -> dict:
+    """Calcula el consumo actual de recursos sujetos a límite de plan para una empresa.
+
+    Punto de extensión:
+    - Si en el futuro se agregan modelos como `Sede` (multisede), basta añadir aquí
+      la clave `"sedes": Sede.objects.filter(empresa=empresa, activa=True).count()`.
+    """
+    return {
+        "productos": Producto.objects.filter(empresa=empresa, activo=True).count(),
+        "usuarios": Membresia.objects.filter(empresa=empresa, activa=True).count(),
+    }
+
+
+@transaction.atomic
+def crear_suscripcion_inicial(empresa: Empresa) -> Suscripcion:
+    """Crea de forma idempotente la suscripción inicial en TRIAL del plan 'negocio' por 14 días."""
+    existente = (
+        Suscripcion.objects.select_related("plan")
+        .filter(empresa=empresa)
+        .first()
+    )
+    if existente is not None:
+        return existente
+
+    # Bloqueamos la fila de la empresa para evitar condiciones de carrera si señal y servicio corren a la vez
+    Empresa.objects.select_for_update().filter(pk=empresa.pk).first()
+    existente = (
+        Suscripcion.objects.select_related("plan")
+        .filter(empresa=empresa)
+        .first()
+    )
+    if existente is not None:
+        return existente
+
+    plan_negocio = Plan.objects.filter(codigo="negocio").first()
+    if plan_negocio is None:
+        # Respaldo defensivo por si se invoca antes de correr la migración de datos en un entorno parcial
+        plan_negocio, _ = Plan.objects.get_or_create(
+            codigo="negocio",
+            defaults={
+                "nombre": "Negocio",
+                "precio_mensual": Decimal("69900.00"),
+                "precio_anual": Decimal("699000.00"),
+                "comision_porcentaje": Decimal("2.50"),
+                "limites": {"productos": None, "usuarios": 5},
+                "features": [
+                    "marketplace",
+                    "marketplace_destacado",
+                    "pos",
+                    "inventario",
+                    "alertas_inventario",
+                    "roles",
+                    "reportes_basicos",
+                    "reportes_avanzados",
+                ],
+                "orden": 3,
+                "activo": True,
+            },
+        )
+
+    ahora = timezone.now()
+    suscripcion = Suscripcion.objects.create(
+        empresa=empresa,
+        plan=plan_negocio,
+        estado=Suscripcion.Estado.TRIAL,
+        ciclo=Suscripcion.Ciclo.MENSUAL,
+        inicia_en=ahora,
+        vence_en=ahora + timedelta(days=DIAS_TRIAL),
+        es_fundador=False,
+        descuento_porcentaje=Decimal("0.00"),
+    )
+    HistorialSuscripcion.objects.create(
+        suscripcion=suscripcion,
+        plan_anterior=None,
+        plan_nuevo=plan_negocio,
+        estado_anterior="",
+        estado_nuevo=Suscripcion.Estado.TRIAL,
+        motivo=f"Inicio de prueba gratis por {DIAS_TRIAL} días en plan {plan_negocio.nombre}",
+        fecha=ahora,
+    )
+    return suscripcion
+
+
+@transaction.atomic
+def cambiar_plan(
+    empresa: Empresa,
+    plan,
+    ciclo: str = Suscripcion.Ciclo.MENSUAL,
+    motivo: str = "",
+) -> Suscripcion:
+    """Cambia el plan de una empresa validando límites de downgrade, beneficio fundador y auditoría."""
+    ciclo_normalizado = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
+    if ciclo_normalizado not in Suscripcion.Ciclo.values:
+        raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
+
+    plan_destino = _obtener_plan(plan)
+    crear_suscripcion_inicial(empresa)
+    suscripcion = (
+        Suscripcion.objects.select_for_update()
+        .select_related("plan")
+        .get(empresa=empresa)
+    )
+
+    # 1. Validar que el uso actual quepa dentro de los límites del nuevo plan (protección en downgrade)
+    consumo = uso_actual(empresa)
+    limites_destino = plan_destino.limites or {}
+    detalles_exceso = []
+    excesos_dict = {}
+    for recurso, cantidad_actual in consumo.items():
+        limite_recurso = limites_destino.get(recurso)
+        if limite_recurso is not None and int(cantidad_actual) > int(limite_recurso):
+            sobrante = int(cantidad_actual) - int(limite_recurso)
+            excesos_dict[recurso] = {
+                "uso_actual": int(cantidad_actual),
+                "limite": int(limite_recurso),
+                "exceso": sobrante,
+            }
+            detalles_exceso.append(
+                f"tienes {cantidad_actual} {recurso} y el plan {plan_destino.nombre} permite máximo {limite_recurso} "
+                f"(debes reducir al menos {sobrante})"
+            )
+
+    if detalles_exceso:
+        mensaje = (
+            f"No puedes cambiar al plan {plan_destino.nombre} porque tu uso actual excede sus límites: "
+            + "; ".join(detalles_exceso)
+            + "."
+        )
+        raise DowngradeNoPermitido(mensaje, excesos=excesos_dict)
+
+    plan_anterior = suscripcion.plan
+    estado_anterior = suscripcion.estado
+    ahora = timezone.now()
+
+    # 2. Determinar estado, ciclo, fecha de vencimiento y beneficio de fundador (primeras 50 empresas con plan pago)
+    es_plan_pago = plan_destino.precio_mensual > Decimal("0.00") or plan_destino.precio_anual > Decimal("0.00")
+    if es_plan_pago:
+        dias_vigencia = (
+            DIAS_CICLO_ANUAL if ciclo_normalizado == Suscripcion.Ciclo.ANUAL else DIAS_CICLO_MENSUAL
+        )
+        nuevo_vence_en = ahora + timedelta(days=dias_vigencia)
+        if not suscripcion.es_fundador:
+            total_fundadores = (
+                Suscripcion.objects.select_for_update()
+                .filter(es_fundador=True)
+                .count()
+            )
+            if total_fundadores < CUPOS_FUNDADOR:
+                suscripcion.es_fundador = True
+                suscripcion.descuento_porcentaje = DESCUENTO_FUNDADOR
+    else:
+        nuevo_vence_en = None
+
+    nuevo_estado = Suscripcion.Estado.ACTIVA
+    suscripcion.plan = plan_destino
+    suscripcion.estado = nuevo_estado
+    suscripcion.ciclo = ciclo_normalizado
+    suscripcion.inicia_en = ahora
+    suscripcion.vence_en = nuevo_vence_en
+    suscripcion.save(
+        update_fields=[
+            "plan",
+            "estado",
+            "ciclo",
+            "inicia_en",
+            "vence_en",
+            "es_fundador",
+            "descuento_porcentaje",
+            "actualizado_en",
+        ]
+    )
+
+    HistorialSuscripcion.objects.create(
+        suscripcion=suscripcion,
+        plan_anterior=plan_anterior,
+        plan_nuevo=plan_destino,
+        estado_anterior=estado_anterior,
+        estado_nuevo=nuevo_estado,
+        motivo=(motivo or f"Cambio manual a plan {plan_destino.nombre} ({ciclo_normalizado})")[:255],
+        fecha=ahora,
+    )
+    empresa.suscripcion = suscripcion
+    return suscripcion
+
+
+def calcular_comision(empresa: Empresa, monto, canal: str) -> Decimal:
+    """Calcula la comisión en COP según el canal de venta y el plan vigente de la empresa.
+
+    Reglas:
+    - Canal POS: comisión 0.00 siempre.
+    - Canal MARKETPLACE: aplica el porcentaje del plan vigente de la empresa con redondeo ROUND_HALF_UP.
+    - Rechaza valores tipo float para garantizar exactitud financiera.
+    """
+    if isinstance(monto, float):
+        raise TypeError("El monto debe ser Decimal, int o cadena numérica, nunca float.")
+    monto_dec = Decimal(str(monto))
+    if monto_dec < Decimal("0.00"):
+        raise ValueError("El monto no puede ser negativo.")
+
+    canal_norm = str(canal or "").strip().upper()
+    if canal_norm not in CanalVenta.VALORES:
+        raise ValueError(f"Canal de venta no válido: '{canal}'. Usa MARKETPLACE o POS.")
+
+    if canal_norm == CanalVenta.POS or monto_dec == Decimal("0.00"):
+        return Decimal("0.00")
+
+    suscripcion = (
+        Suscripcion.objects.select_related("plan").filter(empresa=empresa).first()
+        or crear_suscripcion_inicial(empresa)
+    )
+    porcentaje = suscripcion.plan.comision_porcentaje
+    comision = (monto_dec * porcentaje) / Decimal("100")
+    return comision.quantize(CENTAVOS, rounding=ROUND_HALF_UP)
+
+
+def verificar_vencimientos() -> dict:
+    """Pasa al plan 'gratis' todas las suscripciones TRIAL o ACTIVAS cuyo vence_en ya expiró.
+
+    Nunca bloquea la cuenta: la empresa pasa a estado ACTIVA en el plan 'gratis'.
+    Es 100% idempotente para ejecutarse periódicamente desde cron.
+    """
+    ahora = timezone.now()
+    plan_gratis = _obtener_plan("gratis")
+
+    vencidas_ids = list(
+        Suscripcion.objects.filter(
+            estado__in=[Suscripcion.Estado.TRIAL, Suscripcion.Estado.ACTIVA],
+            vence_en__isnull=False,
+            vence_en__lte=ahora,
+        )
+        .exclude(plan=plan_gratis, estado=Suscripcion.Estado.ACTIVA, vence_en__isnull=True)
+        .values_list("pk", flat=True)
+    )
+
+    trials_vencidos = 0
+    activas_vencidas = 0
+
+    for sub_id in vencidas_ids:
+        with transaction.atomic():
+            sub = (
+                Suscripcion.objects.select_for_update()
+                .select_related("plan")
+                .filter(pk=sub_id)
+                .first()
+            )
+            if sub is None or sub.vence_en is None or sub.vence_en > ahora:
+                continue
+            if sub.estado not in (Suscripcion.Estado.TRIAL, Suscripcion.Estado.ACTIVA):
+                continue
+
+            plan_anterior = sub.plan
+            estado_anterior = sub.estado
+            if estado_anterior == Suscripcion.Estado.TRIAL:
+                trials_vencidos += 1
+                motivo = "Fin del periodo de prueba gratis: paso automático al plan Gratis"
+            else:
+                activas_vencidas += 1
+                motivo = f"Suscripción vencida en plan {plan_anterior.nombre}: paso automático al plan Gratis"
+
+            sub.plan = plan_gratis
+            sub.estado = Suscripcion.Estado.ACTIVA
+            sub.vence_en = None
+            sub.save(update_fields=["plan", "estado", "vence_en", "actualizado_en"])
+
+            HistorialSuscripcion.objects.create(
+                suscripcion=sub,
+                plan_anterior=plan_anterior,
+                plan_nuevo=plan_gratis,
+                estado_anterior=estado_anterior,
+                estado_nuevo=Suscripcion.Estado.ACTIVA,
+                motivo=motivo,
+                fecha=ahora,
+            )
+
+    return {
+        "procesadas": trials_vencidos + activas_vencidas,
+        "trials_vencidos": trials_vencidos,
+        "activas_vencidas": activas_vencidas,
+    }

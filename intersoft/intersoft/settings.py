@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'axes',
     'core',
+    'suscripciones',
 ]
 AUTH_USER_MODEL = 'core.Usuario'
 AUTHENTICATION_BACKENDS = [
@@ -315,3 +317,11 @@ _inicializar_monitoreo(
     environment=SENTRY_ENVIRONMENT,
     traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
 )
+
+
+# ---------------------------------------------------------------
+# Django REST Framework
+# ---------------------------------------------------------------
+REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "suscripciones.exceptions.manejador_excepciones_suscripciones",
+}
