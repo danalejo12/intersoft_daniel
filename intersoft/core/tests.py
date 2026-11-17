@@ -830,3 +830,9 @@ class PerfilUsuarioTests(TestCase):
 
         self.usuario.refresh_from_db()
         self.assertTrue(self.usuario.check_password("NuevaClave#2026!"))
+
+
+    def test_enlace_incompleto_de_recuperacion_muestra_pagina_amigable(self):
+        resp = self.client.get("/recuperar-contrasena/YTIiZGI1NmYtN2VjNS00NmQ5LTIjMDgtYT=")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Enlace inválido o vencido")

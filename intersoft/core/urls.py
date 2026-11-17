@@ -1,5 +1,6 @@
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from suscripciones import views_panel as views_suscripciones_panel
 
@@ -112,16 +113,12 @@ urlpatterns = [
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
     path(
         "recuperar-contrasena/",
-        auth_views.PasswordResetView.as_view(
-            template_name="core/auth/password_reset_form.html",
-            email_template_name="core/auth/password_reset_email.txt",
-            subject_template_name="core/auth/password_reset_subject.txt",
-        ),
+        views.RecuperarContrasenaView.as_view(),
         name="password_reset",
     ),
     path(
         "recuperar-contrasena/enviado/",
-        auth_views.PasswordResetDoneView.as_view(template_name="core/auth/password_reset_done.html"),
+        views.RecuperarContrasenaEnviadoView.as_view(),
         name="password_reset_done",
     ),
     path(
@@ -133,6 +130,14 @@ urlpatterns = [
         "recuperar-contrasena/listo/",
         auth_views.PasswordResetCompleteView.as_view(template_name="core/auth/password_reset_complete.html"),
         name="password_reset_complete",
+    ),
+    path(
+        "recuperar-contrasena/<path:invalido>",
+        TemplateView.as_view(
+            template_name="core/auth/password_reset_confirm.html",
+            extra_context={"validlink": False},
+        ),
+        name="password_reset_invalid",
     ),
 
     # Panel de cada negocio

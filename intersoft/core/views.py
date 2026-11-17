@@ -1,9 +1,14 @@
 """Vistas principales del panel: inicio, configuración del negocio, clientes y re-exportaciones."""
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.messages.views import SuccessMessageMixin
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.core.exceptions import ValidationError
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth
@@ -267,6 +272,39 @@ class PerfilView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
         return contexto
 
 
+class RecuperarContrasenaView(auth_views.PasswordResetView):
+    """Solicita restablecimiento de contraseña y, solo en DEBUG=True, guarda un acceso de prueba en sesión."""
+
+    template_name = "core/auth/password_reset_form.html"
+    email_template_name = "core/auth/password_reset_email.txt"
+    subject_template_name = "core/auth/password_reset_subject.txt"
+
+    def form_valid(self, form):
+        respuesta = super().form_valid(form)
+        if settings.DEBUG:
+            correo = (form.cleaned_data.get("email") or "").strip()
+            usuario = next(form.get_users(correo), None)
+            if usuario is not None:
+                uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+                token = default_token_generator.make_token(usuario)
+                self.request.session["debug_reset_url"] = self.request.build_absolute_uri(
+                    reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+                )
+            else:
+                self.request.session.pop("debug_reset_url", None)
+        return respuesta
+
+
+class RecuperarContrasenaEnviadoView(auth_views.PasswordResetDoneView):
+    template_name = "core/auth/password_reset_done.html"
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        if settings.DEBUG:
+            contexto["debug_reset_url"] = self.request.session.pop("debug_reset_url", None)
+        return contexto
+
+
 class ClienteDeleteView(EliminarLogicoView):
     model = Cliente
     permiso_requerido = "clientes.eliminar"
@@ -278,6 +316,8 @@ __all__ = [
     "DatosNegocioView",
     "CambiarNegocioView",
     "PerfilView",
+    "RecuperarContrasenaView",
+    "RecuperarContrasenaEnviadoView",
     "ClienteListView",
     "ClienteFormMixin",
     "ClienteCreateView",
