@@ -62,6 +62,8 @@ class Pedido(ModeloTenant):
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
     orden = models.ForeignKey(Orden, on_delete=models.PROTECT, related_name="pedidos", null=True, blank=True)
+    # Bodega de la que se reservó el stock: al liberar o reembolsar, vuelve ahí
+    bodega = models.ForeignKey("Bodega", on_delete=models.PROTECT, related_name="pedidos", null=True, blank=True)
     factura =models.OneToOneField(Factura, on_delete=models.PROTECT, related_name="pedido", null=True, blank=True)
     numero = models.PositiveIntegerField()  # Consecutivo por empresa, independiente del de facturas.
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)

@@ -18,7 +18,7 @@
         <div>
           <h1>Punto de venta</h1>
           <div class="pos-turno">
-            <span class="badge exito">Caja abierta · {{ turno.creado_en|date:"g:i a" }}</span>
+            <span class="badge exito">Caja abierta · {{ turno.creado_en|date:"g:i a" }}</span>{% if bodega and not bodega.es_principal %} <span class="badge info">{{ bodega.nombre }}</span>{% endif %}
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@
     {% if frecuentes %}
       <div class="pos-rejilla">
         {% for producto in frecuentes %}
-          <button type="button" class="pos-producto" data-agregar="{{ producto.pk }}" {% if producto.stock <= 0 %}aria-disabled="true"{% endif %}>
+          <button type="button" class="pos-producto" data-agregar="{{ producto.pk }}" {% if producto.disponible <= 0 %}aria-disabled="true"{% endif %}>
             {% if producto.imagen %}
               <img src="{{ producto.imagen.url }}" alt="" loading="lazy">
             {% else %}
@@ -53,7 +53,7 @@
             {% endif %}
             <span class="pos-producto-nombre">{{ producto.nombre }}</span>
             <span class="pos-producto-precio">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
-            <small class="{% if producto.stock <= producto.stock_minimo %}pos-stock-bajo{% endif %}">{% if producto.stock > 0 %}{{ producto.stock }} en stock{% else %}Agotado{% endif %}</small>
+            <small class="{% if producto.disponible <= producto.stock_minimo %}pos-stock-bajo{% endif %}">{% if producto.disponible > 0 %}{{ producto.disponible }} en stock{% else %}Agotado{% endif %}</small>
           </button>
         {% endfor %}
       </div>

@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
 
+from . import bodegas
 from .impuestos import CENTAVOS
 from .models import Cliente, Factura, PagoCaja, TurnoCaja
 from .services import StockInsuficiente, crear_factura
@@ -59,12 +60,18 @@ def turno_abierto(empresa, usuario):
     return TurnoCaja.objects.filter(empresa=empresa, cajero=usuario, cerrado_en__isnull=True).first()
 
 
-def abrir_turno(*, empresa, usuario, base):
+def abrir_turno(*, empresa, usuario, base, bodega=None):
+    """La caja vende desde `bodega` durante todo el turno (sin bodega: la Principal)."""
     if turno_abierto(empresa, usuario):
         raise OperacionCaja("Ya tienes una caja abierta.")
     try:
+        bodega = bodegas.validar_bodega(empresa, bodega)
+    except ValueError as error:
+        raise OperacionCaja(str(error)) from None
+    try:
         with transaction.atomic():
-            return TurnoCaja.objects.create(empresa=empresa, cajero=usuario, base_inicial=dinero(base, "valor de la base"))
+            return TurnoCaja.objects.create(empresa=empresa, cajero=usuario, bodega=bodega,
+                                            base_inicial=dinero(base, "valor de la base"))
     except IntegrityError:
         # Dos aperturas al mismo tiempo: la base de datos solo deja una
         raise OperacionCaja("Ya tienes una caja abierta.") from None
@@ -155,7 +162,8 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=Non
 
     try:
         factura = crear_factura(
-            empresa=turno.empresa, usuario=usuario, cliente=cliente or consumidor_final(turno.empresa), items=items
+            empresa=turno.empresa, usuario=usuario, cliente=cliente or consumidor_final(turno.empresa), items=items,
+            bodega=turno.bodega,
         )
     except StockInsuficiente as error:
         raise OperacionCaja(str(error)) from None  # en el panel sí se muestra el stock exacto

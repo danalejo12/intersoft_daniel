@@ -9,6 +9,12 @@
     </div>
     <div class="acciones-fila">
       <a class="boton secundario" href="{% url 'productos_lista' %}">← Volver a productos</a>
+      {% if puede_mover and existencias %}
+        <a class="boton secundario" href="{% url 'productos_trasladar' producto.pk %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>
+          Trasladar
+        </a>
+      {% endif %}
       {% if puede_mover %}
         <a class="boton" href="{% url 'productos_movimiento' producto.pk %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -18,10 +24,22 @@
     </div>
   </div>
 
+  {% if existencias %}
+    <h2>Stock por bodega</h2>
+    <table class="tabla" style="margin-bottom: 22px;">
+      <thead><tr><th>Bodega</th><th class="num">Unidades</th></tr></thead>
+      <tbody>
+        {% for bodega, cantidad in existencias %}
+          <tr><td>{{ bodega.nombre }}{% if bodega.es_principal %} <span class="badge neutro">Principal</span>{% endif %}{% if bodega.vende_en_linea %} <span class="badge info">En línea</span>{% endif %}</td><td class="num">{{ cantidad }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
   <h2>Kardex</h2>
   <table class="tabla">
     <thead>
-      <tr><th>Fecha</th><th>Tipo</th><th class="num">Cantidad</th><th>Referencia</th><th>Usuario</th></tr>
+      <tr><th>Fecha</th><th>Tipo</th><th class="num">Cantidad</th><th>Bodega</th><th>Referencia</th><th>Usuario</th></tr>
     </thead>
     <tbody>
       {% for mov in movimientos %}
@@ -30,11 +48,12 @@
           <td>{{ mov.get_tipo_display }}</td>
           {# Las salidas restan; entradas y ajustes ya traen su signo #}
           <td class="num">{% if mov.tipo == "salida" %}-{{ mov.cantidad }}{% else %}{{ mov.cantidad|stringformat:"+d" }}{% endif %}</td>
+          <td>{{ mov.bodega.nombre|default:"—" }}</td>
           <td>{{ mov.referencia|default:"—" }}</td>
           <td>{{ mov.usuario.email }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="5">Este producto aún no tiene movimientos.</td></tr>
+        <tr><td colspan="6">Este producto aún no tiene movimientos.</td></tr>
       {% endfor %}
     </tbody>
   </table>

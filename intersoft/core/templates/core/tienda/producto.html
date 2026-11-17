@@ -46,7 +46,7 @@
 
       {% if not producto.empresa.compra_en_linea %}
         <p class="nota">Compra en línea no disponible</p>
-      {% elif producto.stock > 0 %}
+      {% elif producto.disponible > 0 %}
         <form class="compra" method="post" action="{% url 'carrito_agregar' producto.pk %}" data-agregar>
           {% csrf_token %}
           <div class="compra-fila">

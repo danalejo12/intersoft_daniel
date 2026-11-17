@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from . import reservas
+from . import bodegas, reservas
 from .impuestos import CENTAVOS, calcular_iva
 from .models import Comentario, DetallePedido, Orden, Pago, Pedido, Producto
 from .pagos import PagoNoPermitido, ResultadoWompi, revisar_en_wompi, sincronizar_pago
@@ -83,6 +83,7 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
 
     pedido = Pedido.objects.create(
         empresa=negocio,
+        bodega=bodegas.bodega_en_linea(negocio),
         pago_directo=True,
         comprador=usuario,
         numero=siguiente_consecutivo(Pedido, negocio),

@@ -37,6 +37,8 @@ class Factura(ModeloTenant):
         "TurnoCaja", on_delete=models.PROTECT, related_name="facturas", null=True, blank=True
     )
     operacion_pos = models.UUIDField(null=True, blank=True, editable=False)
+    # De dónde salió la mercancía; al anular, vuelve ahí. Vacía en facturas anteriores a las bodegas
+    bodega = models.ForeignKey("Bodega", on_delete=models.PROTECT, related_name="facturas", null=True, blank=True)
     # Instantánea descriptiva congelada al emitir la factura (para reimpresión fiel del ticket)
     cliente_nombre = models.CharField(max_length=150, blank=True)
     cliente_documento = models.CharField(max_length=30, blank=True)

@@ -3,7 +3,7 @@ from django.urls import include, path
 
 from suscripciones import views_panel as views_suscripciones_panel
 
-from . import views, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
+from . import views, views_bodegas, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
@@ -33,6 +33,11 @@ panel_urlpatterns = [
     path("clientes/<uuid:pk>/eliminar/", views.ClienteDeleteView.as_view(), name="clientes_eliminar"),
 
     # Categorías y Productos
+    path("bodegas/", views_bodegas.BodegaListView.as_view(), name="bodegas_lista"),
+    path("bodegas/nueva/", views_bodegas.BodegaFormView.as_view(), name="bodegas_crear"),
+    path("bodegas/<uuid:pk>/editar/", views_bodegas.BodegaFormView.as_view(), name="bodegas_editar"),
+    path("bodegas/<uuid:pk>/desactivar/", views_bodegas.BodegaDesactivarView.as_view(), name="bodegas_desactivar"),
+    path("productos/<uuid:pk>/trasladar/", views_bodegas.TrasladoView.as_view(), name="productos_trasladar"),
     path("categorias/", views.CategoriaListView.as_view(), name="categorias_lista"),
     path("categorias/nueva/", views.CategoriaCreateView.as_view(), name="categorias_crear"),
     path("categorias/<uuid:pk>/editar/", views.CategoriaUpdateView.as_view(), name="categorias_editar"),

@@ -7,9 +7,10 @@ y garantiza la integridad. Así la misma lógica sirve para la web, una API o un
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import F, Max
+from django.db.models import Max
 from django.utils import timezone
 
+from . import bodegas
 from .models import Cliente, DetalleFactura, Empresa, Factura, MovimientoInventario, Producto
 
 from .impuestos import CENTAVOS, calcular_iva
@@ -27,7 +28,7 @@ def siguiente_consecutivo(modelo, empresa):
 
 
 @transaction.atomic
-def crear_factura(*, empresa, usuario, cliente, items):
+def crear_factura(*, empresa, usuario, cliente, items, bodega=None):
     """
     Crea una factura completa: encabezado, líneas, descuento de stock y kardex.
 
@@ -38,6 +39,7 @@ def crear_factura(*, empresa, usuario, cliente, items):
     """
     if cliente.empresa_id != empresa.id:
         raise ValueError("El cliente no pertenece a esta empresa.")
+    bodega = bodegas.validar_bodega(empresa, bodega)  # sin bodega: la Principal
     if not items:
         raise ValueError("La factura necesita al menos un producto.")
 
@@ -64,12 +66,18 @@ def crear_factura(*, empresa, usuario, cliente, items):
             raise ValueError("Producto inexistente, inactivo o de otra empresa.")
         if cantidad <= 0:
             raise ValueError("La cantidad debe ser mayor que cero.")
-        total_producto = acumulado.get(producto.id, 0) + cantidad
-        if producto.stock < total_producto:
+        acumulado[producto.id] = acumulado.get(producto.id, 0) + cantidad
+
+    # Se valida contra la bodega que vende, no contra el total del negocio
+    for producto_id, total_producto in acumulado.items():
+        producto = productos[producto_id]
+        bodegas.cuadrar(producto)
+        disponible = bodegas.existencia(producto, bodega)
+        if disponible < total_producto:
             raise StockInsuficiente(
-                f"Stock insuficiente de {producto.nombre}: hay {producto.stock}, se piden {total_producto}."
+                f"Stock insuficiente de {producto.nombre} en {bodega.nombre}: "
+                f"hay {disponible}, se piden {total_producto}."
             )
-        acumulado[producto.id] = total_producto
 
     # 3. Consecutivo sin duplicados e instantánea descriptiva.
     factura = Factura.objects.create(
@@ -83,6 +91,7 @@ def crear_factura(*, empresa, usuario, cliente, items):
         empresa_direccion=empresa.direccion,
         empresa_telefono=empresa.telefono,
         creada_por=usuario,
+        bodega=bodega,
     )
 
     # 4. Líneas, descuento de stock y kardex.
@@ -103,11 +112,12 @@ def crear_factura(*, empresa, usuario, cliente, items):
             precio_unitario=producto.precio,          # precio CONGELADO al vender
             iva_porcentaje=producto.iva_porcentaje,
         )
-        # F() resta DENTRO de PostgreSQL, no en Python
-        Producto.objects.filter(pk=producto.pk).update(stock=F("stock") - cantidad)
+        # Resta en la bodega y en el total, dentro de PostgreSQL (F())
+        bodegas.mover(producto=producto, bodega=bodega, variacion=-cantidad)
         MovimientoInventario.objects.create(
             empresa=empresa,
             producto=producto,
+            bodega=bodega,
             tipo=MovimientoInventario.Tipo.SALIDA,
             cantidad=cantidad,
             referencia=f"Factura {factura.numero}",
@@ -182,11 +192,15 @@ def anular_factura(*, factura, usuario):
             raise ValueError("No se puede anular una factura con abonos registrados en cartera.")
         cartera.delete()
 
-    for detalle in factura.detalles.all():
-        Producto.objects.filter(pk=detalle.producto_id).update(stock=F("stock") + detalle.cantidad)
+    # La mercancía vuelve a la bodega de la que salió (las facturas antiguas, a la Principal)
+    bodega = factura.bodega if factura.bodega_id else bodegas.bodega_principal(factura.empresa)
+    for detalle in factura.detalles.order_by("producto_id"):
+        producto = Producto.objects.select_for_update().get(pk=detalle.producto_id)
+        bodegas.mover(producto=producto, bodega=bodega, variacion=detalle.cantidad)
         MovimientoInventario.objects.create(
             empresa_id=factura.empresa_id,
             producto_id=detalle.producto_id,
+            bodega=bodega,
             tipo=MovimientoInventario.Tipo.ENTRADA,
             cantidad=detalle.cantidad,
             referencia=f"Anulación factura {factura.numero}",
@@ -208,10 +222,11 @@ def anular_factura(*, factura, usuario):
     return factura
 
 @transaction.atomic
-def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referencia=""):
+def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referencia="", bodega=None):
     """
     Único punto por el que cambia el stock (fuera de la facturación).
 
+    - Sin bodega, el movimiento es en la Principal.
     - ENTRADA y SALIDA reciben cantidad positiva.
     - AJUSTE puede ser positivo (sobrante) o negativo (faltante, daño, pérdida).
     """
@@ -225,17 +240,14 @@ def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referenc
 
     variacion = -cantidad if tipo == Tipo.SALIDA else cantidad
 
+    bodega = bodegas.validar_bodega(empresa, bodega)
     # Bloqueamos el producto: si alguien factura al mismo tiempo, espera su turno
     producto = Producto.objects.select_for_update().get(pk=producto.pk, empresa=empresa)
-    if producto.stock + variacion < 0:
-        raise StockInsuficiente(
-            f"El movimiento dejaría el stock de {producto.nombre} en negativo (disponible: {producto.stock})."
-        )
-
-    Producto.objects.filter(pk=producto.pk).update(stock=F("stock") + variacion)
+    bodegas.mover(producto=producto, bodega=bodega, variacion=variacion)
     return MovimientoInventario.objects.create(
         empresa=empresa,
         producto=producto,
+        bodega=bodega,
         tipo=tipo,
         cantidad=cantidad,
         referencia=referencia,

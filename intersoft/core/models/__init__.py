@@ -8,7 +8,9 @@ from .base import ModeloBase, ModeloTenant, TenantQuerySet
 from .empresas import Empresa
 from .usuarios import Usuario, Permiso, Rol, Membresia
 from .clientes import Cliente
-from .inventario import FOTOS_EXTRA_MAXIMO, Categoria, FotoProducto, MovimientoInventario, Producto
+from .inventario import (
+    FOTOS_EXTRA_MAXIMO, Bodega, Categoria, Existencia, FotoProducto, MovimientoInventario, Producto,
+)
 from .ventas import Factura, DetalleFactura
 from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
 from .pedidos import Comentario, DetallePedido, Orden, Pedido

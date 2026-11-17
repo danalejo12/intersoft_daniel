@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% block titulo %}{% if bodega %}Editar{% else %}Nueva{% endif %} bodega · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <h1>{% if bodega %}Editar bodega{% else %}Nueva bodega{% endif %}</h1>
+    <a class="boton secundario" href="{% url 'bodegas_lista' %}">← Volver a bodegas</a>
+  </div>
+
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+    {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+    {% for campo in form %}
+      <div class="campo">
+        {{ campo.label_tag }}
+        {{ campo }}
+        {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+        {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="acciones">
+      <a class="boton secundario" href="{% url 'bodegas_lista' %}">Cancelar</a>
+      <button type="submit" class="boton">Guardar bodega</button>
+    </div>
+  </form>
+{% endblock %}

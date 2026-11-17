@@ -16,7 +16,8 @@ from django.views.generic import DetailView, ListView
 
 from . import caja, erp_services
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, CuentaTesoreria, DetalleFactura, Factura, MovimientoTesoreria, PagoCaja, Producto, TurnoCaja
+from . import bodegas
+from .models import Bodega, Cliente, CuentaTesoreria, DetalleFactura, Factura, MovimientoTesoreria, PagoCaja, Producto, TurnoCaja
 
 MAXIMO_RESULTADOS = 20
 PRODUCTOS_FRECUENTES = 12
@@ -35,6 +36,19 @@ def _cantidad_entera(valor):
     raise ValueError("Cantidad no entera")
 
 
+def bodega_del_turno(turno):
+    return turno.bodega if turno.bodega_id else bodegas.bodega_principal(turno.empresa)
+
+
+def con_disponible(productos, turno):
+    """Marca en cada producto las unidades de la bodega de la caja (no el total del negocio)."""
+    productos = list(productos)
+    disponibles = bodegas.existencias_por_producto(bodega_del_turno(turno), productos)
+    for producto in productos:
+        producto.disponible = disponibles[producto.pk]
+    return productos
+
+
 def datos_producto(producto):
     """Lo que el POS necesita de un producto. En el panel el stock exacto sí se muestra."""
     return {
@@ -43,7 +57,7 @@ def datos_producto(producto):
         "nombre": producto.nombre,
         "precio": str(producto.precio),
         "iva": str(producto.iva_porcentaje),
-        "stock": producto.stock,
+        "stock": getattr(producto, "disponible", producto.stock),
         "imagen": producto.imagen.url if producto.imagen else "",
     }
 
@@ -77,10 +91,13 @@ class PosView(PosMixin, View):
     def get(self, request):
         turno = self.turno()
         if turno is None:
-            return render(request, "core/pos/abrir.html")
-        frecuentes = productos_frecuentes(request.empresa)
+            return render(request, "core/pos/abrir.html", {
+                "bodegas": Bodega.objects.de_empresa(request.empresa).filter(activa=True),
+            })
+        frecuentes = con_disponible(productos_frecuentes(request.empresa), turno)
         return render(request, "core/pos/pos.html", {
             "turno": turno,
+            "bodega": bodega_del_turno(turno),
             "frecuentes": frecuentes,
             "frecuentes_datos": [datos_producto(p) for p in frecuentes],
             "consumidor_final": caja.DOCUMENTO_CONSUMIDOR_FINAL,
@@ -92,7 +109,13 @@ class AbrirTurnoView(PosMixin, View):
 
     def post(self, request):
         try:
-            caja.abrir_turno(empresa=request.empresa, usuario=request.user, base=request.POST.get("base", "0"))
+            bodega = None
+            if request.POST.get("bodega"):
+                bodega = Bodega.objects.de_empresa(request.empresa).filter(pk=request.POST["bodega"]).first()
+                if bodega is None:
+                    raise caja.OperacionCaja("La bodega elegida no existe.")
+            caja.abrir_turno(empresa=request.empresa, usuario=request.user, base=request.POST.get("base", "0"),
+                             bodega=bodega)
             messages.success(request, "Caja abierta. ¡Buenas ventas!")
         except caja.OperacionCaja as error:
             messages.error(request, str(error))
@@ -108,6 +131,11 @@ class BuscarProductosView(PosMixin, View):
         # Un lector de código de barras escribe el código exacto y pulsa Enter
         exacto = productos.filter(codigo__iexact=q).first()
         coincidencias = productos.filter(Q(nombre__icontains=q) | Q(codigo__icontains=q)).order_by("nombre")[:MAXIMO_RESULTADOS]
+        turno = self.turno()
+        if turno is not None:
+            coincidencias = con_disponible(coincidencias, turno)
+            if exacto is not None:
+                exacto = con_disponible([exacto], turno)[0]
         return JsonResponse({
             "exacto": datos_producto(exacto) if exacto else None,
             "productos": [datos_producto(p) for p in coincidencias],

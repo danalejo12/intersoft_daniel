@@ -21,6 +21,8 @@ Estado = Pedido.Estado
 
 
 def _mover_stock(pedido, tipo, referencia):
+    # La reserva y su devolución usan la bodega del pedido (los antiguos, sin bodega, la Principal)
+    bodega = pedido.bodega if pedido.bodega_id else None
     # En orden de producto para evitar bloqueos cruzados entre dos pedidos simultáneos
     for linea in pedido.lineas.select_related("producto").order_by("producto_id"):
         registrar_movimiento(
@@ -30,6 +32,7 @@ def _mover_stock(pedido, tipo, referencia):
             cantidad=linea.cantidad,
             usuario=pedido.comprador,
             referencia=referencia,
+            bodega=bodega,
         )
 
 

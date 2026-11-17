@@ -2,6 +2,7 @@
 from django.db import transaction
 from django.utils.text import slugify
 
+from . import bodegas
 from .models import Empresa, Membresia, Rol
 from .permisos import crear_roles_base
 
@@ -28,6 +29,7 @@ def registrar_negocio(*, usuario, datos):
     )
     crear_roles_base(empresa)
     Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
+    bodegas.bodega_principal(empresa)  # nace con su bodega Principal, que también vende en línea
     from suscripciones.services import crear_suscripcion_inicial
 
     crear_suscripcion_inicial(empresa)

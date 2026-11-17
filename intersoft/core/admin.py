@@ -5,8 +5,16 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     Categoria, Cliente, DetalleFactura, Empresa, Factura, Membresia,
     MovimientoInventario, Permiso, Producto, Rol, Usuario, Pago, Pedido, Comentario, DetallePedido,
-    PagoCaja, TurnoCaja, EjecucionTarea,
+    PagoCaja, TurnoCaja, EjecucionTarea, Bodega,
 )
+
+
+@admin.register(Bodega)
+class BodegaAdmin(admin.ModelAdmin):
+    # Las marcas Principal / En línea y la desactivación se manejan en el panel (core.bodegas), que valida las reglas
+    list_display = ["nombre", "empresa", "es_principal", "vende_en_linea", "activa"]
+    list_filter = ["empresa", "activa"]
+    readonly_fields = ["es_principal", "vende_en_linea", "activa"]
 
 
 @admin.register(EjecucionTarea)

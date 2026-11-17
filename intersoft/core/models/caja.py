@@ -13,6 +13,8 @@ class TurnoCaja(ModeloTenant):
 
     cajero = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="turnos_caja")
     base_inicial = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    # La caja vende desde esta bodega (se elige al abrir el turno)
+    bodega = models.ForeignKey("Bodega", on_delete=models.PROTECT, related_name="turnos", null=True, blank=True)
     cerrado_en = models.DateTimeField(null=True, blank=True)
     # Se guardan al cerrar: así el arqueo no cambia aunque luego se corrija algo
     efectivo_esperado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)

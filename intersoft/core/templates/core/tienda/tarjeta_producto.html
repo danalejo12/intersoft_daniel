@@ -7,7 +7,7 @@
         <span class="tarjeta-fondo con-tono" data-letra="{{ producto.nombre|first|upper }}" aria-hidden="true">{{ producto.nombre|first|upper }}</span>
       {% endif %}
       {# El público solo ve si hay o no: el stock exacto es información interna del negocio #}
-      {% if producto.stock > 0 %}
+      {% if producto.disponible > 0 %}
         <span class="vidrio vidrio-ok">Disponible</span>
       {% else %}
         <span class="vidrio vidrio-agotado">Agotado</span>
@@ -36,7 +36,7 @@
   </a>
   {% if not producto.empresa.compra_en_linea %}
     <p class="nota">Compra en línea no disponible</p>
-  {% elif producto.stock > 0 %}
+  {% elif producto.disponible > 0 %}
     <form class="tarjeta-accion" method="post" action="{% url 'carrito_agregar' producto.pk %}" data-agregar>
       {% csrf_token %}
       <button type="submit" class="boton-carrito">

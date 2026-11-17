@@ -1,7 +1,8 @@
 """Carrito en la sesión: funciona sin cuenta y sobrevive al iniciar sesión.
 
 Solo guarda {id de producto: cantidad}. El precio y la disponibilidad siempre se leen
-de la base de datos, para que nadie pueda alterarlos desde el navegador.
+de la base de datos, para que nadie pueda alterarlos desde el navegador. La disponibilidad
+es la de la bodega que vende en línea (`disponible`, anotada en productos_publicos).
 """
 from decimal import Decimal
 
@@ -27,7 +28,7 @@ def agregar(request, producto, cantidad):
     datos = _datos(request)
     clave = str(producto.pk)
     actual = datos.get(clave, 0)
-    nueva = min(actual + cantidad, producto.stock, MAXIMO_POR_PRODUCTO)
+    nueva = min(actual + cantidad, producto.disponible, MAXIMO_POR_PRODUCTO)
     if nueva <= actual:
         return 0
     datos[clave] = nueva
@@ -37,7 +38,7 @@ def agregar(request, producto, cantidad):
 
 def actualizar(request, producto, cantidad):
     """Fija la cantidad de una línea; devuelve False si hubo que ajustarla a lo disponible."""
-    limite = min(producto.stock, MAXIMO_POR_PRODUCTO)
+    limite = min(producto.disponible, MAXIMO_POR_PRODUCTO)
     final = min(cantidad, limite)
     if final <= 0:
         quitar(request, producto.pk)
@@ -81,14 +82,14 @@ def grupos(request):
 
     for clave, cantidad in list(datos.items()):
         producto = productos.get(clave)
-        if producto is None or producto.stock <= 0:
+        if producto is None or producto.disponible <= 0:
             del datos[clave]
             request.session.modified = True
             nombre = producto.nombre if producto else "Un producto de tu carrito"
             avisos.append(f"{nombre} ya no está disponible y lo quitamos de tu carrito.")
             continue
-        if cantidad > producto.stock:
-            cantidad = datos[clave] = producto.stock
+        if cantidad > producto.disponible:
+            cantidad = datos[clave] = producto.disponible
             request.session.modified = True
             avisos.append(f"Ajustamos la cantidad de {producto.nombre} a las unidades disponibles.")
         por_negocio.setdefault(producto.empresa_id, []).append(_linea(producto, cantidad))

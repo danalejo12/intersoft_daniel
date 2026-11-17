@@ -8,22 +8,44 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import (
-    Avg, Case, Count, DecimalField, ExpressionWrapper, F, IntegerField, OuterRef, Subquery, Sum, Value, When,
+    Avg, Case, Count, DecimalField, Exists, ExpressionWrapper, F, IntegerField, OuterRef, Subquery, Sum, Value, When,
 )
-from django.db.models.functions import Ceil, Coalesce, Round
+from django.db.models.functions import Ceil, Coalesce, Greatest, Round
 from django.utils import timezone
 
-from .models import Comentario, DetallePedido, Empresa, Pedido, Producto
+from .models import Bodega, Comentario, DetallePedido, Empresa, Existencia, Pedido, Producto
 
 
 def empresas_publicas():
     return Empresa.objects.filter(activa=True).select_related("pasarela")
 
 
+def disponible_en_linea():
+    """Unidades que el marketplace puede vender: las de la bodega que vende en línea.
+    Si esa bodega es la Principal, suma también el stock que aún no está en ninguna bodega
+    (productos creados con stock inicial). Un negocio sin bodegas vende de su total."""
+    def suma(filtro):
+        return Coalesce(Subquery(
+            Existencia.objects.filter(producto=OuterRef("pk"), **filtro).order_by()
+            .values("producto").annotate(t=Sum("cantidad")).values("t"),
+            output_field=IntegerField()), Value(0))
+
+    bodega_linea = Bodega.objects.filter(empresa=OuterRef("empresa"), vende_en_linea=True, activa=True)
+    en_linea = suma({"bodega__vende_en_linea": True, "bodega__activa": True})
+    sin_asignar = Greatest(F("stock") - suma({}), Value(0))
+    return Case(
+        When(~Exists(bodega_linea), then=F("stock")),
+        When(Exists(bodega_linea.filter(es_principal=True)), then=en_linea + sin_asignar),
+        default=en_linea,
+        output_field=IntegerField(),
+    )
+
+
 def productos_publicos():
     return (
         Producto.objects
         .filter(activo=True, publicado=True, empresa__activa=True)
+        .annotate(disponible=disponible_en_linea())
         # Sin datos legales del vendedor (Ley 1480, art. 53) sus productos no se publican
         .exclude(empresa__direccion="")
         .exclude(empresa__telefono="")

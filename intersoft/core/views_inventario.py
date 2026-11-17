@@ -10,7 +10,8 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from .forms import CategoriaForm, MovimientoForm, ProductoForm
 from .mixins import PermisoRequeridoMixin
-from .models import Categoria, FotoProducto, MovimientoInventario, Producto
+from . import bodegas
+from .models import Bodega, Categoria, FotoProducto, MovimientoInventario, Producto
 from .services import StockInsuficiente, registrar_movimiento
 
 
@@ -204,8 +205,12 @@ class ProductoKardexView(PermisoRequeridoMixin, DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["movimientos"] = (
-            self.object.movimientos.select_related("usuario").order_by("-creado_en")[:100]
+            self.object.movimientos.select_related("usuario", "bodega").order_by("-creado_en")[:100]
         )
+        activas = list(Bodega.objects.de_empresa(self.request.empresa).filter(activa=True))
+        if len(activas) > 1:
+            disponibles = bodegas.existencias_por_producto
+            contexto["existencias"] = [(b, disponibles(b, [self.object])[self.object.pk]) for b in activas]
         contexto["puede_mover"] = self.request.membresia.tiene_permiso("inventario.movimientos")
         return contexto
 
@@ -221,18 +226,18 @@ class MovimientoCreateView(PermisoRequeridoMixin, View):
         return get_object_or_404(Producto, pk=pk, empresa=self.request.empresa, activo=True)
 
     def get(self, request, pk):
-        return self.mostrar(self.obtener_producto(pk), MovimientoForm())
+        return self.mostrar(self.obtener_producto(pk), MovimientoForm(empresa=request.empresa))
 
     def post(self, request, pk):
         producto = self.obtener_producto(pk)
-        form = MovimientoForm(request.POST)
+        form = MovimientoForm(request.POST, empresa=request.empresa)
         if form.is_valid():
             try:
                 # cleaned_data trae tipo, cantidad y referencia: justo lo que pide el servicio
                 registrar_movimiento(
                     empresa=request.empresa, producto=producto, usuario=request.user, **form.cleaned_data
                 )
-            except StockInsuficiente as error:
+            except (StockInsuficiente, ValueError) as error:
                 form.add_error("cantidad", str(error))
             else:
                 messages.success(request, f"Movimiento registrado para «{producto.nombre}».")

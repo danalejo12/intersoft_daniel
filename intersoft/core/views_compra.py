@@ -64,7 +64,7 @@ class AgregarAlCarritoView(View):
             ok, mensaje = True, f"¡Listo! Agregamos {producto.nombre} a tu carrito."
         elif agregadas:
             ok, mensaje = True, f"Agregamos a tu carrito las unidades disponibles de {producto.nombre}."
-        elif producto.stock <= 0:
+        elif producto.disponible <= 0:
             ok, mensaje = False, f"Lo sentimos, {producto.nombre} se acaba de agotar."
         else:
             ok, mensaje = False, f"Ya tienes en tu carrito todas las unidades disponibles de {producto.nombre}."

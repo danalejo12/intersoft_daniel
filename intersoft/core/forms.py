@@ -1,7 +1,9 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
-from .models import FOTOS_EXTRA_MAXIMO, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto, Usuario
+from .models import (
+    FOTOS_EXTRA_MAXIMO, Bodega, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto, Usuario,
+)
 
 IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
@@ -363,6 +365,15 @@ class DatosNegocioForm(forms.ModelForm):
 class MovimientoForm(forms.Form):
     """Entrada o ajuste de stock. Las SALIDAS solo ocurren al facturar."""
 
+    def __init__(self, *args, empresa=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        activas = Bodega.objects.filter(empresa=empresa, activa=True) if empresa else Bodega.objects.none()
+        if activas.count() > 1:
+            self.fields["bodega"] = forms.ModelChoiceField(
+                label="Bodega", queryset=activas, initial=activas.filter(es_principal=True).first(),
+                empty_label=None,
+            )
+
     tipo = forms.ChoiceField(
         label="Tipo de movimiento",
         choices=[
@@ -441,3 +452,33 @@ class PerfilUsuarioForm(forms.ModelForm):
         if commit:
             usuario.save()
         return usuario
+
+class BodegaForm(forms.Form):
+    nombre = forms.CharField(label="Nombre", max_length=80, help_text="Ejemplo: Bodega norte, Local centro.")
+    direccion = forms.CharField(label="Dirección", max_length=200, required=False)
+    es_principal = forms.BooleanField(
+        label="Bodega principal", required=False,
+        help_text="Recibe las compras y la producción, y es la bodega por defecto en el panel.",
+    )
+    vende_en_linea = forms.BooleanField(
+        label="Vende en línea", required=False,
+        help_text="El marketplace reserva el stock de esta bodega.",
+    )
+
+
+class TrasladoForm(forms.Form):
+    origen = forms.ModelChoiceField(label="Desde", queryset=Bodega.objects.none(), empty_label=None)
+    destino = forms.ModelChoiceField(label="Hacia", queryset=Bodega.objects.none(), empty_label=None)
+    cantidad = forms.IntegerField(label="Cantidad", min_value=1, max_value=999999)
+
+    def __init__(self, *args, empresa, **kwargs):
+        super().__init__(*args, **kwargs)
+        activas = Bodega.objects.filter(empresa=empresa, activa=True)
+        self.fields["origen"].queryset = activas
+        self.fields["destino"].queryset = activas
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("origen") and datos.get("origen") == datos.get("destino"):
+            self.add_error("destino", "Elige una bodega distinta a la de origen.")
+        return datos

@@ -22,6 +22,14 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
 - **Marketplace público, carrito y reservas de stock (`/`, `/carrito/`, `/pedidos/`)**:
   - Catálogo público por negocio (`/tienda/<slug>/`), opiniones con insignia de compra verificada y cumplimiento del art. 53 de la Ley 1480 (datos legales del vendedor).
   - Reserva temporal de stock al confirmar pedido con bloqueo de filas (`select_for_update`), renovación controlada y liberación automática de pedidos vencidos (`liberar_pedidos_vencidos`).
+  - Compra unificada (`/comprar/`): un checkout con los datos de envío una sola vez para varios negocios; cada negocio se paga por separado desde `/compras/<id>/`, porque cobra con su propia cuenta de Wompi.
+  - Orden «Más vendidos» (unidades pagadas en los últimos 90 días) y relevancia que combina ventas con opiniones.
+- **Bodegas o sedes (`/panel/bodegas/`)**:
+  - Stock por bodega (`Existencia`); `Producto.stock` es siempre la suma de todas las bodegas (`core/bodegas.py`).
+  - La bodega **Principal** recibe compras y producción; la marcada **En línea** abastece el marketplace; cada caja POS vende desde la bodega elegida al abrir el turno. Anulaciones y reservas vencidas devuelven a la bodega de origen.
+  - Traslados entre bodegas desde el kardex. Más de una bodega requiere un plan con «Gestión multisede» (Pro).
+- **Planes de Intersoft (`/panel/suscripcion/`)**:
+  - Los planes pagos se cobran con la cuenta de Wompi de Intersoft (`SUSCRIPCIONES_WOMPI_*`) y solo se activan cuando Wompi confirma el pago; renovar suma los días al vencimiento actual.
 - **Pasarela de pagos Wompi y simulador local**:
   - Cada negocio conecta sus propias llaves cifradas en **Panel → Negocio → Pagos**, con tarifas, verificación y auditoría. [Configuración y transición](docs/PAGOS-POR-NEGOCIO.md).
   - Firma de integridad SHA-256, webhook con verificación `hmac.compare_digest`, idempotencia en pagos y alertas `CRITICAL` a `ADMINS` ante discrepancias de monto/moneda o reembolsos requeridos.

@@ -1,4 +1,4 @@
-"""Inventario: categorías, productos y kardex de movimientos."""
+"""Inventario: categorías, productos, bodegas con sus existencias y kardex de movimientos."""
 import os
 import uuid
 from decimal import Decimal
@@ -144,6 +144,10 @@ class MovimientoInventario(ModeloTenant):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="movimientos_inventario"
     )
+    # Vacía solo en movimientos anteriores a las bodegas
+    bodega = models.ForeignKey(
+        "Bodega", on_delete=models.PROTECT, related_name="movimientos", null=True, blank=True
+    )
  
     class Meta:
         verbose_name = "movimiento de inventario"
@@ -156,3 +160,54 @@ class MovimientoInventario(ModeloTenant):
     def __str__(self):
         return f"{self.get_tipo_display()} {self.cantidad} · {self.producto}"
 
+
+
+class Bodega(ModeloTenant):
+    """Un lugar donde se guarda mercancía (bodega, sede, local).
+
+    Cada negocio tiene exactamente una Principal (recibe compras y producción) y una que vende en línea
+    (de la que el marketplace reserva stock); pueden ser la misma. Cada caja POS vende desde la bodega
+    elegida al abrir el turno."""
+
+    nombre = models.CharField(max_length=80)
+    direccion = models.CharField(max_length=200, blank=True)
+    activa = models.BooleanField(default=True)
+    es_principal = models.BooleanField(default=False)
+    vende_en_linea = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "bodega"
+        verbose_name_plural = "bodegas"
+        ordering = ["-es_principal", "nombre"]
+        constraints = [
+            models.UniqueConstraint(fields=["empresa", "nombre"], name="uq_bodega_nombre_por_empresa"),
+            models.UniqueConstraint(fields=["empresa"], condition=Q(es_principal=True),
+                                    name="uq_bodega_principal_por_empresa"),
+            models.UniqueConstraint(fields=["empresa"], condition=Q(vende_en_linea=True),
+                                    name="uq_bodega_en_linea_por_empresa"),
+            # La principal y la de venta en línea no se pueden desactivar
+            models.CheckConstraint(condition=Q(activa=True) | (Q(es_principal=False) & Q(vende_en_linea=False)),
+                                   name="ck_bodega_clave_activa"),
+        ]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Existencia(ModeloTenant):
+    """Unidades de un producto en una bodega. La suma de todas las bodegas es Producto.stock."""
+
+    bodega = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="existencias")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="existencias")
+    cantidad = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = "existencia por bodega"
+        verbose_name_plural = "existencias por bodega"
+        constraints = [
+            models.UniqueConstraint(fields=["bodega", "producto"], name="uq_existencia_bodega_producto"),
+            models.CheckConstraint(condition=Q(cantidad__gte=0), name="ck_existencia_no_negativa"),
+        ]
+
+    def __str__(self):
+        return f"{self.producto} en {self.bodega}: {self.cantidad}"

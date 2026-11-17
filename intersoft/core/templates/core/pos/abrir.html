@@ -26,6 +26,15 @@
       <label for="base">Base en efectivo</label>
       <input type="text" id="base" name="base" inputmode="decimal" value="0" autocomplete="off" required autofocus>
     </div>
+    {% if bodegas|length > 1 %}
+      <div class="campo">
+        <label for="bodega">Bodega de esta caja</label>
+        <select id="bodega" name="bodega">
+          {% for b in bodegas %}<option value="{{ b.pk }}" {% if b.es_principal %}selected{% endif %}>{{ b.nombre }}</option>{% endfor %}
+        </select>
+        <small class="nota">Las ventas de este turno descuentan el stock de esta bodega.</small>
+      </div>
+    {% endif %}
     <div class="acciones">
       <button type="submit" class="exito">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
