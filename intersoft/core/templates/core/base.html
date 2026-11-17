@@ -4,12 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
+  <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
+  <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
+  <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
   <script>
     try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
     catch (e) { document.documentElement.classList.add("dock-abierto"); }
   </script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=19">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=20">
 </head>
 <body>
 {% include "core/includes/bienvenida.html" %}
@@ -85,7 +88,7 @@
     <header class="barra">
       <a class="marca" href="{% url 'dashboard' %}">
         <span class="marca-icono">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+          <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
         </span>
         {{ request.empresa.nombre|default:"Intersoft" }}
       </a>

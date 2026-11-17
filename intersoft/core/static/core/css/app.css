@@ -218,10 +218,11 @@ svg { flex-shrink: 0; }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 25%, #8fb0ff, #3f6ff0 70%);
-  box-shadow: 0 0 24px rgba(91, 140, 255, .7), inset 0 1px 0 rgba(255, 255, 255, .5);
-  color: #fff;
+  background: rgba(248, 250, 252, .95);
+  box-shadow: 0 4px 16px rgba(15, 42, 92, .35), inset 0 1px 0 rgba(255, 255, 255, .9);
+  padding: 4px;
 }
+.marca-icono img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .marca-icono svg { width: 20px; height: 20px; }
 
 .busqueda { margin: 0; flex: 0 1 300px; }

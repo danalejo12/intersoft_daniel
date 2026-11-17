@@ -1,8 +1,10 @@
 {% extends "core/tienda/base.html" %}
+{% load static %}
 {% block titulo %}Iniciar sesión · Intersoft{% endblock %}
 
 {% block contenido %}
   <section class="caja-formulario">
+    <img src="{% static 'core/img/logo-intersoft.png' %}" alt="InterSoft · Tu negocio, conectado." style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 14px;">
     <h1>¡Qué bueno verte!</h1>
     <p class="nota">Ingresa con tu correo para continuar.</p>
 
