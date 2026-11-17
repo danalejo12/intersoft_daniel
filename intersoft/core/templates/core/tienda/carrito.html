@@ -6,7 +6,10 @@
     {% include "core/tienda/pasos.html" with paso=1 %}
     <h1 class="titulo-compra">Tu carrito</h1>
     {% if grupos|length > 1 %}
-      <p class="nota">Tienes productos de {{ grupos|length }} negocios. Cada uno se paga por separado para que te lo envíe directamente.</p>
+      <div class="compra-unificada panel-compra">
+        <p class="nota">Tienes productos de {{ grupos|length }} negocios. Escribe tus datos una sola vez y paga a cada negocio por separado; cada uno te envía su parte.</p>
+        <a class="boton boton-grande" href="{% url 'checkout_todo' %}">Comprar todo</a>
+      </div>
     {% endif %}
 
     {% for grupo in grupos %}
@@ -55,7 +58,7 @@
             <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
           </dl>
           {% if grupo.negocio.compra_en_linea %}
-            <a class="boton boton-grande boton-ancho" href="{% url 'checkout' grupo.negocio.slug %}">Continuar con la compra</a>
+            <a class="boton {% if grupos|length > 1 %}boton-claro{% else %}boton-grande{% endif %} boton-ancho" href="{% url 'checkout' grupo.negocio.slug %}">{% if grupos|length > 1 %}Comprar solo en este negocio{% else %}Continuar con la compra{% endif %}</a>
           {% else %}
             <p class="nota">Compra en línea no disponible</p>
           {% endif %}

@@ -1,0 +1,18 @@
+      {% for error in form.non_field_errors %}<p class="error">{% include "core/tienda/icono_error.html" %}<span>{{ error }}</span></p>{% endfor %}
+
+      <h2 class="seccion-form">Tus datos</h2>
+      <div class="form-rejilla">
+        {% include "core/tienda/campo.html" with campo=form.nombre ancho=True %}
+        {% include "core/tienda/campo.html" with campo=form.tipo_documento %}
+        {% include "core/tienda/campo.html" with campo=form.numero_documento %}
+        {% include "core/tienda/campo.html" with campo=form.email %}
+        {% include "core/tienda/campo.html" with campo=form.telefono %}
+      </div>
+
+      <h2 class="seccion-form">Dirección de entrega</h2>
+      <div class="form-rejilla">
+        {% include "core/tienda/campo.html" with campo=form.departamento %}
+        {% include "core/tienda/campo.html" with campo=form.ciudad %}
+        {% include "core/tienda/campo.html" with campo=form.direccion ancho=True %}
+        {% include "core/tienda/campo.html" with campo=form.indicaciones ancho=True %}
+      </div>

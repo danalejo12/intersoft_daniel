@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from . import reservas
 from .impuestos import CENTAVOS, calcular_iva
-from .models import Comentario, DetallePedido, Pago, Pedido, Producto
+from .models import Comentario, DetallePedido, Orden, Pago, Pedido, Producto
 from .pagos import PagoNoPermitido, ResultadoWompi, revisar_en_wompi, sincronizar_pago
 from .pasarelas import PasarelaNoDisponible, configuracion_activa, credenciales_negocio
 from .services import StockInsuficiente, siguiente_consecutivo
@@ -117,6 +117,20 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         )
     reservas.reservar_stock(pedido)
     return pedido
+
+
+@transaction.atomic
+def crear_orden(*, usuario, grupos, datos):
+    """Un checkout para varios negocios: crea un pedido por negocio con los mismos datos de envío.
+    Todo o nada: si un negocio no puede vender (stock, pasarela), no se crea ningún pedido.
+    Los negocios se procesan por id para que dos compras simultáneas bloqueen filas en el mismo orden."""
+    if not grupos:
+        raise ValueError("No hay productos para comprar.")
+    orden = Orden.objects.create(comprador=usuario)
+    for grupo in sorted(grupos, key=lambda g: str(g["negocio"].pk)):
+        pedido = crear_pedido(usuario=usuario, negocio=grupo["negocio"], lineas=grupo["lineas"], datos=datos)
+        Pedido.objects.filter(pk=pedido.pk).update(orden=orden)
+    return orden
 
 
 def actualizar_pagos(pedido, transaccion_id="", forzar=False):

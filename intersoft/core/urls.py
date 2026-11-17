@@ -93,7 +93,9 @@ urlpatterns = [
     path("carrito/agregar/<uuid:pk>/", views_compra.AgregarAlCarritoView.as_view(), name="carrito_agregar"),
     path("carrito/actualizar/<uuid:pk>/", views_compra.ActualizarCarritoView.as_view(), name="carrito_actualizar"),
     path("carrito/quitar/<uuid:pk>/", views_compra.QuitarDelCarritoView.as_view(), name="carrito_quitar"),
+    path("comprar/", views_compra.CheckoutTodoView.as_view(), name="checkout_todo"),
     path("comprar/<slug:slug>/", views_compra.CheckoutView.as_view(), name="checkout"),
+    path("compras/<uuid:pk>/", views_compra.OrdenDetalleView.as_view(), name="orden_detalle"),
 
     # Pedidos de cada comprador
     path("pedidos/", views_compra.MisPedidosView.as_view(), name="mis_pedidos"),

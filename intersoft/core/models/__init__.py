@@ -11,7 +11,7 @@ from .clientes import Cliente
 from .inventario import FOTOS_EXTRA_MAXIMO, Categoria, FotoProducto, MovimientoInventario, Producto
 from .ventas import Factura, DetalleFactura
 from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
-from .pedidos import Comentario, DetallePedido, Pedido
+from .pedidos import Comentario, DetallePedido, Orden, Pedido
 from .caja import PagoCaja, TurnoCaja
 from .tareas import EjecucionTarea
 from .erp import (

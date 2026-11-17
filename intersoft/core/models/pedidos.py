@@ -8,8 +8,26 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from .base import ModeloTenant
+from .base import ModeloBase, ModeloTenant
 from .ventas import Factura
+
+
+class Orden(ModeloBase):
+    """Una compra del marketplace que reúne los pedidos de varios negocios.
+
+    Cada negocio cobra con su propia cuenta de Wompi y Wompi no reparte un pago entre cuentas,
+    así que la orden NO tiene pago propio: cada pedido se paga y se concilia por separado.
+    No es de una empresa (cruza negocios a propósito); solo la ve su comprador."""
+
+    comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="ordenes")
+
+    class Meta:
+        verbose_name = "orden de compra del marketplace"
+        verbose_name_plural = "órdenes de compra del marketplace"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"Orden {str(self.pk)[:8]}"
 
 
 class Pedido(ModeloTenant):
@@ -43,7 +61,8 @@ class Pedido(ModeloTenant):
     }
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
-    factura = models.OneToOneField(Factura, on_delete=models.PROTECT, related_name="pedido", null=True, blank=True)
+    orden = models.ForeignKey(Orden, on_delete=models.PROTECT, related_name="pedidos", null=True, blank=True)
+    factura =models.OneToOneField(Factura, on_delete=models.PROTECT, related_name="pedido", null=True, blank=True)
     numero = models.PositiveIntegerField()  # Consecutivo por empresa, independiente del de facturas.
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE)
     expira_en = models.DateTimeField()

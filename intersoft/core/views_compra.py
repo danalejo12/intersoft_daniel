@@ -1,4 +1,6 @@
 """Carrito, compra, pedidos y opiniones del marketplace."""
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
@@ -11,7 +13,7 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView
 from . import carrito, compras
 from .forms_tienda import ComentarioForm, DatosEnvioForm
 from .marketplace import empresas_publicas, productos_publicos
-from .models import Comentario, Pedido
+from .models import Comentario, Orden, Pedido
 from .pagos import PagoNoPermitido, crear_pago_pedido, url_checkout
 from .redirecciones import destino_seguro
 from .services import StockInsuficiente
@@ -107,10 +109,75 @@ class QuitarDelCarritoView(View):
 # ---------------------------------------------------------------
 
 
-class CheckoutView(LoginRequiredMixin, FormView):
+class DatosEnvioMixin(LoginRequiredMixin):
     login_url = "registro"  # quien no tiene cuenta la crea y vuelve aquí con su carrito intacto
-    template_name = "core/tienda/checkout.html"
     form_class = DatosEnvioForm
+
+    def get_initial(self):
+        usuario = self.request.user
+        ultimo = Pedido.objects.filter(comprador=usuario).first()
+        if ultimo is None:
+            return {"nombre": usuario.get_full_name(), "email": usuario.email}
+        # Quien ya compró no debería escribir todo otra vez
+        return {
+            "nombre": ultimo.nombre, "email": ultimo.email, "telefono": ultimo.telefono,
+            "tipo_documento": ultimo.tipo_documento, "numero_documento": ultimo.numero_documento,
+            "departamento": ultimo.departamento, "ciudad": ultimo.ciudad,
+            "direccion": ultimo.direccion, "indicaciones": ultimo.indicaciones,
+        }
+
+    def stock_cambio(self):
+        # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
+        messages.warning(
+            self.request,
+            "Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos.",
+        )
+        return redirect("carrito")
+
+
+class CheckoutTodoView(DatosEnvioMixin, FormView):
+    """Un solo checkout para todos los negocios del carrito que venden en línea."""
+    template_name = "core/tienda/checkout_todo.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        grupos, avisos = carrito.grupos(request)
+        _avisar(request, avisos)
+        self.grupos = [g for g in grupos if g["negocio"].compra_en_linea]
+        self.sin_compra_en_linea = [g for g in grupos if not g["negocio"].compra_en_linea]
+        if not self.grupos or (avisos and request.method == "POST"):
+            if not self.grupos:
+                messages.info(request, "No tienes productos que se puedan comprar en línea.")
+            return redirect("carrito")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["grupos"] = self.grupos
+        contexto["sin_compra_en_linea"] = self.sin_compra_en_linea
+        contexto["total"] = sum((g["total"] for g in self.grupos), Decimal("0"))
+        return contexto
+
+    def form_valid(self, form):
+        try:
+            orden = compras.crear_orden(usuario=self.request.user, grupos=self.grupos, datos=form.cleaned_data)
+        except PagoNoPermitido as error:
+            messages.warning(self.request, str(error))
+            return redirect("carrito")
+        except (StockInsuficiente, ValueError):
+            return self.stock_cambio()
+        for grupo in self.grupos:
+            carrito.quitar_lineas(self.request, grupo["lineas"])
+        pedidos = list(orden.pedidos.all())
+        if len(pedidos) == 1:
+            return redirect("pedido_detalle", pk=pedidos[0].pk)
+        return redirect("orden_detalle", pk=orden.pk)
+
+
+class CheckoutView(DatosEnvioMixin, FormView):
+    """Checkout de un solo negocio."""
+    template_name = "core/tienda/checkout.html"
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -127,19 +194,6 @@ class CheckoutView(LoginRequiredMixin, FormView):
                 messages.info(request, "Ya no tienes productos de este negocio en tu carrito.")
             return redirect("carrito")
         return super().dispatch(request, *args, **kwargs)
-
-    def get_initial(self):
-        usuario = self.request.user
-        ultimo = Pedido.objects.filter(comprador=usuario).first()
-        if ultimo is None:
-            return {"nombre": usuario.get_full_name(), "email": usuario.email}
-        # Quien ya compró no debería escribir todo otra vez
-        return {
-            "nombre": ultimo.nombre, "email": ultimo.email, "telefono": ultimo.telefono,
-            "tipo_documento": ultimo.tipo_documento, "numero_documento": ultimo.numero_documento,
-            "departamento": ultimo.departamento, "ciudad": ultimo.ciudad,
-            "direccion": ultimo.direccion, "indicaciones": ultimo.indicaciones,
-        }
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -159,12 +213,7 @@ class CheckoutView(LoginRequiredMixin, FormView):
             messages.warning(self.request, str(error))
             return redirect("carrito")
         except (StockInsuficiente, ValueError):
-            # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
-            messages.warning(
-                self.request,
-                "Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos.",
-            )
-            return redirect("carrito")
+            return self.stock_cambio()
         carrito.quitar_lineas(self.request, self.grupo["lineas"])
         return redirect("pedido_detalle", pk=pedido.pk)
 
@@ -204,6 +253,31 @@ class PedidoDetalleView(LoginRequiredMixin, DetailView):
         return pedido
 
 
+class OrdenDetalleView(LoginRequiredMixin, DetailView):
+    """Una compra de varios negocios: un botón Pagar por negocio y el estado de cada uno."""
+    template_name = "core/tienda/orden.html"
+    context_object_name = "orden"
+
+    def get_queryset(self):
+        return Orden.objects.filter(comprador=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        pedidos = list(self.object.pedidos.select_related("empresa").prefetch_related("lineas__producto")
+                       .order_by("empresa__nombre"))
+        # Wompi devuelve ?id=<transacción>; solo se usa con el pedido que se acaba de pagar
+        recien_pagado = self.request.GET.get("pedido", "")
+        for pedido in pedidos:
+            transaccion = self.request.GET.get("id", "") if str(pedido.pk) == recien_pagado else ""
+            compras.actualizar_pagos(pedido, transaccion_id=transaccion)
+            pedido.refresh_from_db()
+        contexto["pedidos"] = pedidos
+        contexto["total"] = sum((p.total for p in pedidos), Decimal("0"))
+        contexto["por_pagar"] = [p for p in pedidos if p.estado == Pedido.Estado.PENDIENTE]
+        contexto["pagados"] = [p for p in pedidos if p.estado == Pedido.Estado.PAGADO]
+        return contexto
+
+
 class EstadoPedidoView(LoginRequiredMixin, View):
     """La página del pedido lo consulta mientras la persona paga en la otra pestaña."""
 
@@ -224,7 +298,12 @@ class PagarPedidoView(LoginRequiredMixin, View):
         except PagoNoPermitido as error:
             messages.info(request, str(error))
             return redirect("pedido_detalle", pk=pedido.pk)
-        volver = request.build_absolute_uri(reverse("pedido_detalle", args=[pedido.pk]))
+        if pedido.orden_id and pedido.orden.pedidos.count() > 1:
+            # Compra de varios negocios: al volver de Wompi sigue con los demás pagos
+            volver = request.build_absolute_uri(
+                f"{reverse('orden_detalle', args=[pedido.orden_id])}?pedido={pedido.pk}")
+        else:
+            volver = request.build_absolute_uri(reverse("pedido_detalle", args=[pedido.pk]))
         return redirect(url_checkout(pago=pago, redirect_url=volver))
 
 

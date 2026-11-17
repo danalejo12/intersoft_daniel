@@ -1,0 +1,45 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Datos de envío · Intersoft{% endblock %}
+
+{% block contenido %}
+  {% include "core/tienda/pasos.html" with paso=2 %}
+  <h1 class="titulo-compra">¿A dónde te lo enviamos?</h1>
+  <p class="nota">Escribe tus datos una sola vez para {% if grupos|length > 1 %}los {{ grupos|length }} negocios{% else %}tu compra{% endif %}. Todavía no se hace ningún cobro.</p>
+
+  <form method="post" class="compra-rejilla" data-un-envio>
+    {% csrf_token %}
+    <div class="panel-compra">
+      {% include "core/tienda/datos_envio_campos.html" %}
+    </div>
+
+    <aside class="resumen">
+      <h3>Tu compra</h3>
+      {% for grupo in grupos %}
+        <h4 class="resumen-negocio">{{ grupo.negocio.nombre }}</h4>
+        <ul class="resumen-lineas">
+          {% for linea in grupo.lineas %}
+            <li><span>{{ linea.cantidad }} × {{ linea.producto.nombre }}</span><span>${{ linea.total|floatformat:"-2g" }}</span></li>
+          {% endfor %}
+          {% if grupo.costo_envio %}<li><span>Envío</span><span>${{ grupo.costo_envio|floatformat:"-2g" }}</span></li>{% endif %}
+          {% if grupo.cargo_pasarela %}<li><span>Cargo pasarela (Wompi)</span><span>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</span></li>{% endif %}
+          <li class="resumen-subtotal"><span>Subtotal {{ grupo.negocio.nombre }}</span><span>${{ grupo.total|floatformat:"-2g" }}</span></li>
+        </ul>
+      {% endfor %}
+      <dl>
+        <div class="resumen-total"><dt>Total</dt><dd>${{ total|floatformat:"-2g" }}</dd></div>
+      </dl>
+      <button type="submit" class="boton boton-grande boton-ancho">Continuar al pago</button>
+      {% if grupos|length > 1 %}
+        <p class="confianza">Cada negocio cobra con su propia cuenta: harás {{ grupos|length }} pagos en Wompi, uno por negocio, y cada uno te envía su parte.</p>
+      {% endif %}
+      {% if sin_compra_en_linea %}
+        <p class="nota">No incluye {% for g in sin_compra_en_linea %}{{ g.negocio.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}: no tiene{{ sin_compra_en_linea|pluralize:"n" }} compra en línea. Esos productos siguen en tu carrito.</p>
+      {% endif %}
+      <p class="confianza">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Pagas en la página segura de Wompi. Nosotros nunca vemos tu tarjeta.
+      </p>
+      <a class="volver" href="{% url 'carrito' %}">← Volver al carrito</a>
+    </aside>
+  </form>
+{% endblock %}
