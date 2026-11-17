@@ -27,6 +27,7 @@
       {% else %}
         <span class="tarjeta-valoracion tarjeta-sin-opiniones">Sin opiniones aún</span>
       {% endif %}
+      {% if producto.vendidos %}<span class="tarjeta-vendidos">{{ producto.vendidos }} vendido{{ producto.vendidos|pluralize }}</span>{% endif %}
       <span class="precio">
         <span class="precio-valor">${{ producto.precio_marketplace|floatformat:"-2g" }}</span>
         {% if producto.cargo_pasarela %}<small>{% if producto.iva_porcentaje %}IVA y {% endif %}cargo de pasarela incluidos</small>{% elif producto.iva_porcentaje %}<small>IVA incluido</small>{% endif %}

@@ -953,6 +953,7 @@ details[open] > summary .cuenta-flecha { transform: rotate(180deg); }
 .tarjeta-valoracion { display: flex; align-items: center; gap: 4px; font-size: .8rem; }
 .tarjeta-valoracion small { color: var(--texto-suave); }
 .tarjeta-sin-opiniones { color: var(--texto-suave); }
+.tarjeta-vendidos { font-size: .8rem; color: var(--texto-suave); }
 .tarjeta .precio { margin-top: auto; padding-top: 6px; }
 .tarjeta .precio-valor { font-size: 1.25rem; letter-spacing: -.01em; }
 .tarjeta .precio small { font-size: .7rem; }

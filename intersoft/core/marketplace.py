@@ -3,13 +3,17 @@
 Ninguna vista del panel debe usar estas funciones: el panel siempre filtra por
 request.empresa (TenantMixin). Aquí solo sale lo que cada negocio decidió publicar.
 """
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Avg, Case, Count, DecimalField, ExpressionWrapper, F, When
-from django.db.models.functions import Ceil, Round
+from django.db.models import (
+    Avg, Case, Count, DecimalField, ExpressionWrapper, F, IntegerField, OuterRef, Subquery, Sum, Value, When,
+)
+from django.db.models.functions import Ceil, Coalesce, Round
+from django.utils import timezone
 
-from .models import Comentario, Empresa, Producto
+from .models import Comentario, DetallePedido, Empresa, Pedido, Producto
 
 
 def empresas_publicas():
@@ -36,6 +40,7 @@ def negocios_con_productos():
 # Etiqueta visible de cada orden; la clave viaja en la URL (?orden=...)
 ORDENES = {
     "relevancia": "Más relevantes",
+    "mas_vendidos": "Más vendidos",
     "precio_menor": "Precio: menor a mayor",
     "precio_mayor": "Precio: mayor a menor",
     "mejor_valorados": "Mejor valorados",
@@ -46,8 +51,33 @@ DESTACADO_PROMEDIO_MINIMO = Decimal("4.5")
 DESTACADO_OPINIONES_MINIMAS = 3
 
 
+# Ventana de "Más vendidos": solo cuentan pedidos pagados recientes, para que el ranking se renueve
+DIAS_RANKING_VENTAS = 90
+# En "Más relevantes" cada opinión pesa como estas unidades vendidas
+PESO_OPINION_EN_RELEVANCIA = 2
+
+
+def unidades_vendidas():
+    """Subconsulta: unidades del producto en pedidos pagados de los últimos DIAS_RANKING_VENTAS días.
+    Va en subconsulta (no en JOIN) para no multiplicar el conteo de opiniones."""
+    desde = timezone.now() - timedelta(days=DIAS_RANKING_VENTAS)
+    vendidas = (
+        DetallePedido.objects
+        .filter(producto=OuterRef("pk"), pedido__estado=Pedido.Estado.PAGADO, pedido__creado_en__gte=desde)
+        .order_by()
+        .values("producto")
+        .annotate(total=Sum("cantidad"))
+        .values("total")
+    )
+    return Coalesce(Subquery(vendidas, output_field=IntegerField()), Value(0))
+
+
 def con_valoraciones(productos):
-    return productos.annotate(promedio=Avg("comentarios__calificacion"), num_opiniones=Count("comentarios"))
+    return productos.annotate(
+        promedio=Avg("comentarios__calificacion"),
+        num_opiniones=Count("comentarios"),
+        vendidos=unidades_vendidas(),
+    )
 
 
 def ordenar(productos, orden):
@@ -71,8 +101,13 @@ def ordenar(productos, orden):
         return productos.order_by(F("promedio").desc(nulls_last=True), "-num_opiniones", "nombre", "id")
     if orden == "nuevos":
         return productos.order_by("-creado_en", "id")
-    # Relevancia: lo que más gusta y más se comenta primero; sin opiniones, por nombre
-    return productos.order_by("-num_opiniones", F("promedio").desc(nulls_last=True), "nombre", "id")
+    if orden == "mas_vendidos":
+        return productos.order_by("-vendidos", F("promedio").desc(nulls_last=True), "nombre", "id")
+    # Relevancia: ventas recientes + opiniones (cada opinión vale PESO_OPINION_EN_RELEVANCIA unidades);
+    # a igual puntaje gana la mejor calificación; sin ventas ni opiniones, por nombre
+    puntaje = F("vendidos") + F("num_opiniones") * PESO_OPINION_EN_RELEVANCIA
+    return productos.annotate(_relevancia=puntaje).order_by(
+        "-_relevancia", F("promedio").desc(nulls_last=True), "nombre", "id")
 
 
 def categorias_publicas():
