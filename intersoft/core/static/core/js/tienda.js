@@ -417,3 +417,25 @@
   iniciarEnvioUnico();
   iniciarEsperaPago();
 })();
+
+
+/* Selector moderno de categorías en el buscador */
+(function () {
+  var hidden = document.getElementById("buscador-categoria");
+  var menu = document.querySelector(".buscador-filtro-menu");
+  if (!hidden || !menu) return;
+  var texto = menu.querySelector("[data-filtro-texto]");
+  var form = menu.closest("form");
+  menu.addEventListener("click", function (ev) {
+    var boton = ev.target.closest("[data-filtro-valor]");
+    if (!boton) return;
+    var valor = boton.getAttribute("data-filtro-valor") || "";
+    hidden.value = valor;
+    if (texto) texto.textContent = valor || "Todas";
+    menu.querySelectorAll(".buscador-filtro-opcion").forEach(function (b) {
+      b.classList.toggle("activa", b === boton);
+    });
+    menu.removeAttribute("open");
+    if (form) form.submit();
+  });
+})();

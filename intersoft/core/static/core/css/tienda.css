@@ -1072,3 +1072,38 @@ details[open] > summary .cuenta-flecha { transform: rotate(180deg); }
 .perfil-quitar-check { display: inline-flex; align-items: center; gap: 8px; margin-top: 2px; font-size: .86rem; font-weight: 500; color: #dc2626; cursor: pointer; }
 .perfil-quitar-check input { width: auto; min-height: auto; margin: 0; }
 .perfil-dato { padding: 12px 14px; border-radius: 12px; background: var(--fondo); border: 1px solid var(--borde); }
+
+
+/* Mejora del selector de categorías en el buscador del marketplace */
+.buscador { gap: 4px; padding: 4px; }
+.buscador-filtro-menu { position: relative; flex: none; }
+.buscador-filtro {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 10.5rem; min-height: 44px; margin-right: 4px; padding: 0 14px;
+  border: 0; border-right: 0; border-radius: var(--pildora);
+  background: var(--fondo); color: var(--texto);
+  font: inherit; font-size: .88rem; font-weight: 600;
+  list-style: none; cursor: pointer;
+  transition: background-color var(--transicion), color var(--transicion);
+}
+.buscador-filtro::-webkit-details-marker { display: none; }
+.buscador-filtro:hover,
+.buscador-filtro-menu[open] .buscador-filtro { background: var(--borde); }
+.buscador-filtro:focus-visible { outline: 2px solid var(--foco); outline-offset: -2px; }
+.buscador-filtro-texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buscador-filtro-lista {
+  left: 0; right: auto; min-width: 220px; max-height: 300px; overflow-y: auto; padding: 6px;
+}
+.buscador-filtro-opcion {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--texto);
+  font: inherit; font-size: .9rem; font-weight: 500; text-align: left; cursor: pointer;
+  transition: background-color var(--transicion), color var(--transicion);
+}
+.buscador-filtro-opcion:hover { background: var(--fondo); color: var(--primario); }
+.buscador-filtro-opcion.activa {
+  background: color-mix(in srgb, var(--cta) 12%, transparent);
+  color: var(--cta);
+  font-weight: 700;
+}

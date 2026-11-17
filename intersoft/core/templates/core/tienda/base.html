@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
-  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=12">
-  <script src="{% static 'core/js/tienda.js' %}?v=5" defer></script>
+  <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=13">
+  <script src="{% static 'core/js/tienda.js' %}?v=6" defer></script>
 </head>
 <body>
 {% include "core/includes/bienvenida.html" %}
@@ -36,11 +36,25 @@
       </a>
 
       <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search" data-sugerencias="{% url 'sugerencias_busqueda' %}">
-        <label class="visualmente-oculto" for="buscador-categoria">Categoría</label>
-        <select id="buscador-categoria" name="categoria" class="buscador-filtro">
-          <option value="">Todos</option>
-          {% for c in cats %}<option value="{{ c }}" {% if c == categoria_activa %}selected{% endif %}>{{ c }}</option>{% endfor %}
-        </select>
+        <input type="hidden" name="categoria" id="buscador-categoria" value="{{ categoria_activa|default:'' }}">
+        <details class="buscador-filtro-menu" data-desplegable>
+          <summary class="buscador-filtro" aria-label="Filtrar por categoría">
+            <span class="buscador-filtro-texto" data-filtro-texto>{{ categoria_activa|default:"Todas" }}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="desplegable buscador-filtro-lista" role="listbox" aria-label="Categorías del catálogo">
+            <button type="button" class="buscador-filtro-opcion{% if not categoria_activa %} activa{% endif %}" data-filtro-valor="">
+              <span>Todas las categorías</span>
+            </button>
+            {% for c in cats %}
+              <button type="button" class="buscador-filtro-opcion{% if c == categoria_activa %} activa{% endif %}" data-filtro-valor="{{ c }}">
+                <span>{{ c }}</span>
+              </button>
+            {% empty %}
+              <span class="desplegable-vacio">Aún no hay categorías</span>
+            {% endfor %}
+          </div>
+        </details>
         <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
         <div class="sugerencias" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></div>
         {% if orden and orden != "relevancia" %}<input type="hidden" name="orden" value="{{ orden }}">{% endif %}
