@@ -12,7 +12,13 @@ from django.utils import timezone
 
 from core.models import Empresa, Membresia, Producto
 
-from .models import ConfiguracionSuscripciones, HistorialSuscripcion, Plan, Suscripcion
+from .models import (
+    ConfiguracionSuscripciones,
+    HistorialSuscripcion,
+    Plan,
+    RecordatorioVencimiento,
+    Suscripcion,
+)
 
 CENTAVOS = Decimal("0.01")
 DIAS_TRIAL = 14
@@ -443,4 +449,61 @@ def otorgar_cortesia(
     )
     empresa.suscripcion = suscripcion
     return suscripcion
+
+
+DIAS_RECORDATORIO_VENCIMIENTO = (7, 3, 1)
+
+
+def enviar_recordatorios_vencimiento(ahora=None, base_url: str = "") -> int:
+    """Envía recordatorios por correo 7, 3 y 1 día antes de vencer Trial o suscripción paga (idempotente)."""
+    from core.notificaciones import _enviar, correos_del_negocio
+
+    ahora = ahora or timezone.now()
+    hoy = timezone.localdate(ahora)
+    enviados = 0
+
+    candidatas = (
+        Suscripcion.objects.select_related("empresa", "plan")
+        .filter(
+            empresa__activa=True,
+            estado__in=[Suscripcion.Estado.TRIAL, Suscripcion.Estado.ACTIVA],
+            vence_en__isnull=False,
+            vence_en__gt=ahora,
+        )
+    )
+    ruta_pago = f"{base_url.rstrip('/')}/panel/suscripcion/"
+
+    for sub in candidatas:
+        fecha_vence = timezone.localdate(sub.vence_en)
+        dias_restantes = (fecha_vence - hoy).days
+        if dias_restantes not in DIAS_RECORDATORIO_VENCIMIENTO:
+            continue
+
+        _, creado = RecordatorioVencimiento.objects.get_or_create(
+            suscripcion=sub,
+            dias_antes=dias_restantes,
+            fecha_objetivo=fecha_vence,
+        )
+        if not creado:
+            continue
+
+        destinatarios = correos_del_negocio(sub.empresa)
+        if not destinatarios:
+            continue
+
+        asunto = (
+            f"Tu plan {sub.plan.nombre} vence en {dias_restantes} "
+            f"día{'s' if dias_restantes != 1 else ''} · {sub.empresa.nombre}"
+        )
+        cuerpo = (
+            f"Hola equipo de {sub.empresa.nombre},\n\n"
+            f"Te recordamos que tu suscripción ({sub.get_estado_display()} - plan {sub.plan.nombre}) "
+            f"vence el {fecha_vence.strftime('%d/%m/%Y')} (en {dias_restantes} día(s)).\n\n"
+            f"Renueva o paga tu plan directamente aquí:\n{ruta_pago}\n"
+        )
+        if _enviar(asunto=asunto, mensaje=cuerpo, destinatarios=destinatarios) > 0:
+            enviados += 1
+
+    return enviados
+
 

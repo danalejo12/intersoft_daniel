@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+{% block titulo %}Traslados en tránsito · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Traslados entre bodegas</h1>
+      <p class="nota">Control de mercancía enviada en tránsito y confirmación de recepción en destino.</p>
+    </div>
+    <a class="boton secundario" href="{% url 'bodegas_lista' %}">Volver a bodegas</a>
+  </div>
+
+  <article class="tarjeta">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Origen → Destino</th>
+          <th class="num">Cantidad</th>
+          <th>Estado</th>
+          <th>Fecha envío</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in traslados %}
+          <tr>
+            <td><strong>{{ t.producto.nombre }}</strong></td>
+            <td>{{ t.origen.nombre }} → {{ t.destino.nombre }}</td>
+            <td class="num">{{ t.cantidad }}</td>
+            <td>{{ t.get_estado_display }}</td>
+            <td>{{ t.enviado_en|date:"d/m/Y H:i" }}</td>
+            <td>
+              {% if t.estado == "enviado" and puede_confirmar %}
+                <form method="post" action="{% url 'bodegas_traslado_confirmar' t.pk %}" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="boton">Confirmar recepción</button>
+                </form>
+              {% elif t.recibido_en %}
+                <small>Recibido {{ t.recibido_en|date:"d/m/Y H:i" }}</small>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No hay traslados en tránsito registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+{% endblock %}

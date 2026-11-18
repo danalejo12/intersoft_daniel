@@ -37,7 +37,7 @@
     <div class="pos-buscar">
       <input type="search" id="pos-buscar" placeholder="Escanea el código o escribe el nombre" autocomplete="off" autofocus
              aria-label="Buscar producto por código o nombre" aria-controls="pos-resultados">
-      <ul class="pos-resultados" id="pos-resultados" role="listbox" hidden></ul>
+      <ul class="pos-resultados" id="pos-resultados" role="listbox" aria-label="Resultados de productos" hidden></ul>
     </div>
     <p class="pos-aviso" id="pos-aviso" role="status" aria-live="polite"></p>
 
@@ -69,11 +69,11 @@
         <span id="pos-cliente-nombre">Consumidor final</span>
         <button type="button" class="pos-enlace" id="pos-cliente-quitar" hidden>Quitar</button>
       </div>
-      <input type="search" id="pos-cliente-buscar" placeholder="Buscar por nombre o documento" autocomplete="off">
-      <ul class="pos-resultados" id="pos-clientes" role="listbox" hidden></ul>
+      <input type="search" id="pos-cliente-buscar" placeholder="Buscar por nombre o documento" autocomplete="off" aria-label="Buscar cliente por nombre o documento" aria-controls="pos-clientes">
+      <ul class="pos-resultados" id="pos-clientes" role="listbox" aria-label="Resultados de clientes" hidden></ul>
     </div>
 
-    <ol class="pos-lineas" id="pos-lineas" aria-live="polite"></ol>
+    <ol class="pos-lineas" id="pos-lineas" aria-live="polite" aria-label="Productos en la venta"></ol>
     <p class="pos-vacio" id="pos-vacio">Escanea o toca un producto para empezar.</p>
 
     <dl class="pos-totales">
@@ -82,7 +82,7 @@
       <div class="pos-total"><dt>Total</dt><dd id="pos-total">$0</dd></div>
     </dl>
     <button type="button" class="boton pos-cobrar" id="pos-cobrar" disabled>Cobrar <kbd>F2</kbd></button>
-    <button type="button" class="pos-enlace" id="pos-vaciar">Vaciar venta</button>
+    <button type="button" class="pos-enlace" id="pos-vaciar" aria-label="Vaciar venta actual">Vaciar venta</button>
   </aside>
 </div>
 

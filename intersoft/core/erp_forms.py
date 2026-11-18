@@ -16,6 +16,8 @@ class FormularioERP(forms.ModelForm):
                 campo.queryset = campo.queryset.filter(empresa=empresa)
                 if hasattr(campo.queryset.model, "activo"):
                     campo.queryset = campo.queryset.filter(activo=True)
+                elif hasattr(campo.queryset.model, "activa"):
+                    campo.queryset = campo.queryset.filter(activa=True)
             if isinstance(campo, forms.DateTimeField):
                 campo.widget = forms.DateTimeInput(format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"})
             elif isinstance(campo, forms.DateField):

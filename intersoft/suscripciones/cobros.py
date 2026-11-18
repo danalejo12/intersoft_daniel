@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from core.pagos import (
@@ -26,7 +27,7 @@ from core.pagos import (
 )
 from core.pasarelas import CredencialesWompi
 
-from .models import CobroSuscripcion, Plan, Suscripcion
+from .models import CobroSuscripcion, CuponPlan, Plan, Suscripcion
 from .services import (
     DESCUENTO_FUNDADOR,
     DowngradeNoPermitido,
@@ -94,9 +95,17 @@ def _normalizar_ciclo(ciclo) -> str:
     return ciclo
 
 
-def cotizar(suscripcion: Suscripcion, plan: Plan, ciclo: str) -> tuple[Decimal, Decimal, Decimal]:
-    """(precio de lista, % de descuento, monto a cobrar). El descuento de fundador aplica a quien ya lo
-    tiene y a quien todavía alcanza cupo; se congela en el cobro."""
+def cotizar(
+    suscripcion: Suscripcion,
+    plan: Plan,
+    ciclo: str,
+    cupon: CuponPlan | None = None,
+) -> tuple[Decimal, Decimal, Decimal]:
+    """(precio de lista, % de descuento efectivo, monto a cobrar).
+
+    El descuento de fundador aplica a quien ya lo tiene y a quien todavía alcanza cupo;
+    si se pasa un cupón vigente, se aplica sobre el monto resultante (mínimo $1 COP).
+    """
     precio = plan.precio_anual if ciclo == Suscripcion.Ciclo.ANUAL else plan.precio_mensual
     if suscripcion.es_fundador:
         descuento = suscripcion.descuento_porcentaje
@@ -105,10 +114,26 @@ def cotizar(suscripcion: Suscripcion, plan: Plan, ciclo: str) -> tuple[Decimal, 
     else:
         descuento = Decimal("0.00")
     monto = (precio * (Decimal("100") - descuento) / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+    if cupon is not None:
+        if not cupon.esta_vigente():
+            raise ValidationError(f"El cupón '{cupon.codigo}' no está vigente o agotó sus usos.")
+        if cupon.tipo == CuponPlan.Tipo.PORCENTAJE:
+            pct = min(cupon.valor, Decimal("100.00"))
+            monto = (monto * (Decimal("100") - pct) / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        else:
+            monto = monto - cupon.valor.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        if monto < Decimal("1"):
+            monto = Decimal("1")
+        if precio > Decimal("0"):
+            descuento = (((precio - monto) * Decimal("100")) / precio).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+
     return precio, descuento, monto
 
 
-def iniciar_cobro(*, empresa, plan, ciclo, usuario) -> CobroSuscripcion:
+def iniciar_cobro(*, empresa, plan, ciclo, usuario, cupon_codigo: str = "") -> CobroSuscripcion:
     """Crea el cobro de un plan pago. No cambia la suscripción: eso pasa al confirmarse el pago."""
     plan = _obtener_plan(plan)
     ciclo = _normalizar_ciclo(ciclo)
@@ -117,8 +142,16 @@ def iniciar_cobro(*, empresa, plan, ciclo, usuario) -> CobroSuscripcion:
         raise ValidationError(f"El plan {plan.nombre} no tiene precio para el ciclo {ciclo.lower()}.")
     validar_limites(empresa, plan)  # antes de cobrar: no se cobra un plan al que no se puede pasar
     credenciales_intersoft()  # sin llaves no se crea un cobro que nadie podría pagar
+
+    cupon = None
+    codigo_limpio = (cupon_codigo or "").strip().upper()
+    if codigo_limpio:
+        cupon = CuponPlan.objects.filter(codigo=codigo_limpio).first()
+        if cupon is None or not cupon.esta_vigente():
+            raise ValidationError(f"El cupón '{codigo_limpio}' no existe, expiró o alcanzó su límite de usos.")
+
     suscripcion = crear_suscripcion_inicial(empresa)
-    precio, descuento, monto = cotizar(suscripcion, plan, ciclo)
+    precio, descuento, monto = cotizar(suscripcion, plan, ciclo, cupon=cupon)
     return CobroSuscripcion.objects.create(
         empresa=empresa,
         plan=plan,
@@ -128,6 +161,7 @@ def iniciar_cobro(*, empresa, plan, ciclo, usuario) -> CobroSuscripcion:
         descuento_porcentaje=descuento,
         monto=monto,
         creado_por=usuario,
+        cupon=cupon,
     )
 
 
@@ -177,8 +211,12 @@ def aplicar_transaccion(transaccion: dict, *, forzar_revision: bool = False) -> 
                     cambiar_plan(
                         cobro.empresa, cobro.plan, cobro.ciclo,
                         motivo=f"Pago Wompi {cobro.referencia} ({cobro.get_ciclo_display()})",
-                        forzar_fundador=cobro.descuento_porcentaje > 0,
+                        forzar_fundador=(cobro.cupon_id is None and cobro.descuento_porcentaje > 0),
                     )
+                    if cobro.cupon_id:
+                        CuponPlan.objects.filter(pk=cobro.cupon_id).update(
+                            usos_actuales=F("usos_actuales") + 1
+                        )
             except (DowngradeNoPermitido, ValidationError) as error:
                 cobro.estado = Estado.REQUIERE_REVISION
                 cobro.detalle = f"Pago recibido sin activar: {error.messages[0] if error.messages else error}"[:255]

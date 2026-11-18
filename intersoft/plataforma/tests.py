@@ -3,31 +3,55 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
 
+from django.core import mail
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import EjecucionTarea, Empresa, Usuario
+from core.models import EjecucionTarea, Empresa, Membresia, MovimientoInventario, Rol, Usuario
 from core.pasarela_negocio import ResultadoVerificacion
+from core.tareas import ejecutar_pendientes
+from suscripciones import cobros as cobros_suscripcion
 from suscripciones.cobros import credenciales_intersoft
 from suscripciones.models import (
     CobroSuscripcion,
     ConfiguracionSuscripciones,
+    CuponPlan,
     HistorialSuscripcion,
     Plan,
+    RecordatorioVencimiento,
     Suscripcion,
 )
 from suscripciones.services import cambiar_plan, crear_suscripcion_inicial, cupos_fundador_actuales
 
 from . import auditoria
 from .metricas import calcular_metricas_saas
-from .models import AuditoriaPlataforma, ConfiguracionCobroPlataforma, RolPlataforma
+from .models import AuditoriaPlataforma, ConfiguracionCobroPlataforma, FeatureFlag, RolPlataforma
+from .totp import codigo_totp_actual
 
 
-class PlataformaAccesoYRolesTests(TestCase):
+class _TotpAutoMixin:
+    """Marca la sesión TOTP verificada tras force_login en pruebas que no prueban el flujo 2FA."""
+
+    def setUp(self):
+        super().setUp()
+        original = self.client.force_login
+
+        def _force_login_con_totp(user, backend=None):
+            original(user, backend=backend)
+            s = self.client.session
+            s["plataforma_totp_verificado"] = str(user.pk)
+            s.save()
+
+        self.client.force_login = _force_login_con_totp
+
+
+class PlataformaAccesoYRolesTests(_TotpAutoMixin, TestCase):
     """Verifica aislamiento is_staff, RolPlataforma y permisos por rol en /plataforma/."""
 
     def setUp(self):
+        super().setUp()
         self.no_staff = Usuario.objects.create_user(
             username="cliente@test.co", email="cliente@test.co", password="x", is_staff=False
         )
@@ -68,8 +92,6 @@ class PlataformaAccesoYRolesTests(TestCase):
         for ruta in ("plataforma_inicio", "plataforma_negocios", "plataforma_pqrs", "plataforma_errores", "plataforma_comentarios"):
             resp = self.client.get(reverse(ruta))
             self.assertEqual(resp.status_code, 200)
-            if ruta == "plataforma_negocios":
-                self.assertContains(resp, "Próximamente")
         self.assertEqual(self.client.get(reverse("plataforma_planes_cobros")).status_code, 403)
         self.assertEqual(self.client.get(reverse("plataforma_operacion")).status_code, 403)
 
@@ -133,10 +155,11 @@ class PlataformaAccesoYRolesTests(TestCase):
         self.assertContains(resp, "3 fallos")
 
 
-class PlataformaLlavesYAuditoriaTests(TestCase):
+class PlataformaLlavesYAuditoriaTests(_TotpAutoMixin, TestCase):
     """Verifica cifrado, ocultamiento de secretos en HTML, verificación, auditoría y credenciales_intersoft."""
 
     def setUp(self):
+        super().setUp()
         self.dueno = Usuario.objects.create_user(
             username="dueno-llaves@intersoft.co", email="dueno-llaves@intersoft.co", password="x", is_staff=True
         )
@@ -243,10 +266,11 @@ class PlataformaLlavesYAuditoriaTests(TestCase):
         self.assertEqual(cred_bd.eventos, "test_events_BD_77778888")
 
 
-class PlataformaPlanesCobrosCortesiasYMetricasTests(TestCase):
+class PlataformaPlanesCobrosCortesiasYMetricasTests(_TotpAutoMixin, TestCase):
     """Pruebas del editor de planes, cobros, cortesías, fundadores y métricas SaaS."""
 
     def setUp(self):
+        super().setUp()
         self.finanzas = self._crear_staff("finanzas-ops@intersoft.co", RolPlataforma.Rol.FINANZAS)
         self.soporte = self._crear_staff("soporte-ops@intersoft.co", RolPlataforma.Rol.SOPORTE)
         self.dev = self._crear_staff("dev-ops@intersoft.co", RolPlataforma.Rol.DESARROLLADOR)
@@ -592,5 +616,276 @@ class SaludYSwaggerTests(TestCase):
         self.client.force_login(staff)
         self.assertEqual(self.client.get(reverse("api_schema")).status_code, 200)
         self.assertEqual(self.client.get(reverse("api_docs")).status_code, 200)
+
+
+class PlataformaEntrarComoYAnunciosTests(_TotpAutoMixin, TestCase):
+    """Pruebas de «Entrar como» (solo lectura/escritura), aislamiento, auditoría y anuncios globales."""
+
+    def setUp(self):
+        super().setUp()
+        self.empresa = Empresa.objects.create(
+            nombre="Comercio Soporte", nit="950001", slug="comercio-soporte", activa=True
+        )
+        self.soporte = Usuario.objects.create_user(
+            username="sop-entrar@intersoft.co", email="sop-entrar@intersoft.co", password="x", is_staff=True
+        )
+        RolPlataforma.objects.create(usuario=self.soporte, rol=RolPlataforma.Rol.SOPORTE, activo=True)
+
+        self.finanzas = Usuario.objects.create_user(
+            username="fin-entrar@intersoft.co", email="fin-entrar@intersoft.co", password="x", is_staff=True
+        )
+        RolPlataforma.objects.create(usuario=self.finanzas, rol=RolPlataforma.Rol.FINANZAS, activo=True)
+
+        self.cliente_normal = Usuario.objects.create_user(
+            username="normal-entrar@test.co", email="normal-entrar@test.co", password="x", is_staff=False
+        )
+
+    def test_entrar_como_solo_lectura_franja_roja_auditoria_y_salir(self):
+        # Finanzas y usuario normal no pueden entrar a /plataforma/negocios/
+        self.client.force_login(self.finanzas)
+        self.assertEqual(self.client.get(reverse("plataforma_negocios")).status_code, 403)
+        self.client.force_login(self.cliente_normal)
+        self.assertEqual(self.client.get(reverse("plataforma_negocios")).status_code, 403)
+
+        # Soporte entra en modo solo lectura
+        self.client.force_login(self.soporte)
+        resp_entrar = self.client.post(
+            reverse("plataforma_negocios"),
+            {"accion": "entrar_como", "empresa_id": str(self.empresa.pk), "modo": "lectura"},
+            follow=True,
+        )
+        self.assertEqual(resp_entrar.status_code, 200)
+        self.assertContains(resp_entrar, "MODO SOPORTE")
+        self.assertContains(resp_entrar, self.empresa.nombre)
+        self.assertContains(resp_entrar, "Salir de soporte")
+
+        # POST en /panel/ bloqueado con 403 en modo solo lectura
+        resp_post_panel = self.client.post(
+            reverse("negocio_datos"),
+            {"nombre": "Cambio Prohibido"},
+        )
+        self.assertEqual(resp_post_panel.status_code, 403)
+
+        # Auditoría de entrada registrada
+        reg_entrada = AuditoriaPlataforma.objects.get(accion="entrar_modo_soporte")
+        self.assertEqual(reg_entrada.actor, self.soporte)
+        self.assertEqual(reg_entrada.objeto_id, str(self.empresa.pk))
+        self.assertEqual(reg_entrada.detalle["modo"], "lectura")
+
+        # Salir de soporte limpia sesión y registra auditoría
+        resp_salir = self.client.post(reverse("plataforma_salir_soporte"), follow=True)
+        self.assertEqual(resp_salir.status_code, 200)
+        self.assertNotIn("plataforma_soporte", self.client.session)
+        reg_salida = AuditoriaPlataforma.objects.get(accion="salir_modo_soporte")
+        self.assertEqual(reg_salida.detalle["modo"], "lectura")
+
+    def test_entrar_como_escritura_y_aislamiento_sesion(self):
+        # Usuario no-staff con sesión manipulada no puede activar modo soporte
+        self.client.force_login(self.cliente_normal)
+        session = self.client.session
+        session["plataforma_soporte"] = {"empresa_id": str(self.empresa.pk), "solo_lectura": False}
+        session.save()
+        resp_panel = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp_panel.status_code, 302)  # Redirige a negocio_registrar al no tener membresía
+
+        # Soporte con modo escritura sí puede publicar en /panel/
+        self.client.force_login(self.soporte)
+        self.client.post(
+            reverse("plataforma_negocios"),
+            {"accion": "entrar_como", "empresa_id": str(self.empresa.pk), "modo": "escritura"},
+        )
+        reg = AuditoriaPlataforma.objects.filter(accion="entrar_modo_soporte").first()
+        self.assertEqual(reg.detalle["modo"], "escritura")
+
+    def test_anuncios_globales_visibles_en_panel_segun_vigencia(self):
+        self.client.force_login(self.soporte)
+        # Publicar anuncio vigente
+        resp = self.client.post(
+            reverse("plataforma_negocios"),
+            {
+                "accion": "crear_anuncio",
+                "titulo": "Mantenimiento nocturno",
+                "mensaje": "Ventana de mantenimiento el domingo a las 2 a.m.",
+                "tipo": "mantenimiento",
+                "activo": "on",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(AuditoriaPlataforma.objects.filter(accion="crear_anuncio_global").exists())
+
+        # Entrar al panel del negocio y verificar que el anuncio se muestra
+        self.client.post(
+            reverse("plataforma_negocios"),
+            {"accion": "entrar_como", "empresa_id": str(self.empresa.pk), "modo": "lectura"},
+        )
+        resp_panel = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp_panel.status_code, 200)
+        self.assertContains(resp_panel, "Mantenimiento nocturno")
+
+
+class PlataformaCuponesPreciosRecordatoriosFlagsYTotpTests(TestCase):
+    """Pruebas de CuponPlan, /precios/, recordatorios 7/3/1d, FeatureFlag y 2FA/TOTP obligatorio."""
+
+    def setUp(self):
+        self.dueno = Usuario.objects.create_user(
+            username="dueno-2fa@intersoft.co", email="dueno-2fa@intersoft.co", password="x", is_staff=True
+        )
+        self.rol_dueno = RolPlataforma.objects.create(
+            usuario=self.dueno, rol=RolPlataforma.Rol.DUENO, activo=True
+        )
+        self.empresa = Empresa.objects.create(
+            nombre="Negocio Cupon", nit="960001", slug="negocio-cupon", email="cupon@neg.co", activa=True
+        )
+        self.admin_neg = Usuario.objects.create_user(
+            username="admin-cup@neg.co", email="admin-cup@neg.co", password="x"
+        )
+        rol_neg = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
+        Membresia.objects.create(usuario=self.admin_neg, empresa=self.empresa, rol=rol_neg, activa=True)
+
+    def test_totp_obligatorio_enrolamiento_y_verificacion(self):
+        self.client.force_login(self.dueno)
+
+        # Sin TOTP verificado en sesión -> redirige 302 a /plataforma/2fa/
+        resp_redir = self.client.get(reverse("plataforma_inicio"))
+        self.assertEqual(resp_redir.status_code, 302)
+        self.assertIn(reverse("plataforma_totp"), resp_redir.url)
+
+        # GET /plataforma/2fa/ genera secreto de enrolamiento en sesión
+        resp_get = self.client.get(reverse("plataforma_totp"))
+        self.assertEqual(resp_get.status_code, 200)
+        secreto = self.client.session["plataforma_totp_setup"]
+
+        # Código inválido es rechazado
+        resp_bad = self.client.post(reverse("plataforma_totp"), {"codigo": "000000"})
+        self.assertEqual(resp_bad.status_code, 200)
+        self.rol_dueno.refresh_from_db()
+        self.assertFalse(self.rol_dueno.totp_activo)
+
+        # Código TOTP válido activa 2FA y permite entrar a /plataforma/
+        codigo_ok = codigo_totp_actual(secreto)
+        resp_ok = self.client.post(reverse("plataforma_totp"), {"codigo": codigo_ok}, follow=True)
+        self.assertEqual(resp_ok.status_code, 200)
+        self.rol_dueno.refresh_from_db()
+        self.assertTrue(self.rol_dueno.totp_activo)
+        self.assertTrue(AuditoriaPlataforma.objects.filter(accion="activar_totp").exists())
+        self.assertEqual(self.client.get(reverse("plataforma_inicio")).status_code, 200)
+
+    def test_cupon_plan_cotizar_iniciar_cobro_y_gestion_plataforma(self):
+        # Enrolar rápido en sesión para usar /plataforma/planes-cobros/
+        self.client.force_login(self.dueno)
+        s = self.client.session
+        s["plataforma_totp_verificado"] = str(self.dueno.pk)
+        s.save()
+
+        # Crear cupón desde /plataforma/planes-cobros/
+        resp_cup = self.client.post(
+            reverse("plataforma_planes_cobros"),
+            {
+                "accion": "crear_cupon",
+                "codigo": "promo20",
+                "tipo": CuponPlan.Tipo.PORCENTAJE,
+                "valor": "20.00",
+                "usos_maximos": "1",
+                "activo": "on",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp_cup.status_code, 200)
+        cupon = CuponPlan.objects.get(codigo="PROMO20")
+        self.assertTrue(AuditoriaPlataforma.objects.filter(accion="crear_cupon_plan").exists())
+
+        # Ocupar cupos fundador para probar cupón puro
+        cfg = ConfiguracionSuscripciones.obtener()
+        cfg.cupos_fundador = 0
+        cfg.save(update_fields=["cupos_fundador"])
+
+        sub = crear_suscripcion_inicial(self.empresa)
+        plan_emp = Plan.objects.get(codigo="emprendedor")  # 29900.00
+        precio, desc, monto = cobros_suscripcion.cotizar(sub, plan_emp, Suscripcion.Ciclo.MENSUAL, cupon=cupon)
+        self.assertEqual(precio, Decimal("29900.00"))
+        self.assertEqual(monto, Decimal("23920"))
+        self.assertEqual(desc, Decimal("20.00"))
+
+        # Aplicar cobro y aprobar transacción -> incrementa usos_actuales y agota cupón (usos_maximos=1)
+        with override_settings(
+            SUSCRIPCIONES_WOMPI_PUBLIC_KEY="pub_test_123456",
+            SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET="test_integrity_123456",
+        ):
+            cobro = cobros_suscripcion.iniciar_cobro(
+                empresa=self.empresa,
+                plan=plan_emp,
+                ciclo=Suscripcion.Ciclo.MENSUAL,
+                usuario=self.admin_neg,
+                cupon_codigo="PROMO20",
+            )
+            self.assertEqual(cobro.monto, Decimal("23920"))
+            cobros_suscripcion.aplicar_transaccion(
+                {
+                    "id": "tx-cup-1",
+                    "reference": cobro.referencia,
+                    "status": "APPROVED",
+                    "amount_in_cents": cobro.monto_centavos,
+                    "currency": "COP",
+                    "payment_method_type": "CARD",
+                }
+            )
+        cupon.refresh_from_db()
+        self.assertEqual(cupon.usos_actuales, 1)
+        self.assertFalse(cupon.esta_vigente())
+
+        with self.assertRaises(ValidationError):
+            cobros_suscripcion.cotizar(sub, plan_emp, Suscripcion.Ciclo.MENSUAL, cupon=cupon)
+
+    def test_pagina_publica_precios_y_feature_flag_por_negocio(self):
+        # /precios/ es pública y muestra los planes activos
+        resp_precios = self.client.get(reverse("precios_publicos"))
+        self.assertEqual(resp_precios.status_code, 200)
+        self.assertContains(resp_precios, "Emprendedor")
+        self.assertContains(resp_precios, "Pro")
+
+        # Empresa en plan gratis no tiene 'multisede'
+        sub = crear_suscripcion_inicial(self.empresa)
+        cambiar_plan(self.empresa, "gratis")
+        sub.refresh_from_db()
+        self.assertFalse(sub.puede("multisede"))
+
+        # Desde /plataforma/planes-cobros/ se activa FeatureFlag('multisede') para esta empresa
+        self.client.force_login(self.dueno)
+        s = self.client.session
+        s["plataforma_totp_verificado"] = str(self.dueno.pk)
+        s.save()
+        self.client.post(
+            reverse("plataforma_planes_cobros"),
+            {
+                "accion": "guardar_feature_flag",
+                "empresa": str(self.empresa.pk),
+                "codigo": "multisede",
+                "habilitado": "on",
+            },
+        )
+        self.assertTrue(sub.puede("multisede"))
+        self.assertTrue(AuditoriaPlataforma.objects.filter(accion="actualizar_feature_flag").exists())
+
+    def test_recordatorios_vencimiento_7_3_1_dias_idempotentes(self):
+        sub = crear_suscripcion_inicial(self.empresa)
+        ahora = timezone.now()
+        sub.vence_en = ahora + timedelta(days=3)
+        sub.save(update_fields=["vence_en"])
+
+        mail.outbox.clear()
+        res1 = ejecutar_pendientes(forzar=True, solo=["recordatorios_vencimiento_plan"])
+        self.assertEqual(res1["recordatorios_vencimiento_plan"], "ok")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("/panel/suscripcion/", mail.outbox[0].body)
+        self.assertEqual(RecordatorioVencimiento.objects.filter(suscripcion=sub, dias_antes=3).count(), 1)
+
+        # Segunda ejecución el mismo día -> NO vuelve a enviar el mismo recordatorio
+        mail.outbox.clear()
+        res2 = ejecutar_pendientes(forzar=True, solo=["recordatorios_vencimiento_plan"])
+        self.assertEqual(res2["recordatorios_vencimiento_plan"], "ok")
+        self.assertEqual(len(mail.outbox), 0)
+
+
 
 

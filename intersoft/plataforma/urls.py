@@ -13,14 +13,16 @@ from . import views
 
 urlpatterns = [
     path("", views.InicioPlataformaView.as_view(), name="plataforma_inicio"),
+    path("2fa/", views.PlataformaTOTPView.as_view(), name="plataforma_totp"),
     path(
         "negocios/",
-        views.SeccionProximamenteView.as_view(
-            permiso="negocios",
-            titulo_seccion="Negocios",
-            descripcion_seccion="Directorio completo de empresas, estado de publicación y acciones de soporte.",
-        ),
+        views.PlataformaNegociosView.as_view(),
         name="plataforma_negocios",
+    ),
+    path(
+        "negocios/salir-soporte/",
+        views.SalirModoSoporteView.as_view(),
+        name="plataforma_salir_soporte",
     ),
     path(
         "planes-cobros/",

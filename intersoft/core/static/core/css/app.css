@@ -29,8 +29,8 @@
 
   /* Texto */
   --texto: #f4f2ee;
-  --suave: rgba(244, 242, 238, 0.66);
-  --tenue: rgba(244, 242, 238, 0.42);
+  --suave: rgba(244, 242, 238, 0.78);
+  --tenue: rgba(244, 242, 238, 0.65);
 
   /* Color con significado */
   --azul: #5b8cff;
@@ -73,6 +73,20 @@ a { color: var(--azul); text-decoration: none; transition: color .2s, opacity .2
 a:hover { color: #8fb0ff; }
 
 :focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.saltar-contenido {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--azul);
+  color: #0b1020;
+  font-weight: 700;
+  text-decoration: none;
+}
+.saltar-contenido:focus { left: 12px; }
+.pos-producto:focus-visible, .pos-enlace:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
 .num, .kpi strong, .medidor-cifra { font-variant-numeric: tabular-nums; }
 svg { flex-shrink: 0; }
 

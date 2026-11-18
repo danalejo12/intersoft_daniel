@@ -213,3 +213,126 @@ def desactivar_bodega(*, empresa, bodega):
     bodega.activa = False
     bodega.save(update_fields=["activa", "actualizado_en"])
     return bodega
+
+
+@transaction.atomic
+def enviar_traslado(*, empresa, producto, origen, destino, cantidad, usuario):
+    """Descuenta en la bodega origen y deja el traslado en tránsito (estado='enviado')."""
+    from .models import MovimientoInventario, TrasladoBodega
+    from .services import StockInsuficiente
+
+    if cantidad <= 0:
+        raise ValueError("La cantidad a trasladar debe ser mayor a 0.")
+    origen = validar_bodega(empresa, origen)
+    destino = validar_bodega(empresa, destino)
+    if origen.pk == destino.pk:
+        raise ValueError("La bodega origen y destino deben ser distintas.")
+
+    mover(
+        producto=producto,
+        bodega=origen,
+        variacion=-cantidad,
+        error=StockInsuficiente(f"No hay {cantidad} unidad(es) de {producto.nombre} en {origen.nombre}."),
+    )
+    MovimientoInventario.objects.create(
+        empresa=empresa,
+        producto=producto,
+        bodega=origen,
+        tipo=MovimientoInventario.Tipo.SALIDA,
+        cantidad=cantidad,
+        referencia=f"Envío en tránsito a {destino.nombre}"[:60],
+        usuario=usuario,
+    )
+    return TrasladoBodega.objects.create(
+        empresa=empresa,
+        producto=producto,
+        origen=origen,
+        destino=destino,
+        cantidad=cantidad,
+        estado=TrasladoBodega.Estado.ENVIADO,
+        enviado_por=usuario,
+    )
+
+
+@transaction.atomic
+def confirmar_traslado(*, empresa, pk, usuario):
+    """Confirma la recepción de un traslado en tránsito en la bodega destino (idempotente)."""
+    from django.utils import timezone
+
+    from .models import MovimientoInventario, TrasladoBodega
+
+    traslado = (
+        TrasladoBodega.objects.select_for_update()
+        .select_related("producto", "origen", "destino")
+        .get(pk=pk, empresa=empresa)
+    )
+    if traslado.estado == TrasladoBodega.Estado.RECIBIDO:
+        return traslado
+    if traslado.estado != TrasladoBodega.Estado.ENVIADO:
+        raise OperacionBodega("Solo se pueden confirmar traslados en estado enviado.")
+
+    mover(producto=traslado.producto, bodega=traslado.destino, variacion=traslado.cantidad)
+    MovimientoInventario.objects.create(
+        empresa=empresa,
+        producto=traslado.producto,
+        bodega=traslado.destino,
+        tipo=MovimientoInventario.Tipo.ENTRADA,
+        cantidad=traslado.cantidad,
+        referencia=f"Recepción desde {traslado.origen.nombre}"[:60],
+        usuario=usuario,
+    )
+    traslado.estado = TrasladoBodega.Estado.RECIBIDO
+    traslado.recibido_por = usuario
+    traslado.recibido_en = timezone.now()
+    traslado.save(update_fields=["estado", "recibido_por", "recibido_en", "actualizado_en"])
+    return traslado
+
+
+@transaction.atomic
+def aplicar_conteo_fisico(*, empresa, bodega, conteos: dict, usuario, observaciones: str = ""):
+    """Registra un ConteoFisico y aplica ajustes masivos auditados en MovimientoInventario."""
+    from django.utils import timezone
+
+    from .models import ConteoFisico, LineaConteoFisico, MovimientoInventario
+    from .services import registrar_movimiento
+
+    bodega = validar_bodega(empresa, bodega)
+    conteos_str = {str(k): int(v) for k, v in conteos.items()}
+    conteo = ConteoFisico.objects.create(
+        empresa=empresa,
+        bodega=bodega,
+        usuario=usuario,
+        observaciones=(observaciones or "").strip()[:255],
+        aplicado=True,
+        aplicado_en=timezone.now(),
+    )
+
+    productos = list(
+        Producto.objects.filter(empresa=empresa, activo=True, pk__in=list(conteos_str.keys())).order_by("pk")
+    )
+    for prod in productos:
+        stock_contado = conteos_str[str(prod.pk)]
+        if stock_contado < 0:
+            raise ValueError(f"El conteo de {prod.nombre} no puede ser negativo.")
+        stock_sistema = existencia(prod, bodega)
+        diferencia = stock_contado - stock_sistema
+        LineaConteoFisico.objects.create(
+            conteo=conteo,
+            producto=prod,
+            stock_sistema=stock_sistema,
+            stock_contado=stock_contado,
+            diferencia=diferencia,
+        )
+        if diferencia != 0:
+            registrar_movimiento(
+                empresa=empresa,
+                producto=prod,
+                tipo=MovimientoInventario.Tipo.AJUSTE,
+                cantidad=diferencia,
+                usuario=usuario,
+                referencia=f"Conteo físico {bodega.nombre}"[:60],
+                bodega=bodega,
+            )
+
+    return conteo
+

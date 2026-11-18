@@ -48,7 +48,7 @@ jobs:
           cache: pip
 
       - name: Instalar dependencias
-        run: pip install -r ../requirements.txt
+        run: pip install -r ../requirements.txt coverage
 
       - name: Revisar la configuración
         run: python manage.py check
@@ -56,5 +56,7 @@ jobs:
       - name: Revisar que no falten migraciones
         run: python manage.py makemigrations --check --dry-run
 
-      - name: Pruebas
-        run: python manage.py test core suscripciones plataforma pqrs soporte --noinput
+      - name: Pruebas con cobertura (>= 85%)
+        run: |
+          coverage run --rcfile=.coveragerc manage.py test core suscripciones plataforma pqrs soporte --noinput
+          coverage report --rcfile=.coveragerc --fail-under=85

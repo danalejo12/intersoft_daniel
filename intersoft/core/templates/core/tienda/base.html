@@ -25,6 +25,7 @@
   <script src="{% static 'core/js/tienda.js' %}?v=6" defer></script>
 </head>
 <body>
+  <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
 {% include "core/includes/bienvenida.html" %}
   <div id="centinela-barra" aria-hidden="true"></div>
   {% with cats=categorias_marketplace %}
@@ -78,7 +79,7 @@
 
         <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="Ver carrito de compras" data-carrito>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
-          <span class="contador" data-carrito-cantidad {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
+          <span class="contador" data-carrito-cantidad aria-live="polite" {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
         </a>
 
         <details class="cuenta" data-desplegable>
@@ -125,7 +126,7 @@
   </header>
   {% endwith %}
 
-  <main class="contenedor">
+  <main class="contenedor" id="contenido-principal" tabindex="-1">
     {% for mensaje in messages %}
       <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
     {% endfor %}

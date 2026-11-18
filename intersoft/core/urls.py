@@ -37,8 +37,16 @@ panel_urlpatterns = [
     # Categorías y Productos
     path("bodegas/", views_bodegas.BodegaListView.as_view(), name="bodegas_lista"),
     path("bodegas/nueva/", views_bodegas.BodegaFormView.as_view(), name="bodegas_crear"),
+    path("bodegas/traslados/", views_bodegas.TrasladosTransitoListView.as_view(), name="bodegas_traslados"),
+    path(
+        "bodegas/traslados/<uuid:pk>/confirmar/",
+        views_bodegas.ConfirmarTrasladoView.as_view(),
+        name="bodegas_traslado_confirmar",
+    ),
     path("bodegas/<uuid:pk>/editar/", views_bodegas.BodegaFormView.as_view(), name="bodegas_editar"),
+    path("bodegas/<uuid:pk>/conteo/", views_bodegas.ConteoFisicoView.as_view(), name="bodegas_conteo"),
     path("bodegas/<uuid:pk>/desactivar/", views_bodegas.BodegaDesactivarView.as_view(), name="bodegas_desactivar"),
+    path("productos/importar/", views_bodegas.ImportarProductosExcelView.as_view(), name="productos_importar"),
     path("productos/<uuid:pk>/trasladar/", views_bodegas.TrasladoView.as_view(), name="productos_trasladar"),
     path("categorias/", views.CategoriaListView.as_view(), name="categorias_lista"),
     path("categorias/nueva/", views.CategoriaCreateView.as_view(), name="categorias_crear"),
@@ -76,6 +84,8 @@ panel_urlpatterns = [
     path("pos/cajas/", views_pos.TurnosView.as_view(), name="pos_turnos"),
     path("pos/cajas/<uuid:pk>/", views_pos.TurnoView.as_view(), name="pos_turno"),
     path("pos/ticket/<uuid:pk>/", views_pos.TicketView.as_view(), name="pos_ticket"),
+    path("pos/ticket/<uuid:pk>/pdf/", views_pos.TicketPDFView.as_view(), name="pos_ticket_pdf"),
+    path("pos/ticket/<uuid:pk>/enviar/", views_pos.TicketEnviarCorreoView.as_view(), name="pos_ticket_correo"),
 
     # Pagos
     path("pagos/<uuid:pk>/resultado/", views.PagoResultadoView.as_view(), name="pagos_resultado"),
@@ -118,6 +128,13 @@ urlpatterns = [
     path("pedidos/<uuid:pk>/pagar/", views_compra.PagarPedidoView.as_view(), name="pedido_pagar"),
     path("pedidos/<uuid:pk>/cancelar/", views_compra.CancelarPedidoView.as_view(), name="pedido_cancelar"),
     path("pedidos/<uuid:pk>/renovar/", views_compra.RenovarReservaView.as_view(), name="pedido_renovar"),
+    path(
+        "pedidos/<uuid:pk>/volver-a-comprar/",
+        views_compra.VolverAComprarView.as_view(),
+        name="pedido_volver_a_comprar",
+    ),
+    path("favoritos/", views_compra.FavoritosListView.as_view(), name="favoritos_lista"),
+    path("favoritos/<uuid:pk>/toggle/", views_compra.ToggleFavoritoView.as_view(), name="favorito_toggle"),
 
     # Cuentas
     path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),

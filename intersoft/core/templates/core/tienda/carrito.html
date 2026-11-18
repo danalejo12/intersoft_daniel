@@ -40,7 +40,7 @@
                   </form>
                   <form method="post" action="{% url 'carrito_quitar' linea.producto.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="enlace">Quitar</button>
+                    <button type="submit" class="enlace" aria-label="Quitar {{ linea.producto.nombre }} del carrito">Quitar</button>
                   </form>
                 </div>
               </div>

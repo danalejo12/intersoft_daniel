@@ -6,8 +6,9 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import EmailMessage
 from django.db.models import Q, Sum
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -382,3 +383,66 @@ class TicketView(TenantMixin, View):
             "imprimir": request.GET.get("imprimir") == "1",
             "consumidor_final": documento_cliente.endswith(caja.DOCUMENTO_CONSUMIDOR_FINAL),
         })
+
+
+class TicketPDFView(TenantMixin, View):
+    """Descarga el ticket POS en formato PDF (ReportLab)."""
+
+    permisos_permitidos = ("ventas.ver", "ventas.crear")
+
+    def dispatch(self, request, *args, **kwargs):
+        membresia = request.membresia
+        if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
+            raise PermissionDenied("No tienes permiso para esta acción.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, pk):
+        from .exportaciones import generar_ticket_pos_pdf
+
+        factura = get_object_or_404(
+            Factura.objects.de_empresa(request.empresa).select_related("cliente", "creada_por"), pk=pk
+        )
+        pdf = generar_ticket_pos_pdf(factura)
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="ticket-{factura.numero}.pdf"'
+        return resp
+
+
+class TicketEnviarCorreoView(TenantMixin, View):
+    """Envía el ticket POS en PDF por correo electrónico al cliente."""
+
+    permisos_permitidos = ("ventas.ver", "ventas.crear")
+    http_method_names = ["post"]
+
+    def dispatch(self, request, *args, **kwargs):
+        membresia = request.membresia
+        if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
+            raise PermissionDenied("No tienes permiso para esta acción.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        from .exportaciones import generar_ticket_pos_pdf
+
+        factura = get_object_or_404(
+            Factura.objects.de_empresa(request.empresa).select_related("cliente", "creada_por"), pk=pk
+        )
+        correo = (request.POST.get("correo") or factura.cliente.email or "").strip()
+        if not correo:
+            messages.error(request, "Ingresa el correo del cliente para enviar el ticket.")
+            return redirect("pos_ticket", pk=factura.pk)
+
+        pdf = generar_ticket_pos_pdf(factura)
+        mensaje = EmailMessage(
+            subject=f"Ticket de compra #{factura.numero} · {request.empresa.nombre}",
+            body=(
+                f"Hola {factura.cliente_nombre or factura.cliente.nombre},\n\n"
+                f"Adjuntamos tu ticket de compra N.º {factura.numero} por valor de $ {factura.total}.\n"
+                f"Gracias por tu compra en {request.empresa.nombre}."
+            ),
+            to=[correo],
+        )
+        mensaje.attach(f"ticket-{factura.numero}.pdf", pdf, "application/pdf")
+        mensaje.send(fail_silently=False)
+        messages.success(request, f"Ticket #{factura.numero} enviado por correo a {correo}.")
+        return redirect("pos_ticket", pk=factura.pk)
+

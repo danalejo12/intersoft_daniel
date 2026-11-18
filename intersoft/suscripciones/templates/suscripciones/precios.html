@@ -1,0 +1,48 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Planes y precios · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado" style="margin-bottom: 24px;">
+    <div>
+      <h1>Planes y precios de InterSoft</h1>
+      <p class="nota">Elige el plan que mejor se adapta a tu negocio. Todos los negocios inician con 14 días de prueba gratis.</p>
+    </div>
+  </div>
+
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
+    {% for item in planes_ui %}
+      {% with p=item.plan lim=item.limites %}
+        <article class="tarjeta" style="display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+          <div>
+            <h2>{{ p.nombre }}</h2>
+            {% if item.es_pago %}
+              <p style="font-size: 1.5rem; font-weight: 700; margin: 8px 0;">
+                $ {{ p.precio_mensual|floatformat:"0g" }} <small style="font-size: 0.85rem; font-weight: 400;">/ mes</small>
+              </p>
+              {% if p.precio_anual > 0 %}
+                <p class="nota">o $ {{ p.precio_anual|floatformat:"0g" }} / año</p>
+              {% endif %}
+            {% else %}
+              <p style="font-size: 1.5rem; font-weight: 700; margin: 8px 0;">Gratis</p>
+            {% endif %}
+
+            <p class="nota">Comisión Marketplace: <strong>{{ p.comision_porcentaje }}%</strong></p>
+            <ul style="padding-left: 18px; margin: 10px 0;">
+              <li>Productos: <strong>{{ lim.productos|default_if_none:"Ilimitados" }}</strong></li>
+              <li>Usuarios: <strong>{{ lim.usuarios|default_if_none:"Ilimitados" }}</strong></li>
+            </ul>
+            <ul style="padding-left: 18px; margin: 10px 0;">
+              {% for feat in item.features_legibles %}
+                <li>{{ feat }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <a class="boton" href="{% if user.is_authenticated %}{% url 'suscripcion_panel' %}{% else %}{% url 'negocio_registrar' %}{% endif %}">
+            {% if item.es_pago %}Elegir {{ p.nombre }}{% else %}Empezar gratis{% endif %}
+          </a>
+        </article>
+      {% endwith %}
+    {% endfor %}
+  </section>
+{% endblock %}

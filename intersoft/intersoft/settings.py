@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+import sys
 
 from decouple import AutoConfig, Csv
 
@@ -54,6 +55,7 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.ratelimit.RateLimitMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -336,7 +338,17 @@ _inicializar_monitoreo(
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "suscripciones.exceptions.manejador_excepciones_suscripciones",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": config("DRF_THROTTLE_ANON", default="60/min"),
+        "user": config("DRF_THROTTLE_USER", default="300/min"),
+    },
 }
+
+RATELIMIT_ACTIVO = config("RATELIMIT_ACTIVO", default=("test" not in sys.argv), cast=bool)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "InterSoft API",

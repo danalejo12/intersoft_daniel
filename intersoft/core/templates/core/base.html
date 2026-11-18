@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=23">
 </head>
 <body>
+  <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
 {% include "core/includes/bienvenida.html" %}
 
 {% if user.is_authenticated %}
@@ -151,7 +152,31 @@
 {% endwith %}
 {% endif %}
 
-    <main>
+    <main id="contenido-principal" tabindex="-1">
+      {% if request.modo_soporte %}
+        <div
+          role="alert"
+          style="position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-bottom: 16px; border-radius: 10px; background: #991b1b; color: #ffffff; border: 1px solid #fecaca;"
+        >
+          <span>
+            <strong>MODO SOPORTE</strong> · Estás viendo el panel de <strong>{{ request.empresa.nombre }}</strong>
+            ({% if request.soporte_solo_lectura %}Solo lectura{% else %}Lectura y escritura{% endif %})
+          </span>
+          <form method="post" action="{% url 'plataforma_salir_soporte' %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="boton secundario" style="background: #ffffff; color: #991b1b; border-color: #ffffff;">
+              Salir de soporte
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
+      {% for anuncio in anuncios_globales %}
+        <div class="mensaje {% if anuncio.tipo == 'advertencia' or anuncio.tipo == 'mantenimiento' %}error{% else %}info{% endif %}" role="status">
+          <span><strong>{{ anuncio.titulo }}:</strong> {{ anuncio.mensaje }}</span>
+        </div>
+      {% endfor %}
+
       {% for mensaje in messages %}
         <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
       {% endfor %}

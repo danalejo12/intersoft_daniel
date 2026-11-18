@@ -41,6 +41,8 @@ TAREAS = (
           "Envía una vez al día las alertas de stock mínimo."),
     Tarea("escalar_pqrs_vencidas", "escalar_pqrs_vencidas", timedelta(hours=1),
           "Escala a Intersoft las PQRS de compradores vencidas sin respuesta del negocio."),
+    Tarea("recordatorios_vencimiento_plan", "enviar_recordatorios_vencimiento", timedelta(hours=12),
+          "Envía recordatorios por correo 7, 3 y 1 día antes de vencer un Trial o plan pago."),
 )
 
 

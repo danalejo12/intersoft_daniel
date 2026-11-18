@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction, IntegrityError
-from django.db.models import F, Q, Sum
+from django.db.models import DecimalField, F, Q, Sum
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -29,7 +29,7 @@ from .services import StockInsuficiente
 
 MODULOS = {
     "proveedores": dict(model=m.Proveedor, titulo="Proveedores", permiso="compras", categoria="Abastecimiento", color="azul", icono="truck", descripcion="Directorio de proveedores, NIT y datos de contacto.", campos=["nombre", "documento", "email", "telefono", "direccion", "activo"], columnas=["nombre", "documento", "telefono", "activo"], buscar=["nombre", "documento"]),
-    "compras": dict(model=m.Compra, titulo="Compras", permiso="compras", categoria="Abastecimiento", color="azul", icono="bag", descripcion="Órdenes de compra, recepción en Kardex y cuentas por pagar.", campos=["proveedor", "referencia", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
+    "compras": dict(model=m.Compra, titulo="Compras", permiso="compras", categoria="Abastecimiento", color="azul", icono="bag", descripcion="Órdenes de compra, recepción en Kardex y cuentas por pagar.", campos=["proveedor", "referencia", "bodega", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
     "cartera": dict(model=m.CuentaCartera, titulo="Cuentas por cobrar y pagar", permiso="cartera", categoria="Finanzas", color="ambar", icono="wallet", descripcion="Control de vencimientos, saldos pendientes y abonos.", campos=["tipo", "tercero", "concepto", "fecha", "vencimiento", "total"], columnas=["tipo", "tercero", "concepto", "vencimiento", "total", "saldo", "estado"], buscar=["tercero", "concepto"]),
     "cuentas": dict(model=m.CuentaTesoreria, titulo="Cajas y bancos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="bank", descripcion="Cuentas bancarias y cajas disponibles para recaudos y pagos.", campos=["nombre", "tipo", "activa"], columnas=["nombre", "tipo", "activa"], buscar=["nombre"]),
     "tesoreria": dict(model=m.MovimientoTesoreria, titulo="Ingresos y egresos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="arrows", descripcion="Movimientos de caja/banco, abonos a cartera y conciliación.", campos=[], columnas=["fecha", "cuenta", "tipo", "concepto", "monto", "conciliado"], buscar=["concepto", "referencia"], accion="conciliar", etiqueta="Marcar conciliado", cerrado="conciliado"),
@@ -388,6 +388,79 @@ def _datos_reportes(request):
             .annotate(debito=Sum("debito"), credito=Sum("credito"))
             .order_by("cuenta__codigo")
         )
+
+    from django.db.models import Avg, Count
+
+    facturas_emitidas = m.Factura.objects.filter(
+        empresa=request.empresa, estado=m.Factura.Estado.EMITIDA
+    )
+    datos["ventas_por_bodega"] = list(
+        facturas_emitidas.values("bodega__nombre")
+        .annotate(facturas=Count("id"), subtotal=Sum("subtotal"), total=Sum("total"))
+        .order_by("-total")
+    )
+    datos["ventas_por_turno"] = list(
+        facturas_emitidas.filter(turno__isnull=False)
+        .values("turno_id", "turno__cajero__email", "turno__bodega__nombre", "turno__creado_en")
+        .annotate(facturas=Count("id"), total=Sum("total"))
+        .order_by("-turno__creado_en")[:20]
+    )
+
+    costos_promedio = {
+        row["producto_id"]: row["costo_prom"] or Decimal("0")
+        for row in m.LineaCompra.objects.filter(
+            empresa=request.empresa, compra__recibida=True
+        )
+        .values("producto_id")
+        .annotate(costo_prom=Avg("costo"))
+    }
+    existencias_map = {
+        (row["bodega_id"], row["producto_id"]): row["cantidad"]
+        for row in m.Existencia.objects.filter(empresa=request.empresa).values(
+            "bodega_id", "producto_id", "cantidad"
+        )
+    }
+    detalles_agg = (
+        m.DetalleFactura.objects.filter(
+            empresa=request.empresa, factura__estado=m.Factura.Estado.EMITIDA
+        )
+        .values("factura__bodega_id", "factura__bodega__nombre", "producto_id", "producto__codigo", "producto__nombre", "producto__stock")
+        .annotate(
+            unidades=Sum("cantidad"),
+            ingresos=Sum(
+                F("cantidad") * F("precio_unitario"),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            ),
+        )
+        .order_by("-unidades")[:30]
+    )
+    rotacion_margenes = []
+    for det in detalles_agg:
+        unidades = int(det["unidades"] or 0)
+        ingresos = det["ingresos"] or Decimal("0")
+        costo_unit = costos_promedio.get(det["producto_id"], Decimal("0"))
+        costo_est = costo_unit * unidades
+        margen = ingresos - costo_est
+        stock_bod = (
+            existencias_map.get((det["factura__bodega_id"], det["producto_id"]), 0)
+            if det["factura__bodega_id"]
+            else int(det["producto__stock"] or 0)
+        )
+        rotacion = round(unidades / stock_bod, 2) if stock_bod > 0 else float(unidades)
+        rotacion_margenes.append(
+            {
+                "codigo": det["producto__codigo"],
+                "producto": det["producto__nombre"],
+                "bodega": det["factura__bodega__nombre"] or "Sin bodega",
+                "unidades": unidades,
+                "ingresos": ingresos,
+                "costo_estimado": costo_est,
+                "margen": margen,
+                "stock_actual": stock_bod,
+                "rotacion": rotacion,
+            }
+        )
+    datos["rotacion_margenes"] = rotacion_margenes
     return datos
 
 

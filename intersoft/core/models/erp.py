@@ -49,6 +49,14 @@ class Proveedor(RegistroERP):
 class Compra(RegistroERP):
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
     referencia = models.CharField("Factura del proveedor", max_length=60)
+    bodega = models.ForeignKey(
+        "Bodega",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="compras",
+        verbose_name="bodega destino",
+    )
     fecha = models.DateField(default=timezone.localdate)
     vencimiento = models.DateField()
     recibida = models.BooleanField(default=False, editable=False)

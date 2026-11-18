@@ -239,6 +239,9 @@ class PqrsFlujosPermisosAislamientoYEscalamientoTests(TestCase):
         self.assertEqual(self.client.get(reverse("plataforma_pqrs")).status_code, 403)
 
         self.client.force_login(self.soporte_plataforma)
+        s = self.client.session
+        s["plataforma_totp_verificado"] = str(self.soporte_plataforma.pk)
+        s.save()
         resp = self.client.get(reverse("plataforma_pqrs"))
         self.assertEqual(resp.status_code, 200)
         lista = list(resp.context["pqrs_lista"])

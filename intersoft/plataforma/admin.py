@@ -1,7 +1,7 @@
 """Registro en Django Admin para los modelos de plataforma."""
 from django.contrib import admin
 
-from .models import AuditoriaPlataforma, ConfiguracionCobroPlataforma, RolPlataforma
+from .models import AnuncioGlobal, AuditoriaPlataforma, ConfiguracionCobroPlataforma, RolPlataforma
 
 
 @admin.register(RolPlataforma)
@@ -40,3 +40,9 @@ class ConfiguracionCobroPlataformaAdmin(admin.ModelAdmin):
         "actualizado_en",
     )
     exclude = ("llave_privada_cifrada", "secreto_integridad_cifrado", "secreto_eventos_cifrado")
+
+
+@admin.register(AnuncioGlobal)
+class AnuncioGlobalAdmin(admin.ModelAdmin):
+    list_display = ("titulo", "tipo", "activo", "inicia_en", "vence_en", "creado_por")
+    list_filter = ("tipo", "activo")

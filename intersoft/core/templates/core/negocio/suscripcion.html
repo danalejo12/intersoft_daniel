@@ -165,6 +165,7 @@
                     <option value="MENSUAL" {% if item.es_actual and suscripcion.ciclo == "MENSUAL" %}selected{% endif %}>Mensual: $ {{ item.cobro_mensual|floatformat:"0g" }}{% if item.cobro_mensual != plan.precio_mensual %} (antes $ {{ plan.precio_mensual|floatformat:"0g" }}){% endif %}</option>
                     {% if plan.precio_anual > 0 %}<option value="ANUAL" {% if item.es_actual and suscripcion.ciclo == "ANUAL" %}selected{% endif %}>Anual: $ {{ item.cobro_anual|floatformat:"0g" }}{% if item.cobro_anual != plan.precio_anual %} (antes $ {{ plan.precio_anual|floatformat:"0g" }}){% endif %}</option>{% endif %}
                   </select>
+                  <input type="text" name="cupon" placeholder="Cupón de descuento (opcional)" aria-label="Cupón de descuento" style="margin: 6px 0; width: 100%;">
                 {% else %}
                   <input type="hidden" name="ciclo" value="MENSUAL">
                 {% endif %}

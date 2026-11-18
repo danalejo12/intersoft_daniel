@@ -206,3 +206,26 @@ class Comentario(ModeloTenant):
         if not nombre:
             return "Cliente de Intersoft"
         return f"{nombre} {apellido[0]}." if apellido else nombre
+
+
+class Favorito(ModeloBase):
+    """Producto guardado en favoritos por un comprador del marketplace."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favoritos"
+    )
+    producto = models.ForeignKey(
+        "Producto", on_delete=models.CASCADE, related_name="favoritos"
+    )
+
+    class Meta:
+        verbose_name = "favorito"
+        verbose_name_plural = "favoritos"
+        ordering = ["-creado_en"]
+        constraints = [
+            models.UniqueConstraint(fields=["usuario", "producto"], name="uq_favorito_usuario_producto"),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} ♥ {self.producto}"
+

@@ -6,9 +6,9 @@ from django.views.decorators.debug import sensitive_variables
 
 from core.models import Empresa
 from core.pasarela_negocio import EJEMPLOS, modo_de_llave
-from suscripciones.models import Plan
+from suscripciones.models import CuponPlan, Plan
 
-from .models import ConfiguracionCobroPlataforma
+from .models import AnuncioGlobal, ConfiguracionCobroPlataforma, FeatureFlag
 
 FEATURES_DISPONIBLES = [
     ("marketplace", "Marketplace"),
@@ -256,4 +256,61 @@ class CuposFundadorForm(forms.Form):
         label="Cupos totales de fundador",
         min_value=0,
     )
+
+
+class AnuncioGlobalForm(forms.ModelForm):
+    """Formulario para publicar anuncios globales visibles en /panel/."""
+
+    class Meta:
+        model = AnuncioGlobal
+        fields = ["titulo", "mensaje", "tipo", "inicia_en", "vence_en", "activo"]
+        widgets = {
+            "mensaje": forms.Textarea(attrs={"rows": 3}),
+            "inicia_en": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "vence_en": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["inicia_en"].required = False
+        self.fields["vence_en"].required = False
+
+    def clean_inicia_en(self):
+        from django.utils import timezone
+
+        return self.cleaned_data.get("inicia_en") or timezone.now()
+
+
+class CuponPlanForm(forms.ModelForm):
+    """Formulario para crear cupones de descuento de planes desde /plataforma/planes-cobros/."""
+
+    class Meta:
+        model = CuponPlan
+        fields = ["codigo", "tipo", "valor", "inicia_en", "vence_en", "usos_maximos", "activo"]
+        widgets = {
+            "inicia_en": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "vence_en": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["inicia_en"].required = False
+        self.fields["vence_en"].required = False
+
+    def clean_inicia_en(self):
+        from django.utils import timezone
+
+        return self.cleaned_data.get("inicia_en") or timezone.now()
+
+
+class FeatureFlagForm(forms.ModelForm):
+    """Formulario para activar/desactivar una función específica por negocio."""
+
+    codigo = forms.ChoiceField(label="Funcionalidad", choices=FEATURES_DISPONIBLES)
+
+    class Meta:
+        model = FeatureFlag
+        fields = ["empresa", "codigo", "habilitado"]
+
+
 

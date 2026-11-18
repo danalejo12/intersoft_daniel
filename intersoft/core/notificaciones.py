@@ -74,12 +74,13 @@ def notificar_reembolso_registrado(pedido):
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email])
 
 
-def notificar_alerta_stock_minimo(*, empresa, productos_criticos):
-    """Notifica a los miembros con rol Administrador o Bodega (inventario.movimientos / compras.gestionar) sobre stock crítico."""
+def notificar_alerta_stock_minimo(*, empresa, productos_criticos, existencias_criticas=None):
+    """Notifica a los miembros con rol Administrador o Bodega sobre stock crítico global y por bodega."""
     from .models import Membresia
 
     productos = list(productos_criticos)
-    if not productos:
+    existencias = list(existencias_criticas or [])
+    if not productos and not existencias:
         return 0
 
     membresias = (
@@ -96,15 +97,21 @@ def notificar_alerta_stock_minimo(*, empresa, productos_criticos):
         ):
             destinatarios.append(m.usuario.email)
 
-    asunto = f"Alerta de stock mínimo ({len(productos)} producto(s)) · {empresa.nombre}"
+    total_alertas = len(productos) + len(existencias)
+    asunto = f"Alerta de stock mínimo ({total_alertas} registro(s)) · {empresa.nombre}"
     lineas = [
         f"Hola equipo de {empresa.nombre},",
         "",
-        "Los siguientes productos activos alcanzaron o están por debajo de su stock mínimo configurado:",
+        "Los siguientes productos alcanzaron o están por debajo de su stock mínimo configurado:",
         "",
     ]
     for prod in productos:
         lineas.append(f"- {prod.codigo} · {prod.nombre}: stock actual {prod.stock} (mínimo {prod.stock_minimo})")
+    for ex in existencias:
+        lineas.append(
+            f"- {ex.producto.codigo} · {ex.producto.nombre} (bodega {ex.bodega.nombre}): "
+            f"stock actual {ex.cantidad} (mínimo {ex.stock_minimo})"
+        )
     lineas.append("")
     lineas.append("Ingresa al panel de Inventario o Compras para reabastecerlos.")
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=destinatarios)

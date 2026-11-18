@@ -9,11 +9,12 @@ from .empresas import Empresa
 from .usuarios import Usuario, Permiso, Rol, Membresia
 from .clientes import Cliente
 from .inventario import (
-    FOTOS_EXTRA_MAXIMO, Bodega, Categoria, Existencia, FotoProducto, MovimientoInventario, Producto,
+    FOTOS_EXTRA_MAXIMO, Bodega, Categoria, ConteoFisico, Existencia, FotoProducto,
+    LineaConteoFisico, MovimientoInventario, Producto, TrasladoBodega,
 )
 from .ventas import Factura, DetalleFactura
 from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
-from .pedidos import Comentario, DetallePedido, Orden, Pedido
+from .pedidos import Comentario, DetallePedido, Favorito, Orden, Pedido
 from .caja import PagoCaja, TurnoCaja
 from .tareas import EjecucionTarea
 from .erp import (
@@ -28,5 +29,6 @@ __all__ = [
     "Usuario", "Permiso", "Rol", "Membresia",
     "Cliente",
     "Categoria", "Producto", "FotoProducto", "FOTOS_EXTRA_MAXIMO", "MovimientoInventario",
+    "Bodega", "Existencia", "TrasladoBodega", "ConteoFisico", "LineaConteoFisico",
     "Factura", "DetalleFactura",
 ]

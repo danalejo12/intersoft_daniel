@@ -128,9 +128,18 @@ class Suscripcion(ModeloBase):
         return f"{self.empresa} · {self.plan.nombre} ({self.estado})"
 
     def puede(self, feature: str) -> bool:
-        """Indica si la suscripción está vigente y su plan incluye la funcionalidad solicitada."""
+        """Indica si la suscripción está vigente y su plan (o FeatureFlag del negocio) incluye la funcionalidad."""
         if self.estado not in (self.Estado.TRIAL, self.Estado.ACTIVA):
             return False
+        from django.db import OperationalError, ProgrammingError
+        from plataforma.models import FeatureFlag
+
+        try:
+            flag = FeatureFlag.objects.filter(empresa_id=self.empresa_id, codigo=feature).only("habilitado").first()
+            if flag is not None:
+                return bool(flag.habilitado)
+        except (OperationalError, ProgrammingError):
+            pass
         features_plan = self.plan.features or []
         return feature in features_plan
 
@@ -224,6 +233,13 @@ class CobroSuscripcion(ModeloBase):
     )
     resuelto_en = models.DateTimeField(null=True, blank=True)
     ultima_consulta_en = models.DateTimeField(null=True, blank=True)
+    cupon = models.ForeignKey(
+        "CuponPlan",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cobros",
+    )
 
     class Meta:
         verbose_name = "cobro de suscripción"
@@ -273,4 +289,73 @@ class ConfiguracionSuscripciones(ModeloBase):
             return obj.cupos_fundador if obj is not None else defecto
         except (OperationalError, ProgrammingError):
             return defecto
+
+
+class CuponPlan(ModeloBase):
+    """Cupón de descuento aplicable al pago de planes de suscripción."""
+
+    class Tipo(models.TextChoices):
+        PORCENTAJE = "porcentaje", "Porcentaje (%)"
+        VALOR_FIJO = "valor_fijo", "Valor fijo (COP)"
+
+    codigo = models.CharField("código", max_length=40, unique=True)
+    tipo = models.CharField("tipo de descuento", max_length=15, choices=Tipo.choices, default=Tipo.PORCENTAJE)
+    valor = models.DecimalField(
+        "valor",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    inicia_en = models.DateTimeField("vigente desde", default=timezone.now)
+    vence_en = models.DateTimeField("vigente hasta", null=True, blank=True)
+    usos_maximos = models.PositiveIntegerField("usos máximos", null=True, blank=True)
+    usos_actuales = models.PositiveIntegerField("usos actuales", default=0)
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        verbose_name = "cupón de plan"
+        verbose_name_plural = "cupones de planes"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"{self.codigo} ({self.get_tipo_display()}: {self.valor})"
+
+    def save(self, *args, **kwargs):
+        self.codigo = (self.codigo or "").strip().upper()
+        super().save(*args, **kwargs)
+
+    def esta_vigente(self, ahora=None) -> bool:
+        ahora = ahora or timezone.now()
+        if not self.activo:
+            return False
+        if self.inicia_en and ahora < self.inicia_en:
+            return False
+        if self.vence_en and ahora > self.vence_en:
+            return False
+        if self.usos_maximos is not None and self.usos_actuales >= self.usos_maximos:
+            return False
+        return True
+
+
+class RecordatorioVencimiento(ModeloBase):
+    """Registro idempotente de recordatorios de vencimiento enviados por correo (7, 3 y 1 día)."""
+
+    suscripcion = models.ForeignKey(
+        Suscripcion,
+        on_delete=models.CASCADE,
+        related_name="recordatorios",
+    )
+    dias_antes = models.PositiveSmallIntegerField("días antes del vencimiento")
+    fecha_objetivo = models.DateField("fecha de vencimiento objetivo")
+
+    class Meta:
+        verbose_name = "recordatorio de vencimiento"
+        verbose_name_plural = "recordatorios de vencimiento"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["suscripcion", "dias_antes", "fecha_objetivo"],
+                name="uq_recordatorio_suscripcion_dia_fecha",
+            ),
+        ]
+
 

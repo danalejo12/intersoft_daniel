@@ -20,10 +20,12 @@ from django.contrib import admin
 from django.urls import include, path
 
 from core.views_salud import salud_view
+from suscripciones.views_panel import PreciosPublicosView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("salud/", salud_view, name="salud"),
+    path("precios/", PreciosPublicosView.as_view(), name="precios_publicos"),
     path("plataforma/", include("plataforma.urls")),
     path("pqrs/", include("pqrs.urls")),
     path("soporte/", include("soporte.urls")),

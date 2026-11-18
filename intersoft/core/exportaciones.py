@@ -245,3 +245,67 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
     salida = io.BytesIO()
     wb.save(salida)
     return salida.getvalue()
+
+
+def generar_ticket_pos_pdf(factura) -> bytes:
+    """Genera el ticket POS en formato PDF (80mm) con ReportLab."""
+    buffer = io.BytesIO()
+    ancho = 80 * mm
+    detalles = list(factura.detalles.select_related("producto"))
+    pagos = list(factura.pagos_caja.all())
+    alto = max(140 * mm, (110 + len(detalles) * 14 + len(pagos) * 10) * mm)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=(ancho, alto),
+        leftMargin=5 * mm,
+        rightMargin=5 * mm,
+        topMargin=6 * mm,
+        bottomMargin=6 * mm,
+        title=f"Ticket POS {factura.numero}",
+    )
+    estilos = getSampleStyleSheet()
+    centro = ParagraphStyle("Centro", parent=estilos["Normal"], fontSize=8.5, alignment=1, leading=11)
+    titulo = ParagraphStyle("TituloTicket", parent=estilos["Heading2"], fontSize=11, alignment=1, spaceAfter=2)
+    normal = ParagraphStyle("NormalTicket", parent=estilos["Normal"], fontSize=8, leading=10)
+
+    empresa = factura.empresa
+    elementos = [
+        Paragraph(factura.empresa_nombre or empresa.nombre, titulo),
+        Paragraph(f"NIT {factura.empresa_nit or empresa.nit}", centro),
+        Spacer(1, 3 * mm),
+        Paragraph(f"<b>Venta N.º {factura.numero}</b> · {factura.creado_en:%d/%m/%Y %H:%M}", normal),
+        Paragraph(f"Cliente: {factura.cliente_nombre or factura.cliente.nombre}", normal),
+        Spacer(1, 2 * mm),
+    ]
+
+    filas = [["Producto", "Cant", "Total"]]
+    for d in detalles:
+        filas.append([Paragraph(d.producto.nombre[:28], normal), str(d.cantidad), _pesos(d.subtotal)])
+    filas.append(["", "Subtotal", _pesos(factura.subtotal)])
+    filas.append(["", "IVA", _pesos(factura.iva)])
+    filas.append(["", "TOTAL", _pesos(factura.total)])
+
+    tabla = Table(filas, colWidths=[38 * mm, 12 * mm, 20 * mm])
+    tabla.setStyle(
+        TableStyle(
+            [
+                ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+                ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.black),
+                ("LINEABOVE", (0, -1), (-1, -1), 0.8, colors.black),
+                ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    elementos.append(tabla)
+
+    if pagos:
+        elementos.append(Spacer(1, 3 * mm))
+        elementos.append(Paragraph("<b>Pagos:</b>", normal))
+        for p in pagos:
+            elementos.append(Paragraph(f"- {p.get_metodo_display()}: {_pesos(p.monto)}", normal))
+
+    doc.build(elementos)
+    return buffer.getvalue()
+

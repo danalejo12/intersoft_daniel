@@ -1,0 +1,12 @@
+[run]
+source = core,suscripciones,plataforma,pqrs,soporte
+omit =
+    */migrations/*
+    */tests*.py
+    */management/commands/poblar_datos_demo.py
+    core/facturacion_electronica.py
+
+[report]
+show_missing = True
+skip_covered = False
+fail_under = 85

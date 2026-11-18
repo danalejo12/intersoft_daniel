@@ -97,4 +97,87 @@
       </table>
     </div>
   {% endif %}
+
+  <div class="tarjeta" style="margin-top: 20px;">
+    <div class="tarjeta-cabecera">
+      <h2>Ventas por bodega</h2>
+    </div>
+    <table class="tabla">
+      <thead>
+        <tr><th>Bodega</th><th class="num">Facturas</th><th class="num">Subtotal</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for v in ventas_por_bodega %}
+          <tr>
+            <td>{{ v.bodega__nombre|default:"Sin bodega asignada" }}</td>
+            <td class="num">{{ v.facturas }}</td>
+            <td class="num">$ {{ v.subtotal|floatformat:"0g" }}</td>
+            <td class="num">$ {{ v.total|floatformat:"0g" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Aún no hay facturas emitidas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tarjeta" style="margin-top: 20px;">
+    <div class="tarjeta-cabecera">
+      <h2>Ventas por turno de caja (POS)</h2>
+    </div>
+    <table class="tabla">
+      <thead>
+        <tr><th>Turno / Apertura</th><th>Cajero</th><th>Bodega</th><th class="num">Facturas</th><th class="num">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for t in ventas_por_turno %}
+          <tr>
+            <td>{{ t.turno__creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{{ t.turno__cajero__email }}</td>
+            <td>{{ t.turno__bodega__nombre|default:"—" }}</td>
+            <td class="num">{{ t.facturas }}</td>
+            <td class="num">$ {{ t.total|floatformat:"0g" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">No hay ventas asociadas a turnos de caja.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tarjeta" style="margin-top: 20px;">
+    <div class="tarjeta-cabecera">
+      <h2>Márgenes y rotación por producto y bodega</h2>
+    </div>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Bodega</th>
+          <th class="num">Unidades</th>
+          <th class="num">Ingresos</th>
+          <th class="num">Costo est.</th>
+          <th class="num">Margen</th>
+          <th class="num">Stock</th>
+          <th class="num">Rotación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rotacion_margenes %}
+          <tr>
+            <td><code>{{ r.codigo }}</code> · {{ r.producto }}</td>
+            <td>{{ r.bodega }}</td>
+            <td class="num">{{ r.unidades }}</td>
+            <td class="num">$ {{ r.ingresos|floatformat:"0g" }}</td>
+            <td class="num">$ {{ r.costo_estimado|floatformat:"0g" }}</td>
+            <td class="num">$ {{ r.margen|floatformat:"0g" }}</td>
+            <td class="num">{{ r.stock_actual }}</td>
+            <td class="num">{{ r.rotacion }}x</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">Sin ventas registradas para calcular márgenes y rotación.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

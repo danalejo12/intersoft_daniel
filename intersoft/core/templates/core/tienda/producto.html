@@ -63,6 +63,13 @@
         <p class="nota">Este producto se agotó por ahora. ¡Vuelve pronto!</p>
       {% endif %}
 
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'favorito_toggle' producto.pk %}" style="margin: 10px 0;">
+          {% csrf_token %}
+          <button type="submit" class="boton secundario">♥ Guardar / quitar de favoritos</button>
+        </form>
+      {% endif %}
+
       {% if producto.descripcion %}<div class="descripcion">{{ producto.descripcion|linebreaks }}</div>{% endif %}
 
       <a class="vendedor" href="{% url 'tienda_negocio' producto.empresa.slug %}">

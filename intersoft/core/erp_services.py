@@ -36,13 +36,17 @@ def recibir_compra(*, empresa, pk, usuario):
     if not lineas:
         raise ValidationError("Agrega al menos un producto antes de recibir la compra.")
     subtotal = iva = Decimal("0")
+    from .bodegas import bodega_principal
+
+    bodega_destino = compra.bodega or bodega_principal(empresa)
     for linea in lineas:
         linea.full_clean()
         subtotal += linea.costo * linea.cantidad
         iva += calcular_iva(linea.costo * linea.cantidad, linea.iva_porcentaje)
         registrar_movimiento(empresa=empresa, usuario=usuario, producto=linea.producto,
                              tipo="entrada", cantidad=linea.cantidad,
-                             referencia=f"Compra {compra.referencia}"[:60])
+                             referencia=f"Compra {compra.referencia}"[:60],
+                             bodega=bodega_destino)
     compra.subtotal, compra.iva = subtotal, iva
     compra.total = subtotal + iva
     compra.recibida = True

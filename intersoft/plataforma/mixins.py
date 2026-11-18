@@ -1,14 +1,16 @@
 """Mixins de control de acceso por rol interno para /plataforma/."""
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
 
 from .models import RolPlataforma
 
 
 class PlataformaMixin(LoginRequiredMixin):
-    """Exige usuario autenticado con is_staff=True, RolPlataforma activo y permiso requerido."""
+    """Exige usuario autenticado con is_staff=True, RolPlataforma activo, permiso requerido y 2FA TOTP."""
 
     permiso = ""
+    requiere_totp = True
 
     @classmethod
     def con_permiso(cls, permiso: str):
@@ -32,4 +34,6 @@ class PlataformaMixin(LoginRequiredMixin):
             raise PermissionDenied("Tu rol interno no tiene permiso para esta sección.")
 
         request.rol_plataforma = rol_plataforma
+        if self.requiere_totp and request.session.get("plataforma_totp_verificado") != str(request.user.pk):
+            return redirect("plataforma_totp")
         return super().dispatch(request, *args, **kwargs)

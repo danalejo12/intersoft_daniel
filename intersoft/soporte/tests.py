@@ -159,6 +159,9 @@ class SoporteFeedbackNPSIdeasYPermisosTests(TestCase):
 
         # Desarrollador accede a errores e ideas, pero 403 en comentarios
         self.client.force_login(self.dev)
+        s = self.client.session
+        s["plataforma_totp_verificado"] = str(self.dev.pk)
+        s.save()
         self.assertEqual(self.client.get(reverse("plataforma_errores")).status_code, 200)
         self.assertEqual(self.client.get(reverse("plataforma_comentarios")).status_code, 403)
         resp_ideas = self.client.post(
@@ -174,6 +177,9 @@ class SoporteFeedbackNPSIdeasYPermisosTests(TestCase):
         EncuestaNPS.objects.create(usuario=self.usuario, puntaje=10)
         EncuestaNPS.objects.create(usuario=self.otro, puntaje=5)
         self.client.force_login(self.soporte)
+        s2 = self.client.session
+        s2["plataforma_totp_verificado"] = str(self.soporte.pk)
+        s2.save()
         resp_com = self.client.get(reverse("plataforma_comentarios"))
         self.assertEqual(resp_com.status_code, 200)
         self.assertEqual(resp_com.context["nps_actual"], 0.0)  # 50% promotores - 50% detractores = 0.0

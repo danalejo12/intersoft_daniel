@@ -1,6 +1,7 @@
 """Modelos de la consola interna de plataforma: roles internos, auditoría y llaves de cobro de Intersoft."""
 from django.conf import settings
-from django.db import models
+from django.db import OperationalError, ProgrammingError, models
+from django.db.models import Q
 from django.utils import timezone
 from django.views.decorators.debug import sensitive_variables
 
@@ -44,6 +45,15 @@ class RolPlataforma(ModeloBase):
     )
     rol = models.CharField("rol interno", max_length=20, choices=Rol.choices)
     activo = models.BooleanField("activo", default=True)
+    totp_secreto_cifrado = models.TextField(blank=True)
+    totp_activo = models.BooleanField("2FA TOTP activado", default=False)
+
+    @property
+    def totp_secreto(self) -> str:
+        return descifrar(self.totp_secreto_cifrado)
+
+    def establecer_totp_secreto(self, secreto: str) -> None:
+        self.totp_secreto_cifrado = cifrar(secreto) if secreto else ""
 
     class Meta:
         verbose_name = "rol de plataforma"
@@ -159,3 +169,74 @@ class ConfiguracionCobroPlataforma(ModeloBase):
         limpio = (valor or "").strip()
         setattr(self, CAMPOS_SECRETOS_PLATAFORMA[campo], cifrar(limpio) if limpio else "")
         setattr(self, f"{campo}_final", limpio[-4:] if limpio else "")
+
+
+class AnuncioGlobal(ModeloBase):
+    """Anuncio global publicado desde /plataforma/ visible como aviso en el /panel/ de los negocios."""
+
+    class Tipo(models.TextChoices):
+        INFO = "info", "Información"
+        ADVERTENCIA = "advertencia", "Advertencia"
+        MANTENIMIENTO = "mantenimiento", "Mantenimiento"
+
+    titulo = models.CharField("título", max_length=140)
+    mensaje = models.TextField("mensaje")
+    tipo = models.CharField("tipo", max_length=20, choices=Tipo.choices, default=Tipo.INFO)
+    inicia_en = models.DateTimeField("vigente desde", default=timezone.now)
+    vence_en = models.DateTimeField("vigente hasta", null=True, blank=True)
+    activo = models.BooleanField("activo", default=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="creado por",
+    )
+
+    class Meta:
+        verbose_name = "anuncio global"
+        verbose_name_plural = "anuncios globales"
+        ordering = ["-inicia_en", "-creado_en"]
+
+    def __str__(self):
+        return f"{self.titulo} ({self.get_tipo_display()})"
+
+    @classmethod
+    def vigentes(cls, ahora=None) -> list:
+        ahora = ahora or timezone.now()
+        try:
+            return list(
+                cls.objects.filter(activo=True, inicia_en__lte=ahora)
+                .filter(Q(vence_en__isnull=True) | Q(vence_en__gte=ahora))
+                .order_by("-inicia_en")[:5]
+            )
+        except (OperationalError, ProgrammingError):
+            return []
+
+
+class FeatureFlag(ModeloBase):
+    """Interruptor de funcionalidad por negocio (sobrescribe las features del plan)."""
+
+    empresa = models.ForeignKey(
+        "core.Empresa",
+        on_delete=models.CASCADE,
+        related_name="feature_flags",
+        verbose_name="negocio",
+    )
+    codigo = models.CharField("código de función", max_length=60)
+    habilitado = models.BooleanField("habilitado", default=True)
+
+    class Meta:
+        verbose_name = "interruptor de función"
+        verbose_name_plural = "interruptores de función"
+        ordering = ["empresa__nombre", "codigo"]
+        constraints = [
+            models.UniqueConstraint(fields=["empresa", "codigo"], name="uq_feature_flag_empresa_codigo"),
+        ]
+
+    def __str__(self):
+        estado = "ON" if self.habilitado else "OFF"
+        return f"{self.empresa} · {self.codigo} ({estado})"
+
+

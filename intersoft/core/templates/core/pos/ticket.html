@@ -58,10 +58,16 @@
     <div class="barra">
       <span>Recibo de venta · 80 mm</span>
       <div class="acciones">
+        <a href="{% url 'pos_ticket_pdf' factura.pk %}" target="_blank" rel="noopener"><button type="button">PDF</button></a>
         <button type="button" onclick="window.close()">Cerrar</button>
         <button class="imprimir" type="button" onclick="window.print()">Imprimir</button>
       </div>
     </div>
+    <form method="post" action="{% url 'pos_ticket_correo' factura.pk %}" style="display:flex; gap:6px; margin-bottom:12px;">
+      {% csrf_token %}
+      <input type="email" name="correo" value="{{ factura.cliente.email }}" placeholder="correo@cliente.com" required style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+      <button type="submit">Enviar PDF</button>
+    </form>
     <article class="recibo" aria-label="Recibo de venta {{ factura.numero }}">
       <header class="cabecera">
         <p class="etiqueta">Recibo de venta POS</p>

@@ -7,10 +7,11 @@ from django.conf import settings
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
  
 from ..impuestos import calcular_iva
 from ..tarifas import cargo_pasarela
-from .base import ModeloTenant
+from .base import ModeloBase, ModeloTenant
  
  
 class Categoria(ModeloTenant):
@@ -200,6 +201,7 @@ class Existencia(ModeloTenant):
     bodega = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="existencias")
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="existencias")
     cantidad = models.IntegerField(default=0)
+    stock_minimo = models.PositiveIntegerField("stock mínimo en bodega", null=True, blank=True)
 
     class Meta:
         verbose_name = "existencia por bodega"
@@ -211,3 +213,69 @@ class Existencia(ModeloTenant):
 
     def __str__(self):
         return f"{self.producto} en {self.bodega}: {self.cantidad}"
+
+
+class TrasladoBodega(ModeloTenant):
+    """Traslado en tránsito entre bodegas: descuenta al enviar y suma al confirmar recepción."""
+
+    class Estado(models.TextChoices):
+        ENVIADO = "enviado", "En tránsito (enviado)"
+        RECIBIDO = "recibido", "Recibido"
+        CANCELADO = "cancelado", "Cancelado"
+
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="traslados")
+    origen = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="traslados_salida")
+    destino = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="traslados_entrada")
+    cantidad = models.PositiveIntegerField()
+    estado = models.CharField(max_length=15, choices=Estado.choices, default=Estado.ENVIADO, db_index=True)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="traslados_enviados"
+    )
+    enviado_en = models.DateTimeField(default=timezone.now)
+    recibido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="traslados_recibidos", null=True, blank=True
+    )
+    recibido_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "traslado entre bodegas"
+        verbose_name_plural = "traslados entre bodegas"
+        ordering = ["-enviado_en"]
+
+    def __str__(self):
+        return f"{self.producto} ({self.origen} → {self.destino}: {self.cantidad}, {self.get_estado_display()})"
+
+
+class ConteoFisico(ModeloTenant):
+    """Registro de conteo físico por bodega con ajuste masivo auditado en MovimientoInventario."""
+
+    bodega = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="conteos_fisicos")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="conteos_fisicos"
+    )
+    observaciones = models.CharField(max_length=255, blank=True)
+    aplicado = models.BooleanField(default=False)
+    aplicado_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "conteo físico"
+        verbose_name_plural = "conteos físicos"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"Conteo {self.bodega} ({self.creado_en:%d/%m/%Y})"
+
+
+class LineaConteoFisico(ModeloBase):
+    """Detalle por producto de un conteo físico en bodega."""
+
+    conteo = models.ForeignKey(ConteoFisico, on_delete=models.CASCADE, related_name="lineas")
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
+    stock_sistema = models.IntegerField()
+    stock_contado = models.IntegerField()
+    diferencia = models.IntegerField()
+
+    class Meta:
+        verbose_name = "línea de conteo físico"
+        verbose_name_plural = "líneas de conteo físico"
+

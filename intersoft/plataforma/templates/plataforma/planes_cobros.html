@@ -291,4 +291,85 @@
       <p class="nota">Solo el rol <strong>Dueño</strong> puede modificar o verificar las llaves de Wompi.</p>
     {% endif %}
   </article>
+
+  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-top: 24px;">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Cupones de descuento</h2>
+        <span class="badge neutro">{{ cupones|length }} cupón{{ cupones|length|pluralize:"es" }}</span>
+      </div>
+      <form method="post" class="formulario" style="margin-bottom: 16px;" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="crear_cupon">
+        {% for campo in cupon_form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="boton">Crear cupón</button>
+      </form>
+      <table class="tabla">
+        <thead>
+          <tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for c in cupones %}
+            <tr>
+              <td><code>{{ c.codigo }}</code></td>
+              <td>{{ c.get_tipo_display }}: {{ c.valor }}</td>
+              <td>{{ c.usos_actuales }}{% if c.usos_maximos %} / {{ c.usos_maximos }}{% endif %}</td>
+              <td>{% if c.activo %}<span class="badge exito">Activo</span>{% else %}<span class="badge neutro">Inactivo</span>{% endif %}</td>
+              <td>
+                <form method="post" style="margin:0;">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="toggle_cupon">
+                  <input type="hidden" name="cupon_id" value="{{ c.pk }}">
+                  <button type="submit" class="boton secundario">{% if c.activo %}Desactivar{% else %}Activar{% endif %}</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No hay cupones registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Interruptores de funciones (FeatureFlags)</h2>
+        <span class="badge neutro">{{ feature_flags|length }} ajuste{{ feature_flags|length|pluralize }}</span>
+      </div>
+      <form method="post" class="formulario" style="margin-bottom: 16px;" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="guardar_feature_flag">
+        {% for campo in feature_flag_form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="boton">Guardar FeatureFlag</button>
+      </form>
+      <table class="tabla">
+        <thead>
+          <tr><th>Negocio</th><th>Función</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          {% for ff in feature_flags %}
+            <tr>
+              <td>{{ ff.empresa.nombre }}</td>
+              <td><code>{{ ff.codigo }}</code></td>
+              <td>{% if ff.habilitado %}<span class="badge exito">Habilitado</span>{% else %}<span class="badge peligro">Deshabilitado</span>{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3">Sin interruptores personalizados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </section>
 {% endblock %}

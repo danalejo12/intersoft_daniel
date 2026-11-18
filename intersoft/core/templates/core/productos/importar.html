@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% block titulo %}Importar productos desde Excel · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Importar productos y stock inicial (.xlsx)</h1>
+      <p class="nota">Columnas en la fila 1: <code>codigo</code>, <code>nombre</code>, <code>categoria</code>, <code>precio</code>, <code>costo</code>, <code>iva_porcentaje</code>, <code>stock_minimo</code>, <code>stock_inicial</code>.</p>
+    </div>
+    <a class="boton secundario" href="{% url 'productos_lista' %}">Volver a productos</a>
+  </div>
+
+  <article class="tarjeta">
+    {% if errores %}
+      <div class="mensaje error" style="margin-bottom: 16px;">
+        <div>
+          <strong>Se encontraron errores en el archivo:</strong>
+          <ul>
+            {% for err in errores %}
+              <li>Fila {{ err.fila }}: {{ err.error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="formulario">
+      {% csrf_token %}
+      <div class="campo">
+        <label for="id_archivo">Archivo Excel (.xlsx)</label>
+        <input id="id_archivo" type="file" name="archivo" accept=".xlsx" required>
+      </div>
+      <div class="campo">
+        <label for="id_bodega">Bodega para stock inicial</label>
+        <select id="id_bodega" name="bodega">
+          {% for b in bodegas %}
+            <option value="{{ b.pk }}" {% if b.es_principal %}selected{% endif %}>{{ b.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="boton">Importar catálogo</button>
+    </form>
+  </article>
+{% endblock %}

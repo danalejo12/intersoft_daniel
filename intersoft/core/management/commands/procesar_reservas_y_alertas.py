@@ -5,7 +5,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from core.compras import vencer_pedido
-from core.models import Pedido, Producto
+from core.models import Existencia, Pedido, Producto
 from core.notificaciones import notificar_alerta_stock_minimo
 
 
@@ -41,20 +41,37 @@ class Command(BaseCommand):
             .order_by("empresa__nombre", "codigo")
         )
         por_empresa = defaultdict(list)
+        por_empresa_bodega = defaultdict(list)
         empresas_map = {}
         for prod in criticos_qs:
             por_empresa[prod.empresa_id].append(prod)
             empresas_map[prod.empresa_id] = prod.empresa
 
+        existencias_criticas_qs = (
+            Existencia.objects.filter(
+                bodega__activa=True,
+                producto__activo=True,
+                empresa__activa=True,
+                stock_minimo__isnull=False,
+                cantidad__lte=F("stock_minimo"),
+            )
+            .select_related("empresa", "bodega", "producto")
+            .order_by("empresa__nombre", "bodega__nombre", "producto__codigo")
+        )
+        for ex in existencias_criticas_qs:
+            por_empresa_bodega[ex.empresa_id].append(ex)
+            empresas_map[ex.empresa_id] = ex.empresa
+
         correos_enviados = 0
         if not options.get("sin_correo"):
-            for emp_id, lista in por_empresa.items():
+            for emp_id, empresa in empresas_map.items():
                 correos_enviados += notificar_alerta_stock_minimo(
-                    empresa=empresas_map[emp_id],
-                    productos_criticos=lista,
+                    empresa=empresa,
+                    productos_criticos=por_empresa.get(emp_id, []),
+                    existencias_criticas=por_empresa_bodega.get(emp_id, []),
                 )
 
-        total_criticos = sum(len(v) for v in por_empresa.values())
+        total_criticos = sum(len(v) for v in por_empresa.values()) + sum(len(v) for v in por_empresa_bodega.values())
         self.stdout.write(
             f"Reservas vencidas: {resultados['vencido']} · "
             f"Pagados al revisar: {resultados['pagado']} · "

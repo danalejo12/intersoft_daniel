@@ -113,12 +113,19 @@ class SuscripcionPanelView(TenantMixin, View):
 
         codigo_plan = (request.POST.get("plan") or "").strip()
         ciclo = (request.POST.get("ciclo") or Suscripcion.Ciclo.MENSUAL).strip().upper()
+        cupon_codigo = (request.POST.get("cupon") or "").strip()
 
         plan = Plan.objects.filter(codigo=codigo_plan, activo=True).first()
         if plan is not None and cobros.es_plan_pago(plan):
             # Un plan pago solo se activa cuando Wompi confirma el pago
             try:
-                cobro = cobros.iniciar_cobro(empresa=request.empresa, plan=plan, ciclo=ciclo, usuario=request.user)
+                cobro = cobros.iniciar_cobro(
+                    empresa=request.empresa,
+                    plan=plan,
+                    ciclo=ciclo,
+                    usuario=request.user,
+                    cupon_codigo=cupon_codigo,
+                )
             except cobros.CobroNoDisponible as exc:
                 messages.warning(request, str(exc))
                 return redirect("suscripcion_panel")
@@ -190,3 +197,29 @@ class WompiWebhookSuscripcionesView(View):
                 return HttpResponseBadRequest("Transacción no válida.")
             cobros.aplicar_transaccion(real)
         return HttpResponse(status=200)
+
+
+class PreciosPublicosView(View):
+    """Página pública /precios/ generada dinámicamente desde Plan.objects.filter(activo=True)."""
+
+    template_name = "suscripciones/precios.html"
+
+    def get(self, request):
+        planes = Plan.objects.filter(activo=True).order_by("orden", "precio_mensual")
+        planes_ui = []
+        for p in planes:
+            lim = p.limites or {}
+            features_legibles = [
+                ETIQUETAS_FEATURES.get(cod, cod.replace("_", " ").capitalize())
+                for cod in (p.features or [])
+            ]
+            planes_ui.append(
+                {
+                    "plan": p,
+                    "limites": lim,
+                    "features_legibles": features_legibles,
+                    "es_pago": cobros.es_plan_pago(p),
+                }
+            )
+        return render(request, self.template_name, {"planes_ui": planes_ui})
+

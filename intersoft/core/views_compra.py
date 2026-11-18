@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView, TemplateView
@@ -372,3 +372,69 @@ class EliminarComentarioView(LoginRequiredMixin, View):
         comentario.delete()
         messages.info(request, "Eliminamos tu opinión.")
         return HttpResponseRedirect(f"{reverse('tienda_producto', args=[producto_id])}#comentarios")
+
+
+class FavoritosListView(LoginRequiredMixin, View):
+    """Lista los productos guardados como favoritos por el comprador."""
+
+    def get(self, request):
+        from .models import Favorito
+
+        favoritos = (
+            Favorito.objects.filter(usuario=request.user, producto__activo=True, producto__empresa__activa=True)
+            .select_related("producto", "producto__empresa")
+            .order_by("-creado_en")
+        )
+        return render(request, "core/tienda/favoritos.html", {"favoritos": favoritos})
+
+
+class ToggleFavoritoView(LoginRequiredMixin, View):
+    """Agrega o quita un producto de los favoritos del usuario."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        from .models import Favorito
+
+        producto = get_object_or_404(productos_publicos(), pk=pk)
+        fav, creado = Favorito.objects.get_or_create(usuario=request.user, producto=producto)
+        if creado:
+            messages.success(request, f"Guardamos «{producto.nombre}» en tus favoritos.")
+        else:
+            fav.delete()
+            messages.info(request, f"Quitamos «{producto.nombre}» de tus favoritos.")
+        return redirect("tienda_producto", pk=producto.pk)
+
+
+class VolverAComprarView(LoginRequiredMixin, View):
+    """Recarga al carrito los ítems disponibles de un pedido anterior del comprador."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        pedido = get_object_or_404(Pedido, pk=pk, comprador=request.user)
+        detalles = list(pedido.lineas.all())
+        disponibles = {
+            p.pk: p for p in productos_publicos().filter(pk__in=[d.producto_id for d in detalles])
+        }
+        agregados = 0
+        sin_stock = 0
+        for d in detalles:
+            prod = disponibles.get(d.producto_id)
+            if not prod or (prod.disponible or 0) <= 0:
+                sin_stock += 1
+                continue
+            cantidad = min(d.cantidad, prod.disponible)
+            if cantidad > 0:
+                carrito.agregar(request, prod, cantidad)
+                agregados += 1
+
+        if agregados:
+            msg = f"Agregamos {agregados} producto(s) de tu pedido #{pedido.numero} al carrito."
+            if sin_stock:
+                msg += f" ({sin_stock} sin disponibilidad actual)."
+            messages.success(request, msg)
+        else:
+            messages.warning(request, "Ninguno de los productos de este pedido tiene stock disponible en este momento.")
+        return redirect("carrito")
+

@@ -15,12 +15,12 @@
   --cta-hover: #EA580C;
   --sobre-cta: #0F172A;
   --cta-brillo: rgba(249, 115, 22, .32);
-  --vendedor: #10B981;
-  --vendedor-hover: #059669;
+  --vendedor: #047857;
+  --vendedor-hover: #065F46;
   --sobre-vendedor: #FFFFFF;
   --destacado-fondo: #FACC15;
   --destacado-texto: #1E293B;
-  --descuento-fondo: #EF4444;
+  --descuento-fondo: #DC2626;
   --descuento-texto: #FFFFFF;
   --acento: #0F766E;
   --exito: #10B981;
@@ -143,6 +143,20 @@ svg { flex: none; }
 [id] { scroll-margin-top: 150px; }
 
 :focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+.saltar-contenido {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--primario);
+  color: var(--sobre-primario);
+  font-weight: 700;
+  text-decoration: none;
+}
+.saltar-contenido:focus { left: 12px; }
+.buscador:focus-within { outline: 3px solid var(--foco); outline-offset: 2px; }
 
 .contenedor { width: 100%; max-width: calc(1200px + 2 * var(--margen)); margin: 0 auto; padding: 0 var(--margen); }
 main.contenedor { flex: 1; padding-top: 24px; padding-bottom: 56px; }

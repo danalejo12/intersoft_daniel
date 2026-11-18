@@ -21,6 +21,23 @@
         <a class="boton boton-grande" href="{% url 'marketplace' %}">Seguir comprando</a>
         <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
       </div>
+      {% with ev=pedido.estado_envio %}
+        <ol aria-label="Seguimiento de envío" style="list-style:none; padding:0; margin:18px 0 0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; text-align:center;">
+          <li style="padding:8px; border-radius:8px; border:1px solid #10b981; background:rgba(16,185,129,.12);">
+            <strong>1. Pendiente</strong>
+          </li>
+          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+            <strong>2. Preparando</strong>
+          </li>
+          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+            <strong>3. Enviado</strong>
+            {% if pedido.numero_guia %}<br><small>{{ pedido.transportadora }} · Guía {{ pedido.numero_guia }}</small>{% endif %}
+          </li>
+          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+            <strong>4. Entregado</strong>
+          </li>
+        </ol>
+      {% endwith %}
 
     {% elif estado == "cancelado" %}
       <div class="sello" aria-hidden="true">×</div>
@@ -120,10 +137,16 @@
   {% endif %}
 
   {% if user.is_authenticated and pedido.comprador_id == user.id %}
-    <p class="nota" style="margin-top: 12px;">
-      ¿Tienes alguna petición, queja, reclamo o sugerencia sobre este pedido?
-      <a href="{% url 'pqrs_radicar' %}?pedido={{ pedido.pk }}">Radicar PQRS sobre este pedido</a>
-    </p>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top: 12px;">
+      <form method="post" action="{% url 'pedido_volver_a_comprar' pedido.pk %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="boton secundario">Volver a comprar</button>
+      </form>
+      <p class="nota" style="margin:0;">
+        ¿Tienes alguna petición, queja, reclamo o sugerencia sobre este pedido?
+        <a href="{% url 'pqrs_radicar' %}?pedido={{ pedido.pk }}">Radicar PQRS sobre este pedido</a>
+      </p>
+    </div>
   {% endif %}
 
   <div class="compra-rejilla">
