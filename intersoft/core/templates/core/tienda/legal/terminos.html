@@ -1,0 +1,43 @@
+{% extends "core/tienda/base.html" %}
+{% load static %}
+{% block titulo %}Términos y condiciones · InterSoft{% endblock %}
+
+{% block contenido %}
+  <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=1">
+
+  <div class="legal-contenedor">
+    <nav class="legal-nav" aria-label="Documentos legales">
+      <a class="activo" href="{% url 'legal_terminos' %}">Términos y condiciones</a>
+      <a href="{% url 'legal_privacidad' %}">Política de privacidad</a>
+      <a href="{% url 'legal_devoluciones' %}">Devoluciones y reembolsos</a>
+    </nav>
+
+    <article class="legal-documento">
+      <h1>Términos y Condiciones de Uso</h1>
+      <p class="nota">Última actualización: noviembre de 2026 · República de Colombia</p>
+
+      <div class="legal-aviso" role="note">
+        <strong>Documento base:</strong> este texto sirve como plantilla operativa inicial y debe ser validado por asesoría jurídica antes de su publicación comercial definitiva.
+      </div>
+
+      <h2>1. Objeto y alcance</h2>
+      <p>InterSoft es una plataforma tecnológica multiempresa (SaaS + Marketplace) que permite a comercios independientes gestionar su inventario, punto de venta y catálogo en línea, y a los compradores adquirir productos directamente a cada negocio registrado.</p>
+
+      <h2>2. Relación entre comprador, comercio vendedor e InterSoft</h2>
+      <ul>
+        <li>Cada comercio publicado en el marketplace actúa como <strong>vendedor independiente</strong> y es responsable de la veracidad de sus precios, disponibilidad, despacho, factura y garantía legal de los productos.</li>
+        <li>Los pagos en línea procesados mediante pasarela de pagos (Wompi) se acreditan a la cuenta configurada por el comercio correspondiente.</li>
+        <li>InterSoft provee la infraestructura tecnológica y el canal formal de escalamiento <a href="{% url 'pqrs_mis_list' %}">PQRS</a> cuando un comercio no responde dentro de los plazos establecidos.</li>
+      </ul>
+
+      <h2>3. Cuentas y seguridad</h2>
+      <p>El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso. InterSoft implementa medidas técnicas de protección como bloqueo por intentos fallidos, limitación de peticiones y cifrado de credenciales de pago.</p>
+
+      <h2>4. Uso aceptable y suspensión</h2>
+      <p>Está prohibido publicar productos ilícitos, suplantar comercios o realizar operaciones fraudulentas. InterSoft podrá suspender cuentas o publicaciones que incumplan estos términos o la normativa colombiana vigente.</p>
+
+      <h2>5. Atención de peticiones, quejas y reclamos</h2>
+      <p>Cualquier inquietud o reclamación puede radicarse en el módulo <a href="{% url 'pqrs_mis_list' %}">PQRS</a>. Para devoluciones y retracto consulta nuestra <a href="{% url 'legal_devoluciones' %}">Política de devoluciones y reembolsos</a>.</p>
+    </article>
+  </div>
+{% endblock %}

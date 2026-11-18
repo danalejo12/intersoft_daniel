@@ -138,6 +138,11 @@ urlpatterns = [
     path("favoritos/", views_compra.FavoritosListView.as_view(), name="favoritos_lista"),
     path("favoritos/<uuid:pk>/toggle/", views_compra.ToggleFavoritoView.as_view(), name="favorito_toggle"),
 
+    # Páginas legales públicas
+    path("terminos/", TemplateView.as_view(template_name="core/tienda/legal/terminos.html"), name="legal_terminos"),
+    path("privacidad/", TemplateView.as_view(template_name="core/tienda/legal/privacidad.html"), name="legal_privacidad"),
+    path("devoluciones/", TemplateView.as_view(template_name="core/tienda/legal/devoluciones.html"), name="legal_devoluciones"),
+
     # Cuentas
     path("registro/", views_tienda.RegistroCompradorView.as_view(), name="registro"),
     path("negocio/registrar/", views_tienda.RegistrarNegocioView.as_view(), name="negocio_registrar"),

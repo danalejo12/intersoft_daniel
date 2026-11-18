@@ -570,5 +570,21 @@ class BodegasVistasCoberturaTests(TestCase):
         self.assertIn("object-src 'none'", csp)
         self.assertNotIn("'unsafe-inline'", csp.split("script-src")[1].split(";")[0])
 
+    def test_paginas_legales_publicas(self):
+        self.client.logout()
+        home = self.client.get(reverse("marketplace"))
+        self.assertContains(home, reverse("legal_terminos"))
+        self.assertContains(home, reverse("legal_privacidad"))
+        self.assertContains(home, reverse("legal_devoluciones"))
+
+        for ruta, texto in (
+            ("legal_terminos", "Términos y Condiciones de Uso"),
+            ("legal_privacidad", "Ley 1581 de 2012"),
+            ("legal_devoluciones", "Ley 1480 de 2011"),
+        ):
+            resp = self.client.get(reverse(ruta))
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, texto)
+
 
 

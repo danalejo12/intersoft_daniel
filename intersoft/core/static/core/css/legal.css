@@ -1,0 +1,80 @@
+/* Páginas legales públicas del marketplace (/terminos/, /privacidad/, /devoluciones/) */
+.legal-contenedor {
+  max-width: 820px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legal-nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.legal-nav a.activo {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--sobre-primario);
+}
+
+.legal-documento {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m, 16px);
+  padding: 28px 32px;
+  box-shadow: var(--sombra-s);
+}
+
+.legal-documento h1 {
+  margin: 0 0 6px;
+  font-size: 1.85rem;
+  line-height: 1.2;
+}
+
+.legal-documento h2 {
+  margin: 24px 0 8px;
+  font-size: 1.15rem;
+  color: var(--texto);
+}
+
+.legal-documento p,
+.legal-documento li {
+  line-height: 1.65;
+  color: var(--texto);
+}
+
+.legal-documento ul,
+.legal-documento ol {
+  padding-left: 20px;
+  margin: 8px 0 14px;
+}
+
+.legal-aviso {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--primario-suave);
+  border: 1px solid var(--borde);
+  font-size: 0.9rem;
+  color: var(--texto);
+  margin: 14px 0 18px;
+}
+
+@media (max-width: 640px) {
+  .legal-documento {
+    padding: 20px 18px;
+  }
+}
