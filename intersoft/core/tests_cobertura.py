@@ -562,5 +562,13 @@ class BodegasVistasCoberturaTests(TestCase):
         wb_t = openpyxl.load_workbook(io.BytesIO(resp_pos_xlsx.content))
         self.assertEqual(wb_t.active.cell(row=2, column=8).value, "Abierta")
 
+    def test_cabecera_content_security_policy(self):
+        resp = self.client.get(reverse("marketplace"))
+        self.assertEqual(resp.status_code, 200)
+        csp = resp.get("Content-Security-Policy", "")
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("object-src 'none'", csp)
+        self.assertNotIn("'unsafe-inline'", csp.split("script-src")[1].split(";")[0])
+
 
 

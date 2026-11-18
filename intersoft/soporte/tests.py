@@ -183,3 +183,43 @@ class SoporteFeedbackNPSIdeasYPermisosTests(TestCase):
         resp_com = self.client.get(reverse("plataforma_comentarios"))
         self.assertEqual(resp_com.status_code, 200)
         self.assertEqual(resp_com.context["nps_actual"], 0.0)  # 50% promotores - 50% detractores = 0.0
+
+        # Filtros de comentarios
+        self.assertEqual(self.client.get(f"{reverse('plataforma_comentarios')}?util=1").status_code, 200)
+        self.assertEqual(self.client.get(f"{reverse('plataforma_comentarios')}?util=0&pantalla=/panel/").status_code, 200)
+
+        # Detalle y cambio de estado de un error registrado (dev)
+        from .models import ErrorRegistrado
+
+        err = ErrorRegistrado.objects.create(
+            huella="h-test-views",
+            tipo_excepcion="ValueError",
+            mensaje="Fallo controlado",
+            archivo="core/views.py",
+            linea=10,
+            url="/panel/",
+            metodo="GET",
+        )
+        self.client.force_login(self.dev)
+        s3 = self.client.session
+        s3["plataforma_totp_verificado"] = str(self.dev.pk)
+        s3.save()
+        self.assertEqual(self.client.get(reverse("plataforma_error_detalle", args=[err.pk])).status_code, 200)
+        resp_err_upd = self.client.post(
+            reverse("plataforma_error_detalle", args=[err.pk]),
+            {"estado": ErrorRegistrado.Estado.RESUELTO, "notas_internas": "Corregido en vista."},
+            follow=True,
+        )
+        self.assertEqual(resp_err_upd.status_code, 200)
+        err.refresh_from_db()
+        self.assertEqual(err.estado, ErrorRegistrado.Estado.RESUELTO)
+
+        # Reportar problema desde el panel (GET y POST)
+        self.client.force_login(self.usuario)
+        self.assertEqual(self.client.get(reverse("soporte_reportar_problema")).status_code, 200)
+        resp_rep = self.client.post(
+            reverse("soporte_reportar_problema"),
+            {"descripcion": "No cargó el filtro rápido.", "url_origen": "/panel/productos/"},
+            follow=True,
+        )
+        self.assertEqual(resp_rep.status_code, 200)

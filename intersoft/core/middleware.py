@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 from .models import Empresa, Membresia
@@ -104,3 +105,24 @@ class TenantMiddleware:
         membresia = membresias[0]
         request.session["empresa_id"] = str(membresia.empresa_id)
         return membresia
+
+
+class ContentSecurityPolicyMiddleware:
+    """Agrega cabecera Content-Security-Policy (sin 'unsafe-inline' en scripts)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if not getattr(settings, "CSP_ACTIVA", True):
+            return response
+        ruta = request.path_info or request.path
+        if ruta.startswith("/api/docs/") or ruta.startswith("/api/schema/"):
+            return response
+        tipo = (response.get("Content-Type") or "").lower()
+        if "text/html" in tipo and "Content-Security-Policy" not in response:
+            politica = getattr(settings, "CSP_POLITICA", "")
+            if politica:
+                response["Content-Security-Policy"] = politica
+        return response

@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ContentSecurityPolicyMiddleware',
     'core.middleware.TenantMiddleware',
     'axes.middleware.AxesMiddleware',  # al final, como pide django-axes
 ]
@@ -369,6 +370,23 @@ REDIS_URL = config("REDIS_URL", default="")
 CACHES = construir_caches(REDIS_URL)
 
 RATELIMIT_ACTIVO = config("RATELIMIT_ACTIVO", default=("test" not in sys.argv), cast=bool)
+
+CSP_ACTIVA = config("CSP_ACTIVA", default=True, cast=bool)
+CSP_POLITICA = config(
+    "CSP_POLITICA",
+    default=(
+        "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net https://checkout.wompi.co; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https:; "
+        "connect-src 'self' https://production.wompi.co https://sandbox.wompi.co; "
+        "frame-src 'self' https://checkout.wompi.co; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'"
+    ),
+)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "InterSoft API",
