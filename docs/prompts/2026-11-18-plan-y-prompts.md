@@ -223,7 +223,7 @@ No cambies lógica de negocio salvo para agregar pruebas. No toques la DIAN.
 
 ### Consola y negocio SaaS
 
-#### Prompt 7: «Entrar como» un negocio + anuncios globales
+#### Prompt 7: «Entrar como» un negocio + anuncios globales — **Completado**
 ```text
 Contexto: ya existe la app `plataforma` (/plataforma/) con roles internos (Dueño, Soporte) y AuditoriaPlataforma.
 
@@ -239,7 +239,7 @@ Tarea:
 Restricciones: no toques core/facturacion_electronica.py. Pruebas de aislamiento, solo lectura y auditoría en verde.
 ```
 
-#### Prompt 8: Cupones de descuento, página pública de precios y recordatorios de vencimiento
+#### Prompt 8: Cupones de descuento, página pública de precios y recordatorios de vencimiento — **Completado**
 ```text
 Contexto: los cobros de planes están en suscripciones/cobros.py y suscripciones/services.py.
 
@@ -257,7 +257,7 @@ Restricciones: no toques la DIAN. Pruebas en verde.
 
 ### Inventario y bodegas
 
-#### Prompt 9: Compras con bodega destino, alertas por bodega y conteo físico
+#### Prompt 9: Compras con bodega destino, alertas por bodega y conteo físico — **Completado**
 ```text
 Contexto: existen core.Bodega, core.Existencia y core.bodegas.py; hoy las compras del ERP entran a la Principal.
 
@@ -275,7 +275,7 @@ Restricciones: no toques la DIAN. Pruebas de concurrencia e inventario en verde.
 
 ### Marketplace y POS
 
-#### Prompt 10: Ticket POS en PDF, seguimiento de envío y favoritos
+#### Prompt 10: Ticket POS en PDF, seguimiento de envío y favoritos — **Completado**
 ```text
 Contexto: el marketplace está en core/views_tienda.py y core/views_compra.py; el POS en core/views_pos.py.
 
@@ -292,7 +292,7 @@ Restricciones: no toques la DIAN. Pruebas en verde.
 
 ### Calidad y operación
 
-#### Prompt 11: Umbral de cobertura en CI, rate limiting y respaldos automáticos
+#### Prompt 11: Umbral de cobertura en CI, rate limiting y respaldos automáticos — **Completado**
 ```text
 Contexto: el CI está en .github/workflows/pruebas.yml y el reporte de cobertura en docs/adso/Reporte-Cobertura-InterSoft.md.
 
