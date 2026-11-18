@@ -703,25 +703,33 @@ body > main { min-height: 100vh; display: grid; place-items: center; padding: 24
   .cuenta-texto { display: none; }
 }
 @media (max-width: 760px) {
-  .escena { grid-template-columns: 1fr; padding: 12px 12px 96px; }
-  .dock {                                  /* el dock pasa abajo, horizontal */
+  .escena { grid-template-columns: 1fr; padding: 12px 12px 108px; }
+  .dock {                                  /* el dock pasa abajo, horizontal y desplazable */
     position: fixed;
     top: auto;
-    bottom: 14px;
-    left: 50%;
-    z-index: 20;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 30;
     flex-direction: row;
+    justify-content: flex-start;
+    max-width: calc(100vw - 24px);
     min-height: 0;
     margin: 0;
     padding: 8px 10px;
-    transform: translateX(-50%);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    transform: none;
   }
-  .dock-espacio { display: none; }
+  .dock::-webkit-scrollbar { display: none; }
+  .dock a, .dock-salir { flex: 0 0 auto; }
+  .dock-expandir, .dock-espacio { display: none; }
   .dock [data-label]::after { display: none; }
   .ventana { border-radius: 26px; min-height: auto; }
   .barra { flex-wrap: wrap; gap: 12px; padding: 16px; }
   .busqueda { order: 3; flex-basis: 100%; }
-  main { padding: 20px 16px 28px; }
+  main { padding: 20px 16px 32px; }
   .formulario { padding: 20px; }
   .tabla { display: block; overflow-x: auto; white-space: nowrap; }
   .acciones { flex-direction: column-reverse; align-items: stretch; }

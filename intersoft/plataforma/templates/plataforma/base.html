@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <script src="{% static 'core/js/dock-init.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=23">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=24">
 </head>
 <body>
 {% with ruta=request.resolver_match.url_name rol=request.rol_plataforma %}
@@ -89,6 +89,6 @@
   </div>
 </div>
 {% endwith %}
-<script defer src="{% static 'core/js/app.js' %}?v=3"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=4"></script>
 </body>
 </html>
