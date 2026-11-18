@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block titulo %}Perfil del negocio · {{ object.nombre }} · Intersoft{% endblock %}
 
 {% block contenido %}
@@ -158,26 +159,10 @@
     </form>
   </section>
 
-  <script>
-    (function () {
-      var input = document.getElementById("{{ form.logo.id_for_label }}");
-      var preview = document.getElementById("negocio-logo-preview");
-      var nombre = document.getElementById("negocio-logo-nombre");
-      if (!input || !preview || !nombre) return;
-      input.addEventListener("change", function () {
-        var archivo = input.files && input.files[0];
-        if (!archivo) return;
-        nombre.textContent = archivo.name;
-        var lector = new FileReader();
-        lector.onload = function (ev) {
-          preview.innerHTML = "";
-          var img = document.createElement("img");
-          img.src = ev.target.result;
-          img.alt = "Vista previa del logo";
-          preview.appendChild(img);
-        };
-        lector.readAsDataURL(archivo);
-      });
-    })();
-  </script>
+  <div data-preview-imagen
+       data-preview-input="{{ form.logo.id_for_label }}"
+       data-preview-target="negocio-logo-preview"
+       data-preview-nombre="negocio-logo-nombre"
+       data-preview-alt="Vista previa del logo"></div>
+  <script defer src="{% static 'core/js/preview-imagen.js' %}"></script>
 {% endblock %}

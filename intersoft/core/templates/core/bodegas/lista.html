@@ -41,7 +41,7 @@
               <a class="boton secundario pequeno" href="{% url 'bodegas_editar' bodega.pk %}">Editar</a>
               {% if bodega.activa and not bodega.es_principal and not bodega.vende_en_linea %}
                 <form method="post" action="{% url 'bodegas_desactivar' bodega.pk %}" style="display:inline"
-                      onsubmit="return confirm('¿Desactivar esta bodega?');">
+                      data-confirmar="¿Desactivar esta bodega?">
                   {% csrf_token %}
                   <button type="submit" class="boton peligro pequeno">Desactivar</button>
                 </form>

@@ -29,7 +29,7 @@
     </div>
     <div class="acciones">
       <a class="boton fantasma" href="{% url 'pos' %}">Cancelar</a>
-      <button type="submit" class="boton peligro" onclick="return confirm('¿Cerrar la caja? Después no podrás vender en este turno.');">Cerrar caja</button>
+      <button type="submit" class="boton peligro" data-confirmar="¿Cerrar la caja? Después no podrás vender en este turno.">Cerrar caja</button>
     </div>
   </form>
 {% endblock %}

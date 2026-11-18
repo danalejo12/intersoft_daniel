@@ -1,13 +1,23 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block titulo %}Pagos en línea · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="pagos">
-    <header class="pagos-encabezado">
+  <link rel="stylesheet" href="{% static 'core/css/pagos-negocio.css' %}?v=1">
+
+  <div class="pagos-central pagos">
+    <header class="tarjeta pagos-encabezado">
       <h1>Pagos en línea</h1>
       <p class="nota">Conecta tu propia cuenta de Wompi: el dinero de tus ventas llega directo a tu banco, sin pasar por Intersoft.</p>
-      <p>En Wompi configura esta URL para los eventos de tu comercio:</p>
-      <p><code>{{ webhook_url }}</code></p>
+
+      <div class="pagos-webhook-caja">
+        <div class="pagos-webhook-info">
+          <span class="pagos-webhook-etiqueta">URL de eventos en Wompi (Webhook)</span>
+          <code class="pagos-webhook-url" id="webhook-url-texto">{{ webhook_url }}</code>
+        </div>
+        <button type="button" class="boton secundario" id="btn-copiar-webhook">Copiar URL</button>
+      </div>
+
       <p class="nota">La verificación consulta las llaves pública y privada. Los secretos de integridad y eventos solo se validan por formato; confirma su funcionamiento con un pago de prueba.</p>
     </header>
 
@@ -70,31 +80,49 @@
       <h2 id="titulo-llaves">Llaves de Wompi</h2>
       <p class="nota">Las guardamos cifradas y nunca las volvemos a mostrar. Para cambiar un secreto, escríbelo de nuevo; si lo dejas vacío, conservamos el que ya está.</p>
       {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
-      {% for campo in form %}
-        {% if campo.name == "cobrar_tarifa_al_comprador" %}<h3 class="pagos-subtitulo">Tarifa de la pasarela</h3>{% endif %}
-        <div class="campo{% if campo.field.widget.input_type == 'checkbox' %} check{% endif %}">
-          {% if campo.field.widget.input_type == "checkbox" %}
-            {{ campo }} {{ campo.label_tag }}
-          {% else %}
-            {{ campo.label_tag }} {{ campo }}
+
+      <div class="pagos-campos-rejilla">
+        {% for campo in form %}
+          {% if campo.name == "cobrar_tarifa_al_comprador" %}
+            </div>
+            <h3 class="pagos-subtitulo">Tarifa de la pasarela</h3>
+            <div class="pagos-campos-rejilla">
           {% endif %}
-          {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
-          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-        </div>
-      {% endfor %}
+          <div class="campo{% if campo.field.widget.input_type == 'checkbox' %} check{% endif %}">
+            {% if campo.field.widget.input_type == "checkbox" %}
+              {{ campo }} {{ campo.label_tag }}
+            {% else %}
+              {{ campo.label_tag }} {{ campo }}
+            {% endif %}
+            {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+
       <p class="nota">Las tarifas por defecto son las públicas de Wompi (2,65 % + $700, más IVA). Si negociaste otras, ponlas aquí.</p>
       <div class="acciones">
         <a href="{% url 'dashboard' %}">Cancelar</a>
-        <button type="submit">Guardar</button>
+        <button type="submit">Guardar configuración</button>
       </div>
     </form>
 
     {% if config %}
-      <form method="post" action="{% url 'negocio_pagos_eliminar' %}" class="pagos-borrar"
-            onsubmit="return confirm('¿Borrar tus llaves de Wompi? Dejarás de recibir pagos en línea hasta que las vuelvas a poner.');">
-        {% csrf_token %}
-        <button type="submit" class="boton peligro pequeno">Borrar llaves de Intersoft</button>
-      </form>
+      <section class="tarjeta pagos-zona-peligro" aria-label="Desconectar pasarela">
+        <div>
+          <strong>Desconectar cuenta de Wompi</strong>
+          <p class="nota">Dejarás de recibir pagos en línea hasta que vuelvas a ingresar tus llaves.</p>
+        </div>
+        <form method="post" action="{% url 'negocio_pagos_eliminar' %}" id="form-borrar-pagos"
+              data-confirmar="¿Borrar tus llaves de Wompi? Dejarás de recibir pagos en línea hasta que las vuelvas a poner.">
+          {% csrf_token %}
+          <button type="submit" class="boton peligro pequeno">Borrar llaves de Intersoft</button>
+        </form>
+      </section>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block scripts %}
+  <script defer src="{% static 'core/js/pagos-negocio.js' %}?v=1"></script>
 {% endblock %}

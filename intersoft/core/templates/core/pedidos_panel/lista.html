@@ -1,117 +1,192 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block titulo %}Pedidos del marketplace · Intersoft{% endblock %}
 
 {% block contenido %}
+  <link rel="stylesheet" href="{% static 'core/css/pedidos-panel.css' %}?v=1">
+
   <div class="encabezado">
     <div>
       <h1>Pedidos del marketplace</h1>
-      <p class="nota">Cobros directos a tu cuenta, logística de despacho y reembolsos.</p>
+      <p class="nota">Resumen financiero, control de despacho por bodega y gestión de reembolsos.</p>
     </div>
-    <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
+    <div class="acciones-fila">
+      <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
+    </div>
   </div>
 
-  <section class="kpis">
-    <article class="kpi">
-      <div class="kpi-cabecera"><span>Bruto cobrado (pagados)</span></div>
+  <section class="pedidos-panel-kpis" aria-label="Indicadores de pedidos del marketplace">
+    <article class="kpi pedidos-panel-kpi">
+      <div class="kpi-cabecera"><span>Total cobrado (pagados)</span></div>
       <strong>$ {{ liquidacion.bruto|floatformat:"0g" }}</strong>
-      <small>{{ liquidacion.cantidad }} pedido{{ liquidacion.cantidad|pluralize }} pagado{{ liquidacion.cantidad|pluralize }}</small>
+      <div class="pedidos-desglose-kpi">
+        <span>{{ liquidacion.cantidad }} pedido{{ liquidacion.cantidad|pluralize }}</span>
+        <span>Ticket prom.: $ {{ liquidacion.ticket_promedio|floatformat:"0g" }}</span>
+      </div>
     </article>
 
-    <article class="kpi violeta">
-      <div class="kpi-cabecera"><span>Comisiones históricas</span></div>
-      <strong>$ {{ liquidacion.comision|floatformat:"0g" }}</strong>
-      <small>Los pedidos nuevos no pagan comisión a Intersoft.</small>
-    </article>
-
-    <article class="kpi verde">
-      <div class="kpi-cabecera"><span>Valor antes de otros descuentos de Wompi</span></div>
+    <article class="kpi verde pedidos-panel-kpi">
+      <div class="kpi-cabecera"><span>Neto para tu negocio</span></div>
       <strong>$ {{ liquidacion.neto|floatformat:"0g" }}</strong>
-      <small>Incluye $ {{ liquidacion.envio|floatformat:"0g" }} en envíos</small>
+      <div class="pedidos-desglose-kpi">
+        <span>Subtotal: $ {{ liquidacion.subtotal|floatformat:"0g" }}</span>
+        <span>IVA: $ {{ liquidacion.iva|floatformat:"0g" }}</span>
+        <span>Envíos: $ {{ liquidacion.envio|floatformat:"0g" }}</span>
+      </div>
     </article>
 
-    <article class="kpi {% if pendientes_reembolso %}rojo{% elif pendientes_despacho %}ambar{% else %}verde{% endif %}">
-      <div class="kpi-cabecera"><span>Atención operativa</span></div>
-      <strong>{{ pendientes_reembolso }} reembolso{{ pendientes_reembolso|pluralize }} · {{ pendientes_despacho }} envío{{ pendientes_despacho|pluralize }}</strong>
-      <small>{{ reembolsados_total }} reembolso{{ reembolsados_total|pluralize }} procesado{{ reembolsados_total|pluralize }}</small>
+    <article class="kpi violeta pedidos-panel-kpi">
+      <div class="kpi-cabecera"><span>Logística de despacho</span></div>
+      <strong>{{ pendientes_despacho }} por despachar</strong>
+      <div class="pedidos-desglose-kpi">
+        <span>{{ conteos.en_camino }} en camino</span>
+        <span>{{ conteos.entregados }} entregado{{ conteos.entregados|pluralize }}</span>
+      </div>
+    </article>
+
+    <article class="kpi {% if pendientes_reembolso %}rojo{% elif conteos.pendientes_pago %}ambar{% else %}verde{% endif %} pedidos-panel-kpi">
+      <div class="kpi-cabecera"><span>Cobros y reembolsos</span></div>
+      <strong>{{ conteos.pendientes_pago }} por pagar · {{ pendientes_reembolso }} reembolso{{ pendientes_reembolso|pluralize }}</strong>
+      <div class="pedidos-desglose-kpi">
+        <span>Comisión: $ {{ liquidacion.comision|floatformat:"0g" }}</span>
+        <span>Reembolsados: {{ reembolsados_total }}</span>
+      </div>
     </article>
   </section>
 
-  <form method="get" class="acciones-fila" style="margin-bottom: 1rem;">
-    <select name="estado" aria-label="Filtrar por estado de pedido" onchange="this.form.submit()">
+  <nav class="pedidos-tabs-panel" aria-label="Accesos rápidos de pedidos">
+    <a class="pedido-tab-panel {% if not estado_filtro and not envio_filtro %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}">
+      Todos <span class="pedido-tab-conteo">{{ conteos.total }}</span>
+    </a>
+    <a class="pedido-tab-panel {% if estado_filtro == 'pagado' and not envio_filtro %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado">
+      Pagados <span class="pedido-tab-conteo">{{ conteos.pagados }}</span>
+    </a>
+    <a class="pedido-tab-panel {% if envio_filtro == 'pendiente' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=pendiente">
+      Por despachar <span class="pedido-tab-conteo">{{ pendientes_despacho }}</span>
+    </a>
+    <a class="pedido-tab-panel {% if envio_filtro == 'enviado' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=enviado">
+      En camino <span class="pedido-tab-conteo">{{ conteos.en_camino }}</span>
+    </a>
+    <a class="pedido-tab-panel {% if envio_filtro == 'entregado' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=entregado">
+      Entregados <span class="pedido-tab-conteo">{{ conteos.entregados }}</span>
+    </a>
+    <a class="pedido-tab-panel {% if estado_filtro == 'pendiente' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pendiente">
+      Por pagar <span class="pedido-tab-conteo">{{ conteos.pendientes_pago }}</span>
+    </a>
+    {% if pendientes_reembolso %}
+      <a class="pedido-tab-panel {% if estado_filtro == 'requiere_reembolso' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=requiere_reembolso">
+        Requieren reembolso <span class="pedido-tab-conteo">{{ pendientes_reembolso }}</span>
+      </a>
+    {% endif %}
+  </nav>
+
+  <form method="get" class="pedidos-filtros-barra" id="pedidos-filtros-form">
+    <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Buscar # pedido, comprador, documento, guía o ciudad" aria-label="Buscar pedidos del marketplace">
+    <select name="estado" aria-label="Filtrar por estado de pedido" data-auto-enviar>
       <option value="">Todos los estados</option>
       {% for valor, etiqueta in estados_pedido %}
         <option value="{{ valor }}" {% if estado_filtro == valor %}selected{% endif %}>{{ etiqueta }}</option>
       {% endfor %}
     </select>
-    <select name="envio" aria-label="Filtrar por estado de envío" onchange="this.form.submit()">
+    <select name="envio" aria-label="Filtrar por estado de envío" data-auto-enviar>
       <option value="">Todos los envíos</option>
       {% for valor, etiqueta in estados_envio %}
         <option value="{{ valor }}" {% if envio_filtro == valor %}selected{% endif %}>{{ etiqueta }}</option>
       {% endfor %}
     </select>
-    <noscript><button type="submit" class="boton secundario">Filtrar</button></noscript>
-    {% if estado_filtro or envio_filtro %}
-      <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">Limpiar filtros</a>
+    <button type="submit" class="boton secundario">Buscar</button>
+    {% if estado_filtro or envio_filtro or q %}
+      <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">Limpiar</a>
     {% endif %}
   </form>
 
-  <table class="tabla">
-    <thead>
-      <tr>
-        <th>N.º</th>
-        <th>Fecha</th>
-        <th>Comprador</th>
-        <th>Ciudad</th>
-        <th>Estado</th>
-        <th>Despacho</th>
-        <th class="num">Total</th>
-        <th class="num">Comisión</th>
-        <th class="num">Neto</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for pedido in pedidos %}
+  <div class="pedidos-tabla-wrap">
+    <table class="tabla pedidos-tabla">
+      <thead>
         <tr>
-          <td><a href="{% url 'pedidos_panel_detalle' pedido.pk %}">#{{ pedido.numero }}</a></td>
-          <td>{{ pedido.creado_en|date:"d/m/Y H:i" }}</td>
-          <td>{{ pedido.nombre }}</td>
-          <td>{{ pedido.ciudad }}</td>
-          <td>
-            {% if pedido.estado == "requiere_reembolso" %}
-              <span class="alerta">{{ pedido.get_estado_display }}</span>
-            {% elif pedido.estado == "pagado" %}
-              <span class="etiqueta-pagada">{{ pedido.get_estado_display }}</span>
-            {% else %}
-              {{ pedido.get_estado_display }}
-            {% endif %}
-          </td>
-          <td>
-            {% if pedido.estado == "pagado" %}
-              {{ pedido.get_estado_envio_display }}
-              {% if pedido.numero_guia %}<small class="nota">({{ pedido.numero_guia }})</small>{% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td class="num">$ {{ pedido.total|floatformat:"0g" }}</td>
-          <td class="num">$ {{ pedido.comision_valor|floatformat:"0g" }}</td>
-          <td class="num">$ {{ pedido.neto_vendedor|floatformat:"0g" }}</td>
-          <td class="acciones-fila">
-            <a class="boton secundario" href="{% url 'pedidos_panel_detalle' pedido.pk %}">Gestionar</a>
-          </td>
+          <th>Pedido</th>
+          <th>Comprador y destino</th>
+          <th>Productos</th>
+          <th>Pago</th>
+          <th>Logística / Bodega</th>
+          <th class="num">Total cobrado</th>
+          <th class="num">Neto negocio</th>
+          <th>Acciones</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="10">No hay pedidos que coincidan con el filtro seleccionado.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for pedido in pedidos %}
+          <tr>
+            <td class="pedido-num-celda">
+              <a class="pedido-num-principal" href="{% url 'pedidos_panel_detalle' pedido.pk %}">#{{ pedido.numero }}</a>
+              <span class="pedido-subdato">{{ pedido.creado_en|date:"d/m/Y · g:i a" }}</span>
+              {% if pedido.factura %}
+                <span class="pedido-subdato">Fac. <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a></span>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ pedido.nombre }}</strong>
+              <span class="pedido-subdato">{{ pedido.ciudad }}{% if pedido.departamento %}, {{ pedido.departamento }}{% endif %}</span>
+              {% if pedido.telefono %}<span class="pedido-subdato">Tel. {{ pedido.telefono }}</span>{% endif %}
+            </td>
+            <td>
+              {% with lineas=pedido.lineas.all %}
+                <strong>{{ lineas|length }} ítem{{ lineas|length|pluralize }}</strong>
+                {% if lineas %}
+                  <span class="pedido-subdato">{{ lineas.0.cantidad }}× {{ lineas.0.producto.nombre|truncatechars:26 }}{% if lineas|length > 1 %} (+{{ lineas|length|add:"-1" }}){% endif %}</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              {% if pedido.estado == "requiere_reembolso" %}
+                <span class="alerta">{{ pedido.get_estado_display }}</span>
+              {% elif pedido.estado == "pagado" %}
+                <span class="pedido-badge pagado">{{ pedido.get_estado_display }}</span>
+              {% elif pedido.estado == "pendiente" %}
+                <span class="pedido-badge pendiente">{{ pedido.get_estado_display }}</span>
+              {% else %}
+                <span class="pedido-badge vencido">{{ pedido.get_estado_display }}</span>
+              {% endif %}
+              <span class="pedido-subdato">{% if pedido.pago_directo %}Wompi directo{% else %}InterSoft{% endif %}</span>
+            </td>
+            <td>
+              {% if pedido.estado == "pagado" %}
+                <span class="pedido-badge envio">{{ pedido.get_estado_envio_display }}</span>
+                {% if pedido.bodega %}<span class="pedido-subdato">{{ pedido.bodega.nombre }}</span>{% endif %}
+                {% if pedido.numero_guia %}<span class="pedido-subdato">Guía: {{ pedido.numero_guia }}</span>{% endif %}
+              {% else %}
+                <span class="pedido-subdato">—</span>
+              {% endif %}
+            </td>
+            <td class="num">
+              <span class="pedido-cifra-principal">$ {{ pedido.total|floatformat:"0g" }}</span>
+              {% if pedido.costo_envio %}<span class="pedido-subdato">Envío: $ {{ pedido.costo_envio|floatformat:"0g" }}</span>{% endif %}
+              {% if pedido.cargo_pasarela %}<span class="pedido-subdato">Pasarela: $ {{ pedido.cargo_pasarela|floatformat:"0g" }}</span>{% endif %}
+            </td>
+            <td class="num">
+              <span class="pedido-cifra-principal pedido-neto-ok">$ {{ pedido.neto_vendedor|floatformat:"0g" }}</span>
+              {% if pedido.comision_valor %}<span class="pedido-subdato">Com.: -$ {{ pedido.comision_valor|floatformat:"0g" }}</span>{% endif %}
+            </td>
+            <td class="acciones-fila">
+              <a class="boton secundario" href="{% url 'pedidos_panel_detalle' pedido.pk %}">Gestionar</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">No hay pedidos que coincidan con el filtro seleccionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   {% if is_paginated %}
-    <nav class="paginacion">
+    <nav class="paginacion" aria-label="Paginación de pedidos">
       {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
       <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
       {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
     </nav>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script defer src="{% static 'core/js/pedidos-panel.js' %}?v=1"></script>
 {% endblock %}

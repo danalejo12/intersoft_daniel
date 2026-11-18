@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block titulo %}Inicio · Intersoft{% endblock %}
 
 {% block contenido %}
@@ -148,71 +149,6 @@
   {{ serie_meses|json_script:"datos-meses" }}
   {{ serie_dias|json_script:"datos-dias" }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
-  <script>
-    const meses = JSON.parse(document.getElementById("datos-meses").textContent);
-    const dias = JSON.parse(document.getElementById("datos-dias").textContent);
-    const sinAnimacion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const verde = "#7bd66b";
-
-    // Formato corto de dinero: 1.250.000 -> $1,3M · 45.000 -> $45K
-    const corto = (v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}K` : `$${v}`;
-
-    // Gráfica principal: línea suave con relleno degradado
-    const lienzo = document.getElementById("grafica-ventas");
-    const ctx = lienzo.getContext("2d");
-    const relleno = ctx.createLinearGradient(0, 0, 0, 300);
-    relleno.addColorStop(0, "rgba(123, 214, 107, 0.35)");
-    relleno.addColorStop(1, "rgba(123, 214, 107, 0)");
-
-    new Chart(lienzo, {
-      type: "line",
-      data: {
-        labels: meses.etiquetas,
-        datasets: [{
-          data: meses.valores,
-          borderColor: verde,
-          borderWidth: 3,
-          backgroundColor: relleno,
-          fill: true,
-          tension: 0.45,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointHoverBackgroundColor: verde,
-        }],
-      },
-      options: {
-        animation: sinAnimacion ? false : { duration: 1200 },
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: (c) => " $ " + c.parsed.y.toLocaleString("es-CO") } },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "rgba(244,242,238,.45)" }, border: { display: false } },
-          y: {
-            beginAtZero: true,
-            grid: { color: "rgba(255,255,255,.07)" },
-            ticks: { color: "rgba(244,242,238,.45)", callback: corto, maxTicksLimit: 5 },
-            border: { display: false },
-          },
-        },
-      },
-    });
-
-    // Sparkline de la tarjeta de ventas (últimos 7 días)
-    new Chart(document.getElementById("sparkline-ventas"), {
-      type: "line",
-      data: {
-        labels: dias.etiquetas,
-        datasets: [{ data: dias.valores, borderColor: "#5b8cff", borderWidth: 2.5, tension: 0.45, pointRadius: 0, fill: false }],
-      },
-      options: {
-        animation: sinAnimacion ? false : { duration: 900 },
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
-      },
-    });
-  </script>
+  <script defer src="{% static 'core/js/dashboard.js' %}"></script>
   {% endif %}
 {% endblock %}

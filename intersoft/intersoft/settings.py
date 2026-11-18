@@ -348,6 +348,26 @@ REST_FRAMEWORK = {
     },
 }
 
+def construir_caches(redis_url: str = "") -> dict:
+    """Usa Redis cuando REDIS_URL está definido; en otro caso mantiene LocMemCache."""
+    url = (redis_url or "").strip()
+    if url:
+        return {
+            "default": {
+                "BACKEND": "django.core.cache.backends.redis.RedisCache",
+                "LOCATION": url,
+            }
+        }
+    return {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+
+REDIS_URL = config("REDIS_URL", default="")
+CACHES = construir_caches(REDIS_URL)
+
 RATELIMIT_ACTIVO = config("RATELIMIT_ACTIVO", default=("test" not in sys.argv), cast=bool)
 
 SPECTACULAR_SETTINGS = {

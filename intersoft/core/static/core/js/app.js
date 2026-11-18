@@ -199,3 +199,42 @@
   });
   pintar();
 })();
+
+// Utilidades declarativas (sin manejadores inline en HTML): auto-envío, imprimir, confirmar y deducciones ERP
+(() => {
+  document.addEventListener("change", (ev) => {
+    const sel = ev.target.closest("select[data-auto-enviar]");
+    if (sel && sel.form) sel.form.submit();
+  });
+
+  document.addEventListener("submit", (ev) => {
+    const form = ev.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const msg = form.dataset.confirmar;
+    if (msg && !window.confirm(msg)) {
+      ev.preventDefault();
+    }
+  }, true);
+
+  document.addEventListener("click", (ev) => {
+    const btnConfirm = ev.target.closest("button[data-confirmar], a[data-confirmar]");
+    if (btnConfirm) {
+      const msg = btnConfirm.dataset.confirmar;
+      if (msg && !window.confirm(msg)) {
+        ev.preventDefault();
+        return;
+      }
+    }
+    if (ev.target.closest("[data-imprimir]")) {
+      window.print();
+      return;
+    }
+    if (ev.target.closest("[data-calcular-deducciones]")) {
+      const base = parseFloat(document.getElementById("id_base")?.value || "0");
+      const ded = document.getElementById("id_deducciones");
+      if (base > 0 && ded) {
+        ded.value = (Math.round(base * 0.08 * 100) / 100).toFixed(2);
+      }
+    }
+  });
+})();

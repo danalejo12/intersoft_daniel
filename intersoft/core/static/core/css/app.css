@@ -1646,3 +1646,40 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
   font-size: .88rem;
   border-radius: 12px;
 }
+
+/* Clases utilitarias para evitar estilos inline en plantillas */
+.form-sin-margen { margin: 0; }
+.marca-logo-redondo { border-radius: 50%; object-fit: cover; }
+.franja-soporte {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: #991b1b;
+  color: #ffffff;
+  border: 1px solid #fecaca;
+}
+.franja-soporte-salir { background: #ffffff; color: #991b1b; border-color: #ffffff; }
+.mb-22 { margin-bottom: 22px; }
+.mb-18 { margin-bottom: 18px; }
+.mt-16-0 { margin-top: 16px; margin-bottom: 0; }
+.mt-12-0 { margin-top: 12px; margin-bottom: 0; }
+.fila-flex-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.erp-agregar-linea { padding-top: 16px; border-top: 1px solid var(--linea); }
+.erp-agregar-linea h3 { margin: 0 0 12px; font-size: .95rem; color: var(--suave); }
+.erp-linea-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.erp-linea-label { display: block; margin-bottom: 6px; font-size: .82rem; color: var(--suave); }
+.erp-linea-error { color: var(--rojo); font-size: .82rem; margin-top: 4px; }
+.tabla-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 720px) {
+  .tabla-wrap .tabla { min-width: 560px; }
+  .tabla-wrap .tabla th,
+  .tabla-wrap .tabla td { padding: 10px 12px; font-size: .88rem; }
+}

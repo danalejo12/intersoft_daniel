@@ -205,7 +205,7 @@
         {% if pedido.empresa.email %}<br><a href="mailto:{{ pedido.empresa.email }}">{{ pedido.empresa.email }}</a>{% endif %}
       </p>
       {% if pedido.estado == "pendiente" %}
-        <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" onsubmit="return confirm('¿Seguro que quieres cancelar este pedido?');">
+        <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" data-confirmar="¿Seguro que quieres cancelar este pedido?">
           {% csrf_token %}
           <button type="submit" class="enlace">Cancelar pedido</button>
         </form>

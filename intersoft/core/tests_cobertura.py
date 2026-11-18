@@ -288,6 +288,7 @@ class BodegasVistasCoberturaTests(TestCase):
         # 3. Reportes ERP por bodega, turno, margen y rotación
         resp_rep = self.client.get(reverse("erp_reportes"))
         self.assertEqual(resp_rep.status_code, 200)
+        self.assertContains(resp_rep, 'class="tabla-wrap"')
         self.assertContains(resp_rep, "Ventas por bodega")
         self.assertContains(resp_rep, "Ventas por turno de caja")
         self.assertContains(resp_rep, "Márgenes y rotación")
@@ -397,11 +398,69 @@ class BodegasVistasCoberturaTests(TestCase):
         caja.abrir_turno(empresa=self.empresa, usuario=self.usuario, base=50000, bodega=self.principal)
         resp_pos = self.client.get(reverse("pos"))
         self.assertEqual(resp_pos.status_code, 200)
-        self.assertContains(resp_pos, 'class="saltar-contenido"')
         self.assertContains(resp_pos, 'aria-label="Resultados de productos"')
         self.assertContains(resp_pos, 'aria-label="Buscar cliente por nombre o documento"')
         self.assertContains(resp_pos, 'aria-label="Productos en la venta"')
         self.assertContains(resp_pos, 'aria-label="Vaciar venta actual"')
+
+    def test_importacion_excel_errores_y_validaciones(self):
+        import io
+        import openpyxl
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.importaciones import importar_productos_excel
+
+        # 1. Archivo corrupto / no Excel
+        malo = SimpleUploadedFile("malo.xlsx", b"no-es-un-zip", content_type="application/octet-stream")
+        res_malo = importar_productos_excel(empresa=self.empresa, archivo=malo, usuario=self.usuario)
+        self.assertEqual(res_malo["creados"], 0)
+        self.assertTrue(res_malo["errores"])
+
+        # 2. Archivo vacío
+        wb_vacio = openpyxl.Workbook()
+        ws_v = wb_vacio.active
+        ws_v.delete_rows(1, ws_v.max_row + 1)
+        buf_v = io.BytesIO()
+        wb_vacio.save(buf_v)
+        buf_v.seek(0)
+        res_vacio = importar_productos_excel(empresa=self.empresa, archivo=buf_v, usuario=self.usuario)
+        self.assertEqual(res_vacio["creados"], 0)
+        self.assertIn("vacío", res_vacio["errores"][0]["error"])
+
+        # 3. Falta columna obligatoria 'precio'
+        wb_col = openpyxl.Workbook()
+        wb_col.active.append(["codigo", "nombre"])
+        buf_col = io.BytesIO()
+        wb_col.save(buf_col)
+        buf_col.seek(0)
+        res_col = importar_productos_excel(empresa=self.empresa, archivo=buf_col, usuario=self.usuario)
+        self.assertIn("precio", res_col["errores"][0]["error"])
+
+        # 4. Filas con múltiples errores (código existente, duplicado, negativos, IVA > 100, fila en blanco)
+        wb_err = openpyxl.Workbook()
+        ws_e = wb_err.active
+        ws_e.append(["codigo", "nombre", "precio", "costo", "iva_porcentaje", "stock_minimo", "stock_inicial"])
+        ws_e.append([None, None, None, None, None, None, None])  # fila vacía ignorada
+        ws_e.append([self.prod.codigo, "Repetido", 1000, 500, 19, 1, 2])  # código existente
+        ws_e.append(["", "", -10, "abc", 150, -2, "xyz"])  # múltiples errores de tipo/rango
+        ws_e.append(["DUP1", "Valido", 2000, 1000, 19, 1, 5])
+        ws_e.append(["DUP1", "Duplicado en archivo", 2000, 1000, 19, 1, 5])  # duplicado en archivo
+        buf_err = io.BytesIO()
+        wb_err.save(buf_err)
+        buf_err.seek(0)
+        res_err = importar_productos_excel(empresa=self.empresa, archivo=buf_err, usuario=self.usuario)
+        self.assertEqual(res_err["creados"], 0)
+        self.assertEqual(len(res_err["errores"]), 3)
+        self.assertFalse(Producto.objects.filter(empresa=self.empresa, codigo="DUP1").exists())
+
+    def test_configuracion_cache_redis_y_locmem(self):
+        from intersoft.settings import construir_caches
+
+        locmem = construir_caches("")
+        self.assertEqual(locmem["default"]["BACKEND"], "django.core.cache.backends.locmem.LocMemCache")
+
+        redis_cfg = construir_caches("redis://redis:6379/1")
+        self.assertEqual(redis_cfg["default"]["BACKEND"], "django.core.cache.backends.redis.RedisCache")
+        self.assertEqual(redis_cfg["default"]["LOCATION"], "redis://redis:6379/1")
 
 
 

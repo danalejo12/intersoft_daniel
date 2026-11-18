@@ -38,7 +38,7 @@
             type="button"
             class="boton secundario pequeno"
             style="align-self: flex-start; margin-top: 4px;"
-            onclick="const b=parseFloat(document.getElementById('id_base')?.value||0); if(b>0){document.getElementById('id_deducciones').value=(Math.round(b*0.08*100)/100).toFixed(2);}"
+            data-calcular-deducciones
           >
             Calcular 8% de ley (Salud 4% + Pensión 4%)
           </button>

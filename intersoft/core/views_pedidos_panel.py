@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import redirect
 from django.views.generic import DetailView, ListView
 
@@ -48,15 +48,28 @@ class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
         queryset = (
             super()
             .get_queryset()
-            .select_related("comprador", "factura")
+            .select_related("comprador", "factura", "bodega")
+            .prefetch_related("lineas__producto")
             .order_by("-numero")
         )
         self.estado_filtro = self.request.GET.get("estado", "").strip()
         self.envio_filtro = self.request.GET.get("envio", "").strip()
+        self.q = self.request.GET.get("q", "").strip()
         if self.estado_filtro in Pedido.Estado.values:
             queryset = queryset.filter(estado=self.estado_filtro)
         if self.envio_filtro in Pedido.EstadoEnvio.values:
             queryset = queryset.filter(estado_envio=self.envio_filtro)
+        if self.q:
+            filtro_q = (
+                Q(nombre__icontains=self.q)
+                | Q(numero_documento__icontains=self.q)
+                | Q(email__icontains=self.q)
+                | Q(ciudad__icontains=self.q)
+                | Q(numero_guia__icontains=self.q)
+            )
+            if self.q.lstrip("#").isdigit():
+                filtro_q |= Q(numero=int(self.q.lstrip("#")))
+            queryset = queryset.filter(filtro_q)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -66,17 +79,26 @@ class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
         pagados = todos.filter(estado=Pedido.Estado.PAGADO)
         resumen = pagados.aggregate(
             bruto=Sum("total"),
+            subtotal=Sum("subtotal"),
+            iva=Sum("iva"),
+            pasarela=Sum("cargo_pasarela"),
             comision=Sum("comision_valor"),
             neto=Sum("neto_vendedor"),
             envio=Sum("costo_envio"),
             cantidad=Count("id"),
         )
+        cantidad_pagados = resumen["cantidad"] or 0
+        bruto = resumen["bruto"] or Decimal("0.00")
         contexto["liquidacion"] = {
-            "bruto": resumen["bruto"] or Decimal("0.00"),
+            "bruto": bruto,
+            "subtotal": resumen["subtotal"] or Decimal("0.00"),
+            "iva": resumen["iva"] or Decimal("0.00"),
+            "pasarela": resumen["pasarela"] or Decimal("0.00"),
             "comision": resumen["comision"] or Decimal("0.00"),
             "neto": resumen["neto"] or Decimal("0.00"),
             "envio": resumen["envio"] or Decimal("0.00"),
-            "cantidad": resumen["cantidad"] or 0,
+            "cantidad": cantidad_pagados,
+            "ticket_promedio": (bruto / cantidad_pagados) if cantidad_pagados else Decimal("0.00"),
             "comision_actual": empresa.comision_porcentaje,
         }
         contexto["pendientes_reembolso"] = todos.filter(estado=Pedido.Estado.REQUIERE_REEMBOLSO).count()
@@ -84,8 +106,17 @@ class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
         contexto["pendientes_despacho"] = pagados.filter(
             estado_envio__in=[Pedido.EstadoEnvio.PENDIENTE, Pedido.EstadoEnvio.PREPARANDO]
         ).count()
+        contexto["conteos"] = {
+            "total": todos.count(),
+            "pendientes_pago": todos.filter(estado=Pedido.Estado.PENDIENTE).count(),
+            "pagados": cantidad_pagados,
+            "en_camino": pagados.filter(estado_envio=Pedido.EstadoEnvio.ENVIADO).count(),
+            "entregados": pagados.filter(estado_envio=Pedido.EstadoEnvio.ENTREGADO).count(),
+            "vencidos": todos.filter(estado=Pedido.Estado.VENCIDO).count(),
+        }
         contexto["estado_filtro"] = self.estado_filtro
         contexto["envio_filtro"] = self.envio_filtro
+        contexto["q"] = self.q
         contexto["estados_pedido"] = Pedido.Estado.choices
         contexto["estados_envio"] = Pedido.EstadoEnvio.choices
         return contexto

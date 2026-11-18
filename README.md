@@ -183,7 +183,7 @@ El repositorio usa **Python 3.14** (`Dockerfile` y `.github/workflows/pruebas.ym
   ```bash
   docker compose -f compose.dev.yml --env-file intersoft/.env up -d --build
   ```
-- **Producción (`compose.prod.yml`):** levanta **PostgreSQL 16 + Gunicorn + Scheduler (`tareas_periodicas`) + Nginx**:
+- **Producción (`compose.prod.yml`):** levanta **PostgreSQL 16 + Redis 7 + Gunicorn + Scheduler (`tareas_periodicas`) + Nginx** (`REDIS_URL` comparte los contadores de *rate limiting* y *throttling* entre workers):
   1. Crea `intersoft/.env` a partir de `intersoft/.env.example` con `DEBUG=False`, `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `EMAIL_HOST`, `PAGOS_CLAVES_CIFRADO`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
   2. Levanta los servicios desde la raíz del proyecto:
      ```bash

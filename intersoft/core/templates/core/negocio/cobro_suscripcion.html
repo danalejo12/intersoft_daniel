@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block titulo %}Pago del plan · {{ request.empresa.nombre }} · Intersoft{% endblock %}
 
 {% block contenido %}
@@ -32,8 +33,6 @@
 
   {% if cobro.estado == "pendiente" %}
     <noscript><p class="nota"><a href="{% url 'suscripcion_cobro' cobro.pk %}">Actualizar</a></p></noscript>
-    <script>
-      setTimeout(function () { window.location.replace(window.location.pathname); }, 8000);
-    </script>
+    <script defer src="{% static 'core/js/cobro-refresco.js' %}"></script>
   {% endif %}
 {% endblock %}

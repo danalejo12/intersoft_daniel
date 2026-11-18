@@ -1,0 +1,171 @@
+/* Organización visual y números legibles para /panel/pedidos/ */
+.pedidos-panel-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.pedidos-panel-kpi strong,
+.pedidos-panel-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.pedidos-desglose-kpi {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.82rem;
+  color: var(--suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.pedidos-tabs-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pedido-tab-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--tarjeta-borde, rgba(255, 255, 255, 0.12));
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--texto);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.pedido-tab-panel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pedido-tab-panel.activo {
+  background: var(--azul, #5b8cff);
+  border-color: var(--azul, #5b8cff);
+  color: #0b1020;
+}
+
+.pedido-tab-conteo {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  background: rgba(0, 0, 0, 0.22);
+  font-variant-numeric: tabular-nums;
+}
+
+.pedidos-filtros-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pedidos-filtros-barra input[type="search"] {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.pedidos-tabla-wrap {
+  overflow-x: auto;
+  border-radius: var(--radio-tarjeta, 22px);
+}
+
+.pedidos-tabla th {
+  white-space: nowrap;
+}
+
+.pedido-num-celda {
+  white-space: nowrap;
+}
+
+.pedido-num-principal {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pedido-subdato {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.79rem;
+  color: var(--suave);
+}
+
+.pedido-cifra-principal {
+  display: block;
+  font-weight: 700;
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pedido-neto-ok {
+  color: var(--verde, #7bd66b);
+}
+
+.pedido-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pedido-badge.pagado {
+  background: rgba(123, 214, 107, 0.16);
+  color: #9ee890;
+}
+
+.pedido-badge.pendiente {
+  background: rgba(245, 184, 76, 0.16);
+  color: #ffd47d;
+}
+
+.pedido-badge.vencido {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
+.pedido-badge.envio {
+  background: rgba(91, 140, 255, 0.16);
+  color: #9bb8ff;
+}
+
+@media (max-width: 720px) {
+  .pedidos-panel-kpis {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .pedidos-tabs-panel {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pedido-tab-panel {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+  .pedidos-filtros-barra input[type="search"],
+  .pedidos-filtros-barra select,
+  .pedidos-filtros-barra .boton {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .pedidos-tabla th,
+  .pedidos-tabla td {
+    padding: 10px 12px;
+    font-size: 0.88rem;
+  }
+}

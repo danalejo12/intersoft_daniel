@@ -246,3 +246,158 @@ class PqrsFlujosPermisosAislamientoYEscalamientoTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         lista = list(resp.context["pqrs_lista"])
         self.assertEqual(lista[0].pk, p_vencida.pk)
+
+    def test_vistas_comprador_panel_y_plataforma_pqrs(self):
+        from core.models import Pedido
+
+        pedido = Pedido.objects.create(
+            empresa=self.emp_a,
+            comprador=self.comprador_1,
+            numero=7001,
+            nombre="Comprador Uno",
+            email=self.comprador_1.email,
+            estado=Pedido.Estado.PAGADO,
+            expira_en=timezone.now() + timedelta(days=1),
+            total=20000,
+        )
+
+        # 1. Comprador radica y lista en /pqrs/
+        self.client.force_login(self.comprador_1)
+        self.assertEqual(self.client.get(reverse("pqrs_mis_list")).status_code, 200)
+        self.assertEqual(
+            self.client.get(f"{reverse('pqrs_radicar')}?pedido={pedido.pk}").status_code,
+            200,
+        )
+        # Radicación sin empresa ni pedido -> muestra error en formulario
+        resp_err = self.client.post(
+            reverse("pqrs_radicar"),
+            {"tipo": PQRS.Tipo.QUEJA, "asunto": "Sin destino", "descripcion": "Falta negocio"},
+        )
+        self.assertEqual(resp_err.status_code, 200)
+        self.assertContains(resp_err, "Selecciona un negocio")
+
+        resp_rad = self.client.post(
+            reverse("pqrs_radicar"),
+            {
+                "tipo": PQRS.Tipo.RECLAMO,
+                "pedido": str(pedido.pk),
+                "asunto": "Producto incompleto",
+                "descripcion": "Faltó un accesorio en el paquete.",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp_rad.status_code, 200)
+        pqrs_b = PQRS.objects.get(asunto="Producto incompleto")
+        self.assertEqual(pqrs_b.empresa_id, self.emp_a.pk)
+
+        # Comprador envía mensaje en su PQRS
+        resp_msg = self.client.post(
+            reverse("pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "mensaje", "texto": "Adjunto más detalles del caso."},
+            follow=True,
+        )
+        self.assertEqual(resp_msg.status_code, 200)
+        self.assertContains(resp_msg, "Adjunto más detalles")
+
+        # 2. Negocio gestiona en /panel/pqrs/: nota interna + respuesta + cambio de estado
+        self.client.force_login(self.dueno_a)
+        self.assertEqual(self.client.get(reverse("panel_pqrs_lista")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("panel_pqrs_detalle", args=[pqrs_b.pk])).status_code, 200)
+
+        self.client.post(
+            reverse("panel_pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "cambiar_estado", "estado": PQRS.Estado.EN_TRAMITE},
+        )
+        pqrs_b.refresh_from_db()
+        self.assertEqual(pqrs_b.estado, PQRS.Estado.EN_TRAMITE)
+
+        # Nota interna (oculta al comprador) + respuesta pública (cambia a RESPONDIDA)
+        self.client.post(
+            reverse("panel_pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "mensaje", "texto": "Revisando con bodega", "interno": "on"},
+        )
+        self.client.post(
+            reverse("panel_pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "mensaje", "texto": "Ya enviamos el accesorio faltante."},
+        )
+        pqrs_b.refresh_from_db()
+        self.assertEqual(pqrs_b.estado, PQRS.Estado.RESPONDIDA)
+
+        # Negocio radica flujo A hacia Intersoft y responde encuesta al cerrar
+        self.assertEqual(self.client.get(reverse("panel_pqrs_nueva")).status_code, 200)
+        self.client.post(
+            reverse("panel_pqrs_nueva"),
+            {
+                "tipo": PQRS.Tipo.PETICION,
+                "prioridad": PQRS.Prioridad.ALTA,
+                "asunto": "Duda con facturación",
+                "descripcion": "Necesito apoyo en configuración.",
+            },
+            follow=True,
+        )
+        pqrs_a = PQRS.objects.get(asunto="Duda con facturación")
+        self.client.post(
+            reverse("panel_pqrs_detalle", args=[pqrs_a.pk]),
+            {"accion": "encuesta", "calificacion": 5, "comentario_satisfaccion": "Excelente"},
+        )
+        pqrs_a.refresh_from_db()
+        self.assertEqual(pqrs_a.estado, PQRS.Estado.CERRADA)
+
+        # 3. Comprador no ve nota interna, responde encuesta (cierra) y no puede comentar cerrada
+        self.client.force_login(self.comprador_1)
+        det_comp = self.client.get(reverse("pqrs_detalle", args=[pqrs_b.pk]))
+        self.assertNotContains(det_comp, "Revisando con bodega")
+        self.assertContains(det_comp, "Ya enviamos el accesorio faltante.")
+        self.client.post(
+            reverse("pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "encuesta", "calificacion": 4, "comentario_satisfaccion": "Buena solución"},
+        )
+        pqrs_b.refresh_from_db()
+        self.assertEqual(pqrs_b.estado, PQRS.Estado.CERRADA)
+        resp_cerrada = self.client.post(
+            reverse("pqrs_detalle", args=[pqrs_b.pk]),
+            {"accion": "mensaje", "texto": "Intento tras cierre"},
+            follow=True,
+        )
+        self.assertContains(resp_cerrada, "ya está cerrada")
+
+        # 4. Plataforma filtra y gestiona en /plataforma/pqrs/
+        self.client.force_login(self.soporte_plataforma)
+        s = self.client.session
+        s["plataforma_totp_verificado"] = str(self.soporte_plataforma.pk)
+        s.save()
+        self.assertEqual(
+            self.client.get(
+                f"{reverse('plataforma_pqrs')}?estado={PQRS.Estado.CERRADA}&flujo={PQRS.Flujo.NEGOCIO_INTERSOFT}"
+            ).status_code,
+            200,
+        )
+        self.assertEqual(self.client.get(reverse("plataforma_pqrs_detalle", args=[pqrs_a.pk])).status_code, 200)
+        self.client.post(
+            reverse("plataforma_pqrs_detalle", args=[pqrs_a.pk]),
+            {
+                "accion": "gestionar",
+                "estado": PQRS.Estado.EN_TRAMITE,
+                "prioridad": PQRS.Prioridad.URGENTE,
+                "asignado_a": str(self.soporte_plataforma.pk),
+            },
+        )
+        self.client.post(
+            reverse("plataforma_pqrs_detalle", args=[pqrs_a.pk]),
+            {"accion": "mensaje", "texto": "Seguimiento desde consola plataforma."},
+        )
+        pqrs_a.refresh_from_db()
+        self.assertEqual(pqrs_a.estado, PQRS.Estado.RESPONDIDA)
+        self.assertEqual(pqrs_a.prioridad, PQRS.Prioridad.URGENTE)
+
+        from .services import agregar_mensaje_pqrs
+
+        agregar_mensaje_pqrs(
+            pqrs_a,
+            autor=self.soporte_plataforma,
+            texto="Cierre definitivo desde soporte.",
+            nuevo_estado=PQRS.Estado.CERRADA,
+        )
+        pqrs_a.refresh_from_db()
+        self.assertEqual(pqrs_a.estado, PQRS.Estado.CERRADA)
+        self.assertIsNotNone(pqrs_a.cerrada_en)

@@ -14,7 +14,7 @@
       <h2>Planes comerciales</h2>
       <span class="badge neutro">{{ planes|length }} plan{{ planes|length|pluralize:"es" }}</span>
     </div>
-    <table class="tabla">
+    <div class="tabla-wrap"><table class="tabla">
       <thead>
         <tr>
           <th>Plan</th>
@@ -54,7 +54,7 @@
           </tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
@@ -121,7 +121,7 @@
         {{ cobros_revision|length }} pendiente{{ cobros_revision|length|pluralize }}
       </span>
     </div>
-    <table class="tabla">
+    <div class="tabla-wrap"><table class="tabla">
       <thead>
         <tr>
           <th>Referencia</th>
@@ -162,7 +162,7 @@
           <tr><td colspan="6">No hay cobros que requieran revisión manual.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta" style="margin-bottom: 24px;">
@@ -200,7 +200,7 @@
       {% endif %}
     </form>
 
-    <table class="tabla">
+    <div class="tabla-wrap"><table class="tabla">
       <thead>
         <tr>
           <th>Referencia</th>
@@ -227,7 +227,7 @@
           <tr><td colspan="7">No hay cobros de suscripciones que coincidan con el filtro.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta">
@@ -310,7 +310,7 @@
         {% endfor %}
         <button type="submit" class="boton">Crear cupón</button>
       </form>
-      <table class="tabla">
+      <div class="tabla-wrap"><table class="tabla">
         <thead>
           <tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Estado</th><th></th></tr>
         </thead>
@@ -334,7 +334,7 @@
             <tr><td colspan="5">No hay cupones registrados.</td></tr>
           {% endfor %}
         </tbody>
-      </table>
+      </table></div>
     </article>
 
     <article class="tarjeta">
@@ -354,7 +354,7 @@
         {% endfor %}
         <button type="submit" class="boton">Guardar FeatureFlag</button>
       </form>
-      <table class="tabla">
+      <div class="tabla-wrap"><table class="tabla">
         <thead>
           <tr><th>Negocio</th><th>Función</th><th>Estado</th></tr>
         </thead>
@@ -369,7 +369,7 @@
             <tr><td colspan="3">Sin interruptores personalizados.</td></tr>
           {% endfor %}
         </tbody>
-      </table>
+      </table></div>
     </article>
   </section>
 {% endblock %}

@@ -6,10 +6,7 @@
   <title>{% block titulo %}Consola de Plataforma · Intersoft{% endblock %}</title>
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
-  <script>
-    try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
-    catch (e) { document.documentElement.classList.add("dock-abierto"); }
-  </script>
+  <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=23">
 </head>
 <body>

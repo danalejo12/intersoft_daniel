@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
+from django.db.models import Q
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -233,7 +234,42 @@ class MisPedidosView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return Pedido.objects.filter(comprador=self.request.user).select_related("empresa")
+        qs = (
+            Pedido.objects.filter(comprador=self.request.user)
+            .select_related("empresa")
+            .prefetch_related("lineas__producto", "pagos")
+            .order_by("-creado_en")
+        )
+        self.estado_filtro = self.request.GET.get("estado", "").strip()
+        self.q = self.request.GET.get("q", "").strip()
+        if self.estado_filtro == "pendiente":
+            qs = qs.filter(estado=Pedido.Estado.PENDIENTE)
+        elif self.estado_filtro == "pagado":
+            qs = qs.filter(estado=Pedido.Estado.PAGADO)
+        elif self.estado_filtro == "enviado":
+            qs = qs.filter(estado=Pedido.Estado.PAGADO, estado_envio=Pedido.EstadoEnvio.ENVIADO)
+        elif self.estado_filtro == "entregado":
+            qs = qs.filter(estado=Pedido.Estado.PAGADO, estado_envio=Pedido.EstadoEnvio.ENTREGADO)
+
+        if self.q:
+            filtro_q = Q(empresa__nombre__icontains=self.q) | Q(ciudad__icontains=self.q)
+            if self.q.lstrip("#").isdigit():
+                filtro_q |= Q(numero=int(self.q.lstrip("#")))
+            qs = qs.filter(filtro_q)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        base = Pedido.objects.filter(comprador=self.request.user)
+        contexto["estado_filtro"] = self.estado_filtro
+        contexto["q"] = self.q
+        contexto["resumen_pedidos"] = {
+            "total": base.count(),
+            "pendientes": base.filter(estado=Pedido.Estado.PENDIENTE).count(),
+            "pagados": base.filter(estado=Pedido.Estado.PAGADO).count(),
+            "entregados": base.filter(estado=Pedido.Estado.PAGADO, estado_envio=Pedido.EstadoEnvio.ENTREGADO).count(),
+        }
+        return contexto
 
 
 class PedidoDetalleView(LoginRequiredMixin, DetailView):

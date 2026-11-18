@@ -8,14 +8,11 @@
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
-  <script>
-    try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
-    catch (e) { document.documentElement.classList.add("dock-abierto"); }
-  </script>
+  <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=23">
+  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=1">
 </head>
 <body>
-  <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
 {% include "core/includes/bienvenida.html" %}
 
 {% if user.is_authenticated %}
@@ -103,7 +100,7 @@
       <a class="marca" href="{% url 'dashboard' %}">
         <span class="marca-icono">
           {% if request.empresa and request.empresa.logo %}
-            <img src="{{ request.empresa.logo.url }}" alt="{{ request.empresa.nombre }}" width="30" height="30" style="border-radius: 50%; object-fit: cover;">
+            <img src="{{ request.empresa.logo.url }}" alt="{{ request.empresa.nombre }}" width="30" height="30" class="marca-logo-redondo">
           {% else %}
             <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
           {% endif %}
@@ -114,7 +111,7 @@
       {% if request.membresias_activas|length > 1 %}
       <form class="selector-negocio" method="post" action="{% url 'negocio_cambiar' %}">
         {% csrf_token %}
-        <select name="empresa_id" aria-label="Cambiar negocio activo" onchange="this.form.submit()">
+        <select name="empresa_id" aria-label="Cambiar negocio activo" data-auto-enviar>
           {% for m in request.membresias_activas %}
             <option value="{{ m.empresa_id }}" {% if m.empresa_id == request.empresa.id %}selected{% endif %}>
               {{ m.empresa.nombre }} · {{ m.rol.nombre }}
@@ -154,17 +151,14 @@
 
     <main id="contenido-principal" tabindex="-1">
       {% if request.modo_soporte %}
-        <div
-          role="alert"
-          style="position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-bottom: 16px; border-radius: 10px; background: #991b1b; color: #ffffff; border: 1px solid #fecaca;"
-        >
+        <div role="alert" class="franja-soporte">
           <span>
             <strong>MODO SOPORTE</strong> · Estás viendo el panel de <strong>{{ request.empresa.nombre }}</strong>
             ({% if request.soporte_solo_lectura %}Solo lectura{% else %}Lectura y escritura{% endif %})
           </span>
-          <form method="post" action="{% url 'plataforma_salir_soporte' %}" style="margin: 0;">
+          <form method="post" action="{% url 'plataforma_salir_soporte' %}" class="form-sin-margen">
             {% csrf_token %}
-            <button type="submit" class="boton secundario" style="background: #ffffff; color: #991b1b; border-color: #ffffff;">
+            <button type="submit" class="boton secundario franja-soporte-salir">
               Salir de soporte
             </button>
           </form>
@@ -197,29 +191,59 @@
       {% block contenido %}{% endblock %}
 
       {% if user.is_authenticated and request.empresa %}
-        <section class="tarjeta" style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
-          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-            <a class="boton secundario" href="{% url 'soporte_reportar_problema' %}?url={{ request.get_full_path|urlencode }}">Reportar un problema</a>
-            <a class="boton secundario" href="{% url 'soporte_ideas' %}">Ideas y votos</a>
-          </div>
+        <section class="tarjeta soporte-pie" aria-label="Soporte y calificación de experiencia">
+          <div class="soporte-fila">
+            <div class="soporte-acciones">
+              <a class="boton secundario" href="{% url 'soporte_reportar_problema' %}?url={{ request.get_full_path|urlencode }}">Reportar un problema</a>
+              <a class="boton secundario" href="{% url 'soporte_ideas' %}">Ideas y votos</a>
+            </div>
 
-          <form method="post" action="{% url 'soporte_comentario' %}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0;">
-            {% csrf_token %}
-            <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
-            <span class="nota">¿Te resultó útil esta pantalla?</span>
-            <input type="text" name="comentario" placeholder="Comentario opcional..." style="min-width: 170px;">
-            <button type="submit" name="util" value="1" class="boton secundario" aria-label="Útil">👍</button>
-            <button type="submit" name="util" value="0" class="boton secundario" aria-label="No útil">👎</button>
-          </form>
-
-          {% if soporte_mostrar_nps %}
-            <form method="post" action="{% url 'soporte_nps' %}" style="width: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 10px; border-top: 1px solid rgba(148,163,184,.2); margin: 0;">
+            <form method="post" action="{% url 'soporte_comentario' %}" class="soporte-util-form">
               {% csrf_token %}
               <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
-              <span class="nota">¿Qué tanto recomendarías Intersoft? (0 a 10):</span>
-              <input type="number" name="puntaje" min="0" max="10" required style="width: 72px;">
-              <input type="text" name="comentario" placeholder="¿Por qué? (opcional)" style="min-width: 180px;">
-              <button type="submit" class="boton">Enviar NPS</button>
+              <span class="nota">¿Te resultó útil esta pantalla?</span>
+              <input type="text" name="comentario" placeholder="Comentario opcional..." aria-label="Comentario opcional sobre esta pantalla">
+              <button type="submit" name="util" value="1" class="boton secundario soporte-btn-voto positivo" aria-label="Sí, me resultó útil">
+                <span aria-hidden="true">👍</span> <span>Sí</span>
+              </button>
+              <button type="submit" name="util" value="0" class="boton secundario soporte-btn-voto negativo" aria-label="No me resultó útil">
+                <span aria-hidden="true">👎</span> <span>No</span>
+              </button>
+            </form>
+          </div>
+
+          {% if soporte_mostrar_nps %}
+            <form method="post" action="{% url 'soporte_nps' %}" class="nps-caja" id="nps-form">
+              {% csrf_token %}
+              <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
+              <div class="nps-cabecera">
+                <span class="nps-titulo" id="nps-pregunta">¿Qué tanto recomendarías InterSoft a otro negocio?</span>
+                <span class="nps-estado" id="nps-estado" aria-live="polite">Elige un puntaje de 0 a 10</span>
+              </div>
+
+              <div class="nps-escala" role="radiogroup" aria-labelledby="nps-pregunta">
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-0" value="0" required><label class="nps-opcion" for="nps-0">0</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-1" value="1"><label class="nps-opcion" for="nps-1">1</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-2" value="2"><label class="nps-opcion" for="nps-2">2</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-3" value="3"><label class="nps-opcion" for="nps-3">3</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-4" value="4"><label class="nps-opcion" for="nps-4">4</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-5" value="5"><label class="nps-opcion" for="nps-5">5</label></div>
+                <div class="nps-item" data-grupo="detractor"><input class="nps-radio" type="radio" name="puntaje" id="nps-6" value="6"><label class="nps-opcion" for="nps-6">6</label></div>
+                <div class="nps-item" data-grupo="pasivo"><input class="nps-radio" type="radio" name="puntaje" id="nps-7" value="7"><label class="nps-opcion" for="nps-7">7</label></div>
+                <div class="nps-item" data-grupo="pasivo"><input class="nps-radio" type="radio" name="puntaje" id="nps-8" value="8"><label class="nps-opcion" for="nps-8">8</label></div>
+                <div class="nps-item" data-grupo="promotor"><input class="nps-radio" type="radio" name="puntaje" id="nps-9" value="9"><label class="nps-opcion" for="nps-9">9</label></div>
+                <div class="nps-item" data-grupo="promotor"><input class="nps-radio" type="radio" name="puntaje" id="nps-10" value="10"><label class="nps-opcion" for="nps-10">10</label></div>
+              </div>
+
+              <div class="nps-leyenda" aria-hidden="true">
+                <span>0 · Nada probable</span>
+                <span>10 · Muy probable</span>
+              </div>
+
+              <div class="nps-pie-form">
+                <input type="text" name="comentario" id="nps-comentario" placeholder="¿Por qué elegiste ese puntaje? (opcional)" aria-label="Motivo de tu calificación NPS">
+                <button type="submit" class="boton">Enviar calificación</button>
+              </div>
             </form>
           {% endif %}
         </section>
@@ -232,6 +256,7 @@
 {% endif %}
 
 <script defer src="{% static 'core/js/app.js' %}?v=3"></script>
+<script defer src="{% static 'core/js/soporte-widget.js' %}?v=1"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

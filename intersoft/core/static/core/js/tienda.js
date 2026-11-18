@@ -439,3 +439,15 @@
     if (form) form.submit();
   });
 })();
+
+/* Confirmación declarativa en formularios de la tienda */
+(function () {
+  document.addEventListener("submit", function (ev) {
+    var form = ev.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    var msg = form.getAttribute("data-confirmar");
+    if (msg && !window.confirm(msg)) {
+      ev.preventDefault();
+    }
+  });
+})();
