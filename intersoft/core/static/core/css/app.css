@@ -1691,3 +1691,74 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
   .tabla-wrap .tabla th,
   .tabla-wrap .tabla td { padding: 10px 12px; font-size: .88rem; }
 }
+
+/* Campana de notificaciones en barra superior */
+.notificaciones-menu {
+  position: relative;
+}
+.notificaciones-btn {
+  list-style: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--tarjeta-borde);
+  background: rgba(255, 255, 255, .05);
+  color: var(--texto);
+  cursor: pointer;
+}
+.notificaciones-btn::-webkit-details-marker { display: none; }
+.notificaciones-btn svg { width: 18px; height: 18px; }
+.notificaciones-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--rojo);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.notificaciones-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(320px, calc(100vw - 32px));
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(22, 24, 34, .96);
+  border: 1px solid var(--vidrio-borde);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .55);
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+}
+.notificaciones-titulo {
+  margin: 0 0 4px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--suave);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.notificaciones-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .05);
+  color: var(--texto);
+}
+.notificaciones-item:hover {
+  background: rgba(255, 255, 255, .1);
+  color: var(--texto);
+}
+.notificaciones-item strong { display: block; font-size: .9rem; }
+.notificaciones-item small { color: var(--suave); font-size: .8rem; }

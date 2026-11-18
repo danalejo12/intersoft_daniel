@@ -1,0 +1,61 @@
+/* Escáner de cámara para el Punto de Venta */
+.pos-buscar-fila {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.pos-buscar-fila .pos-buscar {
+  flex: 1 1 auto;
+}
+
+.pos-camara-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 0 16px;
+}
+
+.pos-camara-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.pos-camara-dialogo {
+  width: min(460px, calc(100vw - 24px));
+}
+
+.pos-camara-visor {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #050811;
+  aspect-ratio: 4 / 3;
+  margin: 12px 0;
+}
+
+.pos-camara-visor video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pos-camara-guia {
+  position: absolute;
+  inset: 22% 12%;
+  border: 2px dashed rgba(123, 214, 107, 0.85);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .pos-buscar-fila {
+    flex-direction: column;
+  }
+  .pos-camara-btn {
+    justify-content: center;
+    min-height: 46px;
+  }
+}

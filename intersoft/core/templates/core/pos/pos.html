@@ -3,6 +3,7 @@
 {% block titulo %}Punto de venta · Intersoft{% endblock %}
 
 {% block contenido %}
+<link rel="stylesheet" href="{% static 'core/css/pos-camara.css' %}?v=1">
 <div class="pos" data-pos
      data-url-productos="{% url 'pos_productos' %}"
      data-url-clientes="{% url 'pos_clientes' %}"
@@ -34,10 +35,16 @@
       </div>
     </div>
 
-    <div class="pos-buscar">
-      <input type="search" id="pos-buscar" placeholder="Escanea el código o escribe el nombre" autocomplete="off" autofocus
-             aria-label="Buscar producto por código o nombre" aria-controls="pos-resultados">
-      <ul class="pos-resultados" id="pos-resultados" role="listbox" aria-label="Resultados de productos" hidden></ul>
+    <div class="pos-buscar-fila">
+      <div class="pos-buscar">
+        <input type="search" id="pos-buscar" placeholder="Escanea el código o escribe el nombre" autocomplete="off" autofocus
+               aria-label="Buscar producto por código o nombre" aria-controls="pos-resultados">
+        <ul class="pos-resultados" id="pos-resultados" role="listbox" aria-label="Resultados de productos" hidden></ul>
+      </div>
+      <button type="button" class="boton secundario pos-camara-btn" id="pos-escanear-camara" aria-label="Escanear código de barras con cámara">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Cámara
+      </button>
     </div>
     <p class="pos-aviso" id="pos-aviso" role="status" aria-live="polite"></p>
 
@@ -130,8 +137,21 @@
 </dialog>
 
 {{ frecuentes_datos|json_script:"pos-frecuentes" }}
+
+<dialog class="pos-dialogo pos-camara-dialogo" id="pos-camara-dialogo" aria-labelledby="pos-camara-titulo">
+  <h2 id="pos-camara-titulo">Escanear código de barras</h2>
+  <div class="pos-camara-visor">
+    <video id="pos-camara-video" playsinline muted></video>
+    <div class="pos-camara-guia" aria-hidden="true"></div>
+  </div>
+  <p class="nota" id="pos-camara-estado" role="status" aria-live="polite">Iniciando cámara…</p>
+  <div class="acciones">
+    <button type="button" class="boton secundario" id="pos-camara-cerrar">Cerrar</button>
+  </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
   <script src="{% static 'core/js/pos.js' %}?v=1" defer></script>
+  <script src="{% static 'core/js/pos-camara.js' %}?v=1" defer></script>
 {% endblock %}

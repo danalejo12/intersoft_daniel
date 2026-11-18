@@ -1,6 +1,9 @@
 """Endpoint HTTP de verificación de salud para Docker y balanceadores."""
+from pathlib import Path
+
+from django.conf import settings
 from django.db import connections
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 
 def salud_view(request):
@@ -12,3 +15,9 @@ def salud_view(request):
     except Exception:
         return JsonResponse({"estado": "error", "bd": "no_disponible"}, status=503)
     return JsonResponse({"estado": "ok", "bd": "ok"}, status=200)
+
+
+def sw_view(request):
+    """Sirve el Service Worker en la raíz (/) para habilitar la PWA en todo el sitio."""
+    ruta = Path(settings.BASE_DIR) / "core" / "static" / "core" / "js" / "sw.js"
+    return HttpResponse(ruta.read_text(encoding="utf-8"), content_type="application/javascript; charset=utf-8")

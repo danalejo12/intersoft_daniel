@@ -462,5 +462,29 @@ class BodegasVistasCoberturaTests(TestCase):
         self.assertEqual(redis_cfg["default"]["BACKEND"], "django.core.cache.backends.redis.RedisCache")
         self.assertEqual(redis_cfg["default"]["LOCATION"], "redis://redis:6379/1")
 
+    def test_pwa_camara_pos_y_campana_notificaciones(self):
+        # 1. Service worker en la raíz y manifest en tienda
+        resp_sw = self.client.get(reverse("sw_js"))
+        self.assertEqual(resp_sw.status_code, 200)
+        self.assertIn("javascript", resp_sw["Content-Type"])
+        self.assertContains(self.client.get(reverse("marketplace")), "manifest.webmanifest")
+
+        # 2. Campana de notificaciones en /panel/ con stock bajo + escáner cámara en POS
+        self.prod.stock = 1
+        self.prod.stock_minimo = 5
+        self.prod.save(update_fields=["stock", "stock_minimo"])
+
+        self.client.force_login(self.usuario)
+        resp_dash = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp_dash.status_code, 200)
+        self.assertContains(resp_dash, "notificaciones-menu")
+        self.assertContains(resp_dash, "stock bajo")
+
+        caja.abrir_turno(empresa=self.empresa, usuario=self.usuario, base=50000, bodega=self.principal)
+        resp_pos = self.client.get(reverse("pos"))
+        self.assertEqual(resp_pos.status_code, 200)
+        self.assertContains(resp_pos, 'id="pos-escanear-camara"')
+        self.assertContains(resp_pos, 'id="pos-camara-dialogo"')
+
 
 
