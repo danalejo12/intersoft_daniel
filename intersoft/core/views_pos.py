@@ -303,7 +303,25 @@ class TurnosView(PermisoRequeridoMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return super().get_queryset().select_related("cajero")
+        return super().get_queryset().select_related("cajero", "bodega")
+
+
+class TurnosExportarExcelView(PermisoRequeridoMixin, View):
+    """Exporta a Excel (.xlsx) el historial de turnos de caja POS."""
+
+    permiso_requerido = "ventas.ver"
+
+    def get(self, request):
+        from .exportaciones import generar_turnos_pos_excel
+
+        turnos = TurnoCaja.objects.de_empresa(request.empresa).select_related("cajero", "bodega").order_by("-creado_en")
+        contenido = generar_turnos_pos_excel(empresa=request.empresa, turnos=turnos)
+        respuesta = HttpResponse(
+            contenido,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        respuesta["Content-Disposition"] = 'attachment; filename="turnos-caja-pos.xlsx"'
+        return respuesta
 
 
 class TurnoView(PermisoRequeridoMixin, DetailView):

@@ -486,5 +486,81 @@ class BodegasVistasCoberturaTests(TestCase):
         self.assertContains(resp_pos, 'id="pos-escanear-camara"')
         self.assertContains(resp_pos, 'id="pos-camara-dialogo"')
 
+    def test_dashboard_comparativa_bodega_y_exportaciones_excel(self):
+        import io
+        import openpyxl
+        from django.utils import timezone
+
+        cliente = Cliente.objects.create(
+            empresa=self.empresa,
+            nombre="Cliente Analitica",
+            tipo_documento="CC",
+            numero_documento="202020",
+        )
+        ahora = timezone.localtime()
+        inicio_mes = ahora.replace(day=1, hour=12, minute=0, second=0, microsecond=0)
+        mes_ant_fecha = (inicio_mes - timedelta(days=5))
+
+        f_ant = Factura.objects.create(
+            empresa=self.empresa,
+            numero=801,
+            cliente=cliente,
+            creada_por=self.usuario,
+            bodega=self.principal,
+            subtotal=10000,
+            iva=0,
+            total=10000,
+            estado=Factura.Estado.EMITIDA,
+        )
+        Factura.objects.filter(pk=f_ant.pk).update(creado_en=mes_ant_fecha)
+
+        Factura.objects.create(
+            empresa=self.empresa,
+            numero=802,
+            cliente=cliente,
+            creada_por=self.usuario,
+            bodega=self.principal,
+            subtotal=15000,
+            iva=0,
+            total=15000,
+            estado=Factura.Estado.EMITIDA,
+        )
+
+        # 1. Dashboard: comparativa vs mes anterior (+50%) y filtro por bodega
+        self.client.force_login(self.usuario)
+        resp_dash = self.client.get(f"{reverse('dashboard')}?bodega={self.principal.pk}")
+        self.assertEqual(resp_dash.status_code, 200)
+        self.assertEqual(resp_dash.context["ventas_mes"], 15000)
+        self.assertEqual(resp_dash.context["ventas_mes_anterior"], 10000)
+        self.assertEqual(resp_dash.context["variacion_mes_pct"], 50.0)
+        self.assertContains(resp_dash, "+50")
+
+        # 2. Exportar pedidos marketplace a Excel
+        Pedido.objects.create(
+            empresa=self.empresa,
+            comprador=self.usuario,
+            numero=888,
+            nombre="Comprador Export",
+            email="exp@test.co",
+            ciudad="Bogotá",
+            estado=Pedido.Estado.PAGADO,
+            expira_en=timezone.now() + timedelta(days=1),
+            total=25000,
+            neto_vendedor=25000,
+        )
+        resp_ped_xlsx = self.client.get(reverse("pedidos_panel_exportar"))
+        self.assertEqual(resp_ped_xlsx.status_code, 200)
+        self.assertIn("spreadsheetml", resp_ped_xlsx["Content-Type"])
+        wb_p = openpyxl.load_workbook(io.BytesIO(resp_ped_xlsx.content))
+        self.assertEqual(wb_p.active.cell(row=2, column=1).value, 888)
+
+        # 3. Exportar turnos POS a Excel
+        caja.abrir_turno(empresa=self.empresa, usuario=self.usuario, base=50000, bodega=self.principal)
+        resp_pos_xlsx = self.client.get(reverse("pos_turnos_exportar"))
+        self.assertEqual(resp_pos_xlsx.status_code, 200)
+        self.assertIn("spreadsheetml", resp_pos_xlsx["Content-Type"])
+        wb_t = openpyxl.load_workbook(io.BytesIO(resp_pos_xlsx.content))
+        self.assertEqual(wb_t.active.cell(row=2, column=8).value, "Abierta")
+
 
 

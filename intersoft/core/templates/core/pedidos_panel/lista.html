@@ -11,6 +11,7 @@
       <p class="nota">Resumen financiero, control de despacho por bodega y gestión de reembolsos.</p>
     </div>
     <div class="acciones-fila">
+      <a class="boton secundario" href="{% url 'pedidos_panel_exportar' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Exportar Excel</a>
       <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
     </div>
   </div>

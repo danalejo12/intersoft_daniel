@@ -21,7 +21,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
 from .forms import ClienteForm, DatosNegocioForm, PerfilUsuarioForm
 from .mixins import PermisoRequeridoMixin, TenantMixin
-from .models import Cliente, Factura, Membresia, Producto
+from .models import Bodega, Cliente, Factura, Membresia, Producto
 from .primeros_pasos import pasos_del_negocio
 from .redirecciones import destino_seguro
 from .views_facturas import (
@@ -98,18 +98,44 @@ class DashboardView(TenantMixin, TemplateView):
             or self.request.membresia.tiene_permiso("reportes.ver")
         )
         contexto["puede_ver_ventas"] = puede_ver_ventas
+        bodegas_disponibles = list(Bodega.objects.filter(empresa=empresa, activa=True).order_by("-es_principal", "nombre"))
+        bodega_id = (self.request.GET.get("bodega") or "").strip()
+        bodega_activa = next((b for b in bodegas_disponibles if str(b.pk) == bodega_id), None)
+        contexto["bodegas_disponibles"] = bodegas_disponibles
+        contexto["bodega_activa"] = bodega_activa
+
         if puede_ver_ventas:
             ventas = Factura.objects.de_empresa(empresa).exclude(estado=Factura.Estado.ANULADA)
+            if bodega_activa is not None:
+                ventas = ventas.filter(bodega=bodega_activa)
             ahora = timezone.localtime()
             inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if inicio_mes.month == 1:
+                inicio_mes_anterior = inicio_mes.replace(year=inicio_mes.year - 1, month=12)
+            else:
+                inicio_mes_anterior = inicio_mes.replace(month=inicio_mes.month - 1)
             del_mes = ventas.filter(creado_en__gte=inicio_mes).aggregate(total=Sum("total"), cantidad=Count("id"))
-            contexto["ventas_mes"] = del_mes["total"] or 0
+            anterior = ventas.filter(
+                creado_en__gte=inicio_mes_anterior, creado_en__lt=inicio_mes
+            ).aggregate(total=Sum("total"))
+            ventas_mes = del_mes["total"] or 0
+            ventas_mes_anterior = anterior["total"] or 0
+            variacion_pct = (
+                round(float((ventas_mes - ventas_mes_anterior) * 100 / ventas_mes_anterior), 1)
+                if ventas_mes_anterior
+                else None
+            )
+            contexto["ventas_mes"] = ventas_mes
+            contexto["ventas_mes_anterior"] = ventas_mes_anterior
+            contexto["variacion_mes_pct"] = variacion_pct
             contexto["facturas_mes"] = del_mes["cantidad"]
             contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
             contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
             contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
         else:
             contexto["ventas_mes"] = 0
+            contexto["ventas_mes_anterior"] = 0
+            contexto["variacion_mes_pct"] = None
             contexto["facturas_mes"] = 0
             contexto["ultimas_facturas"] = []
             contexto["serie_meses"] = {"etiquetas": [], "valores": []}

@@ -4,10 +4,13 @@ from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.views import View
 from django.views.generic import DetailView, ListView
 
 from . import reservas
+from .exportaciones import generar_pedidos_marketplace_excel
 from .mixins import TenantMixin
 from .models import Pedido
 
@@ -120,6 +123,22 @@ class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
         contexto["estados_pedido"] = Pedido.Estado.choices
         contexto["estados_envio"] = Pedido.EstadoEnvio.choices
         return contexto
+
+
+class PedidoPanelExportarExcelView(AccesoPedidosPanelMixin, View):
+    """Exporta a Excel (.xlsx) los pedidos del marketplace filtrados."""
+
+    def get(self, request):
+        vista = PedidoPanelListView()
+        vista.request = request
+        pedidos = vista.get_queryset()
+        contenido = generar_pedidos_marketplace_excel(empresa=request.empresa, pedidos=pedidos)
+        respuesta = HttpResponse(
+            contenido,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        respuesta["Content-Disposition"] = 'attachment; filename="pedidos-marketplace.xlsx"'
+        return respuesta
 
 
 class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):

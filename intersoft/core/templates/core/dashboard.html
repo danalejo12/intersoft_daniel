@@ -27,16 +27,35 @@
   </section>
   {% endif %}
 
+  {% if puede_ver_ventas and bodegas_disponibles|length > 1 %}
+    <form method="get" class="acciones-fila mb-18">
+      <label for="dashboard-bodega" class="nota">Bodega:</label>
+      <select id="dashboard-bodega" name="bodega" aria-label="Filtrar ventas del tablero por bodega" data-auto-enviar>
+        <option value="">Todas las bodegas</option>
+        {% for b in bodegas_disponibles %}
+          <option value="{{ b.pk }}" {% if bodega_activa and bodega_activa.pk == b.pk %}selected{% endif %}>{{ b.nombre }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  {% endif %}
+
   <!-- Indicadores: cada uno brilla con el color de lo que mide -->
   <section class="kpis">
     {% if puede_ver_ventas %}
     <article class="kpi">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span>
-        <span>Ventas del mes</span>
+        <span>Ventas del mes{% if bodega_activa %} · {{ bodega_activa.nombre }}{% endif %}</span>
       </div>
       <strong>$ {{ ventas_mes|floatformat:"0g" }}</strong>
-      <small>{{ facturas_mes }} factura{{ facturas_mes|pluralize }} <em>este mes</em></small>
+      <small>
+        {{ facturas_mes }} factura{{ facturas_mes|pluralize }} <em>este mes</em>
+        {% if variacion_mes_pct is not None %}
+          · {% if variacion_mes_pct >= 0 %}+{% endif %}{{ variacion_mes_pct }}% vs. mes anterior ($ {{ ventas_mes_anterior|floatformat:"0g" }})
+        {% elif ventas_mes_anterior %}
+          · Mes anterior: $ {{ ventas_mes_anterior|floatformat:"0g" }}
+        {% endif %}
+      </small>
       <canvas class="sparkline" id="sparkline-ventas" aria-label="Ventas de los últimos 7 días"></canvas>
     </article>
     {% endif %}

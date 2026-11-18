@@ -309,3 +309,100 @@ def generar_ticket_pos_pdf(factura) -> bytes:
     doc.build(elementos)
     return buffer.getvalue()
 
+
+def _libro_excel_con_cabecera(titulo_hoja: str, encabezados: list[str], filas: list[list], cols_moneda: tuple[int, ...] = ()) -> bytes:
+    """Construye un libro .xlsx estilizado con encabezados, autoajuste y formato moneda COP."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = titulo_hoja[:31]
+    ws.append(encabezados)
+
+    fill_header = PatternFill("solid", fgColor="0F2A5C")
+    font_header = Font(bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.fill = fill_header
+        cell.font = font_header
+        cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    for fila in filas:
+        ws.append(fila)
+
+    for row in ws.iter_rows(min_row=2):
+        for idx in cols_moneda:
+            if idx - 1 < len(row):
+                row[idx - 1].number_format = '"$ "#,##0'
+
+    for col in ws.columns:
+        max_len = max((len(str(c.value or "")) for c in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(45, max(12, max_len + 4))
+
+    salida = io.BytesIO()
+    wb.save(salida)
+    return salida.getvalue()
+
+
+def generar_pedidos_marketplace_excel(*, empresa, pedidos) -> bytes:
+    """Exporta a Excel (.xlsx) los pedidos del marketplace y su liquidación."""
+    encabezados = [
+        "Pedido #",
+        "Fecha",
+        "Comprador",
+        "Ciudad",
+        "Estado pago",
+        "Estado envío",
+        "Bodega",
+        "Guía",
+        "Subtotal",
+        "IVA",
+        "Envío",
+        "Comisión",
+        "Neto negocio",
+        "Total cobrado",
+    ]
+    filas = []
+    for p in pedidos:
+        filas.append([
+            p.numero,
+            p.creado_en.strftime("%Y-%m-%d %H:%M"),
+            p.nombre,
+            p.ciudad,
+            p.get_estado_display(),
+            p.get_estado_envio_display() if p.estado == p.Estado.PAGADO else "—",
+            p.bodega.nombre if p.bodega else "—",
+            p.numero_guia or "—",
+            float(p.subtotal or 0),
+            float(p.iva or 0),
+            float(p.costo_envio or 0),
+            float(p.comision_valor or 0),
+            float(p.neto_vendedor or 0),
+            float(p.total or 0),
+        ])
+    return _libro_excel_con_cabecera("Pedidos Marketplace", encabezados, filas, cols_moneda=(9, 10, 11, 12, 13, 14))
+
+
+def generar_turnos_pos_excel(*, empresa, turnos) -> bytes:
+    """Exporta a Excel (.xlsx) el historial de turnos de caja POS."""
+    encabezados = [
+        "Apertura",
+        "Cierre",
+        "Cajero",
+        "Bodega",
+        "Base inicial",
+        "Efectivo contado",
+        "Diferencia",
+        "Estado",
+    ]
+    filas = []
+    for t in turnos:
+        filas.append([
+            t.creado_en.strftime("%Y-%m-%d %H:%M"),
+            t.cerrado_en.strftime("%Y-%m-%d %H:%M") if t.cerrado_en else "—",
+            t.cajero.get_full_name() or t.cajero.email,
+            t.bodega.nombre if t.bodega else "Principal",
+            float(t.base_inicial or 0),
+            float(t.efectivo_contado or 0) if t.cerrado_en else 0.0,
+            float(t.diferencia or 0) if t.cerrado_en else 0.0,
+            "Cerrada" if t.cerrado_en else "Abierta",
+        ])
+    return _libro_excel_con_cabecera("Turnos POS", encabezados, filas, cols_moneda=(5, 6, 7))
+
