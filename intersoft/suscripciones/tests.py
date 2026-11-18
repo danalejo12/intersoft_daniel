@@ -375,6 +375,7 @@ class SuscripcionesAPITests(TestCase):
         self.assertTrue(self.empresa_a.suscripcion.es_fundador)
 
 
+    @override_settings(DEBUG=True)
     def test_documentacion_openapi_y_swagger_disponibles(self):
         resp_schema = self.client_api.get(reverse("api_schema"))
         self.assertEqual(resp_schema.status_code, status.HTTP_200_OK)
@@ -383,6 +384,33 @@ class SuscripcionesAPITests(TestCase):
         resp_docs = self.client_api.get(reverse("api_docs"))
         self.assertEqual(resp_docs.status_code, status.HTTP_200_OK)
         self.assertContains(resp_docs, "SwaggerUIBundle")
+
+    def test_cambiar_plan_api_downgrade_a_gratis_y_plan_invalido(self):
+        from core.models import Categoria, Producto
+
+        self.client_api.force_authenticate(user=self.usuario_a)
+        cambiar_plan(self.empresa_a, "emprendedor")
+        cat = Categoria.objects.create(empresa=self.empresa_a, nombre="General")
+        for i in range(21):
+            Producto.objects.create(empresa=self.empresa_a, categoria=cat, codigo=f"P{i}", nombre=f"P{i}", precio=1000)
+
+        # Downgrade a gratis con 21 productos (>20) -> 400 downgrade_not_allowed
+        resp_down = self.client_api.post(
+            reverse("api_suscripcion_cambiar_plan"),
+            {"plan": "gratis", "ciclo": "MENSUAL"},
+            format="json",
+        )
+        self.assertEqual(resp_down.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp_down.data["code"], "downgrade_not_allowed")
+
+        # Plan inexistente -> 400 invalid_plan_change
+        resp_inv = self.client_api.post(
+            reverse("api_suscripcion_cambiar_plan"),
+            {"plan": "no_existe", "ciclo": "MENSUAL"},
+            format="json",
+        )
+        self.assertEqual(resp_inv.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp_inv.data["code"], "invalid_plan_change")
 
 
     def test_limites_y_features_de_suscripcion_aplicados_en_panel_core(self):

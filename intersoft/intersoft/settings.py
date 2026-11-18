@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'axes',
     'core',
     'suscripciones',
+    'plataforma',
+    'pqrs',
+    'soporte',
 ]
 AUTH_USER_MODEL = 'core.Usuario'
 AUTHENTICATION_BACKENDS = [
@@ -75,6 +78,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.carrito',
                 'core.bienvenida.bienvenida',
+                'soporte.context_processors.soporte_feedback',
             ],
         },
     },
@@ -339,4 +343,13 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API REST multi-tenant de InterSoft (planes, suscripciones, límites y comisiones).",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["suscripciones.permissions.SwaggerPermitido"],
 }
+
+
+# ---------------------------------------------------------------
+# PQRS (Peticiones, Quejas, Reclamos y Sugerencias)
+# ---------------------------------------------------------------
+# Plazo de respuesta en días hábiles (sin sábados, domingos ni festivos de Colombia).
+# IMPORTANTE: validar este plazo con un abogado antes de salir a producción.
+PQRS_DIAS_RESPUESTA = config("PQRS_DIAS_RESPUESTA", default=15, cast=int)

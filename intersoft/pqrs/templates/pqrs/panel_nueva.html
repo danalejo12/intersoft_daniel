@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% block titulo %}Nueva PQRS a Intersoft · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Radicar PQRS a Intersoft</h1>
+      <p class="nota">Reporta peticiones, quejas, reclamos o sugerencias sobre la plataforma.</p>
+    </div>
+    <a class="boton secundario" href="{% url 'panel_pqrs_lista' %}">Volver</a>
+  </div>
+
+  <article class="tarjeta">
+    <form method="post" enctype="multipart/form-data" class="formulario" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}
+        <div class="campo{% if campo.errors %} con-error{% endif %}">
+          {{ campo.label_tag }}
+          {{ campo }}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="acciones">
+        <button type="submit" class="boton">Enviar PQRS</button>
+      </div>
+    </form>
+  </article>
+{% endblock %}

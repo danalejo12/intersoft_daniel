@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+{% block titulo %}Ideas y mejoras · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Ideas y sugerencias de producto</h1>
+      <p class="nota">Propón nuevas funcionalidades o vota por las que más necesita tu negocio.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta" style="margin-bottom: 24px;">
+    <h2>Proponer una idea</h2>
+    <form method="post" class="formulario" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}
+        <div class="campo{% if campo.errors %} con-error{% endif %}">
+          {{ campo.label_tag }}
+          {{ campo }}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="boton">Publicar idea</button>
+    </form>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Ideas propuestas</h2>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Idea</th>
+          <th>Estado</th>
+          <th class="num">Votos</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for idea in ideas %}
+          <tr>
+            <td><strong>{{ idea.titulo }}</strong><br><small>{{ idea.descripcion }}</small></td>
+            <td><span class="badge neutro">{{ idea.get_estado_display }}</span></td>
+            <td class="num"><strong>{{ idea.total_votos }}</strong></td>
+            <td>
+              <form method="post" action="{% url 'soporte_votar_idea' idea.pk %}" style="margin: 0;">
+                {% csrf_token %}
+                {% if idea.pk in mis_votos_ids %}
+                  <button type="submit" class="boton secundario" disabled>Votada</button>
+                {% else %}
+                  <button type="submit" class="boton">Votar</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Aún no hay ideas propuestas. ¡Sé el primero!</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+{% endblock %}

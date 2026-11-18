@@ -1,0 +1,88 @@
+{% extends "plataforma/base.html" %}
+{% block titulo %}Errores · Consola de Plataforma · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Errores 500 y reportes de usuarios</h1>
+      <p class="nota">Agrupados por huella (tipo + archivo + línea) con traza filtrada sin secretos ni cuerpo POST.</p>
+    </div>
+    <span class="badge {% if errores_nuevos_7d > 0 %}peligro{% else %}exito{% endif %}">
+      Errores nuevos (7 días): {{ errores_nuevos_7d }}
+    </span>
+  </div>
+
+  <article class="tarjeta" style="margin-bottom: 24px;">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:16px;">
+      <div class="campo" style="margin:0;">
+        <label for="e-estado">Estado</label>
+        <select id="e-estado" name="estado">
+          <option value="">Todos</option>
+          {% for val, etq in estados %}
+            <option value="{{ val }}" {% if filtros.estado == val %}selected{% endif %}>{{ etq }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo" style="margin:0;">
+        <label for="e-q">Buscar</label>
+        <input id="e-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Excepción, archivo o URL">
+      </div>
+      <button type="submit" class="boton">Filtrar</button>
+    </form>
+
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Excepción</th>
+          <th>Ubicación</th>
+          <th>URL</th>
+          <th class="num">Ocurrencias</th>
+          <th>Estado</th>
+          <th>Última vez</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in errores %}
+          <tr>
+            <td><a href="{% url 'plataforma_error_detalle' e.pk %}"><strong>{{ e.tipo_excepcion }}</strong></a></td>
+            <td><code>{{ e.archivo }}:{{ e.linea }}</code></td>
+            <td><small>{{ e.metodo }} {{ e.url|truncatechars:45 }}</small></td>
+            <td class="num">{{ e.contador }}</td>
+            <td>{{ e.get_estado_display }}</td>
+            <td>{{ e.ultima_vez|date:"d/m/Y H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Sin errores registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Reportes manuales recientes</h2>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Negocio / Usuario</th>
+          <th>URL</th>
+          <th>Descripción</th>
+          <th>Captura</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reportes %}
+          <tr>
+            <td>{{ r.fecha_reporte|date:"d/m/Y H:i" }}</td>
+            <td>{{ r.empresa.nombre|default:"—" }}<br><small>{{ r.usuario.email|default:"—" }}</small></td>
+            <td><code>{{ r.url|truncatechars:40 }}</code></td>
+            <td>{{ r.descripcion }}</td>
+            <td>{% if r.captura %}<a href="{{ r.captura.url }}" target="_blank" rel="noopener">Ver</a>{% else %}—{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">No hay reportes manuales todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+{% endblock %}

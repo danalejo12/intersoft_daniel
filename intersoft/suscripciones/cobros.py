@@ -28,12 +28,12 @@ from core.pasarelas import CredencialesWompi
 
 from .models import CobroSuscripcion, Plan, Suscripcion
 from .services import (
-    CUPOS_FUNDADOR,
     DESCUENTO_FUNDADOR,
     DowngradeNoPermitido,
     _obtener_plan,
     cambiar_plan,
     crear_suscripcion_inicial,
+    cupos_fundador_actuales,
     validar_limites,
 )
 
@@ -51,6 +51,23 @@ class CobroNoDisponible(Exception):
 
 
 def credenciales_intersoft() -> CredencialesWompi:
+    from django.db import OperationalError, ProgrammingError
+    from plataforma.models import ConfiguracionCobroPlataforma
+
+    try:
+        config = ConfiguracionCobroPlataforma.objects.filter(clave_unica=1, activa=True).first()
+    except (OperationalError, ProgrammingError):
+        config = None
+
+    if config is not None and config.llave_publica and config.secreto_integridad_cifrado:
+        return CredencialesWompi(
+            publica=config.llave_publica,
+            modo=config.modo,
+            privada=config.llave_privada,
+            integridad=config.secreto_integridad,
+            eventos=config.secreto_eventos,
+        )
+
     publica = settings.SUSCRIPCIONES_WOMPI_PUBLIC_KEY
     integridad = settings.SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET
     if not publica or not integridad:
@@ -83,7 +100,7 @@ def cotizar(suscripcion: Suscripcion, plan: Plan, ciclo: str) -> tuple[Decimal, 
     precio = plan.precio_anual if ciclo == Suscripcion.Ciclo.ANUAL else plan.precio_mensual
     if suscripcion.es_fundador:
         descuento = suscripcion.descuento_porcentaje
-    elif Suscripcion.objects.filter(es_fundador=True).count() < CUPOS_FUNDADOR:
+    elif Suscripcion.objects.filter(es_fundador=True).count() < cupos_fundador_actuales():
         descuento = DESCUENTO_FUNDADOR
     else:
         descuento = Decimal("0.00")
@@ -132,14 +149,16 @@ def url_pago(cobro: CobroSuscripcion, *, redirect_url: str) -> str:
 
 
 @transaction.atomic
-def aplicar_transaccion(transaccion: dict) -> CobroSuscripcion | None:
+def aplicar_transaccion(transaccion: dict, *, forzar_revision: bool = False) -> CobroSuscripcion | None:
     """Aplica lo que Wompi dice de una transacción (ya consultada desde el servidor). Idempotente."""
     referencia = transaccion.get("reference")
     if not isinstance(referencia, str):
         return None
     cobro = (CobroSuscripcion.objects.select_for_update().select_related("empresa", "plan")
              .filter(referencia=referencia).first())
-    if cobro is None or cobro.estado in (Estado.APROBADO, Estado.REQUIERE_REVISION):
+    if cobro is None or cobro.estado == Estado.APROBADO:
+        return cobro
+    if cobro.estado == Estado.REQUIERE_REVISION and not forzar_revision:
         return cobro
 
     estado_wompi = transaccion.get("status")
@@ -180,7 +199,9 @@ def aplicar_transaccion(transaccion: dict) -> CobroSuscripcion | None:
 
 def sincronizar_cobro(cobro: CobroSuscripcion, *, transaccion_id: str = "", forzar: bool = False):
     """Le pregunta a Wompi por el cobro. Como mucho una consulta cada 10 s, salvo forzar."""
-    if cobro.estado in (Estado.APROBADO, Estado.REQUIERE_REVISION):
+    if cobro.estado == Estado.APROBADO:
+        return cobro
+    if cobro.estado == Estado.REQUIERE_REVISION and not forzar:
         return cobro
     ahora = timezone.now()
     if not forzar and cobro.ultima_consulta_en and ahora - cobro.ultima_consulta_en < ESPERA_ENTRE_CONSULTAS:
@@ -201,7 +222,7 @@ def sincronizar_cobro(cobro: CobroSuscripcion, *, transaccion_id: str = "", forz
         except WompiNoResponde:
             return cobro
     if transaccion:
-        return aplicar_transaccion(transaccion) or cobro
+        return aplicar_transaccion(transaccion, forzar_revision=forzar) or cobro
     return cobro
 
 

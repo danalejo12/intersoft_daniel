@@ -1,0 +1,97 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Consola de Plataforma · Intersoft{% endblock %}</title>
+  <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
+  <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
+  <script>
+    try { if (localStorage.getItem("intersoft-dock") !== "cerrado") document.documentElement.classList.add("dock-abierto"); }
+    catch (e) { document.documentElement.classList.add("dock-abierto"); }
+  </script>
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=23">
+</head>
+<body>
+{% with ruta=request.resolver_match.url_name rol=request.rol_plataforma %}
+<div class="escena">
+  <nav class="dock" aria-label="Menú de plataforma">
+    <button type="button" class="dock-expandir" data-dock-expandir aria-expanded="true" aria-label="Contraer menú" title="Contraer menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+
+    <a href="{% url 'plataforma_inicio' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'plataforma_inicio' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_negocios' %}" data-label="Negocios" aria-label="Negocios" class="{% if ruta == 'plataforma_negocios' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M10 6h4M10 10h4M10 14h4"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_planes_cobros' %}" data-label="Planes y cobros" aria-label="Planes y cobros" class="{% if ruta == 'plataforma_planes_cobros' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_pqrs' %}" data-label="PQRS" aria-label="PQRS" class="{% if ruta == 'plataforma_pqrs' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_errores' %}" data-label="Errores" aria-label="Errores" class="{% if ruta == 'plataforma_errores' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_comentarios' %}" data-label="Comentarios" aria-label="Comentarios" class="{% if ruta == 'plataforma_comentarios' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_ideas' %}" data-label="Ideas" aria-label="Ideas" class="{% if ruta == 'plataforma_ideas' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
+    </a>
+
+    <a href="{% url 'plataforma_operacion' %}" data-label="Operación" aria-label="Operación" class="{% if ruta == 'plataforma_operacion' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </a>
+
+    <span class="dock-espacio"></span>
+
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="dock-salir" data-label="Salir" aria-label="Salir">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></svg>
+      </button>
+    </form>
+  </nav>
+
+  <div class="ventana">
+    <header class="barra">
+      <a class="marca" href="{% url 'plataforma_inicio' %}">
+        <span class="marca-icono">
+          <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
+        </span>
+        Consola de Plataforma · InterSoft
+      </a>
+
+      <div class="cuenta">
+        <a class="boton secundario" href="{% url 'marketplace' %}">Marketplace</a>
+        <a class="cuenta-perfil" href="{% url 'perfil' %}">
+          <span class="cuenta-texto">
+            <strong>{{ user.get_full_name|default:user.email }}</strong>
+            <small>{{ rol.get_rol_display }}</small>
+          </span>
+          <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.email|first|upper }}</span>
+        </a>
+      </div>
+    </header>
+
+    <main>
+      {% for mensaje in messages %}
+        <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+      {% endfor %}
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+<script defer src="{% static 'core/js/app.js' %}?v=3"></script>
+</body>
+</html>

@@ -138,6 +138,7 @@ classDiagram
     }
 
     class TurnoCaja {
+        +Bodega bodega
         +Decimal base_inicial
         +DateTime cerrado_en
         +Decimal efectivo_esperado
@@ -145,12 +146,56 @@ classDiagram
         +Decimal diferencia
     }
 
+    class Orden {
+        +Usuario comprador
+        +DateTime creado_en
+    }
+
     class Pedido {
+        +Orden orden
+        +Bodega bodega
         +Integer numero
         +String estado
         +String estado_envio
         +Decimal total
         +DateTime expira_en
+    }
+
+    class Bodega {
+        +String nombre
+        +String direccion
+        +Boolean activa
+        +Boolean es_principal
+        +Boolean vende_en_linea
+    }
+
+    class Existencia {
+        +Bodega bodega
+        +Producto producto
+        +Integer cantidad
+    }
+
+    class EjecucionTarea {
+        +String nombre
+        +DateTime ultima_ejecucion
+        +String ultimo_resultado
+        +String ultimo_error
+        +Integer ejecuciones
+        +Integer fallos_seguidos
+    }
+
+    class CobroSuscripcion {
+        +Empresa empresa
+        +Plan plan
+        +String ciclo
+        +String referencia
+        +Decimal precio_lista
+        +Decimal descuento_porcentaje
+        +Decimal monto
+        +String moneda
+        +String estado
+        +String transaccion_id
+        +monto_centavos() int
     }
 
     class Pago {
@@ -167,8 +212,13 @@ classDiagram
     ModeloBase <|-- Plan
     ModeloBase <|-- Suscripcion
     ModeloBase <|-- HistorialSuscripcion
+    ModeloBase <|-- Orden
+    ModeloBase <|-- EjecucionTarea
+    ModeloBase <|-- CobroSuscripcion
 
     ModeloTenant <|-- Rol
+    ModeloTenant <|-- Bodega
+    ModeloTenant <|-- Existencia
     ModeloTenant <|-- Categoria
     ModeloTenant <|-- Producto
     ModeloTenant <|-- MovimientoInventario
@@ -195,6 +245,15 @@ classDiagram
     Producto "1" -- "*" DetalleFactura : referencia
     TurnoCaja "0..1" -- "*" Factura : cobra_en_pos
     Pedido "1" -- "0..1" Factura : genera
+    Orden "0..1" -- "*" Pedido : agrupa
+    Bodega "1" -- "*" Existencia : contiene
+    Producto "1" -- "*" Existencia : distribuye
+    Bodega "0..1" -- "*" MovimientoInventario : registra
+    Bodega "0..1" -- "*" TurnoCaja : abastece_pos
+    Bodega "0..1" -- "*" Factura : origina
+    Bodega "0..1" -- "*" Pedido : reserva
+    Empresa "1" -- "*" CobroSuscripcion : intenta_pagar
+    Plan "1" -- "*" CobroSuscripcion : factura
     Factura "0..1" -- "*" Pago : cobra
     Pedido "0..1" -- "*" Pago : cobra
 ```

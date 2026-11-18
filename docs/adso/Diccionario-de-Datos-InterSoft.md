@@ -6,7 +6,7 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 
 
 ---
-## Aplicación: `core` (35 tablas)
+## Aplicación: `core` (39 tablas)
 
 ### Tabla `core_empresa` (`core.Empresa`)
 *Empresa(id, creado_en, actualizado_en, nombre, nit, slug, email, telefono, direccion, logo, descripcion, sitio_web, plan, activa, comision_porcentaje, tarifa_envio_base, tarifa_envio_por_kg, envio_gratis_desde)*
@@ -86,6 +86,35 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
 | `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
 | `usuario_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Usuario |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega de origen o destino del movimiento |
+
+### Tabla `core_bodega` (`core.Bodega`)
+*Un lugar donde se guarda mercancía (bodega, sede, local). Restricciones: `uq_bodega_nombre_por_empresa` (`empresa`, `nombre`), `uq_bodega_principal_por_empresa` (`empresa` donde `es_principal=True`), `uq_bodega_en_linea_por_empresa` (`empresa` donde `vende_en_linea=True`) y `ck_bodega_clave_activa`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `nombre` | `varchar(80)` | `UK` (con `empresa_id`) | NO (`NOT NULL`) | Nombre de la bodega |
+| `direccion` | `varchar(200)` | — | NO (`NOT NULL`) | Dirección física |
+| `activa` | `boolean` | `CHECK` (`ck_bodega_clave_activa`) | NO (`NOT NULL`) | Activa |
+| `es_principal` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Es bodega principal (compras y producción) |
+| `vende_en_linea` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Abastece ventas del marketplace |
+
+### Tabla `core_existencia` (`core.Existencia`)
+*Unidades de un producto en una bodega (`uq_existencia_bodega_producto`, `ck_existencia_no_negativa`: `cantidad >= 0`). La suma de todas las bodegas es `Producto.stock`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `UK` (con `producto_id`) | NO (`NOT NULL`) | Bodega |
+| `producto_id` | `uuid` | `FK` → `core_producto`, `UK` (con `bodega_id`) | NO (`NOT NULL`) | Producto |
+| `cantidad` | `integer` | `CHECK` (`cantidad >= 0`) | NO (`NOT NULL`) | Unidades disponibles en la bodega |
 | `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
 | `rol_id` | `uuid` | `FK` → `core_rol`, `INDEX` | NO (`NOT NULL`) | Rol |
 | `activa` | `boolean` | — | NO (`NOT NULL`) | Activa |
@@ -170,6 +199,35 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `cantidad` | `integer` | — | NO (`NOT NULL`) | Cantidad |
 | `referencia` | `varchar(60)` | — | NO (`NOT NULL`) | Referencia |
 | `usuario_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Usuario |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega de origen o destino del movimiento |
+
+### Tabla `core_bodega` (`core.Bodega`)
+*Un lugar donde se guarda mercancía (bodega, sede, local). Restricciones: `uq_bodega_nombre_por_empresa` (`empresa`, `nombre`), `uq_bodega_principal_por_empresa` (`empresa` donde `es_principal=True`), `uq_bodega_en_linea_por_empresa` (`empresa` donde `vende_en_linea=True`) y `ck_bodega_clave_activa`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `nombre` | `varchar(80)` | `UK` (con `empresa_id`) | NO (`NOT NULL`) | Nombre de la bodega |
+| `direccion` | `varchar(200)` | — | NO (`NOT NULL`) | Dirección física |
+| `activa` | `boolean` | `CHECK` (`ck_bodega_clave_activa`) | NO (`NOT NULL`) | Activa |
+| `es_principal` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Es bodega principal (compras y producción) |
+| `vende_en_linea` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Abastece ventas del marketplace |
+
+### Tabla `core_existencia` (`core.Existencia`)
+*Unidades de un producto en una bodega (`uq_existencia_bodega_producto`, `ck_existencia_no_negativa`: `cantidad >= 0`). La suma de todas las bodegas es `Producto.stock`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `UK` (con `producto_id`) | NO (`NOT NULL`) | Bodega |
+| `producto_id` | `uuid` | `FK` → `core_producto`, `UK` (con `bodega_id`) | NO (`NOT NULL`) | Producto |
+| `cantidad` | `integer` | `CHECK` (`cantidad >= 0`) | NO (`NOT NULL`) | Unidades disponibles en la bodega |
 
 ### Tabla `core_factura` (`core.Factura`)
 *Factura(id, creado_en, actualizado_en, empresa, numero, cliente, estado, subtotal, iva, total, observaciones, creada_por, anulada_en, turno, operacion_pos, cliente_nombre, cliente_documento, empresa_nombre, empresa_nit, empresa_direccion, empresa_telefono, estado_dian, cufe, cude_nota_credito, dian_xml_url, dian_pdf_url, dian_respuesta, dian_emitida_en)*
@@ -204,6 +262,7 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `dian_pdf_url` | `varchar(200)` | — | NO (`NOT NULL`) | Dian pdf url |
 | `dian_respuesta` | `varchar(250)` | — | NO (`NOT NULL`) | Dian respuesta |
 | `dian_emitida_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Dian emitida en |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega desde la cual se descuenta el stock |
 
 ### Tabla `core_detallefactura` (`core.DetalleFactura`)
 *DetalleFactura(id, creado_en, actualizado_en, empresa, factura, producto, nombre_producto, cantidad, precio_unitario, iva_porcentaje)*
@@ -284,6 +343,16 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `accion` | `varchar(30)` | — | NO (`NOT NULL`) | Accion |
 | `campos` | `jsonb` | — | NO (`NOT NULL`) | Campos |
 
+### Tabla `core_orden` (`core.Orden`)
+*Una compra unificada del marketplace que reúne los pedidos de varios negocios; cada pedido se paga y concilia por separado.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `comprador_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Comprador |
+
 ### Tabla `core_pedido` (`core.Pedido`)
 *Lo que compró una persona en un negocio. Guarda sus líneas y su total: la factura nace al pagar.*
 
@@ -294,6 +363,8 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
 | `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
 | `comprador_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Comprador |
+| `orden_id` | `uuid` | `FK` → `core_orden`, `INDEX` | SÍ (`NULL`) | Orden unificada (cuando compra en varios negocios) |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega de reserva de stock |
 | `factura_id` | `uuid` | `FK` → `core_factura`, `UK` | SÍ (`NULL`) | Factura |
 | `numero` | `integer` | — | NO (`NOT NULL`) | Numero |
 | `estado` | `varchar(20)` | — | NO (`NOT NULL`) | Estado |
@@ -377,8 +448,7 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `efectivo_contado` | `numeric(14, 2)` | — | SÍ (`NULL`) | Efectivo contado |
 | `diferencia` | `numeric(14, 2)` | — | SÍ (`NULL`) | Diferencia |
 | `observaciones` | `text` | — | NO (`NOT NULL`) | Observaciones |
-
-### Tabla `core_pagocaja` (`core.PagoCaja`)
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega desde la cual vende el turno |
 *Lo que entra a la caja por una venta. Una venta puede pagarse con varios medios.*
 
 | Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
@@ -495,6 +565,35 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `referencia` | `varchar(100)` | — | NO (`NOT NULL`) | Referencia |
 | `conciliado` | `boolean` | — | NO (`NOT NULL`) | Conciliado |
 | `usuario_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Usuario |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega de origen o destino del movimiento |
+
+### Tabla `core_bodega` (`core.Bodega`)
+*Un lugar donde se guarda mercancía (bodega, sede, local). Restricciones: `uq_bodega_nombre_por_empresa` (`empresa`, `nombre`), `uq_bodega_principal_por_empresa` (`empresa` donde `es_principal=True`), `uq_bodega_en_linea_por_empresa` (`empresa` donde `vende_en_linea=True`) y `ck_bodega_clave_activa`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `nombre` | `varchar(80)` | `UK` (con `empresa_id`) | NO (`NOT NULL`) | Nombre de la bodega |
+| `direccion` | `varchar(200)` | — | NO (`NOT NULL`) | Dirección física |
+| `activa` | `boolean` | `CHECK` (`ck_bodega_clave_activa`) | NO (`NOT NULL`) | Activa |
+| `es_principal` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Es bodega principal (compras y producción) |
+| `vende_en_linea` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Abastece ventas del marketplace |
+
+### Tabla `core_existencia` (`core.Existencia`)
+*Unidades de un producto en una bodega (`uq_existencia_bodega_producto`, `ck_existencia_no_negativa`: `cantidad >= 0`). La suma de todas las bodegas es `Producto.stock`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `UK` (con `producto_id`) | NO (`NOT NULL`) | Bodega |
+| `producto_id` | `uuid` | `FK` → `core_producto`, `UK` (con `bodega_id`) | NO (`NOT NULL`) | Producto |
+| `cantidad` | `integer` | `CHECK` (`cantidad >= 0`) | NO (`NOT NULL`) | Unidades disponibles en la bodega |
 | `operacion` | `uuid` | `UK` | NO (`NOT NULL`) | Operacion |
 
 ### Tabla `core_cuentacontable` (`core.CuentaContable`)
@@ -524,6 +623,35 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `referencia` | `varchar(100)` | — | NO (`NOT NULL`) | Referencia |
 | `confirmado` | `boolean` | — | NO (`NOT NULL`) | Confirmado |
 | `usuario_id` | `uuid` | `FK` → `core_usuario`, `INDEX` | NO (`NOT NULL`) | Usuario |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `INDEX` | SÍ (`NULL`) | Bodega de origen o destino del movimiento |
+
+### Tabla `core_bodega` (`core.Bodega`)
+*Un lugar donde se guarda mercancía (bodega, sede, local). Restricciones: `uq_bodega_nombre_por_empresa` (`empresa`, `nombre`), `uq_bodega_principal_por_empresa` (`empresa` donde `es_principal=True`), `uq_bodega_en_linea_por_empresa` (`empresa` donde `vende_en_linea=True`) y `ck_bodega_clave_activa`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `nombre` | `varchar(80)` | `UK` (con `empresa_id`) | NO (`NOT NULL`) | Nombre de la bodega |
+| `direccion` | `varchar(200)` | — | NO (`NOT NULL`) | Dirección física |
+| `activa` | `boolean` | `CHECK` (`ck_bodega_clave_activa`) | NO (`NOT NULL`) | Activa |
+| `es_principal` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Es bodega principal (compras y producción) |
+| `vende_en_linea` | `boolean` | `UK` parcial por empresa | NO (`NOT NULL`) | Abastece ventas del marketplace |
+
+### Tabla `core_existencia` (`core.Existencia`)
+*Unidades de un producto en una bodega (`uq_existencia_bodega_producto`, `ck_existencia_no_negativa`: `cantidad >= 0`). La suma de todas las bodegas es `Producto.stock`.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `bodega_id` | `uuid` | `FK` → `core_bodega`, `UK` (con `producto_id`) | NO (`NOT NULL`) | Bodega |
+| `producto_id` | `uuid` | `FK` → `core_producto`, `UK` (con `bodega_id`) | NO (`NOT NULL`) | Producto |
+| `cantidad` | `integer` | `CHECK` (`cantidad >= 0`) | NO (`NOT NULL`) | Unidades disponibles en la bodega |
 
 ### Tabla `core_lineaasiento` (`core.LineaAsiento`)
 *LineaAsiento(id, creado_en, actualizado_en, empresa, asiento, cuenta, debito, credito)*
@@ -637,8 +765,23 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `cartera_id` | `uuid` | `FK` → `core_cuentacartera`, `UK` | SÍ (`NULL`) | Cartera |
 | `observaciones` | `text` | — | NO (`NOT NULL`) | Observaciones |
 
+### Tabla `core_ejecuciontarea` (`core.EjecucionTarea`)
+*Registro de ejecución de tareas periódicas (evita repetición y colisiones entre programadores).*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `nombre` | `varchar(60)` | `UK` | NO (`NOT NULL`) | Nombre de la tarea |
+| `ultima_ejecucion` | `timestamp with time zone` | — | SÍ (`NULL`) | Última ejecución |
+| `ultimo_resultado` | `varchar(500)` | — | NO (`NOT NULL`) | Último resultado |
+| `ultimo_error` | `varchar(500)` | — | NO (`NOT NULL`) | Último error |
+| `ejecuciones` | `integer` | — | NO (`NOT NULL`) | Contador de ejecuciones |
+| `fallos_seguidos` | `integer` | — | NO (`NOT NULL`) | Fallos consecutivos |
+
 ---
-## Aplicación: `suscripciones` (3 tablas)
+## Aplicación: `suscripciones` (4 tablas)
 
 ### Tabla `suscripciones_plan` (`suscripciones.Plan`)
 *Catálogo de planes comerciales de Intersoft.*
@@ -690,3 +833,27 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `estado_nuevo` | `varchar(15)` | — | NO (`NOT NULL`) | Estado nuevo |
 | `motivo` | `varchar(255)` | — | NO (`NOT NULL`) | Motivo |
 | `fecha` | `timestamp with time zone` | `INDEX` | NO (`NOT NULL`) | Fecha del cambio |
+
+### Tabla `suscripciones_cobrosuscripcion` (`suscripciones.CobroSuscripcion`)
+*Intento de pago de un plan con la cuenta Wompi de Intersoft. Restricción: `ck_cobro_suscripcion_monto_positivo` (`monto > 0`), índice `ix_cobro_sus_empresa_fecha` (`empresa`, `-creado_en`).*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `plan_id` | `uuid` | `FK` → `suscripciones_plan`, `INDEX` | NO (`NOT NULL`) | Plan |
+| `ciclo` | `varchar(10)` | — | NO (`NOT NULL`) | Ciclo (`MENSUAL` / `ANUAL`) |
+| `referencia` | `varchar(60)` | `UK` | NO (`NOT NULL`) | Referencia única (`SUS-...`) |
+| `precio_lista` | `numeric(12, 2)` | — | NO (`NOT NULL`) | Precio de lista congelado |
+| `descuento_porcentaje` | `numeric(5, 2)` | — | NO (`NOT NULL`) | Descuento aplicado (%) |
+| `monto` | `numeric(12, 2)` | `CHECK` (`monto > 0`) | NO (`NOT NULL`) | Monto final a cobrar |
+| `moneda` | `varchar(3)` | — | NO (`NOT NULL`) | Moneda (`COP`) |
+| `estado` | `varchar(20)` | `INDEX` | NO (`NOT NULL`) | Estado (`pendiente`, `aprobado`, `rechazado`, `anulado`, `requiere_revision`) |
+| `transaccion_id` | `varchar(60)` | — | NO (`NOT NULL`) | ID de transacción Wompi |
+| `metodo_pago` | `varchar(30)` | — | NO (`NOT NULL`) | Método de pago Wompi |
+| `detalle` | `varchar(255)` | — | NO (`NOT NULL`) | Detalle del resultado |
+| `creado_por_id` | `uuid` | `FK` → `core_usuario` | SÍ (`NULL`) | Usuario que inició el cobro |
+| `resuelto_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Fecha de resolución |
+| `ultima_consulta_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Última consulta en Wompi |

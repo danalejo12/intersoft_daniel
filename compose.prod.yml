@@ -20,6 +20,8 @@ services:
     env_file:
       - ./intersoft/.env
     environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Define DJANGO_SECRET_KEY en intersoft/.env}
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en intersoft/.env}
       DB_HOST: db
       DB_PORT: "5432"
     depends_on:
@@ -34,6 +36,12 @@ services:
              python manage.py sincronizar_permisos &&
              python manage.py collectstatic --noinput &&
              gunicorn intersoft.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
 
   scheduler:
     build: .
@@ -41,6 +49,8 @@ services:
     env_file:
       - ./intersoft/.env
     environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Define DJANGO_SECRET_KEY en intersoft/.env}
+      DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en intersoft/.env}
       DB_HOST: db
       DB_PORT: "5432"
     depends_on:
@@ -48,15 +58,15 @@ services:
         condition: service_healthy
     volumes:
       - logs_volume:/app/intersoft/logs
-    # Reservas (5 min), suscripciones (1 h), cobros de planes (15 min) y alertas de stock (1 día).
-    # Cada tarea guarda en la base cuándo corrió: un reinicio no la repite antes de tiempo.
+    # Solo `web` ejecuta migrate y collectstatic; el scheduler corre tareas periódicas únicamente.
     command: python manage.py tareas_periodicas --bucle --pausa 60
 
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     ports:
       - "80:80"
     volumes:

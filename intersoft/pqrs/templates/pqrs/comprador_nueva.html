@@ -1,0 +1,31 @@
+{% extends "core/tienda/base.html" %}
+{% block titulo %}Radicar PQRS · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado" style="margin-bottom: 20px;">
+    <div>
+      <h1>Radicar nueva PQRS</h1>
+      <p class="nota">Tu solicitud recibirá un número de radicado único y plazo de respuesta en días hábiles.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta">
+    <form method="post" enctype="multipart/form-data" class="formulario" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <p class="error aviso">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
+      {% for campo in form %}
+        <div class="campo{% if campo.errors %} con-error{% endif %}">
+          {{ campo.label_tag }}
+          {{ campo }}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="acciones">
+        <button type="submit" class="boton">Radicar PQRS</button>
+        <a href="{% url 'pqrs_mis_list' %}" class="boton secundario">Cancelar</a>
+      </div>
+    </form>
+  </article>
+{% endblock %}

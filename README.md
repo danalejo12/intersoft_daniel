@@ -42,7 +42,7 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
 
 ## Requisitos
 
-- **Python** 3.12+ (compatible con Python 3.14)
+- **Python** 3.14 (versión estándar en `Dockerfile` y `.github/workflows/pruebas.yml`)
 - **PostgreSQL** 16+
 - Dependencias listadas en `requirements.txt` (`Django`, `psycopg2-binary`, `Pillow`, `python-decouple`, `django-axes`)
 
@@ -175,16 +175,26 @@ Cada tarea guarda en la base cuándo corrió (`EjecucionTarea`, visible en `/adm
 
 Opciones: `--forzar` ejecuta aunque no les toque, `--solo alertas_stock liberar_reservas` limita la pasada.
 
-### 4. Despliegue reproducible con Docker Compose y Nginx (`compose.prod.yml`)
+### 4. Despliegue reproducible con Docker Compose (`compose.dev.yml` y `compose.prod.yml`)
 
-El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersoft.conf` listos para levantar **PostgreSQL 16 + Gunicorn + Scheduler (`tareas_periodicas`) + Nginx**:
+El repositorio usa **Python 3.14** (`Dockerfile` y `.github/workflows/pruebas.yml`) y separa claramente desarrollo y producción sin secretos por defecto (`DJANGO_SECRET_KEY` y `DB_PASSWORD` son obligatorios en `intersoft/.env`):
 
-1. Crea `intersoft/.env` a partir de `intersoft/.env.example` con `DEBUG=False`, `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
-2. Levanta los servicios desde la raíz del proyecto:
-   ```bash
-   docker compose -f compose.prod.yml --env-file intersoft/.env up -d --build
-   ```
-   El contenedor `web` ejecuta automáticamente `migrate --noinput`, `sincronizar_permisos`, `collectstatic --noinput` e inicia `gunicorn`. El contenedor `scheduler` ejecuta `tareas_periodicas --bucle` (ver sección 3), y `nginx` sirve `/static/` y `/media/` con `X-Content-Type-Options: nosniff`.
+- **Desarrollo (`compose.dev.yml`):** levanta `db`, `web` (`DEBUG=True`, `PASARELA_SIMULADA=True`, puerto `8000`, sin Nginx) y `scheduler`:
+  ```bash
+  docker compose -f compose.dev.yml --env-file intersoft/.env up -d --build
+  ```
+- **Producción (`compose.prod.yml`):** levanta **PostgreSQL 16 + Gunicorn + Scheduler (`tareas_periodicas`) + Nginx**:
+  1. Crea `intersoft/.env` a partir de `intersoft/.env.example` con `DEBUG=False`, `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `EMAIL_HOST`, `PAGOS_CLAVES_CIFRADO`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS`.
+  2. Levanta los servicios desde la raíz del proyecto:
+     ```bash
+     docker compose -f compose.prod.yml --env-file intersoft/.env up -d --build
+     ```
+     Solo el contenedor `web` ejecuta `migrate --noinput`, `sincronizar_permisos`, `collectstatic --noinput` e inicia `gunicorn`. El contenedor `scheduler` ejecuta únicamente `tareas_periodicas --bucle`.
+- **Healthcheck HTTP (`/salud/`):** responde `200 OK` si PostgreSQL responde (`503` en caso contrario) y es usado por el `healthcheck` de Docker Compose.
+- **Documentación OpenAPI / Swagger (`/api/docs/` y `/api/schema/`):** en desarrollo (`DEBUG=True`) es pública; en producción (`DEBUG=False`) queda restringida a usuarios `is_staff` mediante `SERVE_PERMISSIONS`.
+- **Verificación de despliegue (`python intersoft/manage.py check --deploy`):** con variables de producción (`DEBUG=False`, `ALLOWED_HOSTS`, `DJANGO_SECRET_KEY`, `EMAIL_HOST`) pasa con **0 errores**. Las advertencias esperadas si no se definen explícitamente son:
+  - `core.W001`: definir `PAGOS_CLAVES_CIFRADO` con una clave Fernet dedicada en producción.
+  - `security.W005` y `security.W021`: `SECURE_HSTS_INCLUDE_SUBDOMAINS` y `SECURE_HSTS_PRELOAD` (opcionales según la política de subdominios y preload HSTS del dominio).
 
 ### 5. Copias de seguridad de PostgreSQL 16 y verificación de webhook Wompi
 
@@ -215,3 +225,11 @@ El repositorio incluye `Dockerfile`, `compose.prod.yml` y `deploy/nginx/intersof
   - `caja.py`, `views_pos.py` — Punto de venta (POS), turnos de caja y recibos.
   - `compras.py`, `reservas.py`, `pagos.py`, `views_tienda.py`, `views_compra.py` — Marketplace, reservas y pasarela Wompi.
   - `erp_services.py`, `erp_forms.py`, `views_erp.py` — Módulos ERP (compras, cartera, tesorería, contabilidad, nómina, producción y agenda).
+- `intersoft/pqrs/` — Sistema de Peticiones, Quejas, Reclamos y Sugerencias (flujo A: negocio → Intersoft; flujo B: comprador → negocio con escalamiento automático).
+
+---
+
+## Nota legal sobre plazos de PQRS
+
+El plazo de respuesta configurado en `PQRS_DIAS_RESPUESTA` (por defecto **15 días hábiles** en `intersoft/intersoft/settings.py`) y el calendario de festivos de Colombia en `intersoft/pqrs/dias_habiles.py` **deben validarse con un abogado** antes de operar en producción para confirmar su adecuación a la normativa colombiana vigente (Ley 1755 de 2015, Ley 1480 de 2011 / Estatuto del Consumidor y regulaciones aplicables según el tipo de solicitud).
+

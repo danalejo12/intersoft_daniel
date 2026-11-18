@@ -1,0 +1,84 @@
+{% extends "core/base.html" %}
+{% block titulo %}{{ pqrs.radicado }} · PQRS · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1><code>{{ pqrs.radicado }}</code> · {{ pqrs.asunto }}</h1>
+      <p class="nota">{{ pqrs.get_flujo_display }} · {{ pqrs.get_tipo_display }} · Estado: <strong>{{ pqrs.get_estado_display }}</strong></p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      {% include "pqrs/_semaforo.html" with pqrs=pqrs %}
+      <a class="boton secundario" href="{% url 'panel_pqrs_lista' %}">Volver</a>
+    </div>
+  </div>
+
+  <article class="tarjeta" style="margin-bottom: 20px;">
+    <p>{{ pqrs.descripcion|linebreaksbr }}</p>
+    {% if pqrs.adjunto %}<p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>{% endif %}
+    <small class="nota">Autor: {{ pqrs.autor.email }} · Límite: {{ pqrs.fecha_limite|date:"d/m/Y H:i" }}</small>
+
+    {% if es_flujo_b %}
+      <form method="post" style="display:flex; gap:8px; align-items:center; margin-top: 14px;">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="cambiar_estado">
+        <select name="estado">
+          <option value="en_tramite" {% if pqrs.estado == "en_tramite" %}selected{% endif %}>En trámite</option>
+          <option value="respondida" {% if pqrs.estado == "respondida" %}selected{% endif %}>Respondida</option>
+          <option value="cerrada" {% if pqrs.estado == "cerrada" %}selected{% endif %}>Cerrada</option>
+        </select>
+        <button type="submit" class="boton secundario">Actualizar estado</button>
+      </form>
+    {% endif %}
+  </article>
+
+  <article class="tarjeta" style="margin-bottom: 20px;">
+    <h2>Conversación</h2>
+    {% for m in mensajes %}
+      <div style="padding: 10px 0; border-bottom: 1px solid rgba(148,163,184,.2);">
+        <strong>{{ m.autor.get_full_name|default:m.autor.email }}</strong>
+        {% if m.interno %}<span class="badge advertencia">Nota interna</span>{% endif %}
+        <small class="nota">· {{ m.creado_en|date:"d/m/Y H:i" }}</small>
+        <p style="margin: 6px 0 0;">{{ m.texto|linebreaksbr }}</p>
+        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">Adjunto</a></p>{% endif %}
+      </div>
+    {% empty %}
+      <p class="nota">Sin mensajes todavía.</p>
+    {% endfor %}
+
+    <form method="post" enctype="multipart/form-data" class="formulario" style="margin-top: 16px;" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="mensaje">
+      {% for campo in msg_form %}
+        <div class="campo{% if campo.errors %} con-error{% endif %}">
+          {{ campo.label_tag }}
+          {{ campo }}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="boton">Enviar respuesta</button>
+    </form>
+  </article>
+
+  {% if not es_flujo_b %}
+    <article class="tarjeta">
+      <h2>Encuesta de satisfacción</h2>
+      {% if pqrs.calificacion %}
+        <p>Calificación registrada: <strong>{{ pqrs.calificacion }} / 5</strong></p>
+      {% else %}
+        <form method="post" class="formulario" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="encuesta">
+          {% for campo in encuesta_form %}
+            <div class="campo{% if campo.errors %} con-error{% endif %}">
+              {{ campo.label_tag }}
+              {{ campo }}
+              {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="boton">Calificar y cerrar</button>
+        </form>
+      {% endif %}
+    </article>
+  {% endif %}
+{% endblock %}

@@ -19,8 +19,14 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from core.views_salud import salud_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("salud/", salud_view, name="salud"),
+    path("plataforma/", include("plataforma.urls")),
+    path("pqrs/", include("pqrs.urls")),
+    path("soporte/", include("soporte.urls")),
     path("api/", include("suscripciones.urls")),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # static() solo actúa con DEBUG=True

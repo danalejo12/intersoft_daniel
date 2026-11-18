@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+{% block titulo %}Reportar un problema · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Reportar un problema</h1>
+      <p class="nota">Adjuntamos automáticamente la URL, el navegador, la hora y tu negocio para ayudarte más rápido.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta">
+    <dl class="perfil-detalles" style="margin-bottom: 16px;">
+      <div class="perfil-dato"><dt>Negocio</dt><dd>{{ request.empresa.nombre|default:"—" }}</dd></div>
+      <div class="perfil-dato"><dt>URL</dt><dd><code>{{ url_origen|default:"—" }}</code></dd></div>
+      <div class="perfil-dato"><dt>Navegador</dt><dd><small>{{ navegador|default:"—" }}</small></dd></div>
+      <div class="perfil-dato"><dt>Hora</dt><dd>{{ ahora|date:"d/m/Y H:i" }}</dd></div>
+    </dl>
+
+    <form method="post" enctype="multipart/form-data" class="formulario" novalidate>
+      {% csrf_token %}
+      {{ form.url }}
+      {% for campo in form %}
+        {% if campo.name != "url" %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      <div class="acciones">
+        <button type="submit" class="boton">Enviar reporte</button>
+      </div>
+    </form>
+  </article>
+{% endblock %}

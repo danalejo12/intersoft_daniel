@@ -74,3 +74,15 @@ class RequiereFeature(BasePermission):
             return False
         suscripcion = getattr(empresa, "suscripcion", None) or crear_suscripcion_inicial(empresa)
         return suscripcion.puede(self.feature)
+
+
+class SwaggerPermitido(BasePermission):
+    """Permite Swagger/OpenAPI a cualquiera con DEBUG=True, y solo a is_staff cuando DEBUG=False."""
+
+    def has_permission(self, request, view):
+        from django.conf import settings
+
+        if settings.DEBUG:
+            return True
+        return bool(request.user and request.user.is_staff)
+

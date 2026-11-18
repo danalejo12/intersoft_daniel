@@ -37,6 +37,7 @@ def carrito(request):
             ),
             "configurar_pagos": membresia.tiene_permiso("pagos.configurar"),
             "editar_negocio": membresia.tiene_permiso("negocio.editar"),
+            "gestionar_pqrs": membresia.tiene_permiso("pqrs.gestionar"),
             "ver_equipo": any(
                 membresia.tiene_permiso(p)
                 for p in ("equipo.ver", "equipo.gestionar", "negocio.editar")

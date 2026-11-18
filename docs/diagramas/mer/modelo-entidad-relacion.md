@@ -188,12 +188,65 @@ erDiagram
         uuid id PK
         uuid empresa_id FK
         uuid comprador_id FK
+        uuid orden_id FK
+        uuid bodega_id FK
         uuid factura_id FK
         int numero
         varchar estado
         varchar estado_envio
         decimal total
         datetime expira_en
+    }
+
+    CORE_ORDEN {
+        uuid id PK
+        uuid comprador_id FK
+        datetime creado_en
+    }
+
+    CORE_BODEGA {
+        uuid id PK
+        uuid empresa_id FK
+        varchar nombre UK
+        varchar direccion
+        boolean activa
+        boolean es_principal
+        boolean vende_en_linea
+    }
+
+    CORE_EXISTENCIA {
+        uuid id PK
+        uuid empresa_id FK
+        uuid bodega_id FK
+        uuid producto_id FK
+        int cantidad
+    }
+
+    CORE_EJECUCIONTAREA {
+        uuid id PK
+        varchar nombre UK
+        datetime ultima_ejecucion
+        varchar ultimo_resultado
+        varchar ultimo_error
+        int ejecuciones
+        int fallos_seguidos
+    }
+
+    SUSCRIPCIONES_COBROSUSCRIPCION {
+        uuid id PK
+        uuid empresa_id FK
+        uuid plan_id FK
+        uuid creado_por_id FK
+        varchar ciclo
+        varchar referencia UK
+        decimal precio_lista
+        decimal descuento_porcentaje
+        decimal monto
+        varchar moneda
+        varchar estado
+        varchar transaccion_id
+        varchar metodo_pago
+        datetime resuelto_en
     }
 
     CORE_PAGO {
@@ -240,6 +293,17 @@ erDiagram
 
     CORE_EMPRESA ||--o{ CORE_PEDIDO : "despacha"
     CORE_USUARIO ||--o{ CORE_PEDIDO : "comprador"
+    CORE_USUARIO ||--o{ CORE_ORDEN : "compra_unificada"
+    CORE_ORDEN |o--o{ CORE_PEDIDO : "agrupa"
+    CORE_EMPRESA ||--o{ CORE_BODEGA : "opera_sede"
+    CORE_BODEGA ||--o{ CORE_EXISTENCIA : "almacena"
+    CORE_PRODUCTO ||--o{ CORE_EXISTENCIA : "ubicado_en"
+    CORE_BODEGA |o--o{ CORE_MOVIMIENTOINVENTARIO : "bodega_mov"
+    CORE_BODEGA |o--o{ CORE_TURNOCAJA : "bodega_pos"
+    CORE_BODEGA |o--o{ CORE_FACTURA : "bodega_fac"
+    CORE_BODEGA |o--o{ CORE_PEDIDO : "bodega_ped"
+    CORE_EMPRESA ||--o{ SUSCRIPCIONES_COBROSUSCRIPCION : "paga_plan"
+    SUSCRIPCIONES_PLAN ||--o{ SUSCRIPCIONES_COBROSUSCRIPCION : "cobrado_en"
     CORE_FACTURA |o--o| CORE_PEDIDO : "factura"
     CORE_FACTURA |o--o{ CORE_PAGO : "cobra"
     CORE_PEDIDO |o--o{ CORE_PAGO : "cobra"

@@ -119,6 +119,13 @@
     <p class="nota"><a href="{% url 'orden_detalle' pedido.orden_id %}">← Este pedido es parte de una compra en {{ pedido.orden.pedidos.count }} negocios. Ver toda la compra</a></p>
   {% endif %}
 
+  {% if user.is_authenticated and pedido.comprador_id == user.id %}
+    <p class="nota" style="margin-top: 12px;">
+      ¿Tienes alguna petición, queja, reclamo o sugerencia sobre este pedido?
+      <a href="{% url 'pqrs_radicar' %}?pedido={{ pedido.pk }}">Radicar PQRS sobre este pedido</a>
+    </p>
+  {% endif %}
+
   <div class="compra-rejilla">
     <section class="panel-compra" aria-labelledby="titulo-detalle">
       <h2 class="seccion-form" id="titulo-detalle">Pedido N.º {{ pedido.numero }} · {{ pedido.empresa.nombre }}</h2>

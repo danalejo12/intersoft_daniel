@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from core.models import Empresa, Membresia, Producto
 
-from .models import HistorialSuscripcion, Plan, Suscripcion
+from .models import ConfiguracionSuscripciones, HistorialSuscripcion, Plan, Suscripcion
 
 CENTAVOS = Decimal("0.01")
 DIAS_TRIAL = 14
@@ -20,6 +20,11 @@ DIAS_CICLO_MENSUAL = 30
 DIAS_CICLO_ANUAL = 365
 CUPOS_FUNDADOR = 50
 DESCUENTO_FUNDADOR = Decimal("50.00")
+
+
+def cupos_fundador_actuales() -> int:
+    """Devuelve el límite vigente de cupos de fundador desde la base de datos (con respaldo en 50)."""
+    return ConfiguracionSuscripciones.obtener_cupos_fundador(CUPOS_FUNDADOR)
 
 
 class CanalVenta:
@@ -214,7 +219,7 @@ def cambiar_plan(
                 .filter(es_fundador=True)
                 .count()
             )
-            if total_fundadores < CUPOS_FUNDADOR:
+            if total_fundadores < cupos_fundador_actuales():
                 suscripcion.es_fundador = True
                 suscripcion.descuento_porcentaje = DESCUENTO_FUNDADOR
     else:
@@ -348,3 +353,94 @@ def verificar_vencimientos() -> dict:
         "trials_vencidos": trials_vencidos,
         "activas_vencidas": activas_vencidas,
     }
+
+
+@transaction.atomic
+def otorgar_cortesia(
+    empresa: Empresa,
+    *,
+    motivo: str,
+    dias: int | None = None,
+    plan=None,
+) -> Suscripcion:
+    """Otorga días gratis o un plan de cortesía a una empresa dejando rastro en HistorialSuscripcion."""
+    motivo_limpio = str(motivo or "").strip()
+    if not motivo_limpio:
+        raise ValidationError("El motivo de la cortesía es obligatorio.")
+
+    dias_num = int(dias) if dias not in (None, "") else None
+    if dias_num is not None and dias_num <= 0:
+        raise ValidationError("Los días de cortesía deben ser mayores a 0.")
+    if dias_num is None and plan is None:
+        raise ValidationError("Debes indicar días gratis o un plan de cortesía.")
+
+    plan_destino = _obtener_plan(plan) if plan is not None else None
+
+    crear_suscripcion_inicial(empresa)
+    suscripcion = (
+        Suscripcion.objects.select_for_update()
+        .select_related("plan")
+        .get(empresa=empresa)
+    )
+
+    ahora = timezone.now()
+    plan_anterior = suscripcion.plan
+    estado_anterior = suscripcion.estado
+
+    if plan_destino is not None:
+        es_pago = plan_destino.precio_mensual > Decimal("0.00") or plan_destino.precio_anual > Decimal("0.00")
+        suscripcion.plan = plan_destino
+        suscripcion.estado = Suscripcion.Estado.ACTIVA
+        if dias_num is not None:
+            base = (
+                suscripcion.vence_en
+                if suscripcion.plan_id == plan_anterior.pk
+                and suscripcion.vence_en is not None
+                and suscripcion.vence_en > ahora
+                else ahora
+            )
+            suscripcion.vence_en = base + timedelta(days=dias_num)
+        elif es_pago:
+            suscripcion.vence_en = ahora + timedelta(days=DIAS_CICLO_MENSUAL)
+        else:
+            suscripcion.vence_en = None
+        if suscripcion.plan_id != plan_anterior.pk or estado_anterior in (
+            Suscripcion.Estado.VENCIDA,
+            Suscripcion.Estado.CANCELADA,
+        ):
+            suscripcion.inicia_en = ahora
+    else:
+        base = (
+            suscripcion.vence_en
+            if suscripcion.vence_en is not None and suscripcion.vence_en > ahora
+            else ahora
+        )
+        suscripcion.vence_en = base + timedelta(days=dias_num)
+        if suscripcion.estado in (Suscripcion.Estado.VENCIDA, Suscripcion.Estado.CANCELADA):
+            suscripcion.estado = Suscripcion.Estado.ACTIVA
+            suscripcion.inicia_en = ahora
+
+    suscripcion.save(
+        update_fields=["plan", "estado", "inicia_en", "vence_en", "actualizado_en"]
+    )
+
+    prefijo = "Cortesía"
+    if plan_destino is not None and dias_num is not None:
+        prefijo = f"Cortesía ({plan_destino.nombre}, {dias_num} días)"
+    elif plan_destino is not None:
+        prefijo = f"Cortesía (plan {plan_destino.nombre})"
+    elif dias_num is not None:
+        prefijo = f"Cortesía (+{dias_num} días)"
+
+    HistorialSuscripcion.objects.create(
+        suscripcion=suscripcion,
+        plan_anterior=plan_anterior,
+        plan_nuevo=suscripcion.plan,
+        estado_anterior=estado_anterior,
+        estado_nuevo=suscripcion.estado,
+        motivo=f"{prefijo}: {motivo_limpio}"[:255],
+        fecha=ahora,
+    )
+    empresa.suscripcion = suscripcion
+    return suscripcion
+

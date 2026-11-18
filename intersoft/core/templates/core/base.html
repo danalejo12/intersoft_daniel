@@ -75,6 +75,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
     </a>
     {% endif %}
+    {% if nav_permisos.gestionar_pqrs %}
+    <a href="{% url 'panel_pqrs_lista' %}" data-label="PQRS" aria-label="PQRS" class="{% if 'panel_pqrs' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </a>
+    {% endif %}
     {% if nav_permisos.ver_equipo %}
     <a href="{% url 'equipo_lista' %}" data-label="Equipo y roles" aria-label="Equipo y roles" class="{% if 'equipo' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -165,6 +170,35 @@
       {% endif %}
 
       {% block contenido %}{% endblock %}
+
+      {% if user.is_authenticated and request.empresa %}
+        <section class="tarjeta" style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <a class="boton secundario" href="{% url 'soporte_reportar_problema' %}?url={{ request.get_full_path|urlencode }}">Reportar un problema</a>
+            <a class="boton secundario" href="{% url 'soporte_ideas' %}">Ideas y votos</a>
+          </div>
+
+          <form method="post" action="{% url 'soporte_comentario' %}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
+            <span class="nota">¿Te resultó útil esta pantalla?</span>
+            <input type="text" name="comentario" placeholder="Comentario opcional..." style="min-width: 170px;">
+            <button type="submit" name="util" value="1" class="boton secundario" aria-label="Útil">👍</button>
+            <button type="submit" name="util" value="0" class="boton secundario" aria-label="No útil">👎</button>
+          </form>
+
+          {% if soporte_mostrar_nps %}
+            <form method="post" action="{% url 'soporte_nps' %}" style="width: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 10px; border-top: 1px solid rgba(148,163,184,.2); margin: 0;">
+              {% csrf_token %}
+              <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
+              <span class="nota">¿Qué tanto recomendarías Intersoft? (0 a 10):</span>
+              <input type="number" name="puntaje" min="0" max="10" required style="width: 72px;">
+              <input type="text" name="comentario" placeholder="¿Por qué? (opcional)" style="min-width: 180px;">
+              <button type="submit" class="boton">Enviar NPS</button>
+            </form>
+          {% endif %}
+        </section>
+      {% endif %}
     </main>
 
 {% if user.is_authenticated %}

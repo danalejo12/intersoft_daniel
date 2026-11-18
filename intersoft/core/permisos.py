@@ -59,6 +59,12 @@ GRUPOS_PERMISOS = (
             ("reportes.ver", "Ver reportes operativos y financieros"),
         ),
     ),
+    (
+        "Atención al cliente (PQRS)",
+        (
+            ("pqrs.gestionar", "Ver y responder PQRS de compradores y radicar a Intersoft"),
+        ),
+    ),
 )
 
 CATALOGO_PERMISOS = tuple(
@@ -90,6 +96,7 @@ ROLES_BASE = (
             "inventario.ver",
             "agenda.ver",
             "agenda.gestionar",
+            "pqrs.gestionar",
         ),
     },
     {

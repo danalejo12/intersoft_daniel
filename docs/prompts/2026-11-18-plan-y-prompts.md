@@ -36,14 +36,14 @@ Para: **danalejo12** y **miguel2007ortiz**. Cada prompt se pega tal cual en Clau
 - Commits en español con prefijo (`feat(...)`, `fix(...)`, `docs(...)`) y un PR o merge a `main` por prompt.
 - **No tocar la DIAN** (`core/facturacion_electronica.py` ni la nómina electrónica).
 
-| Prompt | Responsable | Rama | Zona principal |
-|---|---|---|---|
-| 1 | danalejo12 | `feature/plataforma-base` | app nueva `plataforma/` |
-| 2 | danalejo12 | `feature/plataforma-cobros` | `plataforma/`, `suscripciones/` |
-| 3 | miguel2007ortiz | `feature/pqrs` | app nueva `pqrs/` |
-| 4 | miguel2007ortiz | `feature/errores-y-comentarios` | app nueva `soporte/` |
-| 5 | danalejo12 | `chore/docker-unificado` | `Dockerfile`, compose, `docker/`, `settings.py` (solo seguridad) |
-| 6 | miguel2007ortiz | `docs/adso-actualizacion` | `docs/`, pruebas |
+| Prompt | Responsable | Rama | Zona principal | Estado (18-nov) |
+|---|---|---|---|---|
+| 1 | danalejo12 | `feature/plataforma-base` | app nueva `plataforma/` | **Hecho** (`plataforma` + roles + auditoría + llaves Wompi) |
+| 2 | danalejo12 | `feature/plataforma-cobros` | `plataforma/`, `suscripciones/` | **Hecho** (editor de planes, cobros, cortesías, fundadores, métricas) |
+| 3 | miguel2007ortiz | `feature/pqrs` | app nueva `pqrs/` | **Hecho** (`pqrs` flujos A/B, días hábiles, semáforo, escalamiento, correos) |
+| 4 | miguel2007ortiz | `feature/errores-y-comentarios` | app nueva `soporte/` | **Hecho** (`soporte` errores 500 por huella, reportes, 👍/👎, NPS, ideas) |
+| 5 | danalejo12 | `chore/docker-unificado` | `Dockerfile`, compose, `docker/`, `settings.py` | **Hecho** (`compose.dev.yml`, `compose.prod.yml`, Python 3.14, `/salud/`, Swagger staff) |
+| 6 | miguel2007ortiz | `docs/adso-actualizacion` | `docs/`, pruebas | **Hecho** (diccionario, MER, UML, secuencia, manual, PDFs/DOCX, 92% cobertura, 525 tests en verde) |
 
 Los prompts 3 y 4 crean pantallas que después se verán en la consola del prompt 1. Para no depender del otro, cada app expone su propia bandeja con `is_staff` y el prompt 1 solo agrega los enlaces en el menú.
 
@@ -51,7 +51,7 @@ Los prompts 3 y 4 crean pantallas que después se verán en la consola del promp
 
 ## 3. Los 6 prompts
 
-### Prompt 1: Consola de super administrador (danalejo12)
+### Prompt 1: Consola de super administrador (danalejo12) — **Completado**
 
 ```text
 Contexto: proyecto Django multiempresa Intersoft (repo actual). El panel de cada negocio vive en /panel/ y el
@@ -82,7 +82,7 @@ Restricciones: no toques core/facturacion_electronica.py (DIAN en espera). Reuti
 Al final dame un resumen de lo que hiciste y cómo probarlo a mano.
 ```
 
-### Prompt 2: Planes, cobros y métricas en la consola (danalejo12, después del 1)
+### Prompt 2: Planes, cobros y métricas en la consola (danalejo12, después del 1) — **Completado**
 
 ```text
 Contexto: ya existe la app `plataforma` (/plataforma/) con roles internos y auditoría. Los cobros de planes
@@ -108,7 +108,7 @@ Restricciones: no actives ningún plan sin dejar rastro en HistorialSuscripcion 
 la DIAN. Pruebas en verde.
 ```
 
-### Prompt 3: PQRS en dos flujos (miguel2007ortiz)
+### Prompt 3: PQRS en dos flujos (miguel2007ortiz) — **Completado**
 
 ```text
 Contexto: Intersoft es un marketplace + SaaS multiempresa en Colombia. Necesitamos PQRS (peticiones, quejas,
@@ -141,7 +141,7 @@ Nota legal: deja los plazos configurables en settings (PQRS_DIAS_RESPUESTA=15 po
 README que deben validarse con un abogado. No toques la DIAN. Pruebas en verde.
 ```
 
-### Prompt 4: Errores y comentarios (miguel2007ortiz)
+### Prompt 4: Errores y comentarios (miguel2007ortiz) — **Completado**
 
 ```text
 Contexto: Intersoft (Django). Queremos ver los errores reales y recibir comentarios de los negocios sin
@@ -169,7 +169,7 @@ Restricciones: el registro de errores nunca debe provocar otro error (envuélvel
 el log). No toques la DIAN. Pruebas en verde.
 ```
 
-### Prompt 5: Docker unificado y endurecimiento para producción (danalejo12)
+### Prompt 5: Docker unificado y endurecimiento para producción (danalejo12) — **Completado**
 
 ```text
 Contexto: el repo tiene Dockerfile (ENTRYPOINT docker/entrypoint.sh, que ahora ejecuta "$@" si recibe un
@@ -195,7 +195,7 @@ Tarea:
 No toques la DIAN. Pruebas en verde.
 ```
 
-### Prompt 6: Documentación ADSO y cobertura al día (miguel2007ortiz)
+### Prompt 6: Documentación ADSO y cobertura al día (miguel2007ortiz) — **Completado**
 
 ```text
 Contexto: docs/adso/ y docs/diagramas/ se hicieron antes de unir el trabajo de danalejo12. Faltan los
@@ -219,38 +219,93 @@ No cambies lógica de negocio salvo para agregar pruebas. No toques la DIAN.
 
 ---
 
-## 4. Más ideas para los siguientes días (banco de prompts)
+## 4. Más ideas para los siguientes días (banco de prompts listos para usar)
 
 ### Consola y negocio SaaS
-- «Entrar como» un negocio para dar soporte: franja roja visible, solo lectura opcional, todo en la auditoría.
-- Cupones de descuento para planes (porcentaje o valor, vigencia, usos máximos).
-- Interruptores de funciones: activar algo nuevo solo para algunos negocios.
-- Anuncios en el panel de todos los negocios (mantenimientos, novedades).
-- Verificación en dos pasos (TOTP) obligatoria para el personal de la consola.
-- Página pública de precios generada desde los planes de la base de datos.
-- Recordatorios por correo 7, 3 y 1 día antes de que venza un plan, con el enlace de pago.
+
+#### Prompt 7: «Entrar como» un negocio + anuncios globales
+```text
+Contexto: ya existe la app `plataforma` (/plataforma/) con roles internos (Dueño, Soporte) y AuditoriaPlataforma.
+
+Tarea:
+1. En /plataforma/negocios/ (crea la bandeja completa reemplazando «Próximamente»), lista los negocios con su
+   plan, estado de suscripción y botón «Entrar como» (solo roles Dueño y Soporte).
+2. Al activar «Entrar como» sobre una empresa, guarda en sesión el modo soporte (solo lectura opcional por
+   defecto) y muestra en core/templates/core/base.html una franja roja fija visible en todo /panel/ con el
+   nombre del negocio y un botón «Salir de soporte».
+3. Toda entrada y salida queda registrada en AuditoriaPlataforma con actor, empresa, IP y modo (lectura/escritura).
+4. Agrega anuncios globales desde /plataforma/ (título, mensaje, vigencia, tipo) visibles como aviso en /panel/.
+
+Restricciones: no toques core/facturacion_electronica.py. Pruebas de aislamiento, solo lectura y auditoría en verde.
+```
+
+#### Prompt 8: Cupones de descuento, página pública de precios y recordatorios de vencimiento
+```text
+Contexto: los cobros de planes están en suscripciones/cobros.py y suscripciones/services.py.
+
+Tarea:
+1. Crea el modelo CuponPlan (código único, porcentaje o valor fijo, vigencia, usos_maximos, usos_actuales,
+   activo) e intégralo en cobros.cotizar() y en /panel/suscripcion/. Gestión desde /plataforma/planes-cobros/.
+2. Crea una página pública /precios/ generada dinámicamente desde Plan.objects.filter(activo=True) mostrando
+   precios mensual/anual, límites y features.
+3. Registra una tarea periódica en core/tareas.py que envíe recordatorios por correo 7, 3 y 1 día antes de
+   vencer un Trial o suscripción paga (idempotente por día/suscripción), con enlace directo a /panel/suscripcion/.
+4. Agrega interruptor de funciones (FeatureFlag por negocio) y 2FA/TOTP obligatorio para personal de /plataforma/.
+
+Restricciones: no toques la DIAN. Pruebas en verde.
+```
 
 ### Inventario y bodegas
-- Compras del ERP con bodega destino (hoy entran a la Principal).
-- Alertas de stock mínimo por bodega, además de la del total.
-- Traslados «en tránsito»: el despacho y la recepción se confirman por separado.
-- Conteo físico por bodega con hoja imprimible y ajuste masivo.
-- Importar productos y stock desde Excel (ya tenemos openpyxl).
-- Etiquetas con código de barras y lectura con la cámara en el POS.
+
+#### Prompt 9: Compras con bodega destino, alertas por bodega y conteo físico
+```text
+Contexto: existen core.Bodega, core.Existencia y core.bodegas.py; hoy las compras del ERP entran a la Principal.
+
+Tarea:
+1. Agrega un selector de bodega destino en Compra (core/erp_services.py y vistas ERP), usando la Principal por
+   defecto para compatibilidad.
+2. Extiende las alertas de stock mínimo (core/notificaciones.py y comando procesar_reservas_y_alertas) para
+   alertar también cuando una bodega activa quede por debajo de su mínimo.
+3. Implementa traslados «en tránsito» (estado enviado / recibido con confirmación en la bodega destino) y un
+   módulo de conteo físico por bodega con hoja imprimible y ajuste masivo auditado en MovimientoInventario.
+4. Agrega importación masiva de productos y stock inicial desde Excel (.xlsx con openpyxl) validando errores por fila.
+
+Restricciones: no toques la DIAN. Pruebas de concurrencia e inventario en verde.
+```
 
 ### Marketplace y POS
-- Ticket POS en PDF y envío por WhatsApp o correo.
-- POS sin conexión (PWA) que sincronice al volver la red, con la idempotencia que ya existe.
-- Seguimiento de envío para el comprador con línea de tiempo.
-- Favoritos y «volver a comprar».
-- Reportes por bodega y por caja (ventas, márgenes, rotación).
+
+#### Prompt 10: Ticket POS en PDF, seguimiento de envío y favoritos
+```text
+Contexto: el marketplace está en core/views_tienda.py y core/views_compra.py; el POS en core/views_pos.py.
+
+Tarea:
+1. Genera el ticket POS en PDF (reportlab) descargable desde /panel/pos/ticket/<uuid:pk>/pdf/ y con opción de
+   envío por correo al cliente.
+2. En la página del pedido del comprador (/pedidos/<uuid:pk>/), muestra una línea de tiempo visual con el
+   seguimiento de envío (pendiente → preparando → enviado con guía → entregado).
+3. Agrega «Favoritos» y botón «Volver a comprar» (recarga los ítems disponibles del pedido al carrito).
+4. Agrega reportes de ventas, márgenes y rotación desglosados por bodega y por turno de caja en /panel/erp/reportes/.
+
+Restricciones: no toques la DIAN. Pruebas en verde.
+```
 
 ### Calidad y operación
-- Exigir en el CI una cobertura mínima (falla si baja del 85 %).
-- Copias de seguridad automáticas de PostgreSQL con restauración probada.
-- Límite de peticiones en el login, la API y los webhooks.
-- Pruebas de carga del checkout y del POS.
-- Revisión de accesibilidad (contraste, teclado, lectores de pantalla) en tienda y POS.
+
+#### Prompt 11: Umbral de cobertura en CI, rate limiting y respaldos automáticos
+```text
+Contexto: el CI está en .github/workflows/pruebas.yml y el reporte de cobertura en docs/adso/Reporte-Cobertura-InterSoft.md.
+
+Tarea:
+1. Actualiza .github/workflows/pruebas.yml para ejecutar coverage sobre core, suscripciones, plataforma, pqrs y
+   soporte y fallar el build si la cobertura total baja del 85 % (`coverage report --fail-under=85`).
+2. Agrega rate limiting (limitación de peticiones) en API DRF, webhooks de Wompi y endpoints públicos críticos.
+3. Crea un script y documentación operativa en deploy/ para copias de seguridad automáticas de PostgreSQL
+   (pg_dump) con verificación periódica de restauración en base temporal.
+4. Ejecuta una revisión de accesibilidad (contraste, foco por teclado y atributos aria-*) en tienda y POS.
+
+Restricciones: no toques la DIAN. Pruebas y CI en verde.
+```
 
 ### Pendiente de decisión (sin prompt todavía)
 - **DIAN**: elegir proveedor tecnológico (Alegra, Siigo, Facture u otro), resolución de numeración y

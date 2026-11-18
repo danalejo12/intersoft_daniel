@@ -2,6 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import TemplateView
 
+from pqrs import views as views_pqrs
 from suscripciones import views_panel as views_suscripciones_panel
 
 from . import views, views_bodegas, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
@@ -61,6 +62,9 @@ panel_urlpatterns = [
     path("facturas/<uuid:pk>/cobrar/", views.FacturaCobrarView.as_view(), name="facturas_cobrar"),
     path("pedidos/", views_pedidos_panel.PedidoPanelListView.as_view(), name="pedidos_panel_lista"),
     path("pedidos/<uuid:pk>/", views_pedidos_panel.PedidoPanelDetailView.as_view(), name="pedidos_panel_detalle"),
+    path("pqrs/", views_pqrs.PanelPQRSListView.as_view(), name="panel_pqrs_lista"),
+    path("pqrs/nueva/", views_pqrs.PanelPQRSNuevaView.as_view(), name="panel_pqrs_nueva"),
+    path("pqrs/<uuid:pk>/", views_pqrs.PanelPQRSDetalleView.as_view(), name="panel_pqrs_detalle"),
 
     # Punto de venta (mostrador)
     path("pos/", views_pos.PosView.as_view(), name="pos"),

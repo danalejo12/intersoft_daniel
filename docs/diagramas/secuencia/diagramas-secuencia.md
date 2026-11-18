@@ -145,3 +145,126 @@ sequenceDiagram
         end
     end
 ```
+
+## 5. Compra Unificada en Varios Negocios (`Orden` + `Pedido`)
+
+```mermaid
+sequenceDiagram
+    actor C as Comprador Web
+    participant V as CheckoutTodoView (/comprar/)
+    participant R as Servicio Reservas / Bodegas
+    participant DB as PostgreSQL
+
+    C->>V: Envía formulario único de envío para N negocios
+    V->>DB: Inicia @transaction.atomic y crea Orden(comprador)
+    loop Por cada negocio en el carrito
+        V->>R: reservar_bodega_en_linea(empresa, items)
+        R->>DB: Bloquea Existencia en Bodega(vende_en_linea=True)
+        alt Stock suficiente en la bodega en línea
+            R->>DB: Crea Pedido(orden=orden, bodega=bodega_linea, estado=PENDIENTE)
+        else Sin stock
+            R-->>V: Lanza StockInsuficiente (rollback total de Orden y Pedidos)
+        end
+    end
+    V-->>C: Redirige a /compras/<orden_id>/ para pagar cada negocio por separado en Wompi
+```
+
+## 6. Pago de un Plan con Wompi (Retorno, Webhook y Conciliación)
+
+```mermaid
+sequenceDiagram
+    actor A as Administrador
+    participant PAN as SuscripcionPanelView / CobroSuscripcionView
+    participant COB as suscripciones.cobros
+    participant WH as WompiWebhookSuscripcionesView
+    participant SRV as cambiar_plan()
+    participant DB as PostgreSQL
+
+    A->>PAN: Selecciona plan pago y ciclo
+    PAN->>COB: iniciar_cobro() -> crea CobroSuscripcion(pendiente)
+    PAN-->>A: Redirige a Checkout Wompi con firma SHA-256
+    alt Camino 1: Retorno del navegador
+        A->>PAN: GET /panel/suscripcion/cobros/<id>/?id=tx
+        PAN->>COB: sincronizar_cobro(cobro, transaccion_id)
+    else Camino 2: Webhook firmado Wompi
+        WH->>WH: Valida checksum HMAC-SHA256
+        WH->>COB: aplicar_transaccion(tx)
+    else Camino 3: Tarea periódica
+        COB->>COB: conciliar_cobros_suscripcion -> sincronizar_cobro(forzar=True)
+    end
+    COB->>DB: Bloquea CobroSuscripcion (select_for_update)
+    alt APPROVED y monto/moneda coinciden
+        COB->>SRV: cambiar_plan(empresa, plan, ciclo, forzar_fundador)
+        SRV->>DB: Activa Suscripcion y registra HistorialSuscripcion
+        COB->>DB: Marca CobroSuscripcion = aprobado
+    else Discrepancia o DowngradeNoPermitido
+        COB->>DB: Marca CobroSuscripcion = requiere_revision
+    end
+```
+
+## 7. Traslado entre Bodegas
+
+```mermaid
+sequenceDiagram
+    actor BOD as Bodega / Inventario
+    participant V as TrasladoView
+    participant S as core.bodegas.trasladar()
+    participant DB as PostgreSQL
+
+    BOD->>V: POST /panel/productos/<id>/trasladar/ (origen, destino, cantidad)
+    V->>S: trasladar(empresa, producto, origen, destino, cantidad)
+    S->>DB: Valida ambas bodegas activas de la empresa
+    S->>DB: Bloquea Existencia origen y destino en orden por ID
+    alt Existencia en origen >= cantidad
+        S->>DB: Resta en origen y suma en destino (Producto.stock sin cambio)
+        S->>DB: Registra MovimientoInventario(tipo=TRASLADO)
+        S-->>BOD: Confirmación de traslado exitoso
+    else Stock insuficiente en origen
+        S-->>V: StockInsuficiente -> muestra error en formulario
+    end
+```
+
+## 8. Venta POS desde una Bodega
+
+```mermaid
+sequenceDiagram
+    actor CAJ as Cajero POS
+    participant V as AbrirTurnoView / VenderView
+    participant C as core.caja
+    participant B as core.bodegas
+    participant DB as PostgreSQL
+
+    CAJ->>V: Abre turno eligiendo Bodega
+    V->>DB: Crea TurnoCaja(empresa, cajero, bodega)
+    CAJ->>V: Confirma venta POS (clave_operacion UUID)
+    V->>C: vender_pos(turno, items, pagos)
+    C->>B: mover(producto, bodega=turno.bodega, variacion=-qty)
+    B->>DB: Descuenta Existencia de esa bodega y recalcula Producto.stock
+    C->>DB: Crea Factura(bodega=turno.bodega), DetalleFactura y PagoCaja
+    C-->>CAJ: Devuelve ticket POS
+```
+
+## 9. Tareas Periódicas (`core/tareas.py` + `EjecucionTarea`)
+
+```mermaid
+sequenceDiagram
+    participant CRON as Scheduler / cron (tareas_periodicas)
+    participant T as core.tareas.ejecutar_pendientes()
+    participant DB as PostgreSQL (EjecucionTarea)
+    participant CMD as Comando Django
+
+    CRON->>T: Ejecuta pasada (cada 60s o 5 min)
+    loop Por cada Tarea en TAREAS
+        T->>DB: UPDATE condicional EjecucionTarea WHERE ultima_ejecucion <= ahora - cada
+        alt Ganó el turno
+            T->>CMD: call_command(tarea.comando)
+            alt Éxito
+                T->>DB: Actualiza ultimo_resultado, fallos_seguidos=0, ejecuciones+=1
+            else Excepción
+                T->>DB: Registra ultimo_error, fallos_seguidos+=1 (CRITICAL si == 3)
+            end
+        else Omitida (aún no le toca)
+            T->>T: Continúa con la siguiente tarea
+        end
+    end
+```

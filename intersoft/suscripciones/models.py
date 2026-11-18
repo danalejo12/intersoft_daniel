@@ -240,3 +240,37 @@ class CobroSuscripcion(ModeloBase):
     @property
     def monto_centavos(self) -> int:
         return int((self.monto * 100).to_integral_value())
+
+
+class ConfiguracionSuscripciones(ModeloBase):
+    """Parámetros globales de suscripciones editables desde /plataforma/."""
+
+    clave_unica = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+    cupos_fundador = models.PositiveIntegerField(
+        "cupos de fundador",
+        default=50,
+        help_text="Cantidad máxima de empresas que pueden obtener el descuento permanente de fundador.",
+    )
+
+    class Meta:
+        verbose_name = "configuración de suscripciones"
+        verbose_name_plural = "configuraciones de suscripciones"
+
+    def __str__(self):
+        return f"Configuración de suscripciones (cupos fundador: {self.cupos_fundador})"
+
+    @classmethod
+    def obtener(cls):
+        obj, _ = cls.objects.get_or_create(clave_unica=1, defaults={"cupos_fundador": 50})
+        return obj
+
+    @classmethod
+    def obtener_cupos_fundador(cls, defecto: int = 50) -> int:
+        from django.db import OperationalError, ProgrammingError
+
+        try:
+            obj = cls.objects.filter(clave_unica=1).only("cupos_fundador").first()
+            return obj.cupos_fundador if obj is not None else defecto
+        except (OperationalError, ProgrammingError):
+            return defecto
+

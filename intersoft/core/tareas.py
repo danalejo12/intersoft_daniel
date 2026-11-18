@@ -39,6 +39,8 @@ TAREAS = (
           "Consulta en Wompi los cobros de planes que siguen pendientes."),
     Tarea("alertas_stock", "procesar_reservas_y_alertas", timedelta(hours=24),
           "Envía una vez al día las alertas de stock mínimo."),
+    Tarea("escalar_pqrs_vencidas", "escalar_pqrs_vencidas", timedelta(hours=1),
+          "Escala a Intersoft las PQRS de compradores vencidas sin respuesta del negocio."),
 )
 
 
