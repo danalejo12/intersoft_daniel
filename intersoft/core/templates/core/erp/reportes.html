@@ -1,30 +1,31 @@
 {% extends "core/base.html" %}
-{% block titulo %}{{ titulo }} · ERP · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with titulo=titulo %}{{ titulo }} · ERP · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
       <h1>{{ titulo }}</h1>
-      <p class="nota">Consolidado financiero y contable de <strong>{{ request.empresa.nombre }}</strong>.</p>
+      <p class="nota">{% translate "Consolidado financiero y contable de" %} <strong>{{ request.empresa.nombre }}</strong>.</p>
     </div>
     <div class="erp-toolbar">
       <a class="boton exito" href="{% url 'erp_reportes_excel' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Exportar a Excel (.xlsx)
+        {% translate "Exportar a Excel (.xlsx)" %}
       </a>
       <button type="button" class="boton secundario" data-imprimir>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Imprimir reporte
+        {% translate "Imprimir reporte" %}
       </button>
-      <a class="boton secundario" href="{% url 'erp_inicio' %}">← Volver a Gestión ERP</a>
+      <a class="boton secundario" href="{% url 'erp_inicio' %}">{% translate "← Volver a Gestión ERP" %}</a>
     </div>
   </div>
 
   {% if cartera is not None %}
     <div class="tarjeta" style="margin-bottom: 20px;">
       <div class="tarjeta-cabecera">
-        <h2>Saldos pendientes de cartera</h2>
-        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'cartera' %}">Ver cartera →</a>
+        <h2>{% translate "Saldos pendientes de cartera" %}</h2>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'cartera' %}">{% translate "Ver cartera →" %}</a>
       </div>
       <div class="kpis" style="margin-bottom: 0;">
         {% for item in cartera %}
@@ -36,7 +37,7 @@
               <span>{{ item.tipo }}</span>
             </div>
             <strong class="num">$ {{ item.total|floatformat:"0g" }}</strong>
-            <small>Saldo pendiente acumulado</small>
+            <small>{% translate "Saldo pendiente acumulado" %}</small>
           </div>
         {% endfor %}
       </div>
@@ -46,12 +47,12 @@
   {% if cuentas is not None %}
     <div class="tarjeta" style="margin-bottom: 20px;">
       <div class="tarjeta-cabecera">
-        <h2>Saldos en cajas y bancos</h2>
-        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'tesoreria' %}">Ver movimientos →</a>
+        <h2>{% translate "Saldos en cajas y bancos" %}</h2>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'tesoreria' %}">{% translate "Ver movimientos →" %}</a>
       </div>
       <div class="tabla-wrap"><table class="tabla">
         <thead>
-          <tr><th>Cuenta</th><th class="num">Saldo</th></tr>
+          <tr><th>{% translate "Cuenta" %}</th><th class="num">{% translate "Saldo" %}</th></tr>
         </thead>
         <tbody>
           {% for c in cuentas %}
@@ -60,7 +61,7 @@
               <td class="num">$ {{ c.saldo|floatformat:"0g" }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="2">No hay cajas ni bancos registrados.</td></tr>
+            <tr><td colspan="2">{% translate "No hay cajas ni bancos registrados." %}</td></tr>
           {% endfor %}
         </tbody>
       </table></div>
@@ -70,16 +71,16 @@
   {% if balance is not None %}
     <div class="tarjeta">
       <div class="tarjeta-cabecera">
-        <h2>Balance de comprobación (asientos confirmados)</h2>
-        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'contabilidad' %}">Ver comprobantes →</a>
+        <h2>{% translate "Balance de comprobación (asientos confirmados)" %}</h2>
+        <a class="boton secundario pequeno" href="{% url 'erp_lista' 'contabilidad' %}">{% translate "Ver comprobantes →" %}</a>
       </div>
       <div class="tabla-wrap"><table class="tabla">
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Cuenta contable</th>
-            <th class="num">Débitos</th>
-            <th class="num">Créditos</th>
+            <th>{% translate "Código" %}</th>
+            <th>{% translate "Cuenta contable" %}</th>
+            <th class="num">{% translate "Débitos" %}</th>
+            <th class="num">{% translate "Créditos" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -91,7 +92,7 @@
               <td class="num">$ {{ fila.credito|floatformat:"0g" }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="4">Aún no hay asientos confirmados.</td></tr>
+            <tr><td colspan="4">{% translate "Aún no hay asientos confirmados." %}</td></tr>
           {% endfor %}
         </tbody>
       </table></div>
@@ -100,22 +101,22 @@
 
   <div class="tarjeta" style="margin-top: 20px;">
     <div class="tarjeta-cabecera">
-      <h2>Ventas por bodega</h2>
+      <h2>{% translate "Ventas por bodega" %}</h2>
     </div>
     <div class="tabla-wrap"><table class="tabla">
       <thead>
-        <tr><th>Bodega</th><th class="num">Facturas</th><th class="num">Subtotal</th><th class="num">Total</th></tr>
+        <tr><th>{% translate "Bodega" %}</th><th class="num">{% translate "Facturas" %}</th><th class="num">{% translate "Subtotal" %}</th><th class="num">{% translate "Total" %}</th></tr>
       </thead>
       <tbody>
         {% for v in ventas_por_bodega %}
           <tr>
-            <td>{{ v.bodega__nombre|default:"Sin bodega asignada" }}</td>
+            <td>{{ v.bodega__nombre|default:_("Sin bodega asignada") }}</td>
             <td class="num">{{ v.facturas }}</td>
             <td class="num">$ {{ v.subtotal|floatformat:"0g" }}</td>
             <td class="num">$ {{ v.total|floatformat:"0g" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">Aún no hay facturas emitidas.</td></tr>
+          <tr><td colspan="4">{% translate "Aún no hay facturas emitidas." %}</td></tr>
         {% endfor %}
       </tbody>
     </table></div>
@@ -123,11 +124,11 @@
 
   <div class="tarjeta" style="margin-top: 20px;">
     <div class="tarjeta-cabecera">
-      <h2>Ventas por turno de caja (POS)</h2>
+      <h2>{% translate "Ventas por turno de caja (POS)" %}</h2>
     </div>
     <div class="tabla-wrap"><table class="tabla">
       <thead>
-        <tr><th>Turno / Apertura</th><th>Cajero</th><th>Bodega</th><th class="num">Facturas</th><th class="num">Total</th></tr>
+        <tr><th>{% translate "Turno / Apertura" %}</th><th>{% translate "Cajero" %}</th><th>{% translate "Bodega" %}</th><th class="num">{% translate "Facturas" %}</th><th class="num">{% translate "Total" %}</th></tr>
       </thead>
       <tbody>
         {% for t in ventas_por_turno %}
@@ -139,7 +140,7 @@
             <td class="num">$ {{ t.total|floatformat:"0g" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="5">No hay ventas asociadas a turnos de caja.</td></tr>
+          <tr><td colspan="5">{% translate "No hay ventas asociadas a turnos de caja." %}</td></tr>
         {% endfor %}
       </tbody>
     </table></div>
@@ -147,19 +148,19 @@
 
   <div class="tarjeta" style="margin-top: 20px;">
     <div class="tarjeta-cabecera">
-      <h2>Márgenes y rotación por producto y bodega</h2>
+      <h2>{% translate "Márgenes y rotación por producto y bodega" %}</h2>
     </div>
     <div class="tabla-wrap"><table class="tabla">
       <thead>
         <tr>
-          <th>Producto</th>
-          <th>Bodega</th>
-          <th class="num">Unidades</th>
-          <th class="num">Ingresos</th>
-          <th class="num">Costo est.</th>
-          <th class="num">Margen</th>
-          <th class="num">Stock</th>
-          <th class="num">Rotación</th>
+          <th>{% translate "Producto" %}</th>
+          <th>{% translate "Bodega" %}</th>
+          <th class="num">{% translate "Unidades" %}</th>
+          <th class="num">{% translate "Ingresos" %}</th>
+          <th class="num">{% translate "Costo est." %}</th>
+          <th class="num">{% translate "Margen" %}</th>
+          <th class="num">{% translate "Stock" %}</th>
+          <th class="num">{% translate "Rotación" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -175,7 +176,7 @@
             <td class="num">{{ r.rotacion }}x</td>
           </tr>
         {% empty %}
-          <tr><td colspan="8">Sin ventas registradas para calcular márgenes y rotación.</td></tr>
+          <tr><td colspan="8">{% translate "Sin ventas registradas para calcular márgenes y rotación." %}</td></tr>
         {% endfor %}
       </tbody>
     </table></div>

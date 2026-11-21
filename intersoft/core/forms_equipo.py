@@ -1,4 +1,5 @@
 """Formularios para gestionar roles, permisos y miembros del equipo de una empresa."""
+from django.utils.translation import gettext, gettext_lazy
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -13,16 +14,16 @@ class RolForm(forms.ModelForm):
         queryset=Permiso.objects.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        label="Permisos asignados",
+        label=gettext_lazy("Permisos asignados"),
     )
 
     class Meta:
         model = Rol
         fields = ["nombre", "descripcion", "es_admin", "permisos"]
         labels = {
-            "nombre": "Nombre del rol",
-            "descripcion": "Descripción",
-            "es_admin": "Acceso total de administrador en este negocio",
+            "nombre": gettext_lazy("Nombre del rol"),
+            "descripcion": gettext_lazy("Descripción"),
+            "es_admin": gettext_lazy("Acceso total de administrador en este negocio"),
         }
 
     def __init__(self, *args, empresa, **kwargs):
@@ -39,7 +40,7 @@ class RolForm(forms.ModelForm):
             .exclude(pk=self.instance.pk)
             .exists()
         ):
-            raise ValidationError("Ya existe un rol con este nombre en tu empresa.")
+            raise ValidationError(gettext("Ya existe un rol con este nombre en tu empresa."))
         return nombre
 
     def clean(self):
@@ -54,7 +55,7 @@ class RolForm(forms.ModelForm):
             )
             if tiene_miembros_activos and not otros_admins:
                 raise ValidationError(
-                    "No puedes quitar el acceso de administrador al único rol con administradores activos."
+                    gettext("No puedes quitar el acceso de administrador al único rol con administradores activos.")
                 )
         return datos
 
@@ -86,19 +87,19 @@ class RolForm(forms.ModelForm):
 
 
 class MiembroCrearForm(forms.Form):
-    email = forms.EmailField(label="Correo electrónico")
-    first_name = forms.CharField(max_length=150, required=False, label="Nombres")
-    last_name = forms.CharField(max_length=150, required=False, label="Apellidos")
+    email = forms.EmailField(label=gettext_lazy("Correo electrónico"))
+    first_name = forms.CharField(max_length=150, required=False, label=gettext_lazy("Nombres"))
+    last_name = forms.CharField(max_length=150, required=False, label=gettext_lazy("Apellidos"))
     rol = forms.ModelChoiceField(
         queryset=Rol.objects.none(),
-        label="Rol en el negocio",
-        empty_label="Selecciona un rol",
+        label=gettext_lazy("Rol en el negocio"),
+        empty_label=gettext_lazy("Selecciona un rol"),
     )
     password = forms.CharField(
         required=False,
         widget=forms.PasswordInput,
-        label="Contraseña inicial (solo si la cuenta es nueva)",
-        help_text="Si el correo ya tiene cuenta en Intersoft, se vinculará sin cambiar su contraseña.",
+        label=gettext_lazy("Contraseña inicial (solo si la cuenta es nueva)"),
+        help_text=gettext_lazy("Si el correo ya tiene cuenta en Intersoft, se vinculará sin cambiar su contraseña."),
     )
 
     def __init__(self, *args, empresa, **kwargs):
@@ -110,7 +111,7 @@ class MiembroCrearForm(forms.Form):
     def clean_email(self):
         correo = self.cleaned_data["email"].strip().lower()
         if Membresia.objects.filter(empresa=self.empresa, usuario__email__iexact=correo).exists():
-            raise ValidationError("Esta persona ya hace parte del equipo de tu negocio.")
+            raise ValidationError(gettext("Esta persona ya hace parte del equipo de tu negocio."))
         return correo
 
     def clean(self):
@@ -120,7 +121,7 @@ class MiembroCrearForm(forms.Form):
         password = datos.get("password") or ""
 
         if rol and rol.empresa_id != self.empresa.pk:
-            self.add_error("rol", "El rol seleccionado no pertenece a esta empresa.")
+            self.add_error("rol", gettext("El rol seleccionado no pertenece a esta empresa."))
 
         if correo:
             self.usuario_existente = Usuario.objects.filter(email__iexact=correo).first()
@@ -128,7 +129,7 @@ class MiembroCrearForm(forms.Form):
                 if not password:
                     self.add_error(
                         "password",
-                        "Ingresa una contraseña inicial porque este correo aún no tiene cuenta.",
+                        gettext("Ingresa una contraseña inicial porque este correo aún no tiene cuenta."),
                     )
                 else:
                     try:
@@ -163,8 +164,8 @@ class MiembroEditarForm(forms.ModelForm):
         model = Membresia
         fields = ["rol", "activa"]
         labels = {
-            "rol": "Rol asignado",
-            "activa": "Membresía activa (puede entrar al panel del negocio)",
+            "rol": gettext_lazy("Rol asignado"),
+            "activa": gettext_lazy("Membresía activa (puede entrar al panel del negocio)"),
         }
 
     def __init__(self, *args, empresa, **kwargs):
@@ -178,7 +179,7 @@ class MiembroEditarForm(forms.ModelForm):
         activa = datos.get("activa", False)
 
         if rol and rol.empresa_id != self.empresa.pk:
-            self.add_error("rol", "El rol seleccionado no pertenece a esta empresa.")
+            self.add_error("rol", gettext("El rol seleccionado no pertenece a esta empresa."))
             return datos
 
         era_admin_activo = bool(
@@ -192,5 +193,5 @@ class MiembroEditarForm(forms.ModelForm):
                 .exists()
             )
             if not otros_admins:
-                raise ValidationError("El negocio debe conservar al menos un administrador activo.")
+                raise ValidationError(gettext("El negocio debe conservar al menos un administrador activo."))
         return datos

@@ -1,10 +1,11 @@
 {% extends "core/tienda/base.html" %}
+{% load i18n %}
 
 {% block contenido %}
   {% if filtrando %}
     <h1 class="resultados">
-      {% if q %}Resultados para «{{ q }}»{% else %}{{ categoria_activa }}{% endif %}
-      {% if q and categoria_activa %}<small>en {{ categoria_activa }}</small>{% endif %}
+      {% if q %}{% blocktranslate with q=q %}Resultados para «{{ q }}»{% endblocktranslate %}{% else %}{{ categoria_activa }}{% endif %}
+      {% if q and categoria_activa %}<small>{% blocktranslate with categoria_activa=categoria_activa %}en {{ categoria_activa }}{% endblocktranslate %}</small>{% endif %}
     </h1>
   {% else %}
     <section class="portada" aria-labelledby="titulo-portada">
@@ -12,13 +13,13 @@
       <span class="mancha mancha-2" aria-hidden="true"></span>
       <span class="mancha mancha-3" aria-hidden="true"></span>
       <div class="portada-texto">
-        <h1 id="titulo-portada">¡Todo lo que buscas, en un solo lugar!</h1>
-        <p>Compra directo a los negocios, con pago seguro por Wompi.</p>
+        <h1 id="titulo-portada">{% translate "¡Todo lo que buscas, en un solo lugar!" %}</h1>
+        <p>{% translate "Compra directo a los negocios, con pago seguro por Wompi." %}</p>
         <div class="portada-acciones">
-          <a class="boton boton-hero" href="#titulo-productos">Explorar productos</a>
+          <a class="boton boton-hero" href="#titulo-productos">{% translate "Explorar productos" %}</a>
           <a class="boton boton-hero-sec" href="#tiendas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.6 4h14.8L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg>
-            Ver tiendas
+            {% translate "Ver tiendas" %}
           </a>
         </div>
       </div>
@@ -35,7 +36,7 @@
                 <span><b>{{ p.nombre|truncatechars:22 }}</b><i>${{ p.precio_marketplace|floatformat:"-2g" }}</i></span>
               </span>
             {% endfor %}
-            <span class="vitrina-app-boton">Pagar con Wompi</span>
+            <span class="vitrina-app-boton">{% translate "Pagar con Wompi" %}</span>
           </div>
           {% for p in vitrina_flotantes %}
             <span class="vitrina-flotante vitrina-flotante-{{ forloop.counter }}"><img src="{{ p.imagen.url }}" alt="" loading="lazy"></span>
@@ -45,7 +46,7 @@
           </span>
           <span class="vitrina-caja">
             <svg viewBox="0 0 64 64"><path d="m32 6 24 12v28L32 58 8 46V18z" fill="currentColor"/><path d="m8 18 24 12 24-12M32 30v28" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2"/><path d="m20 12 24 12" stroke="rgba(255,255,255,.55)" stroke-width="5"/></svg>
-            <em>⚡ Express</em>
+            <em>{% translate "⚡ Express" %}</em>
           </span>
         </div>
       </div>
@@ -55,8 +56,8 @@
   {% if negocios and not filtrando %}
     <section id="tiendas" class="seccion" aria-labelledby="titulo-negocios">
       <div class="seccion-cabeza">
-        <h2 id="titulo-negocios">Tiendas destacadas</h2>
-        <p class="seccion-nota">Todas publican NIT, dirección y teléfono, como exige la Ley 1480.</p>
+        <h2 id="titulo-negocios">{% translate "Tiendas destacadas" %}</h2>
+        <p class="seccion-nota">{% translate "Todas publican NIT, dirección y teléfono, como exige la Ley 1480." %}</p>
       </div>
       <div class="tiendas">
         {% for negocio in negocios %}
@@ -67,13 +68,13 @@
               {% if negocio.num_opiniones %}
                 <span class="tienda-nota"><span class="estrella-sola" aria-hidden="true">★</span> {{ negocio.promedio|floatformat:1 }} <small>({{ negocio.num_opiniones }})</small></span>
               {% else %}
-                <span class="tienda-nota tienda-nueva">Tienda nueva · sin opiniones aún</span>
+                <span class="tienda-nota tienda-nueva">{% translate "Tienda nueva · sin opiniones aún" %}</span>
               {% endif %}
               <span class="distintivos">
-                {% if negocio.destacado %}<span class="distintivo distintivo-oro">🏅 Vendedor destacado</span>{% endif %}
+                {% if negocio.destacado %}<span class="distintivo distintivo-oro">{% translate "🏅 Vendedor destacado" %}</span>{% endif %}
                 <span class="distintivo">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
-                  Vendedor identificado
+                  {% translate "Vendedor identificado" %}
                 </span>
               </span>
             </span>
@@ -85,10 +86,10 @@
 
   <section class="seccion" aria-labelledby="titulo-productos">
     <div class="seccion-cabeza seccion-cabeza-filtros">
-      <h2 id="titulo-productos">{% if filtrando %}{{ page_obj.paginator.count }} producto{{ page_obj.paginator.count|pluralize }}{% else %}Productos{% endif %}</h2>
+      <h2 id="titulo-productos">{% if filtrando %}{% blocktranslate with v_count=page_obj.paginator.count v_count2=page_obj.paginator.count|pluralize %}{{ v_count }} producto{{ v_count2 }}{% endblocktranslate %}{% else %}{% translate "Productos" %}{% endif %}</h2>
       <div class="filtros">
-        <nav class="pildoras" aria-label="Filtrar por categoría">
-          <a class="pildora {% if not categoria_activa %}activa{% endif %}" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if orden != 'relevancia' %}orden={{ orden }}{% endif %}#titulo-productos" {% if not categoria_activa %}aria-current="true"{% endif %}>Todos</a>
+        <nav class="pildoras" aria-label="{% translate 'Filtrar por categoría' %}">
+          <a class="pildora {% if not categoria_activa %}activa{% endif %}" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if orden != 'relevancia' %}orden={{ orden }}{% endif %}#titulo-productos" {% if not categoria_activa %}aria-current="true"{% endif %}>{% translate "Todos" %}</a>
           {% for c in categorias %}
             <a class="pildora {% if c == categoria_activa %}activa{% endif %}" href="?categoria={{ c|urlencode }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}{% if orden != 'relevancia' %}&amp;orden={{ orden }}{% endif %}#titulo-productos" {% if c == categoria_activa %}aria-current="true"{% endif %}>{{ c }}</a>
           {% endfor %}
@@ -96,11 +97,11 @@
         <form class="ordenar" method="get" action="#titulo-productos" data-autoenvio>
           {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
           {% if categoria_activa %}<input type="hidden" name="categoria" value="{{ categoria_activa }}">{% endif %}
-          <label for="orden">Ordenar por:</label>
+          <label for="orden">{% translate "Ordenar por:" %}</label>
           <select id="orden" name="orden">
             {% for clave, etiqueta in ordenes.items %}<option value="{{ clave }}" {% if clave == orden %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
           </select>
-          <noscript><button type="submit" class="boton boton-claro">Aplicar</button></noscript>
+          <noscript><button type="submit" class="boton boton-claro">{% translate "Aplicar" %}</button></noscript>
         </form>
       </div>
     </div>
@@ -113,9 +114,9 @@
       </div>
       {% include "core/tienda/paginacion.html" %}
     {% elif filtrando %}
-      <p class="vacio">No encontramos productos con esa búsqueda. <a href="{% url 'marketplace' %}">Ver todo el catálogo</a></p>
+      <p class="vacio">{% translate "No encontramos productos con esa búsqueda." %} <a href="{% url 'marketplace' %}">{% translate "Ver todo el catálogo" %}</a></p>
     {% else %}
-      <p class="vacio">Todavía no hay productos publicados.</p>
+      <p class="vacio">{% translate "Todavía no hay productos publicados." %}</p>
     {% endif %}
   </section>
 {% endblock %}

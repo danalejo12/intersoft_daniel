@@ -1,4 +1,5 @@
 """Notificaciones transaccionales por correo para compradores del marketplace."""
+from django.utils.translation import gettext
 import logging
 
 from django.conf import settings
@@ -30,14 +31,10 @@ def _enviar(*, asunto, mensaje, destinatarios):
 
 def notificar_pedido_pagado(pedido):
     """Envía confirmación al comprador cuando el pago del pedido queda aprobado."""
-    factura_txt = f" (Factura #{pedido.factura.numero})" if pedido.factura_id else ""
-    asunto = f"Confirmación de pago · Pedido #{pedido.numero} en {pedido.empresa.nombre}"
+    factura_txt = gettext(" (Factura #{numero})").format(numero=pedido.factura.numero) if pedido.factura_id else ""
+    asunto = gettext("Confirmación de pago · Pedido #{numero} en {nombre}").format(numero=pedido.numero, nombre=pedido.empresa.nombre)
     mensaje = (
-        f"Hola {pedido.nombre},\n\n"
-        f"Recibimos tu pago para el pedido #{pedido.numero}{factura_txt} en {pedido.empresa.nombre}.\n"
-        f"Total pagado: $ {pedido.total}\n"
-        f"Dirección de entrega: {pedido.direccion}, {pedido.ciudad} ({pedido.departamento}).\n\n"
-        f"Te avisaremos cuando tu pedido sea despachado."
+        gettext("Hola {nombre},\n\nRecibimos tu pago para el pedido #{numero}{factura_txt} en {nombre2}.\nTotal pagado: $ {total}\nDirección de entrega: {direccion}, {ciudad} ({departamento}).\n\nTe avisaremos cuando tu pedido sea despachado.").format(nombre=pedido.nombre, numero=pedido.numero, factura_txt=factura_txt, nombre2=pedido.empresa.nombre, total=pedido.total, direccion=pedido.direccion, ciudad=pedido.ciudad, departamento=pedido.departamento)
     )
     return _enviar(asunto=asunto, mensaje=mensaje, destinatarios=[pedido.email])
 
@@ -46,31 +43,31 @@ def notificar_envio_actualizado(pedido):
     """Notifica al comprador cuando el pedido pasa a enviado o entregado."""
     if pedido.estado_envio not in ("enviado", "entregado"):
         return 0
-    asunto = f"Actualización de envío · Pedido #{pedido.numero} ({pedido.get_estado_envio_display()})"
+    asunto = gettext("Actualización de envío · Pedido #{numero} ({get_estado_envio_display})").format(numero=pedido.numero, get_estado_envio_display=pedido.get_estado_envio_display())
     lineas = [
-        f"Hola {pedido.nombre},",
+        gettext("Hola {nombre},").format(nombre=pedido.nombre),
         "",
-        f"El estado de envío de tu pedido #{pedido.numero} en {pedido.empresa.nombre} ahora es: {pedido.get_estado_envio_display()}.",
+        gettext("El estado de envío de tu pedido #{numero} en {nombre} ahora es: {get_estado_envio_display}.").format(numero=pedido.numero, nombre=pedido.empresa.nombre, get_estado_envio_display=pedido.get_estado_envio_display()),
     ]
     if pedido.transportadora:
-        lineas.append(f"Transportadora: {pedido.transportadora}")
+        lineas.append(gettext("Transportadora: {transportadora}").format(transportadora=pedido.transportadora))
     if pedido.numero_guia:
-        lineas.append(f"Número de guía: {pedido.numero_guia}")
+        lineas.append(gettext("Número de guía: {numero_guia}").format(numero_guia=pedido.numero_guia))
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email])
 
 
 def notificar_reembolso_registrado(pedido):
     """Notifica al comprador cuando se registra el reembolso de su pedido."""
-    asunto = f"Reembolso procesado · Pedido #{pedido.numero} en {pedido.empresa.nombre}"
+    asunto = gettext("Reembolso procesado · Pedido #{numero} en {nombre}").format(numero=pedido.numero, nombre=pedido.empresa.nombre)
     lineas = [
-        f"Hola {pedido.nombre},",
+        gettext("Hola {nombre},").format(nombre=pedido.nombre),
         "",
-        f"Hemos procesado el reembolso correspondiente al pedido #{pedido.numero} en {pedido.empresa.nombre}.",
-        f"Comprobante de reembolso: {pedido.reembolso_referencia}",
-        f"Monto del pedido: $ {pedido.total}",
+        gettext("Hemos procesado el reembolso correspondiente al pedido #{numero} en {nombre}.").format(numero=pedido.numero, nombre=pedido.empresa.nombre),
+        gettext("Comprobante de reembolso: {reembolso_referencia}").format(reembolso_referencia=pedido.reembolso_referencia),
+        gettext("Monto del pedido: $ {total}").format(total=pedido.total),
     ]
     if pedido.reembolso_nota:
-        lineas.append(f"Nota: {pedido.reembolso_nota}")
+        lineas.append(gettext("Nota: {reembolso_nota}").format(reembolso_nota=pedido.reembolso_nota))
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email])
 
 
@@ -98,22 +95,21 @@ def notificar_alerta_stock_minimo(*, empresa, productos_criticos, existencias_cr
             destinatarios.append(m.usuario.email)
 
     total_alertas = len(productos) + len(existencias)
-    asunto = f"Alerta de stock mínimo ({total_alertas} registro(s)) · {empresa.nombre}"
+    asunto = gettext("Alerta de stock mínimo ({total_alertas} registro(s)) · {nombre}").format(total_alertas=total_alertas, nombre=empresa.nombre)
     lineas = [
-        f"Hola equipo de {empresa.nombre},",
+        gettext("Hola equipo de {nombre},").format(nombre=empresa.nombre),
         "",
-        "Los siguientes productos alcanzaron o están por debajo de su stock mínimo configurado:",
+        gettext("Los siguientes productos alcanzaron o están por debajo de su stock mínimo configurado:"),
         "",
     ]
     for prod in productos:
-        lineas.append(f"- {prod.codigo} · {prod.nombre}: stock actual {prod.stock} (mínimo {prod.stock_minimo})")
+        lineas.append(gettext("- {codigo} · {nombre}: stock actual {stock} (mínimo {stock_minimo})").format(codigo=prod.codigo, nombre=prod.nombre, stock=prod.stock, stock_minimo=prod.stock_minimo))
     for ex in existencias:
         lineas.append(
-            f"- {ex.producto.codigo} · {ex.producto.nombre} (bodega {ex.bodega.nombre}): "
-            f"stock actual {ex.cantidad} (mínimo {ex.stock_minimo})"
+            gettext("- {codigo} · {nombre} (bodega {nombre2}): stock actual {cantidad} (mínimo {stock_minimo})").format(codigo=ex.producto.codigo, nombre=ex.producto.nombre, nombre2=ex.bodega.nombre, cantidad=ex.cantidad, stock_minimo=ex.stock_minimo)
         )
     lineas.append("")
-    lineas.append("Ingresa al panel de Inventario o Compras para reabastecerlos.")
+    lineas.append(gettext("Ingresa al panel de Inventario o Compras para reabastecerlos."))
     return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=destinatarios)
 
 
@@ -192,20 +188,20 @@ def _enviar_whatsapp(pedido):
 def notificar_negocio_pedido_pagado(pedido):
     """Avisa al negocio por correo (y WhatsApp si está configurado) que tiene un pedido pagado."""
     lineas = [
-        "¡Tienes un pedido pagado en Intersoft!",
+        gettext("¡Tienes un pedido pagado en Intersoft!"),
         "",
-        f"Pedido #{pedido.numero} · Total cobrado: $ {pedido.total}",
-        f"Neto para tu negocio: $ {pedido.neto_vendedor}",
-        f"Cliente: {pedido.nombre} · {pedido.telefono}",
-        f"Entrega: {pedido.direccion}, {pedido.ciudad} ({pedido.departamento})",
+        gettext("Pedido #{numero} · Total cobrado: $ {total}").format(numero=pedido.numero, total=pedido.total),
+        gettext("Neto para tu negocio: $ {neto_vendedor}").format(neto_vendedor=pedido.neto_vendedor),
+        gettext("Cliente: {nombre} · {telefono}").format(nombre=pedido.nombre, telefono=pedido.telefono),
+        gettext("Entrega: {direccion}, {ciudad} ({departamento})").format(direccion=pedido.direccion, ciudad=pedido.ciudad, departamento=pedido.departamento),
     ]
     if pedido.indicaciones:
-        lineas.append(f"Indicaciones: {pedido.indicaciones}")
-    lineas += ["", "Productos:"]
+        lineas.append(gettext("Indicaciones: {indicaciones}").format(indicaciones=pedido.indicaciones))
+    lineas += ["", gettext("Productos:")]
     lineas += [f"  · {linea.cantidad} × {linea.producto.nombre}" for linea in pedido.lineas.select_related("producto")]
-    lineas += ["", "Prepáralo y actualiza el envío desde tu panel, en Pedidos web."]
+    lineas += ["", gettext("Prepáralo y actualiza el envío desde tu panel, en Pedidos web.")]
     enviados = _enviar(
-        asunto=f"Nuevo pedido pagado #{pedido.numero} · $ {pedido.total}",
+        asunto=gettext("Nuevo pedido pagado #{numero} · $ {total}").format(numero=pedido.numero, total=pedido.total),
         mensaje="\n".join(lineas),
         destinatarios=correos_del_negocio(pedido.empresa),
     )

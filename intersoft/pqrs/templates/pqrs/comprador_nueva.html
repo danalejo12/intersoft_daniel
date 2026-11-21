@@ -1,11 +1,12 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Radicar PQRS · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Radicar PQRS · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="margin-bottom: 20px;">
     <div>
-      <h1>Radicar nueva PQRS</h1>
-      <p class="nota">Tu solicitud recibirá un número de radicado único y plazo de respuesta en días hábiles.</p>
+      <h1>{% translate "Radicar nueva PQRS" %}</h1>
+      <p class="nota">{% translate "Tu solicitud recibirá un número de radicado único y plazo de respuesta en días hábiles." %}</p>
     </div>
   </div>
 
@@ -23,8 +24,8 @@
         </div>
       {% endfor %}
       <div class="acciones">
-        <button type="submit" class="boton">Radicar PQRS</button>
-        <a href="{% url 'pqrs_mis_list' %}" class="boton secundario">Cancelar</a>
+        <button type="submit" class="boton">{% translate "Radicar PQRS" %}</button>
+        <a href="{% url 'pqrs_mis_list' %}" class="boton secundario">{% translate "Cancelar" %}</a>
       </div>
     </form>
   </article>

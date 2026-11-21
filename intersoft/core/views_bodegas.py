@@ -1,4 +1,5 @@
 """Bodegas o sedes: listado, creación/edición, desactivación y traslados entre bodegas."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -55,7 +56,7 @@ class BodegaFormView(PermisoRequeridoMixin, View):
             except bodegas.OperacionBodega as error:
                 form.add_error(None, str(error))
             else:
-                messages.success(request, f"Bodega «{bodega.nombre}» guardada.")
+                messages.success(request, gettext("Bodega «{nombre}» guardada.").format(nombre=bodega.nombre))
                 return redirect("bodegas_lista")
         return render(request, "core/bodegas/form.html", {"form": form, "bodega": bodega})
 
@@ -68,7 +69,7 @@ class BodegaDesactivarView(PermisoRequeridoMixin, View):
         bodega = get_object_or_404(Bodega.objects.de_empresa(request.empresa), pk=pk, activa=True)
         try:
             bodegas.desactivar_bodega(empresa=request.empresa, bodega=bodega)
-            messages.success(request, f"Desactivamos la bodega «{bodega.nombre}».")
+            messages.success(request, gettext("Desactivamos la bodega «{nombre}».").format(nombre=bodega.nombre))
         except bodegas.OperacionBodega as error:
             messages.error(request, str(error))
         return redirect("bodegas_lista")
@@ -113,10 +114,10 @@ class TrasladoView(PermisoRequeridoMixin, View):
                 if en_transito:
                     messages.success(
                         request,
-                        f"Envío en tránsito registrado ({form.cleaned_data['cantidad']} de «{producto.nombre}»).",
+                        gettext("Envío en tránsito registrado ({cantidad} de «{nombre}»).").format(cantidad=form.cleaned_data['cantidad'], nombre=producto.nombre),
                     )
                     return redirect("bodegas_traslados")
-                messages.success(request, f"Trasladamos {form.cleaned_data['cantidad']} de «{producto.nombre}».")
+                messages.success(request, gettext("Trasladamos {cantidad} de «{nombre}».").format(cantidad=form.cleaned_data['cantidad'], nombre=producto.nombre))
                 return redirect("productos_kardex", pk=producto.pk)
         return self.mostrar(producto, form)
 
@@ -151,7 +152,7 @@ class ConfirmarTrasladoView(PermisoRequeridoMixin, View):
             traslado = bodegas.confirmar_traslado(empresa=request.empresa, pk=pk, usuario=request.user)
             messages.success(
                 request,
-                f"Recepción confirmada: {traslado.cantidad} de «{traslado.producto.nombre}» en {traslado.destino.nombre}.",
+                gettext("Recepción confirmada: {cantidad} de «{nombre}» en {nombre2}.").format(cantidad=traslado.cantidad, nombre=traslado.producto.nombre, nombre2=traslado.destino.nombre),
             )
         except bodegas.OperacionBodega as error:
             messages.error(request, str(error))
@@ -184,11 +185,11 @@ class ConteoFisicoView(PermisoRequeridoMixin, View):
             try:
                 conteos[prod_id] = int(valor)
             except ValueError:
-                messages.error(request, "Todos los valores de conteo deben ser números enteros.")
+                messages.error(request, gettext("Todos los valores de conteo deben ser números enteros."))
                 return render(request, self.template_name, self._contexto(request, bodega))
 
         if not conteos:
-            messages.warning(request, "No ingresaste cantidades contadas.")
+            messages.warning(request, gettext("No ingresaste cantidades contadas."))
             return redirect("bodegas_conteo", pk=bodega.pk)
 
         try:
@@ -203,7 +204,7 @@ class ConteoFisicoView(PermisoRequeridoMixin, View):
             messages.error(request, str(error))
             return render(request, self.template_name, self._contexto(request, bodega))
 
-        messages.success(request, f"Conteo físico aplicado en «{bodega.nombre}».")
+        messages.success(request, gettext("Conteo físico aplicado en «{nombre}».").format(nombre=bodega.nombre))
         return redirect("bodegas_lista")
 
 
@@ -226,7 +227,7 @@ class ImportarProductosExcelView(PermisoRequeridoMixin, View):
                 self.template_name,
                 {
                     "bodegas": bodegas_activas,
-                    "errores": [{"fila": 1, "error": "Selecciona un archivo .xlsx."}],
+                    "errores": [{"fila": 1, "error": gettext("Selecciona un archivo .xlsx.")}],
                 },
             )
         bodega_id = request.POST.get("bodega")
@@ -244,5 +245,5 @@ class ImportarProductosExcelView(PermisoRequeridoMixin, View):
                 self.template_name,
                 {"bodegas": bodegas_activas, "errores": resultado["errores"]},
             )
-        messages.success(request, f"Se importaron {resultado['creados']} producto(s) correctamente.")
+        messages.success(request, gettext("Se importaron {creados} producto(s) correctamente.").format(creados=resultado['creados']))
         return redirect("productos_lista")

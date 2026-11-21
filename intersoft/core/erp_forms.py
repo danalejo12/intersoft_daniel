@@ -1,4 +1,5 @@
 """Formularios del ERP con relaciones limitadas a la empresa activa."""
+from django.utils.translation import gettext_lazy
 import uuid
 
 from django import forms
@@ -32,12 +33,12 @@ def formulario(modelo, campos):
 
 class MovimientoForm(forms.Form):
     cuenta = forms.ModelChoiceField(queryset=models.CuentaTesoreria.objects.none())
-    tipo = forms.ChoiceField(choices=[("ingreso", "Ingreso"), ("egreso", "Egreso")])
+    tipo = forms.ChoiceField(choices=[("ingreso", gettext_lazy("Ingreso")), ("egreso", gettext_lazy("Egreso"))])
     fecha = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     concepto = forms.CharField(max_length=200)
     monto = forms.DecimalField(max_digits=14, decimal_places=2, min_value=0.01)
     cartera = forms.ModelChoiceField(queryset=models.CuentaCartera.objects.none(), required=False,
-                                    label="Aplicar a cuenta por cobrar / pagar")
+                                    label=gettext_lazy("Aplicar a cuenta por cobrar / pagar"))
     referencia = forms.CharField(max_length=100, required=False)
     operacion = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
 

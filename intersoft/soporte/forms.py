@@ -1,4 +1,5 @@
 """Formularios de soporte, feedback e ideas."""
+from django.utils.translation import gettext_lazy
 from django import forms
 
 from .models import ComentarioWidget, EncuestaNPS, ErrorRegistrado, Idea, ReporteProblema
@@ -13,12 +14,12 @@ class ReporteProblemaForm(forms.ModelForm):
         model = ReporteProblema
         fields = ["url", "descripcion", "captura"]
         labels = {
-            "descripcion": "¿Qué pasó?",
-            "captura": "Captura de pantalla (opcional, máx. 5 MB)",
+            "descripcion": gettext_lazy("¿Qué pasó?"),
+            "captura": gettext_lazy("Captura de pantalla (opcional, máx. 5 MB)"),
         }
         widgets = {
             "descripcion": forms.Textarea(
-                attrs={"rows": 4, "placeholder": "Cuéntanos brevemente qué estabas haciendo y qué ocurrió..."}
+                attrs={"rows": 4, "placeholder": gettext_lazy("Cuéntanos brevemente qué estabas haciendo y qué ocurrió...")}
             ),
         }
 
@@ -40,8 +41,8 @@ class IdeaForm(forms.ModelForm):
         model = Idea
         fields = ["titulo", "descripcion"]
         labels = {
-            "titulo": "Título de la idea",
-            "descripcion": "¿Qué problema resuelve y cómo debería funcionar?",
+            "titulo": gettext_lazy("Título de la idea"),
+            "descripcion": gettext_lazy("¿Qué problema resuelve y cómo debería funcionar?"),
         }
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 3}),

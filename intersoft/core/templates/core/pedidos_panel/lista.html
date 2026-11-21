@@ -1,103 +1,104 @@
 {% extends "core/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Pedidos del marketplace · Intersoft{% endblock %}
+{% block titulo %}{% translate "Pedidos del marketplace · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <link rel="stylesheet" href="{% static 'core/css/pedidos-panel.css' %}?v=1">
 
   <div class="encabezado">
     <div>
-      <h1>Pedidos del marketplace</h1>
-      <p class="nota">Resumen financiero, control de despacho por bodega y gestión de reembolsos.</p>
+      <h1>{% translate "Pedidos del marketplace" %}</h1>
+      <p class="nota">{% translate "Resumen financiero, control de despacho por bodega y gestión de reembolsos." %}</p>
     </div>
     <div class="acciones-fila">
-      <a class="boton secundario" href="{% url 'pedidos_panel_exportar' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Exportar Excel</a>
-      <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
+      <a class="boton secundario" href="{% url 'pedidos_panel_exportar' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">{% translate "Exportar Excel" %}</a>
+      <a class="boton secundario" href="{% url 'facturas_lista' %}">{% translate "Ver facturas" %}</a>
     </div>
   </div>
 
-  <section class="pedidos-panel-kpis" aria-label="Indicadores de pedidos del marketplace">
+  <section class="pedidos-panel-kpis" aria-label="{% translate 'Indicadores de pedidos del marketplace' %}">
     <article class="kpi pedidos-panel-kpi">
-      <div class="kpi-cabecera"><span>Total cobrado (pagados)</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Total cobrado (pagados)" %}</span></div>
       <strong>$ {{ liquidacion.bruto|floatformat:"0g" }}</strong>
       <div class="pedidos-desglose-kpi">
-        <span>{{ liquidacion.cantidad }} pedido{{ liquidacion.cantidad|pluralize }}</span>
-        <span>Ticket prom.: $ {{ liquidacion.ticket_promedio|floatformat:"0g" }}</span>
+        <span>{% blocktranslate with cantidad=liquidacion.cantidad cantidad2=liquidacion.cantidad|pluralize %}{{ cantidad }} pedido{{ cantidad2 }}{% endblocktranslate %}</span>
+        <span>{% blocktranslate with ticket_promedio=liquidacion.ticket_promedio|floatformat:"0g" %}Ticket prom.: $ {{ ticket_promedio }}{% endblocktranslate %}</span>
       </div>
     </article>
 
     <article class="kpi verde pedidos-panel-kpi">
-      <div class="kpi-cabecera"><span>Neto para tu negocio</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Neto para tu negocio" %}</span></div>
       <strong>$ {{ liquidacion.neto|floatformat:"0g" }}</strong>
       <div class="pedidos-desglose-kpi">
-        <span>Subtotal: $ {{ liquidacion.subtotal|floatformat:"0g" }}</span>
-        <span>IVA: $ {{ liquidacion.iva|floatformat:"0g" }}</span>
-        <span>Envíos: $ {{ liquidacion.envio|floatformat:"0g" }}</span>
+        <span>{% blocktranslate with subtotal=liquidacion.subtotal|floatformat:"0g" %}Subtotal: $ {{ subtotal }}{% endblocktranslate %}</span>
+        <span>{% blocktranslate with iva=liquidacion.iva|floatformat:"0g" %}IVA: $ {{ iva }}{% endblocktranslate %}</span>
+        <span>{% blocktranslate with envio=liquidacion.envio|floatformat:"0g" %}Envíos: $ {{ envio }}{% endblocktranslate %}</span>
       </div>
     </article>
 
     <article class="kpi violeta pedidos-panel-kpi">
-      <div class="kpi-cabecera"><span>Logística de despacho</span></div>
-      <strong>{{ pendientes_despacho }} por despachar</strong>
+      <div class="kpi-cabecera"><span>{% translate "Logística de despacho" %}</span></div>
+      <strong>{% blocktranslate with pendientes_despacho=pendientes_despacho %}{{ pendientes_despacho }} por despachar{% endblocktranslate %}</strong>
       <div class="pedidos-desglose-kpi">
-        <span>{{ conteos.en_camino }} en camino</span>
-        <span>{{ conteos.entregados }} entregado{{ conteos.entregados|pluralize }}</span>
+        <span>{% blocktranslate with en_camino=conteos.en_camino %}{{ en_camino }} en camino{% endblocktranslate %}</span>
+        <span>{% blocktranslate with entregados=conteos.entregados entregados2=conteos.entregados|pluralize %}{{ entregados }} entregado{{ entregados2 }}{% endblocktranslate %}</span>
       </div>
     </article>
 
     <article class="kpi {% if pendientes_reembolso %}rojo{% elif conteos.pendientes_pago %}ambar{% else %}verde{% endif %} pedidos-panel-kpi">
-      <div class="kpi-cabecera"><span>Cobros y reembolsos</span></div>
-      <strong>{{ conteos.pendientes_pago }} por pagar · {{ pendientes_reembolso }} reembolso{{ pendientes_reembolso|pluralize }}</strong>
+      <div class="kpi-cabecera"><span>{% translate "Cobros y reembolsos" %}</span></div>
+      <strong>{% blocktranslate with pendientes_pago=conteos.pendientes_pago pendientes_reembolso=pendientes_reembolso pendientes_reembolso2=pendientes_reembolso|pluralize %}{{ pendientes_pago }} por pagar · {{ pendientes_reembolso }} reembolso{{ pendientes_reembolso2 }}{% endblocktranslate %}</strong>
       <div class="pedidos-desglose-kpi">
-        <span>Comisión: $ {{ liquidacion.comision|floatformat:"0g" }}</span>
-        <span>Reembolsados: {{ reembolsados_total }}</span>
+        <span>{% blocktranslate with comision=liquidacion.comision|floatformat:"0g" %}Comisión: $ {{ comision }}{% endblocktranslate %}</span>
+        <span>{% blocktranslate with reembolsados_total=reembolsados_total %}Reembolsados: {{ reembolsados_total }}{% endblocktranslate %}</span>
       </div>
     </article>
   </section>
 
-  <nav class="pedidos-tabs-panel" aria-label="Accesos rápidos de pedidos">
+  <nav class="pedidos-tabs-panel" aria-label="{% translate 'Accesos rápidos de pedidos' %}">
     <a class="pedido-tab-panel {% if not estado_filtro and not envio_filtro %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}">
-      Todos <span class="pedido-tab-conteo">{{ conteos.total }}</span>
+      {% translate "Todos" %} <span class="pedido-tab-conteo">{{ conteos.total }}</span>
     </a>
     <a class="pedido-tab-panel {% if estado_filtro == 'pagado' and not envio_filtro %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado">
-      Pagados <span class="pedido-tab-conteo">{{ conteos.pagados }}</span>
+      {% translate "Pagados" %} <span class="pedido-tab-conteo">{{ conteos.pagados }}</span>
     </a>
     <a class="pedido-tab-panel {% if envio_filtro == 'pendiente' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=pendiente">
-      Por despachar <span class="pedido-tab-conteo">{{ pendientes_despacho }}</span>
+      {% translate "Por despachar" %} <span class="pedido-tab-conteo">{{ pendientes_despacho }}</span>
     </a>
     <a class="pedido-tab-panel {% if envio_filtro == 'enviado' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=enviado">
-      En camino <span class="pedido-tab-conteo">{{ conteos.en_camino }}</span>
+      {% translate "En camino" %} <span class="pedido-tab-conteo">{{ conteos.en_camino }}</span>
     </a>
     <a class="pedido-tab-panel {% if envio_filtro == 'entregado' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pagado&envio=entregado">
-      Entregados <span class="pedido-tab-conteo">{{ conteos.entregados }}</span>
+      {% translate "Entregados" %} <span class="pedido-tab-conteo">{{ conteos.entregados }}</span>
     </a>
     <a class="pedido-tab-panel {% if estado_filtro == 'pendiente' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=pendiente">
-      Por pagar <span class="pedido-tab-conteo">{{ conteos.pendientes_pago }}</span>
+      {% translate "Por pagar" %} <span class="pedido-tab-conteo">{{ conteos.pendientes_pago }}</span>
     </a>
     {% if pendientes_reembolso %}
       <a class="pedido-tab-panel {% if estado_filtro == 'requiere_reembolso' %}activo{% endif %}" href="{% url 'pedidos_panel_lista' %}?estado=requiere_reembolso">
-        Requieren reembolso <span class="pedido-tab-conteo">{{ pendientes_reembolso }}</span>
+        {% translate "Requieren reembolso" %} <span class="pedido-tab-conteo">{{ pendientes_reembolso }}</span>
       </a>
     {% endif %}
   </nav>
 
   <form method="get" class="pedidos-filtros-barra" id="pedidos-filtros-form">
-    <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Buscar # pedido, comprador, documento, guía o ciudad" aria-label="Buscar pedidos del marketplace">
-    <select name="estado" aria-label="Filtrar por estado de pedido" data-auto-enviar>
-      <option value="">Todos los estados</option>
+    <input type="search" name="q" value="{{ q|default:'' }}" placeholder="{% translate 'Buscar # pedido, comprador, documento, guía o ciudad' %}" aria-label="{% translate 'Buscar pedidos del marketplace' %}">
+    <select name="estado" aria-label="{% translate 'Filtrar por estado de pedido' %}" data-auto-enviar>
+      <option value="">{% translate "Todos los estados" %}</option>
       {% for valor, etiqueta in estados_pedido %}
         <option value="{{ valor }}" {% if estado_filtro == valor %}selected{% endif %}>{{ etiqueta }}</option>
       {% endfor %}
     </select>
-    <select name="envio" aria-label="Filtrar por estado de envío" data-auto-enviar>
-      <option value="">Todos los envíos</option>
+    <select name="envio" aria-label="{% translate 'Filtrar por estado de envío' %}" data-auto-enviar>
+      <option value="">{% translate "Todos los envíos" %}</option>
       {% for valor, etiqueta in estados_envio %}
         <option value="{{ valor }}" {% if envio_filtro == valor %}selected{% endif %}>{{ etiqueta }}</option>
       {% endfor %}
     </select>
-    <button type="submit" class="boton secundario">Buscar</button>
+    <button type="submit" class="boton secundario">{% translate "Buscar" %}</button>
     {% if estado_filtro or envio_filtro or q %}
-      <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">Limpiar</a>
+      <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">{% translate "Limpiar" %}</a>
     {% endif %}
   </form>
 
@@ -105,14 +106,14 @@
     <table class="tabla pedidos-tabla">
       <thead>
         <tr>
-          <th>Pedido</th>
-          <th>Comprador y destino</th>
-          <th>Productos</th>
-          <th>Pago</th>
-          <th>Logística / Bodega</th>
-          <th class="num">Total cobrado</th>
-          <th class="num">Neto negocio</th>
-          <th>Acciones</th>
+          <th>{% translate "Pedido" %}</th>
+          <th>{% translate "Comprador y destino" %}</th>
+          <th>{% translate "Productos" %}</th>
+          <th>{% translate "Pago" %}</th>
+          <th>{% translate "Logística / Bodega" %}</th>
+          <th class="num">{% translate "Total cobrado" %}</th>
+          <th class="num">{% translate "Neto negocio" %}</th>
+          <th>{% translate "Acciones" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -122,17 +123,17 @@
               <a class="pedido-num-principal" href="{% url 'pedidos_panel_detalle' pedido.pk %}">#{{ pedido.numero }}</a>
               <span class="pedido-subdato">{{ pedido.creado_en|date:"d/m/Y · g:i a" }}</span>
               {% if pedido.factura %}
-                <span class="pedido-subdato">Fac. <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a></span>
+                <span class="pedido-subdato">{% translate "Fac." %} <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a></span>
               {% endif %}
             </td>
             <td>
               <strong>{{ pedido.nombre }}</strong>
               <span class="pedido-subdato">{{ pedido.ciudad }}{% if pedido.departamento %}, {{ pedido.departamento }}{% endif %}</span>
-              {% if pedido.telefono %}<span class="pedido-subdato">Tel. {{ pedido.telefono }}</span>{% endif %}
+              {% if pedido.telefono %}<span class="pedido-subdato">{% blocktranslate with telefono=pedido.telefono %}Tel. {{ telefono }}{% endblocktranslate %}</span>{% endif %}
             </td>
             <td>
               {% with lineas=pedido.lineas.all %}
-                <strong>{{ lineas|length }} ítem{{ lineas|length|pluralize }}</strong>
+                <strong>{% blocktranslate with lineas=lineas|length lineas2=lineas|length|pluralize %}{{ lineas }} ítem{{ lineas2 }}{% endblocktranslate %}</strong>
                 {% if lineas %}
                   <span class="pedido-subdato">{{ lineas.0.cantidad }}× {{ lineas.0.producto.nombre|truncatechars:26 }}{% if lineas|length > 1 %} (+{{ lineas|length|add:"-1" }}){% endif %}</span>
                 {% endif %}
@@ -148,42 +149,42 @@
               {% else %}
                 <span class="pedido-badge vencido">{{ pedido.get_estado_display }}</span>
               {% endif %}
-              <span class="pedido-subdato">{% if pedido.pago_directo %}Wompi directo{% else %}InterSoft{% endif %}</span>
+              <span class="pedido-subdato">{% if pedido.pago_directo %}{% translate "Wompi directo" %}{% else %}{% translate "InterSoft" %}{% endif %}</span>
             </td>
             <td>
               {% if pedido.estado == "pagado" %}
                 <span class="pedido-badge envio">{{ pedido.get_estado_envio_display }}</span>
                 {% if pedido.bodega %}<span class="pedido-subdato">{{ pedido.bodega.nombre }}</span>{% endif %}
-                {% if pedido.numero_guia %}<span class="pedido-subdato">Guía: {{ pedido.numero_guia }}</span>{% endif %}
+                {% if pedido.numero_guia %}<span class="pedido-subdato">{% blocktranslate with numero_guia=pedido.numero_guia %}Guía: {{ numero_guia }}{% endblocktranslate %}</span>{% endif %}
               {% else %}
                 <span class="pedido-subdato">—</span>
               {% endif %}
             </td>
             <td class="num">
               <span class="pedido-cifra-principal">$ {{ pedido.total|floatformat:"0g" }}</span>
-              {% if pedido.costo_envio %}<span class="pedido-subdato">Envío: $ {{ pedido.costo_envio|floatformat:"0g" }}</span>{% endif %}
-              {% if pedido.cargo_pasarela %}<span class="pedido-subdato">Pasarela: $ {{ pedido.cargo_pasarela|floatformat:"0g" }}</span>{% endif %}
+              {% if pedido.costo_envio %}<span class="pedido-subdato">{% blocktranslate with costo_envio=pedido.costo_envio|floatformat:"0g" %}Envío: $ {{ costo_envio }}{% endblocktranslate %}</span>{% endif %}
+              {% if pedido.cargo_pasarela %}<span class="pedido-subdato">{% blocktranslate with cargo_pasarela=pedido.cargo_pasarela|floatformat:"0g" %}Pasarela: $ {{ cargo_pasarela }}{% endblocktranslate %}</span>{% endif %}
             </td>
             <td class="num">
               <span class="pedido-cifra-principal pedido-neto-ok">$ {{ pedido.neto_vendedor|floatformat:"0g" }}</span>
-              {% if pedido.comision_valor %}<span class="pedido-subdato">Com.: -$ {{ pedido.comision_valor|floatformat:"0g" }}</span>{% endif %}
+              {% if pedido.comision_valor %}<span class="pedido-subdato">{% blocktranslate with comision_valor=pedido.comision_valor|floatformat:"0g" %}Com.: -$ {{ comision_valor }}{% endblocktranslate %}</span>{% endif %}
             </td>
             <td class="acciones-fila">
-              <a class="boton secundario" href="{% url 'pedidos_panel_detalle' pedido.pk %}">Gestionar</a>
+              <a class="boton secundario" href="{% url 'pedidos_panel_detalle' pedido.pk %}">{% translate "Gestionar" %}</a>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="8">No hay pedidos que coincidan con el filtro seleccionado.</td></tr>
+          <tr><td colspan="8">{% translate "No hay pedidos que coincidan con el filtro seleccionado." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
   {% if is_paginated %}
-    <nav class="paginacion" aria-label="Paginación de pedidos">
-      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
-      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
+    <nav class="paginacion" aria-label="{% translate 'Paginación de pedidos' %}">
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">{% translate "← Anterior" %}</a>{% endif %}
+      <span>{% blocktranslate with number=page_obj.number num_pages=page_obj.paginator.num_pages %}Página {{ number }} de {{ num_pages }}{% endblocktranslate %}</span>
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">{% translate "Siguiente →" %}</a>{% endif %}
     </nav>
   {% endif %}
 {% endblock %}

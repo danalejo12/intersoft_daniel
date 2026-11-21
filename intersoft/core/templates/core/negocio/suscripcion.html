@@ -1,17 +1,18 @@
 {% extends "core/base.html" %}
-{% block titulo %}Plan y suscripción · {{ request.empresa.nombre }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with nombre=request.empresa.nombre %}Plan y suscripción · {{ nombre }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Plan y suscripción</h1>
-      <p class="nota">Administra tu plan de InterSoft, revisa el consumo de productos y usuarios frente a tus límites y consulta tus beneficios activos.</p>
+      <h1>{% translate "Plan y suscripción" %}</h1>
+      <p class="nota">{% translate "Administra tu plan de InterSoft, revisa el consumo de productos y usuarios frente a tus límites y consulta tus beneficios activos." %}</p>
     </div>
     <div class="acciones-fila">
-      <a class="boton secundario" href="{% url 'negocio_datos' %}">Perfil del negocio</a>
+      <a class="boton secundario" href="{% url 'negocio_datos' %}">{% translate "Perfil del negocio" %}</a>
       <a class="boton secundario" href="{% url 'dashboard' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-        Volver al panel
+        {% translate "Volver al panel" %}
       </a>
     </div>
   </div>
@@ -19,41 +20,41 @@
   <!-- Resumen de la suscripción actual -->
   <section class="kpis" style="margin-bottom: 22px;">
     <article class="kpi">
-      <div class="kpi-cabecera"><span>Plan actual</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Plan actual" %}</span></div>
       <strong>{{ suscripcion.plan.nombre }}</strong>
       <small>
         {% if suscripcion.estado == "TRIAL" %}
-          <span class="badge info">Prueba gratis (TRIAL)</span>
+          <span class="badge info">{% translate "Prueba gratis (TRIAL)" %}</span>
         {% elif suscripcion.estado == "ACTIVA" %}
-          <span class="badge exito">Suscripción activa</span>
+          <span class="badge exito">{% translate "Suscripción activa" %}</span>
         {% else %}
           <span class="badge advertencia">{{ suscripcion.get_estado_display }}</span>
         {% endif %}
         {% if suscripcion.es_fundador %}
-          · <span class="badge exito">★ Fundador (-{{ suscripcion.descuento_porcentaje|floatformat:"0" }}% de por vida)</span>
+          · <span class="badge exito">{% blocktranslate with descuento_porcentaje=suscripcion.descuento_porcentaje|floatformat:"0" %}★ Fundador (-{{ descuento_porcentaje }}% de por vida){% endblocktranslate %}</span>
         {% endif %}
       </small>
     </article>
 
     <article class="kpi">
-      <div class="kpi-cabecera"><span>Vigencia y ciclo</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Vigencia y ciclo" %}</span></div>
       <strong>
         {% if dias_restantes is not None %}
-          {{ dias_restantes }} día{{ dias_restantes|pluralize }}
+          {% blocktranslate with dias_restantes=dias_restantes dias_restantes2=dias_restantes|pluralize %}{{ dias_restantes }} día{{ dias_restantes2 }}{% endblocktranslate %}
         {% else %}
-          Sin vencimiento
+          {% translate "Sin vencimiento" %}
         {% endif %}
       </strong>
       <small>
-        Ciclo: {{ suscripcion.get_ciclo_display }}
-        {% if suscripcion.vence_en %} · Vence el {{ suscripcion.vence_en|date:"d/m/Y" }}{% endif %}
+        {% blocktranslate with get_ciclo_display=suscripcion.get_ciclo_display %}Ciclo: {{ get_ciclo_display }}{% endblocktranslate %}
+        {% if suscripcion.vence_en %} {% blocktranslate with vence_en=suscripcion.vence_en|date:"d/m/Y" %}· Vence el {{ vence_en }}{% endblocktranslate %}{% endif %}
       </small>
     </article>
 
     <article class="kpi verde">
-      <div class="kpi-cabecera"><span>Comisión de venta</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Comisión de venta" %}</span></div>
       <strong>{{ suscripcion.plan.comision_porcentaje|floatformat:"2" }}%</strong>
-      <small>Solo en ventas Marketplace · <strong>POS mostrador: 0%</strong></small>
+      <small>{% translate "Solo en ventas Marketplace ·" %} <strong>{% translate "POS mostrador: 0%" %}</strong></small>
     </article>
   </section>
 
@@ -61,9 +62,9 @@
   <section class="paneles parejos" style="margin-bottom: 26px;">
     <article class="tarjeta">
       <div class="tarjeta-cabecera">
-        <h2>Productos activos</h2>
+        <h2>{% translate "Productos activos" %}</h2>
         <span class="badge {% if limites.productos is not None and uso.productos >= limites.productos %}peligro{% else %}info{% endif %}">
-          {{ uso.productos }} / {% if limites.productos is None %}Ilimitados{% else %}{{ limites.productos }}{% endif %}
+          {{ uso.productos }} / {% if limites.productos is None %}{% translate "Ilimitados" %}{% else %}{{ limites.productos }}{% endif %}
         </span>
       </div>
       <div class="plan-progreso-pista">
@@ -71,18 +72,18 @@
       </div>
       <p class="nota" style="margin: 10px 0 0;">
         {% if limites.productos is None %}
-          Tu plan <strong>{{ suscripcion.plan.nombre }}</strong> permite publicar productos ilimitados.
+          {% translate "Tu plan" %} <strong>{{ suscripcion.plan.nombre }}</strong> {% translate "permite publicar productos ilimitados." %}
         {% else %}
-          Has utilizado {{ uso.productos }} de {{ limites.productos }} productos activos permitidos en tu plan.
+          {% blocktranslate with productos=uso.productos productos2=limites.productos %}Has utilizado {{ productos }} de {{ productos2 }} productos activos permitidos en tu plan.{% endblocktranslate %}
         {% endif %}
       </p>
     </article>
 
     <article class="tarjeta">
       <div class="tarjeta-cabecera">
-        <h2>Miembros del equipo (usuarios)</h2>
+        <h2>{% translate "Miembros del equipo (usuarios)" %}</h2>
         <span class="badge {% if limites.usuarios is not None and uso.usuarios >= limites.usuarios %}peligro{% else %}info{% endif %}">
-          {{ uso.usuarios }} / {% if limites.usuarios is None %}Ilimitados{% else %}{{ limites.usuarios }}{% endif %}
+          {{ uso.usuarios }} / {% if limites.usuarios is None %}{% translate "Ilimitados" %}{% else %}{{ limites.usuarios }}{% endif %}
         </span>
       </div>
       <div class="plan-progreso-pista">
@@ -90,16 +91,16 @@
       </div>
       <p class="nota" style="margin: 10px 0 0;">
         {% if limites.usuarios is None %}
-          Tu plan <strong>{{ suscripcion.plan.nombre }}</strong> permite miembros de equipo ilimitados.
+          {% translate "Tu plan" %} <strong>{{ suscripcion.plan.nombre }}</strong> {% translate "permite miembros de equipo ilimitados." %}
         {% else %}
-          Tienes {{ uso.usuarios }} de {{ limites.usuarios }} miembros activos en <strong>{{ request.empresa.nombre }}</strong>.
+          {% blocktranslate with usuarios=uso.usuarios usuarios2=limites.usuarios %}Tienes {{ usuarios }} de {{ usuarios2 }} miembros activos en{% endblocktranslate %} <strong>{{ request.empresa.nombre }}</strong>.
         {% endif %}
       </p>
     </article>
   </section>
 
   <!-- Catálogo comparativo de los 4 planes -->
-  <h2 style="margin-bottom: 14px;">Planes disponibles</h2>
+  <h2 style="margin-bottom: 14px;">{% translate "Planes disponibles" %}</h2>
   <div class="planes-grid" style="margin-bottom: 30px;">
     {% for item in planes_ui %}
       {% with plan=item.obj lim=item.limites %}
@@ -107,39 +108,39 @@
         <div class="plan-cabecera">
           <div>
             <h3>{{ plan.nombre }}</h3>
-            <span class="nota">Comisión Marketplace: <strong>{{ plan.comision_porcentaje|floatformat:"1" }}%</strong></span>
+            <span class="nota">{% translate "Comisión Marketplace:" %} <strong>{{ plan.comision_porcentaje|floatformat:"1" }}%</strong></span>
           </div>
           {% if item.es_actual %}
-            <span class="badge exito">Plan actual</span>
+            <span class="badge exito">{% translate "Plan actual" %}</span>
           {% elif plan.codigo == "negocio" %}
-            <span class="badge info">Recomendado</span>
+            <span class="badge info">{% translate "Recomendado" %}</span>
           {% endif %}
         </div>
 
         <div class="plan-precios">
           <div class="plan-precio-principal">
-            $ {{ plan.precio_mensual|floatformat:"0g" }} <small>/ mes</small>
+            $ {{ plan.precio_mensual|floatformat:"0g" }} <small>{% translate "/ mes" %}</small>
           </div>
           <div class="nota">
             {% if plan.precio_anual > 0 %}
-              Plan anual: <strong>$ {{ plan.precio_anual|floatformat:"0g" }} / año</strong> (ahorras 2 meses)
+              {% translate "Plan anual:" %} <strong>{% blocktranslate with precio_anual=plan.precio_anual|floatformat:"0g" %}$ {{ precio_anual }} / año{% endblocktranslate %}</strong> {% translate "(ahorras 2 meses)" %}
             {% else %}
-              Gratis para siempre · Sin tarjeta
+              {% translate "Gratis para siempre · Sin tarjeta" %}
             {% endif %}
           </div>
         </div>
 
         <ul class="plan-limites-lista">
           <li>
-            <strong>Productos:</strong>
-            {% if lim.productos is None %}Ilimitados{% else %}Hasta {{ lim.productos }} productos{% endif %}
+            <strong>{% translate "Productos:" %}</strong>
+            {% if lim.productos is None %}{% translate "Ilimitados" %}{% else %}{% blocktranslate with productos=lim.productos %}Hasta {{ productos }} productos{% endblocktranslate %}{% endif %}
           </li>
           <li>
-            <strong>Usuarios en equipo:</strong>
-            {% if lim.usuarios is None %}Ilimitados{% else %}Hasta {{ lim.usuarios }} usuario{{ lim.usuarios|pluralize }}{% endif %}
+            <strong>{% translate "Usuarios en equipo:" %}</strong>
+            {% if lim.usuarios is None %}{% translate "Ilimitados" %}{% else %}{% blocktranslate with usuarios=lim.usuarios usuarios2=lim.usuarios|pluralize %}Hasta {{ usuarios }} usuario{{ usuarios2 }}{% endblocktranslate %}{% endif %}
           </li>
           <li>
-            <strong>Ventas en POS mostrador:</strong> 0% comisión
+            <strong>{% translate "Ventas en POS mostrador:" %}</strong> {% translate "0% comisión" %}
           </li>
         </ul>
 
@@ -155,36 +156,36 @@
         <div class="plan-acciones">
           {% if puede_cambiar %}
             {% if item.es_actual and suscripcion.estado == "ACTIVA" and not item.es_pago %}
-              <button type="button" class="boton secundario" disabled style="width: 100%;">Plan activo actualmente</button>
+              <button type="button" class="boton secundario" disabled style="width: 100%;">{% translate "Plan activo actualmente" %}</button>
             {% else %}
               <form method="post" class="plan-form-cambio">
                 {% csrf_token %}
                 <input type="hidden" name="plan" value="{{ plan.codigo }}">
                 {% if item.es_pago %}
-                  <select name="ciclo" aria-label="Ciclo de cobro para {{ plan.nombre }}">
-                    <option value="MENSUAL" {% if item.es_actual and suscripcion.ciclo == "MENSUAL" %}selected{% endif %}>Mensual: $ {{ item.cobro_mensual|floatformat:"0g" }}{% if item.cobro_mensual != plan.precio_mensual %} (antes $ {{ plan.precio_mensual|floatformat:"0g" }}){% endif %}</option>
-                    {% if plan.precio_anual > 0 %}<option value="ANUAL" {% if item.es_actual and suscripcion.ciclo == "ANUAL" %}selected{% endif %}>Anual: $ {{ item.cobro_anual|floatformat:"0g" }}{% if item.cobro_anual != plan.precio_anual %} (antes $ {{ plan.precio_anual|floatformat:"0g" }}){% endif %}</option>{% endif %}
+                  <select name="ciclo" aria-label="{% blocktranslate with nombre=plan.nombre %}Ciclo de cobro para {{ nombre }}{% endblocktranslate %}">
+                    <option value="MENSUAL" {% if item.es_actual and suscripcion.ciclo == "MENSUAL" %}selected{% endif %}>{% blocktranslate with cobro_mensual=item.cobro_mensual|floatformat:"0g" %}Mensual: $ {{ cobro_mensual }}{% endblocktranslate %}{% if item.cobro_mensual != plan.precio_mensual %} {% blocktranslate with precio_mensual=plan.precio_mensual|floatformat:"0g" %}(antes $ {{ precio_mensual }}){% endblocktranslate %}{% endif %}</option>
+                    {% if plan.precio_anual > 0 %}<option value="ANUAL" {% if item.es_actual and suscripcion.ciclo == "ANUAL" %}selected{% endif %}>{% blocktranslate with cobro_anual=item.cobro_anual|floatformat:"0g" %}Anual: $ {{ cobro_anual }}{% endblocktranslate %}{% if item.cobro_anual != plan.precio_anual %} {% blocktranslate with precio_anual=plan.precio_anual|floatformat:"0g" %}(antes $ {{ precio_anual }}){% endblocktranslate %}{% endif %}</option>{% endif %}
                   </select>
-                  <input type="text" name="cupon" placeholder="Cupón de descuento (opcional)" aria-label="Cupón de descuento" style="margin: 6px 0; width: 100%;">
+                  <input type="text" name="cupon" placeholder="{% translate 'Cupón de descuento (opcional)' %}" aria-label="{% translate 'Cupón de descuento' %}" style="margin: 6px 0; width: 100%;">
                 {% else %}
                   <input type="hidden" name="ciclo" value="MENSUAL">
                 {% endif %}
                 <button type="submit" class="boton {% if item.es_actual %}exito{% elif plan.codigo == 'gratis' %}secundario{% endif %}" style="width: 100%;">
                   {% if item.es_actual and suscripcion.estado == "ACTIVA" %}
-                    Renovar {{ plan.nombre }}
+                    {% blocktranslate with nombre=plan.nombre %}Renovar {{ nombre }}{% endblocktranslate %}
                   {% elif item.es_actual and suscripcion.estado == "TRIAL" %}
-                    Pagar y activar {{ plan.nombre }}
+                    {% blocktranslate with nombre=plan.nombre %}Pagar y activar {{ nombre }}{% endblocktranslate %}
                   {% elif item.es_pago %}
-                    Pagar y cambiar a {{ plan.nombre }}
+                    {% blocktranslate with nombre=plan.nombre %}Pagar y cambiar a {{ nombre }}{% endblocktranslate %}
                   {% else %}
-                    Cambiar a {{ plan.nombre }}
+                    {% blocktranslate with nombre=plan.nombre %}Cambiar a {{ nombre }}{% endblocktranslate %}
                   {% endif %}
                 </button>
               </form>
-              {% if item.es_pago %}<p class="nota" style="margin: 6px 0 0; text-align: center;">Pagas en Wompi. El plan se activa cuando se confirma el pago.</p>{% endif %}
+              {% if item.es_pago %}<p class="nota" style="margin: 6px 0 0; text-align: center;">{% translate "Pagas en Wompi. El plan se activa cuando se confirma el pago." %}</p>{% endif %}
             {% endif %}
           {% else %}
-            <p class="nota" style="margin: 0; text-align: center;">Solo el administrador puede cambiar de plan.</p>
+            <p class="nota" style="margin: 0; text-align: center;">{% translate "Solo el administrador puede cambiar de plan." %}</p>
           {% endif %}
         </div>
       </article>
@@ -194,9 +195,9 @@
 
   {% if cobros %}
   <article class="tarjeta" style="margin-bottom: 22px;">
-    <div class="tarjeta-cabecera"><h2>Pagos del plan</h2></div>
+    <div class="tarjeta-cabecera"><h2>{% translate "Pagos del plan" %}</h2></div>
     <table class="tabla">
-      <thead><tr><th>Fecha</th><th>Plan</th><th>Ciclo</th><th>Valor</th><th>Estado</th></tr></thead>
+      <thead><tr><th>{% translate "Fecha" %}</th><th>{% translate "Plan" %}</th><th>{% translate "Ciclo" %}</th><th>{% translate "Valor" %}</th><th>{% translate "Estado" %}</th></tr></thead>
       <tbody>
         {% for c in cobros %}
           <tr>
@@ -215,17 +216,17 @@
   <!-- Historial de auditoría de la suscripción -->
   <article class="tarjeta">
     <div class="tarjeta-cabecera">
-      <h2>Historial de cambios de suscripción</h2>
-      <span class="badge neutro">{{ historial|length }} registro{{ historial|length|pluralize }}</span>
+      <h2>{% translate "Historial de cambios de suscripción" %}</h2>
+      <span class="badge neutro">{% blocktranslate with historial=historial|length historial2=historial|length|pluralize %}{{ historial }} registro{{ historial2 }}{% endblocktranslate %}</span>
     </div>
     <table class="tabla">
       <thead>
         <tr>
-          <th>Fecha</th>
-          <th>Plan anterior</th>
-          <th>Plan nuevo</th>
-          <th>Estado</th>
-          <th>Motivo</th>
+          <th>{% translate "Fecha" %}</th>
+          <th>{% translate "Plan anterior" %}</th>
+          <th>{% translate "Plan nuevo" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th>{% translate "Motivo" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -239,7 +240,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="5">No hay cambios registrados.</td>
+            <td colspan="5">{% translate "No hay cambios registrados." %}</td>
           </tr>
         {% endfor %}
       </tbody>

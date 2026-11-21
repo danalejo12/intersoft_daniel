@@ -1,4 +1,5 @@
 """Lógica de pagos. El monto siempre sale de la factura, nunca del navegador."""
+from django.utils.translation import gettext
 import datetime as dt
 import hashlib
 import hmac
@@ -76,17 +77,17 @@ def crear_pago(*, factura):
     factura = Factura.objects.select_for_update().get(pk=factura.pk)
 
     if factura.estado == Factura.Estado.ANULADA:
-        raise PagoNoPermitido("No se puede cobrar una factura anulada.")
+        raise PagoNoPermitido(gettext("No se puede cobrar una factura anulada."))
     if factura.esta_pagada:
-        raise PagoNoPermitido("Esta factura ya está pagada.")
+        raise PagoNoPermitido(gettext("Esta factura ya está pagada."))
     if hasattr(factura, "cuentacartera"):
         raise PagoNoPermitido(
-            "Esta factura ya se gestiona en cartera; registra sus abonos en Tesorería."
+            gettext("Esta factura ya se gestiona en cartera; registra sus abonos en Tesorería.")
         )
 
     monto = monto_en_centavos(factura.total)
     if monto <= 0:
-        raise PagoNoPermitido("La factura no tiene un valor por cobrar.")
+        raise PagoNoPermitido(gettext("La factura no tiene un valor por cobrar."))
 
     try:
         credenciales = _credenciales_nuevas(factura.empresa_id)
@@ -111,15 +112,15 @@ def crear_pago_pedido(*, pedido):
     with transaction.atomic():
         pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
         if not pedido.pago_directo:
-            raise PagoNoPermitido("Este pedido usa el cobro anterior. Crea un pedido nuevo para pagar al negocio.")
+            raise PagoNoPermitido(gettext("Este pedido usa el cobro anterior. Crea un pedido nuevo para pagar al negocio."))
         if pedido.estado != Pedido.Estado.PENDIENTE:
-            raise PagoNoPermitido("Este pedido ya no se puede pagar.")
+            raise PagoNoPermitido(gettext("Este pedido ya no se puede pagar."))
         if pedido.expira_en > timezone.now():
             if pedido.necesita_renovar:
-                raise PagoNoPermitido("A tu reserva le quedan muy pocos minutos. Renuévala para pagar con calma.")
+                raise PagoNoPermitido(gettext("A tu reserva le quedan muy pocos minutos. Renuévala para pagar con calma."))
             monto = monto_en_centavos(pedido.total)
             if monto <= 0:
-                raise PagoNoPermitido("El pedido no tiene un valor por cobrar.")
+                raise PagoNoPermitido(gettext("El pedido no tiene un valor por cobrar."))
             return Pago.objects.create(
                 empresa_id=pedido.empresa_id,
                 pedido=pedido,
@@ -131,7 +132,7 @@ def crear_pago_pedido(*, pedido):
             )
         # Fuera del if: la liberación debe guardarse, así que el error se lanza al cerrar la transacción
         reservas.liberar_pedido(pedido, Pedido.Estado.VENCIDO)
-    raise PagoNoPermitido("Tu reserva venció y liberamos los productos.")
+    raise PagoNoPermitido(gettext("Tu reserva venció y liberamos los productos."))
 
 
 def _credenciales_nuevas(empresa_id):
@@ -352,7 +353,7 @@ def buscar_transaccion_por_referencia(referencia, *, llaves):
         with urlopen(peticion, timeout=10) as respuesta:
             transacciones = json.load(respuesta)["data"]
             if not isinstance(transacciones, list) or not all(isinstance(t, dict) for t in transacciones):
-                raise ValueError("Respuesta inválida")
+                raise ValueError(gettext("Respuesta inválida"))
     except (OSError, HTTPException, ValueError, KeyError, TypeError) as error:
         logger.warning("No se pudo buscar la referencia %s en Wompi (%s)", referencia, type(error).__name__)
         raise WompiNoResponde from error

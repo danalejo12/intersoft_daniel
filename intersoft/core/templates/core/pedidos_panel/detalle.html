@@ -1,52 +1,52 @@
 {% extends "core/base.html" %}
-{% block titulo %}Pedido #{{ pedido.numero }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with numero=pedido.numero %}Pedido #{{ numero }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Pedido N.º {{ pedido.numero }}</h1>
+      <h1>{% blocktranslate with numero=pedido.numero %}Pedido N.º {{ numero }}{% endblocktranslate %}</h1>
       <p class="nota">
-        Creado el {{ pedido.creado_en|date:"d/m/Y H:i" }} ·
-        Estado: <strong>{{ pedido.get_estado_display }}</strong>
+        {% blocktranslate with creado_en=pedido.creado_en|date:"d/m/Y H:i" %}Creado el {{ creado_en }} · Estado:{% endblocktranslate %} <strong>{{ pedido.get_estado_display }}</strong>
         {% if pedido.factura %}
-          · Factura: <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a>
+          {% translate "· Factura:" %} <a href="{% url 'facturas_detalle' pedido.factura.pk %}">#{{ pedido.factura.numero }}</a>
         {% endif %}
       </p>
     </div>
-    <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">← Volver a pedidos</a>
+    <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">{% translate "← Volver a pedidos" %}</a>
   </div>
 
   <section class="paneles parejos" style="margin-bottom: 1.5rem;">
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Comprador y entrega</h2></div>
+      <div class="tarjeta-cabecera"><h2>{% translate "Comprador y entrega" %}</h2></div>
       <p>
         <strong>{{ pedido.nombre }}</strong> ({{ pedido.tipo_documento }} {{ pedido.numero_documento }})<br>
         {{ pedido.direccion }}{% if pedido.indicaciones %} · {{ pedido.indicaciones }}{% endif %}<br>
         {{ pedido.ciudad }}, {{ pedido.departamento }}<br>
-        Tel.: {{ pedido.telefono }} · <a href="mailto:{{ pedido.email }}">{{ pedido.email }}</a>
+        {% blocktranslate with telefono=pedido.telefono %}Tel.: {{ telefono }} ·{% endblocktranslate %} <a href="mailto:{{ pedido.email }}">{{ pedido.email }}</a>
       </p>
       {% if pedido.peso_total_gramos %}
-        <p class="nota">Peso estimado del paquete: <strong>{{ pedido.peso_total_gramos }} g</strong></p>
+        <p class="nota">{% translate "Peso estimado del paquete:" %} <strong>{{ pedido.peso_total_gramos }} g</strong></p>
       {% endif %}
     </article>
 
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Liquidación financiera</h2></div>
+      <div class="tarjeta-cabecera"><h2>{% translate "Liquidación financiera" %}</h2></div>
       <table class="tabla">
         <tbody>
-          <tr><td>Subtotal productos</td><td class="num">$ {{ pedido.subtotal|floatformat:"-2g" }}</td></tr>
-          <tr><td>IVA</td><td class="num">$ {{ pedido.iva|floatformat:"-2g" }}</td></tr>
-          <tr><td>Costo de envío</td><td class="num">$ {{ pedido.costo_envio|floatformat:"-2g" }}</td></tr>
-          <tr><td>Cargo pasarela (lo paga el comprador)</td><td class="num">$ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
-          <tr><td><strong>Total cobrado al comprador</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>
+          <tr><td>{% translate "Subtotal productos" %}</td><td class="num">$ {{ pedido.subtotal|floatformat:"-2g" }}</td></tr>
+          <tr><td>{% translate "IVA" %}</td><td class="num">$ {{ pedido.iva|floatformat:"-2g" }}</td></tr>
+          <tr><td>{% translate "Costo de envío" %}</td><td class="num">$ {{ pedido.costo_envio|floatformat:"-2g" }}</td></tr>
+          <tr><td>{% translate "Cargo pasarela (lo paga el comprador)" %}</td><td class="num">$ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
+          <tr><td><strong>{% translate "Total cobrado al comprador" %}</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>
           {% if not pedido.pago_directo %}
-          <tr><td>Comisión plataforma ({{ pedido.comision_porcentaje|floatformat:"-2g" }}%)</td><td class="num">- $ {{ pedido.comision_valor|floatformat:"-2g" }}</td></tr>
+          <tr><td>{% blocktranslate with comision_porcentaje=pedido.comision_porcentaje|floatformat:"-2g" %}Comisión plataforma ({{ comision_porcentaje }}%){% endblocktranslate %}</td><td class="num">- $ {{ pedido.comision_valor|floatformat:"-2g" }}</td></tr>
           {% endif %}
-          <tr><td>Retenido por Wompi</td><td class="num">- $ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
-          <tr class="total"><td><strong>{% if pedido.pago_directo %}Valor antes de otros descuentos de Wompi{% else %}Neto para tu negocio{% endif %}</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
+          <tr><td>{% translate "Retenido por Wompi" %}</td><td class="num">- $ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
+          <tr class="total"><td><strong>{% if pedido.pago_directo %}{% translate "Valor antes de otros descuentos de Wompi" %}{% else %}{% translate "Neto para tu negocio" %}{% endif %}</strong></td><td class="num"><strong>$ {{ pedido.neto_vendedor|floatformat:"-2g" }}</strong></td></tr>
           {% if not pedido.pago_directo %}
           <tr>
-            <td>Estado de dispersión</td>
+            <td>{% translate "Estado de dispersión" %}</td>
             <td class="num">
               {{ pedido.get_estado_dispersion_display }}
               {% if pedido.dispersion_referencia %}<small class="nota">({{ pedido.dispersion_referencia }})</small>{% endif %}
@@ -56,32 +56,32 @@
         </tbody>
       </table>
       {% if pedido.pago_directo %}
-        <p class="nota">El pago llega directamente a tu cuenta de Wompi. Intersoft no realiza dispersión.</p>
+        <p class="nota">{% translate "El pago llega directamente a tu cuenta de Wompi. Intersoft no realiza dispersión." %}</p>
       {% elif pedido.estado == "pagado" and puede_reembolsar and pedido.estado_dispersion != "liquidada" %}
         <form method="post" class="formulario" style="margin-top: 0.75rem;">
           {% csrf_token %}
           <input type="hidden" name="accion" value="registrar_dispersion">
           <input type="hidden" name="estado_dispersion" value="liquidada">
           <div class="campo">
-            <label for="id_dispersion_referencia">Referencia de dispersión bancaria</label>
-            <input id="id_dispersion_referencia" type="text" name="dispersion_referencia" maxlength="80" required placeholder="Ej.: DISP-ACH-202611">
+            <label for="id_dispersion_referencia">{% translate "Referencia de dispersión bancaria" %}</label>
+            <input id="id_dispersion_referencia" type="text" name="dispersion_referencia" maxlength="80" required placeholder="{% translate 'Ej.: DISP-ACH-202611' %}">
           </div>
           <div class="acciones">
-            <button type="submit" class="boton secundario">Marcar dispersión liquidada</button>
+            <button type="submit" class="boton secundario">{% translate "Marcar dispersión liquidada" %}</button>
           </div>
         </form>
       {% endif %}
     </article>
   </section>
 
-  <h2>Líneas del pedido</h2>
+  <h2>{% translate "Líneas del pedido" %}</h2>
   <table class="tabla" style="margin-bottom: 1.5rem;">
     <thead>
       <tr>
-        <th>Producto</th>
-        <th class="num">Cantidad</th>
-        <th class="num">Precio unit.</th>
-        <th class="num">IVA (%)</th>
+        <th>{% translate "Producto" %}</th>
+        <th class="num">{% translate "Cantidad" %}</th>
+        <th class="num">{% translate "Precio unit." %}</th>
+        <th class="num">{% translate "IVA (%)" %}</th>
       </tr>
     </thead>
     <tbody>
@@ -99,13 +99,13 @@
   {% if pedido.estado == "pagado" %}
     <section class="tarjeta" style="margin-bottom: 1.5rem;">
       <div class="tarjeta-cabecera">
-        <h2>Logística y seguimiento de envío</h2>
+        <h2>{% translate "Logística y seguimiento de envío" %}</h2>
         <span class="etiqueta">{{ pedido.get_estado_envio_display }}</span>
       </div>
       {% if pedido.enviado_en or pedido.entregado_en %}
         <p class="nota">
-          {% if pedido.enviado_en %}Despachado: {{ pedido.enviado_en|date:"d/m/Y H:i" }}{% endif %}
-          {% if pedido.entregado_en %} · Entregado: {{ pedido.entregado_en|date:"d/m/Y H:i" }}{% endif %}
+          {% if pedido.enviado_en %}{% blocktranslate with enviado_en=pedido.enviado_en|date:"d/m/Y H:i" %}Despachado: {{ enviado_en }}{% endblocktranslate %}{% endif %}
+          {% if pedido.entregado_en %} {% blocktranslate with entregado_en=pedido.entregado_en|date:"d/m/Y H:i" %}· Entregado: {{ entregado_en }}{% endblocktranslate %}{% endif %}
         </p>
       {% endif %}
       {% if puede_gestionar_envio %}
@@ -113,7 +113,7 @@
           {% csrf_token %}
           <input type="hidden" name="accion" value="actualizar_envio">
           <div class="campo">
-            <label for="id_estado_envio">Estado del envío</label>
+            <label for="id_estado_envio">{% translate "Estado del envío" %}</label>
             <select id="id_estado_envio" name="estado_envio">
               {% for valor, etiqueta in estados_envio %}
                 <option value="{{ valor }}" {% if pedido.estado_envio == valor %}selected{% endif %}>{{ etiqueta }}</option>
@@ -121,21 +121,21 @@
             </select>
           </div>
           <div class="campo">
-            <label for="id_transportadora">Transportadora</label>
-            <input id="id_transportadora" type="text" name="transportadora" maxlength="80" value="{{ pedido.transportadora }}" placeholder="Ej.: Servientrega, Coordinadora, Mensajería propia">
+            <label for="id_transportadora">{% translate "Transportadora" %}</label>
+            <input id="id_transportadora" type="text" name="transportadora" maxlength="80" value="{{ pedido.transportadora }}" placeholder="{% translate 'Ej.: Servientrega, Coordinadora, Mensajería propia' %}">
           </div>
           <div class="campo">
-            <label for="id_numero_guia">Número de guía</label>
-            <input id="id_numero_guia" type="text" name="numero_guia" maxlength="80" value="{{ pedido.numero_guia }}" placeholder="Ej.: GUIA-992831">
+            <label for="id_numero_guia">{% translate "Número de guía" %}</label>
+            <input id="id_numero_guia" type="text" name="numero_guia" maxlength="80" value="{{ pedido.numero_guia }}" placeholder="{% translate 'Ej.: GUIA-992831' %}">
           </div>
           <div class="acciones">
-            <button type="submit">Actualizar envío</button>
+            <button type="submit">{% translate "Actualizar envío" %}</button>
           </div>
         </form>
       {% else %}
         <p>
-          <strong>Transportadora:</strong> {{ pedido.transportadora|default:"Sin asignar" }} ·
-          <strong>Guía:</strong> {{ pedido.numero_guia|default:"Sin guía" }}
+          <strong>{% translate "Transportadora:" %}</strong> {{ pedido.transportadora|default:_("Sin asignar") }} ·
+          <strong>{% translate "Guía:" %}</strong> {{ pedido.numero_guia|default:_("Sin guía") }}
         </p>
       {% endif %}
     </section>
@@ -144,48 +144,48 @@
   {% if pedido.estado == "requiere_reembolso" %}
     <section class="tarjeta rojo" style="margin-bottom: 1.5rem;">
       <div class="tarjeta-cabecera">
-        <h2>Reembolso pendiente</h2>
+        <h2>{% translate "Reembolso pendiente" %}</h2>
       </div>
-      <p>Este pedido recibió un pago en Wompi que no pudo completarse (por vencimiento sin stock, cancelación previa o diferencia de monto). Registra aquí el comprobante de devolución al comprador.</p>
+      <p>{% translate "Este pedido recibió un pago en Wompi que no pudo completarse (por vencimiento sin stock, cancelación previa o diferencia de monto). Registra aquí el comprobante de devolución al comprador." %}</p>
       {% if puede_reembolsar %}
         <form method="post" class="formulario">
           {% csrf_token %}
           <input type="hidden" name="accion" value="reembolsar">
           <div class="campo">
-            <label for="id_referencia">Referencia o comprobante de reembolso</label>
-            <input id="id_referencia" type="text" name="referencia" maxlength="80" required placeholder="Ej.: REV-WOMPI-00124">
+            <label for="id_referencia">{% translate "Referencia o comprobante de reembolso" %}</label>
+            <input id="id_referencia" type="text" name="referencia" maxlength="80" required placeholder="{% translate 'Ej.: REV-WOMPI-00124' %}">
           </div>
           <div class="campo">
-            <label for="id_nota">Nota de auditoría (opcional)</label>
-            <input id="id_nota" type="text" name="nota" maxlength="250" placeholder="Ej.: Devolución a cuenta origen del comprador">
+            <label for="id_nota">{% translate "Nota de auditoría (opcional)" %}</label>
+            <input id="id_nota" type="text" name="nota" maxlength="250" placeholder="{% translate 'Ej.: Devolución a cuenta origen del comprador' %}">
           </div>
           <div class="acciones">
-            <button type="submit">Confirmar reembolso</button>
+            <button type="submit">{% translate "Confirmar reembolso" %}</button>
           </div>
         </form>
       {% else %}
-        <p class="nota">Pídele a un usuario con permiso de anulación de ventas o tesorería que registre el reembolso.</p>
+        <p class="nota">{% translate "Pídele a un usuario con permiso de anulación de ventas o tesorería que registre el reembolso." %}</p>
       {% endif %}
     </section>
   {% elif pedido.estado == "reembolsado" %}
     <section class="tarjeta verde" style="margin-bottom: 1.5rem;">
       <div class="tarjeta-cabecera">
-        <h2>Reembolso registrado</h2>
+        <h2>{% translate "Reembolso registrado" %}</h2>
       </div>
       <p>
-        <strong>Referencia:</strong> {{ pedido.reembolso_referencia }}<br>
-        <strong>Fecha:</strong> {{ pedido.reembolsado_en|date:"d/m/Y H:i" }}<br>
-        {% if pedido.reembolsado_por %}<strong>Registrado por:</strong> {{ pedido.reembolsado_por.email }}<br>{% endif %}
-        {% if pedido.reembolso_nota %}<strong>Nota:</strong> {{ pedido.reembolso_nota }}{% endif %}
+        <strong>{% translate "Referencia:" %}</strong> {{ pedido.reembolso_referencia }}<br>
+        <strong>{% translate "Fecha:" %}</strong> {{ pedido.reembolsado_en|date:"d/m/Y H:i" }}<br>
+        {% if pedido.reembolsado_por %}<strong>{% translate "Registrado por:" %}</strong> {{ pedido.reembolsado_por.email }}<br>{% endif %}
+        {% if pedido.reembolso_nota %}<strong>{% translate "Nota:" %}</strong> {{ pedido.reembolso_nota }}{% endif %}
       </p>
     </section>
   {% endif %}
 
   {% if pedido.pagos.all %}
-    <h2>Intentos de pago en Wompi</h2>
+    <h2>{% translate "Intentos de pago en Wompi" %}</h2>
     <table class="tabla">
       <thead>
-        <tr><th>Fecha</th><th>Referencia</th><th>ID Wompi</th><th>Estado</th></tr>
+        <tr><th>{% translate "Fecha" %}</th><th>{% translate "Referencia" %}</th><th>{% translate "ID Wompi" %}</th><th>{% translate "Estado" %}</th></tr>
       </thead>
       <tbody>
         {% for pago in pedido.pagos.all %}

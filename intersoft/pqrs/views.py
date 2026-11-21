@@ -1,4 +1,5 @@
 """Vistas de PQRS para compradores (/pqrs/), negocios (/panel/pqrs/) e Intersoft (/plataforma/pqrs/)."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
@@ -77,7 +78,7 @@ class RadicarPQRSCompradorView(LoginRequiredMixin, View):
             except ValidationError as exc:
                 form.add_error(None, exc.messages[0] if exc.messages else str(exc))
             else:
-                messages.success(request, f"PQRS radicada con éxito: {pqrs.radicado}.")
+                messages.success(request, gettext("PQRS radicada con éxito: {radicado}.").format(radicado=pqrs.radicado))
                 return redirect("pqrs_detalle", pk=pqrs.pk)
         return render(request, self.template_name, {"form": form})
 
@@ -111,12 +112,12 @@ class DetallePQRSCompradorView(LoginRequiredMixin, View):
                     calificacion=encuesta_form.cleaned_data["calificacion"],
                     comentario=encuesta_form.cleaned_data.get("comentario_satisfaccion", ""),
                 )
-                messages.success(request, "Gracias por calificar la atención. Tu PQRS quedó cerrada.")
+                messages.success(request, gettext("Gracias por calificar la atención. Tu PQRS quedó cerrada."))
                 return redirect("pqrs_detalle", pk=pqrs.pk)
             return render(request, self.template_name, self._contexto(pqrs, encuesta_form=encuesta_form))
 
         if pqrs.estado == PQRS.Estado.CERRADA:
-            messages.error(request, "Esta PQRS ya está cerrada y no admite nuevos mensajes.")
+            messages.error(request, gettext("Esta PQRS ya está cerrada y no admite nuevos mensajes."))
             return redirect("pqrs_detalle", pk=pqrs.pk)
 
         msg_form = MensajePQRSForm(request.POST, request.FILES, permitir_interno=False)
@@ -128,7 +129,7 @@ class DetallePQRSCompradorView(LoginRequiredMixin, View):
                 adjunto=msg_form.cleaned_data.get("adjunto"),
                 interno=False,
             )
-            messages.success(request, "Mensaje enviado.")
+            messages.success(request, gettext("Mensaje enviado."))
             return redirect("pqrs_detalle", pk=pqrs.pk)
         return render(request, self.template_name, self._contexto(pqrs, msg_form=msg_form))
 
@@ -170,7 +171,7 @@ class PanelPQRSNuevaView(PermisoRequeridoMixin, View):
                 adjunto=form.cleaned_data.get("adjunto"),
                 prioridad=form.cleaned_data["prioridad"],
             )
-            messages.success(request, f"PQRS enviada a Intersoft con radicado {pqrs.radicado}.")
+            messages.success(request, gettext("PQRS enviada a Intersoft con radicado {radicado}.").format(radicado=pqrs.radicado))
             return redirect("panel_pqrs_detalle", pk=pqrs.pk)
         return render(request, self.template_name, {"form": form})
 
@@ -219,7 +220,7 @@ class PanelPQRSDetalleView(PermisoRequeridoMixin, View):
                     calificacion=encuesta_form.cleaned_data["calificacion"],
                     comentario=encuesta_form.cleaned_data.get("comentario_satisfaccion", ""),
                 )
-                messages.success(request, "Encuesta registrada y PQRS cerrada.")
+                messages.success(request, gettext("Encuesta registrada y PQRS cerrada."))
                 return redirect("panel_pqrs_detalle", pk=pqrs.pk)
             return render(request, self.template_name, self._contexto(pqrs, encuesta_form=encuesta_form))
 
@@ -227,7 +228,7 @@ class PanelPQRSDetalleView(PermisoRequeridoMixin, View):
             nuevo_estado = (request.POST.get("estado") or "").strip()
             if nuevo_estado in (PQRS.Estado.EN_TRAMITE, PQRS.Estado.RESPONDIDA, PQRS.Estado.CERRADA):
                 cambiar_estado_pqrs(pqrs, nuevo_estado=nuevo_estado)
-                messages.success(request, f"Estado actualizado a {pqrs.get_estado_display()}.")
+                messages.success(request, gettext("Estado actualizado a {get_estado_display}.").format(get_estado_display=pqrs.get_estado_display()))
             return redirect("panel_pqrs_detalle", pk=pqrs.pk)
 
         msg_form = MensajePQRSForm(request.POST, request.FILES, permitir_interno=es_flujo_b)
@@ -244,7 +245,7 @@ class PanelPQRSDetalleView(PermisoRequeridoMixin, View):
                 interno=interno,
                 nuevo_estado=nuevo_estado,
             )
-            messages.success(request, "Mensaje registrado correctamente.")
+            messages.success(request, gettext("Mensaje registrado correctamente."))
             return redirect("panel_pqrs_detalle", pk=pqrs.pk)
 
         return render(request, self.template_name, self._contexto(pqrs, msg_form=msg_form))
@@ -340,7 +341,7 @@ class PlataformaPQRSDetalleView(PlataformaMixin, View):
                     },
                     request=request,
                 )
-                messages.success(request, f"PQRS {pqrs.radicado} actualizada.")
+                messages.success(request, gettext("PQRS {radicado} actualizada.").format(radicado=pqrs.radicado))
                 return redirect("plataforma_pqrs_detalle", pk=pqrs.pk)
             return render(request, self.template_name, self._contexto(pqrs, gestion_form=gestion_form))
 
@@ -366,6 +367,6 @@ class PlataformaPQRSDetalleView(PlataformaMixin, View):
                 detalle={"radicado": pqrs.radicado, "interno": interno},
                 request=request,
             )
-            messages.success(request, "Mensaje registrado en la PQRS.")
+            messages.success(request, gettext("Mensaje registrado en la PQRS."))
             return redirect("plataforma_pqrs_detalle", pk=pqrs.pk)
         return render(request, self.template_name, self._contexto(pqrs, msg_form=msg_form))

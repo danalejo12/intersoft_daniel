@@ -1,4 +1,5 @@
 """Punto de venta del panel: ventas de mostrador con caja, varios medios de pago y ticket."""
+from django.utils.translation import gettext
 import json
 import re
 import uuid
@@ -27,14 +28,14 @@ PRODUCTOS_FRECUENTES = 12
 def _cantidad_entera(valor):
     """Acepta solo enteros explícitos (int o cadena de dígitos); rechaza bool y decimales."""
     if isinstance(valor, bool):
-        raise ValueError("Booleano no permitido")
+        raise ValueError(gettext("Booleano no permitido"))
     if isinstance(valor, int):
         return valor
     if isinstance(valor, str):
         texto = valor.strip()
         if re.fullmatch(r"-?\d+", texto):
             return int(texto)
-    raise ValueError("Cantidad no entera")
+    raise ValueError(gettext("Cantidad no entera"))
 
 
 def bodega_del_turno(turno):
@@ -97,12 +98,12 @@ class PosMixin(PermisoRequeridoMixin):
             if not sub.puede("pos"):
                 if request.content_type == "application/json":
                     return JsonResponse(
-                        {"ok": False, "error": "Tu plan actual no incluye Punto de Venta (POS)."},
+                        {"ok": False, "error": gettext("Tu plan actual no incluye Punto de Venta (POS).")},
                         status=403,
                     )
                 messages.error(
                     request,
-                    f"Tu plan actual ({sub.plan.nombre}) no incluye Punto de Venta (POS). Actualiza tu plan para usar la caja.",
+                    gettext("Tu plan actual ({nombre}) no incluye Punto de Venta (POS). Actualiza tu plan para usar la caja.").format(nombre=sub.plan.nombre),
                 )
                 return redirect("suscripcion_panel")
         return super().dispatch(request, *args, **kwargs)
@@ -137,10 +138,10 @@ class AbrirTurnoView(PosMixin, View):
             if request.POST.get("bodega"):
                 bodega = Bodega.objects.de_empresa(request.empresa).filter(pk=request.POST["bodega"]).first()
                 if bodega is None:
-                    raise caja.OperacionCaja("La bodega elegida no existe.")
+                    raise caja.OperacionCaja(gettext("La bodega elegida no existe."))
             caja.abrir_turno(empresa=request.empresa, usuario=request.user, base=request.POST.get("base", "0"),
                              bodega=bodega)
-            messages.success(request, "Caja abierta. ¡Buenas ventas!")
+            messages.success(request, gettext("Caja abierta. ¡Buenas ventas!"))
         except caja.OperacionCaja as error:
             messages.error(request, str(error))
         return redirect("pos")
@@ -274,7 +275,7 @@ class CerrarTurnoView(PosMixin, View):
     def get(self, request):
         turno = self.turno()
         if turno is None:
-            messages.info(request, "No tienes una caja abierta.")
+            messages.info(request, gettext("No tienes una caja abierta."))
             return redirect("pos")
         # Arqueo a ciegas: se muestran las ventas, pero no el efectivo esperado
         return render(request, "core/pos/cerrar.html", {"turno": turno, "ventas": turno.facturas.count()})
@@ -291,7 +292,7 @@ class CerrarTurnoView(PosMixin, View):
         except caja.OperacionCaja as error:
             messages.error(request, str(error))
             return redirect("pos_cerrar")
-        messages.success(request, "Caja cerrada.")
+        messages.success(request, gettext("Caja cerrada."))
         return redirect("pos_turno", pk=turno.pk)
 
 
@@ -354,7 +355,7 @@ class TurnoView(PermisoRequeridoMixin, DetailView):
 
     def post(self, request, pk):
         if not (request.membresia and request.membresia.tiene_permiso("tesoreria.gestionar")):
-            raise PermissionDenied("No tienes permiso para trasladar fondos a tesorería.")
+            raise PermissionDenied(gettext("No tienes permiso para trasladar fondos a tesorería."))
         turno = self.get_object()
         cuenta = get_object_or_404(
             CuentaTesoreria,
@@ -372,7 +373,7 @@ class TurnoView(PermisoRequeridoMixin, DetailView):
         except ValidationError as error:
             messages.error(request, " ".join(error.messages))
         else:
-            messages.success(request, f"Efectivo trasladado a tesorería ({mov.cuenta.nombre}).")
+            messages.success(request, gettext("Efectivo trasladado a tesorería ({nombre}).").format(nombre=mov.cuenta.nombre))
         return redirect("pos_turno", pk=turno.pk)
 
 
@@ -383,7 +384,7 @@ class TicketView(TenantMixin, View):
     def dispatch(self, request, *args, **kwargs):
         membresia = request.membresia
         if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
-            raise PermissionDenied("No tienes permiso para esta acción.")
+            raise PermissionDenied(gettext("No tienes permiso para esta acción."))
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk):
@@ -411,7 +412,7 @@ class TicketPDFView(TenantMixin, View):
     def dispatch(self, request, *args, **kwargs):
         membresia = request.membresia
         if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
-            raise PermissionDenied("No tienes permiso para esta acción.")
+            raise PermissionDenied(gettext("No tienes permiso para esta acción."))
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk):
@@ -435,7 +436,7 @@ class TicketEnviarCorreoView(TenantMixin, View):
     def dispatch(self, request, *args, **kwargs):
         membresia = request.membresia
         if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_permitidos):
-            raise PermissionDenied("No tienes permiso para esta acción.")
+            raise PermissionDenied(gettext("No tienes permiso para esta acción."))
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, pk):
@@ -446,12 +447,12 @@ class TicketEnviarCorreoView(TenantMixin, View):
         )
         correo = (request.POST.get("correo") or factura.cliente.email or "").strip()
         if not correo:
-            messages.error(request, "Ingresa el correo del cliente para enviar el ticket.")
+            messages.error(request, gettext("Ingresa el correo del cliente para enviar el ticket."))
             return redirect("pos_ticket", pk=factura.pk)
 
         pdf = generar_ticket_pos_pdf(factura)
         mensaje = EmailMessage(
-            subject=f"Ticket de compra #{factura.numero} · {request.empresa.nombre}",
+            subject=gettext("Ticket de compra #{numero} · {nombre}").format(numero=factura.numero, nombre=request.empresa.nombre),
             body=(
                 f"Hola {factura.cliente_nombre or factura.cliente.nombre},\n\n"
                 f"Adjuntamos tu ticket de compra N.º {factura.numero} por valor de $ {factura.total}.\n"
@@ -461,6 +462,6 @@ class TicketEnviarCorreoView(TenantMixin, View):
         )
         mensaje.attach(f"ticket-{factura.numero}.pdf", pdf, "application/pdf")
         mensaje.send(fail_silently=False)
-        messages.success(request, f"Ticket #{factura.numero} enviado por correo a {correo}.")
+        messages.success(request, gettext("Ticket #{numero} enviado por correo a {correo}.").format(numero=factura.numero, correo=correo))
         return redirect("pos_ticket", pk=factura.pk)
 

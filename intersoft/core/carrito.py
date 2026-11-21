@@ -4,6 +4,7 @@ Solo guarda {id de producto: cantidad}. El precio y la disponibilidad siempre se
 de la base de datos, para que nadie pueda alterarlos desde el navegador. La disponibilidad
 es la de la bodega que vende en línea (`disponible`, anotada en productos_publicos).
 """
+from django.utils.translation import gettext
 from decimal import Decimal
 
 from .compras import calcular_costo_envio
@@ -85,13 +86,13 @@ def grupos(request):
         if producto is None or producto.disponible <= 0:
             del datos[clave]
             request.session.modified = True
-            nombre = producto.nombre if producto else "Un producto de tu carrito"
-            avisos.append(f"{nombre} ya no está disponible y lo quitamos de tu carrito.")
+            nombre = producto.nombre if producto else gettext("Un producto de tu carrito")
+            avisos.append(gettext("{nombre} ya no está disponible y lo quitamos de tu carrito.").format(nombre=nombre))
             continue
         if cantidad > producto.disponible:
             cantidad = datos[clave] = producto.disponible
             request.session.modified = True
-            avisos.append(f"Ajustamos la cantidad de {producto.nombre} a las unidades disponibles.")
+            avisos.append(gettext("Ajustamos la cantidad de {nombre} a las unidades disponibles.").format(nombre=producto.nombre))
         por_negocio.setdefault(producto.empresa_id, []).append(_linea(producto, cantidad))
 
     resultado = []

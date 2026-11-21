@@ -1,4 +1,5 @@
 """Empresa: el tenant del SaaS."""
+from django.utils.translation import gettext_lazy
 from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -9,9 +10,9 @@ from .base import ModeloBase
 
 class Empresa(ModeloBase):
     class Plan(models.TextChoices):
-        GRATIS = "gratis", "Gratis"
-        PRO = "pro", "Pro"
-        EMPRESARIAL = "empresarial", "Empresarial"
+        GRATIS = "gratis", gettext_lazy("Gratis")
+        PRO = "pro", gettext_lazy("Pro")
+        EMPRESARIAL = "empresarial", gettext_lazy("Empresarial")
 
     nombre = models.CharField(max_length=150)
     nit = models.CharField("NIT", max_length=20, unique=True)
@@ -19,34 +20,34 @@ class Empresa(ModeloBase):
     email = models.EmailField(blank=True)
     telefono = models.CharField(max_length=20, blank=True)
     direccion = models.CharField(max_length=200, blank=True)
-    logo = models.ImageField("logo del negocio", upload_to="negocios/", blank=True, null=True)
-    descripcion = models.TextField("descripción del negocio", max_length=500, blank=True)
-    sitio_web = models.URLField("sitio web o red social", blank=True)
+    logo = models.ImageField(gettext_lazy("logo del negocio"), upload_to="negocios/", blank=True, null=True)
+    descripcion = models.TextField(gettext_lazy("descripción del negocio"), max_length=500, blank=True)
+    sitio_web = models.URLField(gettext_lazy("sitio web o red social"), blank=True)
     plan = models.CharField(max_length=20, choices=Plan.choices, default=Plan.GRATIS)
     activa = models.BooleanField(default=True)
     comision_porcentaje = models.DecimalField(
-        "Comisión plataforma (%)",
+        gettext_lazy("Comisión plataforma (%)"),
         max_digits=5,
         decimal_places=2,
         default=Decimal("5.00"),
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("50"))],
     )
     tarifa_envio_base = models.DecimalField(
-        "Tarifa base de envío",
+        gettext_lazy("Tarifa base de envío"),
         max_digits=12,
         decimal_places=2,
         default=Decimal("0"),
         validators=[MinValueValidator(Decimal("0"))],
     )
     tarifa_envio_por_kg = models.DecimalField(
-        "Tarifa de envío por kg",
+        gettext_lazy("Tarifa de envío por kg"),
         max_digits=12,
         decimal_places=2,
         default=Decimal("0"),
         validators=[MinValueValidator(Decimal("0"))],
     )
     envio_gratis_desde = models.DecimalField(
-        "Envío gratis desde",
+        gettext_lazy("Envío gratis desde"),
         max_digits=12,
         decimal_places=2,
         default=Decimal("0"),

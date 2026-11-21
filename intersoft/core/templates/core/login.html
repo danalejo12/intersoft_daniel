@@ -1,32 +1,33 @@
 {% extends "core/tienda/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Iniciar sesión · Intersoft{% endblock %}
+{% block titulo %}{% translate "Iniciar sesión · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <section class="caja-formulario">
-    <img src="{% static 'core/img/logo-intersoft.png' %}" alt="InterSoft · Tu negocio, conectado." style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 14px;">
-    <h1>¡Qué bueno verte!</h1>
-    <p class="nota">Ingresa con tu correo para continuar.</p>
+    <img src="{% static 'core/img/logo-intersoft.png' %}" alt="{% translate 'InterSoft · Tu negocio, conectado.' %}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 14px;">
+    <h1>{% translate "¡Qué bueno verte!" %}</h1>
+    <p class="nota">{% translate "Ingresa con tu correo para continuar." %}</p>
 
     {% if form.non_field_errors %}
-      <p class="error">{% include "core/tienda/icono_error.html" %}<span>Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.</span></p>
+      <p class="error">{% include "core/tienda/icono_error.html" %}<span>{% translate "Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo." %}</span></p>
     {% endif %}
 
     <form method="post">
       {% csrf_token %}
       <div class="campo">
-        <label for="id_username">Correo</label>
+        <label for="id_username">{% translate "Correo" %}</label>
         <input type="email" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autocomplete="email" required autofocus>
       </div>
       <div class="campo">
-        <label for="id_password">Contraseña</label>
+        <label for="id_password">{% translate "Contraseña" %}</label>
         <input type="password" name="password" id="id_password" autocomplete="current-password" required>
       </div>
       <input type="hidden" name="next" value="{{ next }}">
-      <button type="submit" class="boton boton-ancho">Ingresar</button>
+      <button type="submit" class="boton boton-ancho">{% translate "Ingresar" %}</button>
     </form>
 
-    <p class="nota"><a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a></p>
-    <p class="nota">¿No tienes cuenta? <a href="{% url 'registro' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Créala aquí</a></p>
+    <p class="nota"><a href="{% url 'password_reset' %}">{% translate "¿Olvidaste tu contraseña?" %}</a></p>
+    <p class="nota">{% translate "¿No tienes cuenta?" %} <a href="{% url 'registro' %}{% if next %}?next={{ next|urlencode }}{% endif %}">{% translate "Créala aquí" %}</a></p>
   </section>
 {% endblock %}

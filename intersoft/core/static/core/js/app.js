@@ -1,3 +1,6 @@
+/* Traducción en el navegador: usa el catálogo de /jsi18n/ si está cargado. */
+function _t(s) { return window.gettext ? window.gettext(s) : s; }
+function _tf(s, a) { var r = _t(s); for (var i = 0; i < a.length; i++) { r = r.replace("%s", a[i]); } return r; }
 (() => {
   const sinAnimacion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -60,7 +63,7 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mensaje-cerrar";
-    btn.setAttribute("aria-label", "Cerrar aviso");
+    btn.setAttribute("aria-label", _t("Cerrar aviso"));
     btn.textContent = "×";
     btn.addEventListener("click", () => {
       msg.classList.add("saliendo");
@@ -146,7 +149,7 @@
       const botones = Array.from(document.querySelectorAll(selector));
       const algunoCerrado = botones.some((b) => b.getAttribute("aria-expanded") !== "true");
       botones.forEach((b) => alternarGaveta(b, algunoCerrado));
-      btnTodos.textContent = algunoCerrado ? "Contraer todos" : "Expandir todos";
+      btnTodos.textContent = algunoCerrado ? _t("Contraer todos") : _t("Expandir todos");
       return;
     }
 
@@ -188,7 +191,7 @@
   const pintar = () => {
     const abierto = raiz.classList.contains("dock-abierto");
     boton.setAttribute("aria-expanded", String(abierto));
-    const texto = abierto ? "Contraer menú" : "Mostrar nombres del menú";
+    const texto = abierto ? _t("Contraer menú") : _t("Mostrar nombres del menú");
     boton.setAttribute("aria-label", texto);
     boton.title = texto;
   };

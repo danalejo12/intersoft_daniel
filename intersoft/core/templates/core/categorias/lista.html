@@ -1,39 +1,40 @@
 {% extends "core/base.html" %}
-{% block titulo %}Categorías · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Categorías · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>Categorías</h1>
+    <h1>{% translate "Categorías" %}</h1>
     <div class="acciones-fila">
       <a class="boton secundario" href="{% url 'productos_lista' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        Ver productos
+        {% translate "Ver productos" %}
       </a>
       {% if puede_crear %}
         <a class="boton" href="{% url 'categorias_crear' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Nueva categoría
+          {% translate "Nueva categoría" %}
         </a>
       {% endif %}
     </div>
   </div>
 
   <form method="get" class="buscador">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar categoría por nombre">
+    <input type="search" name="q" value="{{ q }}" placeholder="{% translate 'Buscar categoría por nombre' %}">
     <button type="submit" class="boton">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      Buscar
+      {% translate "Buscar" %}
     </button>
     {% if q %}
-      <a class="boton secundario" href="{% url 'categorias_lista' %}">Limpiar</a>
+      <a class="boton secundario" href="{% url 'categorias_lista' %}">{% translate "Limpiar" %}</a>
     {% endif %}
   </form>
 
   <table class="tabla">
     <thead>
       <tr>
-        <th>Nombre</th>
-        <th class="num">Productos activos</th>
+        <th>{% translate "Nombre" %}</th>
+        <th class="num">{% translate "Productos activos" %}</th>
         <th></th>
       </tr>
     </thead>
@@ -46,17 +47,17 @@
             {% if puede_editar %}
               <a class="boton secundario pequeno" href="{% url 'categorias_editar' categoria.pk %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                Editar
+                {% translate "Editar" %}
               </a>
             {% endif %}
             {% if puede_eliminar %}
               <form method="post" action="{% url 'categorias_eliminar' categoria.pk %}"
                     style="display:inline"
-                    data-confirmar="¿Seguro que quieres eliminar esta categoría?">
+                    data-confirmar="{% translate '¿Seguro que quieres eliminar esta categoría?' %}">
                 {% csrf_token %}
                 <button type="submit" class="boton peligro pequeno">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  Eliminar
+                  {% translate "Eliminar" %}
                 </button>
               </form>
             {% endif %}
@@ -65,7 +66,7 @@
       {% empty %}
         <tr>
           <td colspan="3">
-            {% if q %}Ninguna categoría coincide con «{{ q }}».{% else %}Aún no hay categorías creadas.{% endif %}
+            {% if q %}{% blocktranslate with q=q %}Ninguna categoría coincide con «{{ q }}».{% endblocktranslate %}{% else %}{% translate "Aún no hay categorías creadas." %}{% endif %}
           </td>
         </tr>
       {% endfor %}
@@ -74,9 +75,9 @@
 
   {% if is_paginated %}
     <nav class="paginacion">
-      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
-      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">{% translate "← Anterior" %}</a>{% endif %}
+      <span>{% blocktranslate with number=page_obj.number num_pages=page_obj.paginator.num_pages %}Página {{ number }} de {{ num_pages }}{% endblocktranslate %}</span>
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">{% translate "Siguiente →" %}</a>{% endif %}
     </nav>
   {% endif %}
 {% endblock %}

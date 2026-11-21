@@ -5,6 +5,7 @@ Invariante: Producto.stock == suma de sus existencias en todas las bodegas.
 Orden de bloqueo (evita bloqueos cruzados): primero el Producto (select_for_update, lo hacen quienes
 llaman), después su Existencia. Todas las rutas que mueven stock bloquean el producto primero.
 """
+from django.utils.translation import gettext
 import logging
 
 from django.db import IntegrityError, transaction
@@ -39,9 +40,9 @@ def validar_bodega(empresa, bodega):
     if bodega is None:
         return bodega_principal(empresa)
     if bodega.empresa_id != empresa.pk:
-        raise ValueError("La bodega no pertenece a este negocio.")
+        raise ValueError(gettext("La bodega no pertenece a este negocio."))
     if not bodega.activa:
-        raise ValueError(f"La bodega {bodega.nombre} está inactiva.")
+        raise ValueError(gettext("La bodega {nombre} está inactiva.").format(nombre=bodega.nombre))
     return bodega
 
 
@@ -111,8 +112,7 @@ def mover(*, producto, bodega, variacion, error=None):
     fila = Existencia.objects.select_for_update().get(pk=fila.pk)
     if fila.cantidad + variacion < 0:
         raise (error or StockInsuficiente)(
-            f"Stock insuficiente de {producto.nombre} en {bodega.nombre}: hay {fila.cantidad}, "
-            f"se piden {-variacion}."
+            gettext("Stock insuficiente de {nombre} en {nombre2}: hay {cantidad}, se piden {variacion}.").format(nombre=producto.nombre, nombre2=bodega.nombre, cantidad=fila.cantidad, variacion=-variacion)
         )
     Existencia.objects.filter(pk=fila.pk).update(cantidad=F("cantidad") + variacion)
     Producto.objects.filter(pk=producto.pk).update(stock=F("stock") + variacion)
@@ -126,11 +126,11 @@ def trasladar(*, empresa, producto, origen, destino, cantidad, usuario):
 
     cantidad = int(cantidad)
     if cantidad <= 0:
-        raise ValueError("La cantidad debe ser mayor que cero.")
+        raise ValueError(gettext("La cantidad debe ser mayor que cero."))
     origen = validar_bodega(empresa, origen)
     destino = validar_bodega(empresa, destino)
     if origen.pk == destino.pk:
-        raise ValueError("El origen y el destino deben ser bodegas distintas.")
+        raise ValueError(gettext("El origen y el destino deben ser bodegas distintas."))
     producto = Producto.objects.select_for_update().get(pk=producto.pk, empresa=empresa)
     referencia = f"Traslado {origen.nombre} → {destino.nombre}"[:60]
     mover(producto=producto, bodega=origen, variacion=-cantidad)
@@ -176,16 +176,16 @@ def guardar_bodega(*, empresa, bodega=None, nombre, direccion="", es_principal=F
     nueva = bodega is None
     if nueva:
         if Bodega.objects.filter(empresa=empresa, activa=True).exists() and not permite_varias_bodegas(empresa):
-            raise OperacionBodega("Tu plan permite una sola bodega. Cambia al plan Pro para gestionar varias sedes.")
+            raise OperacionBodega(gettext("Tu plan permite una sola bodega. Cambia al plan Pro para gestionar varias sedes."))
         bodega = Bodega(empresa=empresa)
     elif bodega.empresa_id != empresa.pk:
-        raise OperacionBodega("La bodega no pertenece a este negocio.")
+        raise OperacionBodega(gettext("La bodega no pertenece a este negocio."))
     if Bodega.objects.filter(empresa=empresa, nombre__iexact=nombre.strip()).exclude(pk=bodega.pk).exists():
-        raise OperacionBodega(f"Ya existe una bodega llamada {nombre.strip()}.")
+        raise OperacionBodega(gettext("Ya existe una bodega llamada {strip}.").format(strip=nombre.strip()))
     if not nueva and bodega.es_principal and not es_principal:
-        raise OperacionBodega("Para cambiar la Principal, márcala en la bodega que la reemplaza.")
+        raise OperacionBodega(gettext("Para cambiar la Principal, márcala en la bodega que la reemplaza."))
     if not nueva and bodega.vende_en_linea and not vende_en_linea:
-        raise OperacionBodega("Para cambiar la bodega de venta en línea, márcala en la que la reemplaza.")
+        raise OperacionBodega(gettext("Para cambiar la bodega de venta en línea, márcala en la que la reemplaza."))
     bodega.nombre = nombre.strip()
     bodega.direccion = (direccion or "").strip()
     bodega.activa = True
@@ -205,11 +205,11 @@ def desactivar_bodega(*, empresa, bodega):
 
     bodega = Bodega.objects.select_for_update().get(pk=bodega.pk, empresa=empresa)
     if bodega.es_principal or bodega.vende_en_linea:
-        raise OperacionBodega("La bodega Principal y la de venta en línea no se pueden desactivar.")
+        raise OperacionBodega(gettext("La bodega Principal y la de venta en línea no se pueden desactivar."))
     if Existencia.objects.filter(bodega=bodega, cantidad__gt=0).exists():
-        raise OperacionBodega(f"{bodega.nombre} todavía tiene mercancía. Trasládala antes de desactivarla.")
+        raise OperacionBodega(gettext("{nombre} todavía tiene mercancía. Trasládala antes de desactivarla.").format(nombre=bodega.nombre))
     if TurnoCaja.objects.filter(bodega=bodega, cerrado_en__isnull=True).exists():
-        raise OperacionBodega(f"Hay una caja abierta vendiendo desde {bodega.nombre}.")
+        raise OperacionBodega(gettext("Hay una caja abierta vendiendo desde {nombre}.").format(nombre=bodega.nombre))
     bodega.activa = False
     bodega.save(update_fields=["activa", "actualizado_en"])
     return bodega
@@ -222,17 +222,17 @@ def enviar_traslado(*, empresa, producto, origen, destino, cantidad, usuario):
     from .services import StockInsuficiente
 
     if cantidad <= 0:
-        raise ValueError("La cantidad a trasladar debe ser mayor a 0.")
+        raise ValueError(gettext("La cantidad a trasladar debe ser mayor a 0."))
     origen = validar_bodega(empresa, origen)
     destino = validar_bodega(empresa, destino)
     if origen.pk == destino.pk:
-        raise ValueError("La bodega origen y destino deben ser distintas.")
+        raise ValueError(gettext("La bodega origen y destino deben ser distintas."))
 
     mover(
         producto=producto,
         bodega=origen,
         variacion=-cantidad,
-        error=StockInsuficiente(f"No hay {cantidad} unidad(es) de {producto.nombre} en {origen.nombre}."),
+        error=StockInsuficiente(gettext("No hay {cantidad} unidad(es) de {nombre} en {nombre2}.").format(cantidad=cantidad, nombre=producto.nombre, nombre2=origen.nombre)),
     )
     MovimientoInventario.objects.create(
         empresa=empresa,
@@ -269,7 +269,7 @@ def confirmar_traslado(*, empresa, pk, usuario):
     if traslado.estado == TrasladoBodega.Estado.RECIBIDO:
         return traslado
     if traslado.estado != TrasladoBodega.Estado.ENVIADO:
-        raise OperacionBodega("Solo se pueden confirmar traslados en estado enviado.")
+        raise OperacionBodega(gettext("Solo se pueden confirmar traslados en estado enviado."))
 
     mover(producto=traslado.producto, bodega=traslado.destino, variacion=traslado.cantidad)
     MovimientoInventario.objects.create(
@@ -313,7 +313,7 @@ def aplicar_conteo_fisico(*, empresa, bodega, conteos: dict, usuario, observacio
     for prod in productos:
         stock_contado = conteos_str[str(prod.pk)]
         if stock_contado < 0:
-            raise ValueError(f"El conteo de {prod.nombre} no puede ser negativo.")
+            raise ValueError(gettext("El conteo de {nombre} no puede ser negativo.").format(nombre=prod.nombre))
         stock_sistema = existencia(prod, bodega)
         diferencia = stock_contado - stock_sistema
         LineaConteoFisico.objects.create(

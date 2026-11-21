@@ -1,4 +1,5 @@
 """Compras del marketplace: pedidos con datos de envío y opiniones de productos."""
+from django.utils.translation import gettext, gettext_lazy
 from datetime import timedelta
 from decimal import Decimal
 
@@ -22,42 +23,42 @@ class Orden(ModeloBase):
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="ordenes")
 
     class Meta:
-        verbose_name = "orden de compra del marketplace"
-        verbose_name_plural = "órdenes de compra del marketplace"
+        verbose_name = gettext_lazy("orden de compra del marketplace")
+        verbose_name_plural = gettext_lazy("órdenes de compra del marketplace")
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Orden {str(self.pk)[:8]}"
+        return gettext("Orden {str}").format(str=str(self.pk)[:8])
 
 
 class Pedido(ModeloTenant):
     """Lo que compró una persona en un negocio. Guarda sus líneas y su total: la factura nace al pagar."""
 
     class Estado(models.TextChoices):
-        PENDIENTE = "pendiente", "Pendiente de pago"
-        PAGADO = "pagado", "Pagado"
-        VENCIDO = "vencido", "Vencido"
-        CANCELADO = "cancelado", "Cancelado"
-        REQUIERE_REEMBOLSO = "requiere_reembolso", "Requiere reembolso"
-        REEMBOLSADO = "reembolsado", "Reembolsado"
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente de pago")
+        PAGADO = "pagado", gettext_lazy("Pagado")
+        VENCIDO = "vencido", gettext_lazy("Vencido")
+        CANCELADO = "cancelado", gettext_lazy("Cancelado")
+        REQUIERE_REEMBOLSO = "requiere_reembolso", gettext_lazy("Requiere reembolso")
+        REEMBOLSADO = "reembolsado", gettext_lazy("Reembolsado")
 
     class EstadoEnvio(models.TextChoices):
-        PENDIENTE = "pendiente", "Pendiente"
-        PREPARANDO = "preparando", "Preparando"
-        ENVIADO = "enviado", "Enviado"
-        ENTREGADO = "entregado", "Entregado"
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente")
+        PREPARANDO = "preparando", gettext_lazy("Preparando")
+        ENVIADO = "enviado", gettext_lazy("Enviado")
+        ENTREGADO = "entregado", gettext_lazy("Entregado")
 
     class EstadoDispersion(models.TextChoices):
-        PENDIENTE = "pendiente", "Pendiente de dispersión"
-        PROGRAMADA = "programada", "Programada"
-        LIQUIDADA = "liquidada", "Liquidada al comercio"
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente de dispersión")
+        PROGRAMADA = "programada", gettext_lazy("Programada")
+        LIQUIDADA = "liquidada", gettext_lazy("Liquidada al comercio")
 
     # Mientras el pedido está pendiente, el comprador ve el estado de su último intento.
     # Los demás estados usan la etiqueta de Estado: una sola fuente para cada texto.
     ETIQUETAS_DEL_INTENTO = {
-        "por_pagar": "Por pagar",
-        "procesando": "Confirmando pago",
-        "rechazado": "Pago no aprobado",
+        "por_pagar": gettext_lazy("Por pagar"),
+        "procesando": gettext_lazy("Confirmando pago"),
+        "rechazado": gettext_lazy("Pago no aprobado"),
     }
 
     comprador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="pedidos")
@@ -126,7 +127,7 @@ class Pedido(ModeloTenant):
         ]
 
     def __str__(self):
-        return f"Pedido {self.numero} de {self.nombre}"
+        return gettext("Pedido {numero} de {nombre}").format(numero=self.numero, nombre=self.nombre)
 
     @property
     def estado_compra(self):
@@ -169,8 +170,8 @@ class DetallePedido(ModeloTenant):
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
 
     class Meta:
-        verbose_name = "línea de pedido"
-        verbose_name_plural = "líneas de pedido"
+        verbose_name = gettext_lazy("línea de pedido")
+        verbose_name_plural = gettext_lazy("líneas de pedido")
         constraints = [
             models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_linea_pedido_cantidad_positiva"),
         ]
@@ -204,7 +205,7 @@ class Comentario(ModeloTenant):
         nombre = self.autor.first_name.strip()
         apellido = self.autor.last_name.strip()
         if not nombre:
-            return "Cliente de Intersoft"
+            return gettext("Cliente de Intersoft")
         return f"{nombre} {apellido[0]}." if apellido else nombre
 
 

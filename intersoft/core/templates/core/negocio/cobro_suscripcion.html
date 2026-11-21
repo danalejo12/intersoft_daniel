@@ -1,38 +1,39 @@
 {% extends "core/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Pago del plan · {{ request.empresa.nombre }} · Intersoft{% endblock %}
+{% block titulo %}{% blocktranslate with nombre=request.empresa.nombre %}Pago del plan · {{ nombre }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Pago del plan {{ cobro.plan.nombre }}</h1>
-      <p class="nota">Ciclo {{ cobro.get_ciclo_display|lower }} · $ {{ cobro.monto|floatformat:"0g" }}{% if cobro.descuento_porcentaje %} (descuento de fundador del {{ cobro.descuento_porcentaje|floatformat:"0" }}%){% endif %} · Referencia {{ cobro.referencia }}</p>
+      <h1>{% blocktranslate with nombre=cobro.plan.nombre %}Pago del plan {{ nombre }}{% endblocktranslate %}</h1>
+      <p class="nota">{% blocktranslate with get_ciclo_display=cobro.get_ciclo_display|lower monto=cobro.monto|floatformat:"0g" %}Ciclo {{ get_ciclo_display }} · $ {{ monto }}{% endblocktranslate %}{% if cobro.descuento_porcentaje %} {% blocktranslate with descuento_porcentaje=cobro.descuento_porcentaje|floatformat:"0" %}(descuento de fundador del {{ descuento_porcentaje }}%){% endblocktranslate %}{% endif %} {% blocktranslate with referencia=cobro.referencia %}· Referencia {{ referencia }}{% endblocktranslate %}</p>
     </div>
   </div>
 
   <article class="tarjeta">
     {% if cobro.estado == "aprobado" %}
-      <h2>¡Pago aprobado!</h2>
-      <p>Tu plan <strong>{{ cobro.plan.nombre }}</strong> ya está activo.</p>
+      <h2>{% translate "¡Pago aprobado!" %}</h2>
+      <p>{% translate "Tu plan" %} <strong>{{ cobro.plan.nombre }}</strong> {% translate "ya está activo." %}</p>
     {% elif cobro.estado == "pendiente" %}
-      <h2>Estamos confirmando tu pago con Wompi</h2>
-      <p>Si ya pagaste, esta página se actualiza sola en unos segundos. Tu plan se activa en cuanto Wompi confirme.</p>
-      <p class="nota">Si cerraste Wompi sin pagar, no se hizo ningún cobro. Puedes volver a intentarlo desde Plan y suscripción.</p>
+      <h2>{% translate "Estamos confirmando tu pago con Wompi" %}</h2>
+      <p>{% translate "Si ya pagaste, esta página se actualiza sola en unos segundos. Tu plan se activa en cuanto Wompi confirme." %}</p>
+      <p class="nota">{% translate "Si cerraste Wompi sin pagar, no se hizo ningún cobro. Puedes volver a intentarlo desde Plan y suscripción." %}</p>
     {% elif cobro.estado == "rechazado" %}
-      <h2>El pago no se aprobó</h2>
-      <p>{{ cobro.detalle|default:"Wompi no aprobó la transacción." }} No se activó ningún cambio. Puedes intentarlo de nuevo con otro medio de pago.</p>
+      <h2>{% translate "El pago no se aprobó" %}</h2>
+      <p>{% blocktranslate with detalle=cobro.detalle|default:_("Wompi no aprobó la transacción.") %}{{ detalle }} No se activó ningún cambio. Puedes intentarlo de nuevo con otro medio de pago.{% endblocktranslate %}</p>
     {% elif cobro.estado == "requiere_revision" %}
-      <h2>Recibimos tu pago y lo estamos revisando</h2>
-      <p>No hace falta que pagues de nuevo. Nuestro equipo ya recibió una alerta y te contactará para activar tu plan o devolverte el dinero.</p>
+      <h2>{% translate "Recibimos tu pago y lo estamos revisando" %}</h2>
+      <p>{% translate "No hace falta que pagues de nuevo. Nuestro equipo ya recibió una alerta y te contactará para activar tu plan o devolverte el dinero." %}</p>
     {% else %}
-      <h2>Este cobro se anuló</h2>
-      <p>No recibimos el pago a tiempo y no se hizo ningún cobro.</p>
+      <h2>{% translate "Este cobro se anuló" %}</h2>
+      <p>{% translate "No recibimos el pago a tiempo y no se hizo ningún cobro." %}</p>
     {% endif %}
-    <p><a class="boton secundario" href="{% url 'suscripcion_panel' %}">Volver a Plan y suscripción</a></p>
+    <p><a class="boton secundario" href="{% url 'suscripcion_panel' %}">{% translate "Volver a Plan y suscripción" %}</a></p>
   </article>
 
   {% if cobro.estado == "pendiente" %}
-    <noscript><p class="nota"><a href="{% url 'suscripcion_cobro' cobro.pk %}">Actualizar</a></p></noscript>
+    <noscript><p class="nota"><a href="{% url 'suscripcion_cobro' cobro.pk %}">{% translate "Actualizar" %}</a></p></noscript>
     <script defer src="{% static 'core/js/cobro-refresco.js' %}"></script>
   {% endif %}
 {% endblock %}

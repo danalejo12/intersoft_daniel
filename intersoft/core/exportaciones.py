@@ -1,4 +1,5 @@
 """Generación de documentos descargables: Factura en PDF (ReportLab) y Reportes ERP en Excel (OpenPyXL)."""
+from django.utils.translation import gettext
 import io
 from decimal import Decimal
 
@@ -26,7 +27,7 @@ def generar_factura_pdf(factura) -> bytes:
         rightMargin=18 * mm,
         topMargin=16 * mm,
         bottomMargin=16 * mm,
-        title=f"Factura {factura.numero}",
+        title=gettext("Factura {numero}").format(numero=factura.numero),
     )
 
     estilos = getSampleStyleSheet()
@@ -46,8 +47,8 @@ def generar_factura_pdf(factura) -> bytes:
     empresa = factura.empresa
     emisor_nombre = factura.empresa_nombre or empresa.nombre
     emisor_nit = factura.empresa_nit or empresa.nit
-    emisor_dir = factura.empresa_direccion or empresa.direccion or "Sin dirección registrada"
-    emisor_tel = factura.empresa_telefono or empresa.telefono or "Sin teléfono"
+    emisor_dir = factura.empresa_direccion or empresa.direccion or gettext("Sin dirección registrada")
+    emisor_tel = factura.empresa_telefono or empresa.telefono or gettext("Sin teléfono")
 
     cliente_nombre = factura.cliente_nombre or factura.cliente.nombre
     cliente_doc = factura.cliente_documento or f"{factura.cliente.tipo_documento} {factura.cliente.numero_documento}"
@@ -58,17 +59,11 @@ def generar_factura_pdf(factura) -> bytes:
         [
             [
                 Paragraph(
-                    f"<b>{emisor_nombre}</b><br/>"
-                    f"NIT: {emisor_nit}<br/>"
-                    f"{emisor_dir}<br/>"
-                    f"Tel: {emisor_tel}",
+                    gettext("<b>{emisor_nombre}</b><br/>NIT: {emisor_nit}<br/>{emisor_dir}<br/>Tel: {emisor_tel}").format(emisor_nombre=emisor_nombre, emisor_nit=emisor_nit, emisor_dir=emisor_dir, emisor_tel=emisor_tel),
                     estilo_sub,
                 ),
                 Paragraph(
-                    f"<font size='16' color='#0F2A5C'><b>FACTURA N.º {factura.numero}</b></font><br/>"
-                    f"<b>Fecha:</b> {factura.creado_en.strftime('%d/%m/%Y %H:%M')}<br/>"
-                    f"<b>Estado:</b> {factura.get_estado_display()}<br/>"
-                    f"<b>DIAN:</b> {factura.get_estado_dian_display()}",
+                    gettext("<font size='16' color='#0F2A5C'><b>FACTURA N.º {numero}</b></font><br/><b>Fecha:</b> {strftime}<br/><b>Estado:</b> {get_estado_display}<br/><b>DIAN:</b> {get_estado_dian_display}").format(numero=factura.numero, strftime=factura.creado_en.strftime('%d/%m/%Y %H:%M'), get_estado_display=factura.get_estado_display(), get_estado_dian_display=factura.get_estado_dian_display()),
                     ParagraphStyle("Der", parent=estilo_sub, alignment=2),
                 ),
             ]
@@ -89,13 +84,13 @@ def generar_factura_pdf(factura) -> bytes:
 
     elementos.append(
         Paragraph(
-            f"<b>Cliente:</b> {cliente_nombre} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Documento:</b> {cliente_doc}",
+            gettext("<b>Cliente:</b> {cliente_nombre} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Documento:</b> {cliente_doc}").format(cliente_nombre=cliente_nombre, cliente_doc=cliente_doc),
             estilo_celda,
         )
     )
     elementos.append(Spacer(1, 10))
 
-    filas_items = [["Código", "Producto", "Cant.", "Precio unit.", "IVA %", "Subtotal"]]
+    filas_items = [[gettext("Código"), gettext("Producto"), gettext("Cant."), gettext("Precio unit."), gettext("IVA %"), gettext("Subtotal")]]
     for d in factura.detalles.select_related("producto").all():
         filas_items.append(
             [
@@ -135,9 +130,9 @@ def generar_factura_pdf(factura) -> bytes:
 
     tabla_totales = Table(
         [
-            ["", "Subtotal", _pesos(factura.subtotal)],
-            ["", "IVA", _pesos(factura.iva)],
-            ["", "TOTAL A PAGAR", _pesos(factura.total)],
+            ["", gettext("Subtotal"), _pesos(factura.subtotal)],
+            ["", gettext("IVA"), _pesos(factura.iva)],
+            ["", gettext("TOTAL A PAGAR"), _pesos(factura.total)],
         ],
         colWidths=[106 * mm, 42 * mm, 32 * mm],
     )
@@ -158,17 +153,17 @@ def generar_factura_pdf(factura) -> bytes:
 
     if factura.cufe or factura.cude_nota_credito:
         elementos.append(Spacer(1, 14))
-        texto_dian = "<b>Validación Electrónica DIAN</b><br/>"
+        texto_dian = gettext("<b>Validación Electrónica DIAN</b><br/>")
         if factura.cufe:
-            texto_dian += f"<b>CUFE:</b> {factura.cufe}<br/>"
+            texto_dian += gettext("<b>CUFE:</b> {cufe}<br/>").format(cufe=factura.cufe)
         if factura.cude_nota_credito:
-            texto_dian += f"<b>CUDE Nota Crédito (Anulación):</b> {factura.cude_nota_credito}<br/>"
+            texto_dian += gettext("<b>CUDE Nota Crédito (Anulación):</b> {cude_nota_credito}<br/>").format(cude_nota_credito=factura.cude_nota_credito)
         elementos.append(Paragraph(texto_dian, estilo_sub))
 
     elementos.append(Spacer(1, 16))
     elementos.append(
         Paragraph(
-            "Documento generado por <b>InterSoft</b> · Tu negocio, conectado.",
+            gettext("Documento generado por <b>InterSoft</b> · Tu negocio, conectado."),
             ParagraphStyle("Pie", parent=estilo_sub, alignment=1, fontSize=8.5),
         )
     )
@@ -182,9 +177,9 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
     wb = Workbook()
     # Quitamos la hoja vacía por defecto al final si creamos hojas específicas
     hoja_inicial = wb.active
-    hoja_inicial.title = "Resumen"
-    hoja_inicial.append(["Reporte Financiero y Contable — InterSoft"])
-    hoja_inicial.append(["Empresa", empresa.nombre])
+    hoja_inicial.title = gettext("Resumen")
+    hoja_inicial.append([gettext("Reporte Financiero y Contable — InterSoft")])
+    hoja_inicial.append([gettext("Empresa"), empresa.nombre])
     hoja_inicial.append(["NIT", empresa.nit])
 
     fill_header = PatternFill("solid", fgColor="0F2A5C")
@@ -204,8 +199,8 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
             ws.column_dimensions[col[0].column_letter].width = min(45, max(14, max_len + 4))
 
     if cartera is not None:
-        ws = wb.create_sheet("Cartera")
-        ws.append(["Tipo de cartera", "Saldo pendiente (COP)"])
+        ws = wb.create_sheet(gettext("Cartera"))
+        ws.append([gettext("Tipo de cartera"), gettext("Saldo pendiente (COP)")])
         _estilizar_cabecera(ws)
         for item in cartera:
             ws.append([item["tipo"], float(item["total"] or 0)])
@@ -214,8 +209,8 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
         _auto_ancho(ws)
 
     if cuentas is not None:
-        ws = wb.create_sheet("Tesoreria")
-        ws.append(["Cuenta de caja / banco", "Saldo actual (COP)"])
+        ws = wb.create_sheet(gettext("Tesoreria"))
+        ws.append([gettext("Cuenta de caja / banco"), gettext("Saldo actual (COP)")])
         _estilizar_cabecera(ws)
         for c in cuentas:
             ws.append([c["nombre"], float(c["saldo"] or 0)])
@@ -224,8 +219,8 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
         _auto_ancho(ws)
 
     if balance is not None:
-        ws = wb.create_sheet("Balance de Prueba")
-        ws.append(["Código PUC", "Cuenta contable", "Débito (COP)", "Crédito (COP)"])
+        ws = wb.create_sheet(gettext("Balance de Prueba"))
+        ws.append([gettext("Código PUC"), gettext("Cuenta contable"), gettext("Débito (COP)"), gettext("Crédito (COP)")])
         _estilizar_cabecera(ws)
         for b in balance:
             ws.append(
@@ -262,7 +257,7 @@ def generar_ticket_pos_pdf(factura) -> bytes:
         rightMargin=5 * mm,
         topMargin=6 * mm,
         bottomMargin=6 * mm,
-        title=f"Ticket POS {factura.numero}",
+        title=gettext("Ticket POS {numero}").format(numero=factura.numero),
     )
     estilos = getSampleStyleSheet()
     centro = ParagraphStyle("Centro", parent=estilos["Normal"], fontSize=8.5, alignment=1, leading=11)
@@ -272,17 +267,17 @@ def generar_ticket_pos_pdf(factura) -> bytes:
     empresa = factura.empresa
     elementos = [
         Paragraph(factura.empresa_nombre or empresa.nombre, titulo),
-        Paragraph(f"NIT {factura.empresa_nit or empresa.nit}", centro),
+        Paragraph(gettext("NIT {nit}").format(nit=factura.empresa_nit or empresa.nit), centro),
         Spacer(1, 3 * mm),
-        Paragraph(f"<b>Venta N.º {factura.numero}</b> · {factura.creado_en:%d/%m/%Y %H:%M}", normal),
-        Paragraph(f"Cliente: {factura.cliente_nombre or factura.cliente.nombre}", normal),
+        Paragraph(gettext("<b>Venta N.º {numero}</b> · {creado_en:%d/%m/%Y %H:%M}").format(numero=factura.numero, creado_en=factura.creado_en), normal),
+        Paragraph(gettext("Cliente: {nombre}").format(nombre=factura.cliente_nombre or factura.cliente.nombre), normal),
         Spacer(1, 2 * mm),
     ]
 
-    filas = [["Producto", "Cant", "Total"]]
+    filas = [[gettext("Producto"), gettext("Cant"), gettext("Total")]]
     for d in detalles:
         filas.append([Paragraph(d.producto.nombre[:28], normal), str(d.cantidad), _pesos(d.subtotal)])
-    filas.append(["", "Subtotal", _pesos(factura.subtotal)])
+    filas.append(["", gettext("Subtotal"), _pesos(factura.subtotal)])
     filas.append(["", "IVA", _pesos(factura.iva)])
     filas.append(["", "TOTAL", _pesos(factura.total)])
 
@@ -344,20 +339,20 @@ def _libro_excel_con_cabecera(titulo_hoja: str, encabezados: list[str], filas: l
 def generar_pedidos_marketplace_excel(*, empresa, pedidos) -> bytes:
     """Exporta a Excel (.xlsx) los pedidos del marketplace y su liquidación."""
     encabezados = [
-        "Pedido #",
-        "Fecha",
-        "Comprador",
-        "Ciudad",
-        "Estado pago",
-        "Estado envío",
-        "Bodega",
-        "Guía",
-        "Subtotal",
-        "IVA",
-        "Envío",
-        "Comisión",
-        "Neto negocio",
-        "Total cobrado",
+        gettext("Pedido #"),
+        gettext("Fecha"),
+        gettext("Comprador"),
+        gettext("Ciudad"),
+        gettext("Estado pago"),
+        gettext("Estado envío"),
+        gettext("Bodega"),
+        gettext("Guía"),
+        gettext("Subtotal"),
+        gettext("IVA"),
+        gettext("Envío"),
+        gettext("Comisión"),
+        gettext("Neto negocio"),
+        gettext("Total cobrado"),
     ]
     filas = []
     for p in pedidos:
@@ -377,20 +372,20 @@ def generar_pedidos_marketplace_excel(*, empresa, pedidos) -> bytes:
             float(p.neto_vendedor or 0),
             float(p.total or 0),
         ])
-    return _libro_excel_con_cabecera("Pedidos Marketplace", encabezados, filas, cols_moneda=(9, 10, 11, 12, 13, 14))
+    return _libro_excel_con_cabecera(gettext("Pedidos Marketplace"), encabezados, filas, cols_moneda=(9, 10, 11, 12, 13, 14))
 
 
 def generar_turnos_pos_excel(*, empresa, turnos) -> bytes:
     """Exporta a Excel (.xlsx) el historial de turnos de caja POS."""
     encabezados = [
-        "Apertura",
-        "Cierre",
-        "Cajero",
-        "Bodega",
-        "Base inicial",
-        "Efectivo contado",
-        "Diferencia",
-        "Estado",
+        gettext("Apertura"),
+        gettext("Cierre"),
+        gettext("Cajero"),
+        gettext("Bodega"),
+        gettext("Base inicial"),
+        gettext("Efectivo contado"),
+        gettext("Diferencia"),
+        gettext("Estado"),
     ]
     filas = []
     for t in turnos:
@@ -398,11 +393,11 @@ def generar_turnos_pos_excel(*, empresa, turnos) -> bytes:
             t.creado_en.strftime("%Y-%m-%d %H:%M"),
             t.cerrado_en.strftime("%Y-%m-%d %H:%M") if t.cerrado_en else "—",
             t.cajero.get_full_name() or t.cajero.email,
-            t.bodega.nombre if t.bodega else "Principal",
+            t.bodega.nombre if t.bodega else gettext("Principal"),
             float(t.base_inicial or 0),
             float(t.efectivo_contado or 0) if t.cerrado_en else 0.0,
             float(t.diferencia or 0) if t.cerrado_en else 0.0,
-            "Cerrada" if t.cerrado_en else "Abierta",
+            gettext("Cerrada") if t.cerrado_en else gettext("Abierta"),
         ])
-    return _libro_excel_con_cabecera("Turnos POS", encabezados, filas, cols_moneda=(5, 6, 7))
+    return _libro_excel_con_cabecera(gettext("Turnos POS"), encabezados, filas, cols_moneda=(5, 6, 7))
 

@@ -1,4 +1,5 @@
 """Usuarios y control de acceso basado en roles (RBAC)."""
+from django.utils.translation import gettext, gettext_lazy
 import uuid
 from functools import cached_property
  
@@ -16,11 +17,11 @@ class Usuario(AbstractUser):
     IMPORTANTE: debe existir ANTES de la primera migración del proyecto."""
  
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField("correo electrónico", unique=True)
-    foto = models.ImageField("foto de perfil", upload_to="perfiles/", blank=True, null=True)
-    telefono = models.CharField("teléfono", max_length=20, blank=True)
-    cargo = models.CharField("cargo o especialidad", max_length=80, blank=True)
-    descripcion = models.TextField("descripción", max_length=400, blank=True)
+    email = models.EmailField(gettext_lazy("correo electrónico"), unique=True)
+    foto = models.ImageField(gettext_lazy("foto de perfil"), upload_to="perfiles/", blank=True, null=True)
+    telefono = models.CharField(gettext_lazy("teléfono"), max_length=20, blank=True)
+    cargo = models.CharField(gettext_lazy("cargo o especialidad"), max_length=80, blank=True)
+    descripcion = models.TextField(gettext_lazy("descripción"), max_length=400, blank=True)
  
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]  # Lo pide createsuperuser además de email y contraseña.
@@ -84,8 +85,8 @@ class Membresia(ModeloBase):
     activa = models.BooleanField(default=True)
  
     class Meta:
-        verbose_name = "membresía"
-        verbose_name_plural = "membresías"
+        verbose_name = gettext_lazy("membresía")
+        verbose_name_plural = gettext_lazy("membresías")
         constraints = [
             models.UniqueConstraint(fields=["usuario", "empresa"], name="uq_membresia_usuario_empresa"),
         ]
@@ -96,7 +97,7 @@ class Membresia(ModeloBase):
     def clean(self):
         # Regla de integridad: el rol debe pertenecer a la misma empresa de la membresía.
         if self.rol_id and self.empresa_id and self.rol.empresa_id != self.empresa_id:
-            raise ValidationError({"rol": "El rol no pertenece a esta empresa."})
+            raise ValidationError({"rol": gettext("El rol no pertenece a esta empresa.")})
  
     @cached_property
     def codigos_permiso(self):

@@ -3,6 +3,7 @@
 Ninguna vista del panel debe usar estas funciones: el panel siempre filtra por
 request.empresa (TenantMixin). Aquí solo sale lo que cada negocio decidió publicar.
 """
+from django.utils.translation import gettext_lazy
 from datetime import timedelta
 from decimal import Decimal
 
@@ -61,12 +62,12 @@ def negocios_con_productos():
 # ---------- Catálogo con filtros, orden y valoraciones ----------
 # Etiqueta visible de cada orden; la clave viaja en la URL (?orden=...)
 ORDENES = {
-    "relevancia": "Más relevantes",
-    "mas_vendidos": "Más vendidos",
-    "precio_menor": "Precio: menor a mayor",
-    "precio_mayor": "Precio: mayor a menor",
-    "mejor_valorados": "Mejor valorados",
-    "nuevos": "Más nuevos",
+    "relevancia": gettext_lazy("Más relevantes"),
+    "mas_vendidos": gettext_lazy("Más vendidos"),
+    "precio_menor": gettext_lazy("Precio: menor a mayor"),
+    "precio_mayor": gettext_lazy("Precio: mayor a menor"),
+    "mejor_valorados": gettext_lazy("Mejor valorados"),
+    "nuevos": gettext_lazy("Más nuevos"),
 }
 # Regla pública y verificable: el sello "Destacado" no se regala, se gana con opiniones reales
 DESTACADO_PROMEDIO_MINIMO = Decimal("4.5")

@@ -1,4 +1,5 @@
 """Panel › Pagos: cada negocio conecta su propia cuenta de Wompi."""
+from django.utils.translation import gettext
 import uuid
 from datetime import timedelta
 
@@ -38,7 +39,7 @@ class PagosBaseView(PermisoRequeridoMixin, View):
     def config_o_aviso(self) -> ConfiguracionPagos | None:
         config = configuracion_de(self.request.empresa)
         if config is None:
-            messages.error(self.request, "Primero guarda las llaves de Wompi.")
+            messages.error(self.request, gettext("Primero guarda las llaves de Wompi."))
         return config
 
 
@@ -67,9 +68,9 @@ class PagosNegocioView(PagosBaseView):
         config.save()
         auditar(request, "guardar", form.changed_data)
         if cambio_llaves:
-            messages.success(request, "Guardamos tus llaves cifradas. Ahora verifícalas con Wompi para empezar a cobrar.")
+            messages.success(request, gettext("Guardamos tus llaves cifradas. Ahora verifícalas con Wompi para empezar a cobrar."))
         else:
-            messages.success(request, "Guardamos la configuración de tarifas.")
+            messages.success(request, gettext("Guardamos la configuración de tarifas."))
         return redirect("negocio_pagos")
 
     def mostrar(self, config, form, status=200):
@@ -93,19 +94,19 @@ class VerificarPagosView(PagosBaseView):
             ultimo_intento_verificacion__gt=limite
         ).update(ultimo_intento_verificacion=ahora)
         if not turno:
-            messages.warning(request, f"Espera {SEGUNDOS_ENTRE_VERIFICACIONES} segundos antes de verificar otra vez.")
+            messages.warning(request, gettext("Espera {segundos_entre_verificaciones} segundos antes de verificar otra vez.").format(segundos_entre_verificaciones=SEGUNDOS_ENTRE_VERIFICACIONES))
             return redirect("negocio_pagos")
         try:
             resultado = verificar_llaves(config)
         except SecretoIlegible:
-            messages.error(request, "No pudimos leer tus llaves. Revisa la clave de cifrado o vuelve a guardarlas.")
+            messages.error(request, gettext("No pudimos leer tus llaves. Revisa la clave de cifrado o vuelve a guardarlas."))
             return redirect("negocio_pagos")
         with transaction.atomic():
             bloquear_negocio(request)
             actual = ConfiguracionPagos.objects.filter(pk=config.pk, revision=config.revision,
                                                        ultimo_intento_verificacion=ahora)
             if not actual.exists():
-                messages.warning(request, "La configuración cambió o hay una verificación más reciente. Verifica el estado actual.")
+                messages.warning(request, gettext("La configuración cambió o hay una verificación más reciente. Verifica el estado actual."))
                 return redirect("negocio_pagos")
             if resultado.ok:
                 actual.update(verificada_en=ahora, comercio_verificado=resultado.comercio)
@@ -114,7 +115,7 @@ class VerificarPagosView(PagosBaseView):
             auditar(request, "verificar_ok" if resultado.ok else "verificar_error")
         if resultado.ok:
             nombre = f" «{resultado.comercio}»" if resultado.comercio else ""
-            messages.success(request, f"¡Conectado! Wompi reconoce tus llaves del comercio{nombre}.")
+            messages.success(request, gettext("¡Conectado! Wompi reconoce tus llaves del comercio{nombre}.").format(nombre=nombre))
         else:
             for error in resultado.errores:
                 messages.error(request, error)
@@ -132,14 +133,14 @@ class ActivarPagosView(PagosBaseView):
             return redirect("negocio_pagos")
         activar = request.POST.get("activa") == "1"
         if activar and config.verificada_en is None:
-            messages.error(request, "Verifica tus llaves con Wompi antes de activar los cobros.")
+            messages.error(request, gettext("Verifica tus llaves con Wompi antes de activar los cobros."))
             return redirect("negocio_pagos")
         ConfiguracionPagos.objects.filter(pk=config.pk).update(activa=activar, actualizada_por=request.user)
         auditar(request, "activar" if activar else "pausar")
         if activar:
-            messages.success(request, "Cobros en línea activados con tu cuenta de Wompi.")
+            messages.success(request, gettext("Cobros en línea activados con tu cuenta de Wompi."))
         else:
-            messages.info(request, "Pausaste los cobros en línea de tu cuenta de Wompi.")
+            messages.info(request, gettext("Pausaste los cobros en línea de tu cuenta de Wompi."))
         return redirect("negocio_pagos")
 
 
@@ -152,5 +153,5 @@ class EliminarPagosView(PagosBaseView):
         borrados, _ = ConfiguracionPagos.objects.de_empresa(request.empresa).delete()
         if borrados:
             auditar(request, "eliminar")
-            messages.info(request, "Borramos tus llaves de Wompi de Intersoft.")
+            messages.info(request, gettext("Borramos tus llaves de Wompi de Intersoft."))
         return redirect("negocio_pagos")

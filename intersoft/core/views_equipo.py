@@ -1,4 +1,5 @@
 """Vistas del panel para gestionar el equipo (membresías) y los roles/permisos del negocio."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count
@@ -32,14 +33,14 @@ def _puede_gestionar_equipo(membresia):
 class EquipoVerMixin(TenantMixin):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.membresia and not _puede_ver_equipo(request.membresia):
-            raise PermissionDenied("No tienes permiso para ver el equipo.")
+            raise PermissionDenied(gettext("No tienes permiso para ver el equipo."))
         return super().dispatch(request, *args, **kwargs)
 
 
 class EquipoGestionarMixin(TenantMixin):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.membresia and not _puede_gestionar_equipo(request.membresia):
-            raise PermissionDenied("No tienes permiso para gestionar el equipo y los roles.")
+            raise PermissionDenied(gettext("No tienes permiso para gestionar el equipo y los roles."))
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -88,8 +89,7 @@ class MiembroCreateView(EquipoGestionarMixin, View):
             except LimitePlanExcedido as exc:
                 messages.error(
                     request,
-                    f"Alcanzaste el límite de {exc.limite} usuarios activos de tu plan ({exc.plan_actual}). "
-                    "Mejora tu plan para agregar más miembros al equipo.",
+                    gettext("Alcanzaste el límite de {limite} usuarios activos de tu plan ({plan_actual}). Mejora tu plan para agregar más miembros al equipo.").format(limite=exc.limite, plan_actual=exc.plan_actual),
                 )
                 return redirect("suscripcion_panel")
         return super().dispatch(request, *args, **kwargs)
@@ -104,7 +104,7 @@ class MiembroCreateView(EquipoGestionarMixin, View):
             membresia = form.guardar()
             messages.success(
                 request,
-                f"Agregaste a {membresia.usuario.email} con el rol {membresia.rol.nombre}.",
+                gettext("Agregaste a {email} con el rol {nombre}.").format(email=membresia.usuario.email, nombre=membresia.rol.nombre),
             )
             return redirect("equipo_lista")
         return render(request, self.template_name, {"form": form, "es_nuevo": True})
@@ -133,7 +133,7 @@ class MiembroUpdateView(EquipoGestionarMixin, View):
         form = MiembroEditarForm(request.POST, instance=membresia, empresa=request.empresa)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Actualizaste la membresía de {membresia.usuario.email}.")
+            messages.success(request, gettext("Actualizaste la membresía de {email}.").format(email=membresia.usuario.email))
             return redirect("equipo_lista")
         return render(
             request,
@@ -153,7 +153,7 @@ class RolCreateView(EquipoGestionarMixin, View):
         form = RolForm(request.POST, empresa=request.empresa)
         if form.is_valid():
             rol = form.save()
-            messages.success(request, f"Rol «{rol.nombre}» creado correctamente.")
+            messages.success(request, gettext("Rol «{nombre}» creado correctamente.").format(nombre=rol.nombre))
             return redirect("equipo_lista")
         return render(request, self.template_name, {"form": form, "es_nuevo": True})
 
@@ -178,7 +178,7 @@ class RolUpdateView(EquipoGestionarMixin, View):
         form = RolForm(request.POST, instance=rol, empresa=request.empresa)
         if form.is_valid():
             rol = form.save()
-            messages.success(request, f"Rol «{rol.nombre}» actualizado.")
+            messages.success(request, gettext("Rol «{nombre}» actualizado.").format(nombre=rol.nombre))
             return redirect("equipo_lista")
         return render(
             request,
@@ -195,10 +195,10 @@ class RolDeleteView(EquipoGestionarMixin, View):
         if rol.membresias.exists():
             messages.error(
                 request,
-                f"No puedes eliminar el rol «{rol.nombre}» porque tiene miembros asignados.",
+                gettext("No puedes eliminar el rol «{nombre}» porque tiene miembros asignados.").format(nombre=rol.nombre),
             )
             return redirect("equipo_lista")
         nombre = rol.nombre
         rol.delete()
-        messages.success(request, f"Rol «{nombre}» eliminado.")
+        messages.success(request, gettext("Rol «{nombre}» eliminado.").format(nombre=nombre))
         return redirect("equipo_lista")

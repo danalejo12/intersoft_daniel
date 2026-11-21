@@ -1,4 +1,5 @@
 """Vista web del panel para consultar y cambiar la suscripción SaaS de la empresa activa."""
+from django.utils.translation import gettext, gettext_lazy
 import math
 
 import json
@@ -26,18 +27,18 @@ from .services import (
 )
 
 ETIQUETAS_FEATURES = {
-    "marketplace": "Publicación en Marketplace",
-    "marketplace_destacado": "Productos destacados en Marketplace",
-    "pos": "Punto de venta (POS) sin comisión",
-    "inventario": "Control de inventario y kardex",
-    "alertas_inventario": "Alertas automáticas de stock mínimo",
-    "roles": "Roles y permisos personalizados",
-    "reportes_basicos": "Reportes básicos de ventas",
-    "reportes_avanzados": "Reportes financieros y ERP avanzados",
-    "multisede": "Gestión multisede",
-    "exportacion": "Exportación contable y de datos",
-    "prioridad_busqueda": "Prioridad en resultados de búsqueda",
-    "asistente_ia": "Asistente inteligente con IA",
+    "marketplace": gettext_lazy("Publicación en Marketplace"),
+    "marketplace_destacado": gettext_lazy("Productos destacados en Marketplace"),
+    "pos": gettext_lazy("Punto de venta (POS) sin comisión"),
+    "inventario": gettext_lazy("Control de inventario y kardex"),
+    "alertas_inventario": gettext_lazy("Alertas automáticas de stock mínimo"),
+    "roles": gettext_lazy("Roles y permisos personalizados"),
+    "reportes_basicos": gettext_lazy("Reportes básicos de ventas"),
+    "reportes_avanzados": gettext_lazy("Reportes financieros y ERP avanzados"),
+    "multisede": gettext_lazy("Gestión multisede"),
+    "exportacion": gettext_lazy("Exportación contable y de datos"),
+    "prioridad_busqueda": gettext_lazy("Prioridad en resultados de búsqueda"),
+    "asistente_ia": gettext_lazy("Asistente inteligente con IA"),
 }
 
 
@@ -109,7 +110,7 @@ class SuscripcionPanelView(TenantMixin, View):
 
     def post(self, request):
         if not self._puede_cambiar(request):
-            raise PermissionDenied("Solo el administrador del negocio puede cambiar el plan de suscripción.")
+            raise PermissionDenied(gettext("Solo el administrador del negocio puede cambiar el plan de suscripción."))
 
         codigo_plan = (request.POST.get("plan") or "").strip()
         ciclo = (request.POST.get("ciclo") or Suscripcion.Ciclo.MENSUAL).strip().upper()
@@ -148,7 +149,7 @@ class SuscripcionPanelView(TenantMixin, View):
         else:
             messages.success(
                 request,
-                f"¡Listo! Tu empresa ahora está en el plan {nueva.plan.nombre} ({nueva.get_ciclo_display()}).",
+                gettext("¡Listo! Tu empresa ahora está en el plan {nombre} ({get_ciclo_display}).").format(nombre=nueva.plan.nombre, get_ciclo_display=nueva.get_ciclo_display()),
             )
         return redirect("suscripcion_panel")
 
@@ -158,7 +159,7 @@ class CobroSuscripcionView(TenantMixin, View):
 
     def get(self, request, pk):
         if not SuscripcionPanelView._puede_cambiar(self, request):
-            raise PermissionDenied("Solo el administrador del negocio puede ver los cobros del plan.")
+            raise PermissionDenied(gettext("Solo el administrador del negocio puede ver los cobros del plan."))
         cobro = get_object_or_404(CobroSuscripcion.objects.select_related("plan"), pk=pk, empresa=request.empresa)
         cobro = cobros.sincronizar_cobro(cobro, transaccion_id=request.GET.get("id", ""))
         return render(request, "core/negocio/cobro_suscripcion.html", {"cobro": cobro})
@@ -174,27 +175,27 @@ class WompiWebhookSuscripcionesView(View):
         try:
             evento = json.loads(request.body)
         except (json.JSONDecodeError, UnicodeDecodeError):
-            return HttpResponseBadRequest("JSON no válido.")
+            return HttpResponseBadRequest(gettext("JSON no válido."))
         datos = evento.get("data") if isinstance(evento, dict) else None
         transaccion = datos.get("transaction") if isinstance(datos, dict) else None
         if not isinstance(transaccion, dict) or not isinstance(transaccion.get("reference"), str):
-            return HttpResponseBadRequest("Transacción no válida.")
+            return HttpResponseBadRequest(gettext("Transacción no válida."))
         cobro = CobroSuscripcion.objects.filter(referencia=transaccion["reference"]).first()
         if cobro is None:
-            return HttpResponseBadRequest("Cobro no válido.")
+            return HttpResponseBadRequest(gettext("Cobro no válido."))
         try:
             llaves = cobros.credenciales_intersoft()
         except cobros.CobroNoDisponible:
             return HttpResponse(status=503)
         if not evento_es_valido(evento, llaves.eventos):
-            return HttpResponseBadRequest("Firma no válida.")
+            return HttpResponseBadRequest(gettext("Firma no válida."))
         if evento.get("event") == "transaction.updated":
             # Referencia y moneda no siempre van firmadas: se toman de la API de Wompi
             real = consultar_transaccion(transaccion.get("id"), llaves=llaves)
             if real is None:
                 return HttpResponse(status=503)
             if real.get("reference") != cobro.referencia or real.get("id") != transaccion.get("id"):
-                return HttpResponseBadRequest("Transacción no válida.")
+                return HttpResponseBadRequest(gettext("Transacción no válida."))
             cobros.aplicar_transaccion(real)
         return HttpResponse(status=200)
 

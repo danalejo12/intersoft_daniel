@@ -1,4 +1,5 @@
 """Importación masiva de productos y stock inicial desde Excel (.xlsx con openpyxl)."""
+from django.utils.translation import gettext
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
@@ -17,13 +18,13 @@ def _parsear_decimal(valor, *, defecto=None, campo: str) -> Decimal:
     if valor in (None, ""):
         if defecto is not None:
             return defecto
-        raise ValueError(f"El campo '{campo}' es obligatorio.")
+        raise ValueError(gettext("El campo '{campo}' es obligatorio.").format(campo=campo))
     try:
         dec = Decimal(str(valor).strip())
     except (InvalidOperation, ValueError) as exc:
-        raise ValueError(f"Valor numérico inválido en '{campo}': {valor}") from exc
+        raise ValueError(gettext("Valor numérico inválido en '{campo}': {valor}").format(campo=campo, valor=valor)) from exc
     if dec < Decimal("0"):
-        raise ValueError(f"El campo '{campo}' no puede ser negativo.")
+        raise ValueError(gettext("El campo '{campo}' no puede ser negativo.").format(campo=campo))
     return dec
 
 
@@ -33,9 +34,9 @@ def _parsear_entero(valor, *, defecto=0, campo: str) -> int:
     try:
         num = int(float(str(valor).strip()))
     except (ValueError, TypeError) as exc:
-        raise ValueError(f"Valor entero inválido en '{campo}': {valor}") from exc
+        raise ValueError(gettext("Valor entero inválido en '{campo}': {valor}").format(campo=campo, valor=valor)) from exc
     if num < 0:
-        raise ValueError(f"El campo '{campo}' no puede ser negativo.")
+        raise ValueError(gettext("El campo '{campo}' no puede ser negativo.").format(campo=campo))
     return num
 
 
@@ -51,14 +52,14 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
     try:
         wb = openpyxl.load_workbook(archivo, data_only=True, read_only=True)
     except Exception as exc:
-        return {"creados": 0, "errores": [{"fila": 1, "error": f"Archivo Excel inválido: {exc}"}]}
+        return {"creados": 0, "errores": [{"fila": 1, "error": gettext("Archivo Excel inválido: {exc}").format(exc=exc)}]}
 
     ws = wb.active
     filas = list(ws.iter_rows(values_only=True))
     wb.close()
 
     if not filas:
-        return {"creados": 0, "errores": [{"fila": 1, "error": "El archivo Excel está vacío."}]}
+        return {"creados": 0, "errores": [{"fila": 1, "error": gettext("El archivo Excel está vacío.")}]}
 
     encabezados = [_limpiar_texto(h).lower() for h in filas[0]]
     indice = {nombre: idx for idx, nombre in enumerate(encabezados) if nombre}
@@ -66,7 +67,7 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
         if obligatorio not in indice:
             return {
                 "creados": 0,
-                "errores": [{"fila": 1, "error": f"Falta la columna obligatoria '{obligatorio}'."}],
+                "errores": [{"fila": 1, "error": gettext("Falta la columna obligatoria '{obligatorio}'.").format(obligatorio=obligatorio)}],
             }
 
     existentes = set(
@@ -91,14 +92,14 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
 
         errores_fila = []
         if not codigo:
-            errores_fila.append("El código es obligatorio.")
+            errores_fila.append(gettext("El código es obligatorio."))
         elif codigo in existentes:
-            errores_fila.append(f"El código '{codigo}' ya existe en el catálogo.")
+            errores_fila.append(gettext("El código '{codigo}' ya existe en el catálogo.").format(codigo=codigo))
         elif codigo in vistos_archivo:
-            errores_fila.append(f"El código '{codigo}' está duplicado en el archivo.")
+            errores_fila.append(gettext("El código '{codigo}' está duplicado en el archivo.").format(codigo=codigo))
 
         if not nombre:
-            errores_fila.append("El nombre es obligatorio.")
+            errores_fila.append(gettext("El nombre es obligatorio."))
 
         try:
             precio = _parsear_decimal(_celda(fila, "precio"), campo="precio")
@@ -115,7 +116,7 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
         try:
             iva = _parsear_decimal(_celda(fila, "iva_porcentaje"), defecto=Decimal("0"), campo="iva_porcentaje")
             if iva > Decimal("100"):
-                errores_fila.append("El IVA no puede superar 100%.")
+                errores_fila.append(gettext("El IVA no puede superar 100%."))
         except ValueError as exc:
             errores_fila.append(str(exc))
             iva = Decimal("0")

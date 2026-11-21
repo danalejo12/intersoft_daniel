@@ -1,4 +1,5 @@
 """Modelos de errores automáticos, reportes de usuarios, comentarios, NPS e ideas."""
+from django.utils.translation import gettext, gettext_lazy
 import os
 
 from django.conf import settings
@@ -18,28 +19,28 @@ def validar_captura_soporte(archivo):
         return
     ext = os.path.splitext(getattr(archivo, "name", "") or "")[1].lower()
     if ext not in EXTENSIONES_CAPTURA:
-        raise ValidationError("Formato no permitido. Sube una imagen (JPG, PNG, WEBP o GIF).")
+        raise ValidationError(gettext("Formato no permitido. Sube una imagen (JPG, PNG, WEBP o GIF)."))
     if archivo.size > MAX_BYTES_CAPTURA:
-        raise ValidationError("La captura supera el máximo permitido de 5 MB.")
+        raise ValidationError(gettext("La captura supera el máximo permitido de 5 MB."))
 
 
 class ErrorRegistrado(ModeloBase):
     """Error 500 capturado automáticamente y agrupado por huella."""
 
     class Estado(models.TextChoices):
-        NUEVO = "nuevo", "Nuevo"
-        INVESTIGANDO = "investigando", "Investigando"
-        RESUELTO = "resuelto", "Resuelto"
-        IGNORADO = "ignorado", "Ignorado"
+        NUEVO = "nuevo", gettext_lazy("Nuevo")
+        INVESTIGANDO = "investigando", gettext_lazy("Investigando")
+        RESUELTO = "resuelto", gettext_lazy("Resuelto")
+        IGNORADO = "ignorado", gettext_lazy("Ignorado")
 
     huella = models.CharField("huella", max_length=64, unique=True)
-    tipo_excepcion = models.CharField("tipo de excepción", max_length=120, db_index=True)
+    tipo_excepcion = models.CharField(gettext_lazy("tipo de excepción"), max_length=120, db_index=True)
     mensaje = models.TextField("mensaje", blank=True)
     archivo = models.CharField("archivo", max_length=255, blank=True)
-    linea = models.PositiveIntegerField("línea", default=0)
-    traza = models.TextField("traza sanitizada", blank=True)
-    url = models.CharField("URL", max_length=500, blank=True)
-    metodo = models.CharField("método HTTP", max_length=12, blank=True)
+    linea = models.PositiveIntegerField(gettext_lazy("línea"), default=0)
+    traza = models.TextField(gettext_lazy("traza sanitizada"), blank=True)
+    url = models.CharField(gettext_lazy("URL"), max_length=500, blank=True)
+    metodo = models.CharField(gettext_lazy("método HTTP"), max_length=12, blank=True)
     empresa = models.ForeignKey(
         "core.Empresa",
         on_delete=models.SET_NULL,
@@ -55,8 +56,8 @@ class ErrorRegistrado(ModeloBase):
         related_name="errores_registrados",
     )
     contador = models.PositiveIntegerField("ocurrencias", default=1)
-    primera_vez = models.DateTimeField("primera vez", default=timezone.now, db_index=True)
-    ultima_vez = models.DateTimeField("última vez", default=timezone.now, db_index=True)
+    primera_vez = models.DateTimeField(gettext_lazy("primera vez"), default=timezone.now, db_index=True)
+    ultima_vez = models.DateTimeField(gettext_lazy("última vez"), default=timezone.now, db_index=True)
     estado = models.CharField(
         "estado",
         max_length=20,
@@ -64,11 +65,11 @@ class ErrorRegistrado(ModeloBase):
         default=Estado.NUEVO,
         db_index=True,
     )
-    notas_internas = models.TextField("notas internas", blank=True)
+    notas_internas = models.TextField(gettext_lazy("notas internas"), blank=True)
 
     class Meta:
-        verbose_name = "error registrado"
-        verbose_name_plural = "errores registrados"
+        verbose_name = gettext_lazy("error registrado")
+        verbose_name_plural = gettext_lazy("errores registrados")
         ordering = ["-ultima_vez"]
 
     def __str__(self):
@@ -79,9 +80,9 @@ class ReporteProblema(ModeloBase):
     """Reporte manual enviado desde el panel con contexto automático del navegador y empresa."""
 
     class Estado(models.TextChoices):
-        NUEVO = "nuevo", "Nuevo"
-        EN_REVISION = "en_revision", "En revisión"
-        RESUELTO = "resuelto", "Resuelto"
+        NUEVO = "nuevo", gettext_lazy("Nuevo")
+        EN_REVISION = "en_revision", gettext_lazy("En revisión")
+        RESUELTO = "resuelto", gettext_lazy("Resuelto")
 
     empresa = models.ForeignKey(
         "core.Empresa",
@@ -97,12 +98,12 @@ class ReporteProblema(ModeloBase):
         blank=True,
         related_name="reportes_problema",
     )
-    url = models.CharField("URL de origen", max_length=500, blank=True)
+    url = models.CharField(gettext_lazy("URL de origen"), max_length=500, blank=True)
     navegador = models.CharField("navegador", max_length=300, blank=True)
-    fecha_reporte = models.DateTimeField("hora del reporte", default=timezone.now)
-    descripcion = models.TextField("descripción del problema")
+    fecha_reporte = models.DateTimeField(gettext_lazy("hora del reporte"), default=timezone.now)
+    descripcion = models.TextField(gettext_lazy("descripción del problema"))
     captura = models.FileField(
-        "captura de pantalla",
+        gettext_lazy("captura de pantalla"),
         upload_to="soporte/capturas/%Y/%m/",
         blank=True,
         null=True,
@@ -117,8 +118,8 @@ class ReporteProblema(ModeloBase):
     )
 
     class Meta:
-        verbose_name = "reporte de problema"
-        verbose_name_plural = "reportes de problemas"
+        verbose_name = gettext_lazy("reporte de problema")
+        verbose_name_plural = gettext_lazy("reportes de problemas")
         ordering = ["-creado_en"]
 
     def __str__(self):
@@ -142,13 +143,13 @@ class ComentarioWidget(ModeloBase):
         blank=True,
         related_name="comentarios_widget",
     )
-    util = models.BooleanField("¿fue útil?")
-    comentario = models.TextField("comentario opcional", blank=True)
-    pantalla = models.CharField("pantalla de origen", max_length=500, blank=True)
+    util = models.BooleanField(gettext_lazy("¿fue útil?"))
+    comentario = models.TextField(gettext_lazy("comentario opcional"), blank=True)
+    pantalla = models.CharField(gettext_lazy("pantalla de origen"), max_length=500, blank=True)
 
     class Meta:
-        verbose_name = "comentario rápido"
-        verbose_name_plural = "comentarios rápidos"
+        verbose_name = gettext_lazy("comentario rápido")
+        verbose_name_plural = gettext_lazy("comentarios rápidos")
         ordering = ["-creado_en"]
 
     def __str__(self):
@@ -172,29 +173,29 @@ class EncuestaNPS(ModeloBase):
         related_name="encuestas_nps",
     )
     puntaje = models.PositiveSmallIntegerField(
-        "puntaje NPS",
+        gettext_lazy("puntaje NPS"),
         validators=[MinValueValidator(0), MaxValueValidator(10)],
     )
-    comentario = models.TextField("comentario opcional", blank=True)
-    pantalla = models.CharField("pantalla de origen", max_length=500, blank=True)
+    comentario = models.TextField(gettext_lazy("comentario opcional"), blank=True)
+    pantalla = models.CharField(gettext_lazy("pantalla de origen"), max_length=500, blank=True)
 
     class Meta:
-        verbose_name = "encuesta NPS"
-        verbose_name_plural = "encuestas NPS"
+        verbose_name = gettext_lazy("encuesta NPS")
+        verbose_name_plural = gettext_lazy("encuestas NPS")
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"NPS {self.puntaje} · {self.usuario}"
+        return gettext("NPS {puntaje} · {usuario}").format(puntaje=self.puntaje, usuario=self.usuario)
 
 
 class Idea(ModeloBase):
     """Propuesta de mejora enviada por un negocio y votada por otros usuarios."""
 
     class Estado(models.TextChoices):
-        EN_EVALUACION = "en_evaluacion", "En evaluación"
-        PLANEADA = "planeada", "Planeada"
-        LANZADA = "lanzada", "Lanzada"
-        DESCARTADA = "descartada", "Descartada"
+        EN_EVALUACION = "en_evaluacion", gettext_lazy("En evaluación")
+        PLANEADA = "planeada", gettext_lazy("Planeada")
+        LANZADA = "lanzada", gettext_lazy("Lanzada")
+        DESCARTADA = "descartada", gettext_lazy("Descartada")
 
     empresa = models.ForeignKey(
         "core.Empresa",
@@ -208,8 +209,8 @@ class Idea(ModeloBase):
         on_delete=models.PROTECT,
         related_name="ideas_propuestas",
     )
-    titulo = models.CharField("título", max_length=160)
-    descripcion = models.TextField("descripción")
+    titulo = models.CharField(gettext_lazy("título"), max_length=160)
+    descripcion = models.TextField(gettext_lazy("descripción"))
     estado = models.CharField(
         "estado",
         max_length=20,
@@ -238,8 +239,8 @@ class VotoIdea(ModeloBase):
     )
 
     class Meta:
-        verbose_name = "voto de idea"
-        verbose_name_plural = "votos de ideas"
+        verbose_name = gettext_lazy("voto de idea")
+        verbose_name_plural = gettext_lazy("votos de ideas")
         constraints = [
             models.UniqueConstraint(fields=["idea", "usuario"], name="uq_voto_idea_usuario"),
         ]

@@ -1,49 +1,50 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}PQRS · Consola de Plataforma · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "PQRS · Consola de Plataforma · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Bandeja global de PQRS</h1>
-      <p class="nota">Todas las PQRS de negocios y compradores. Las solicitudes escaladas aparecen primero.</p>
+      <h1>{% translate "Bandeja global de PQRS" %}</h1>
+      <p class="nota">{% translate "Todas las PQRS de negocios y compradores. Las solicitudes escaladas aparecen primero." %}</p>
     </div>
   </div>
 
   <article class="tarjeta">
     <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:16px;">
       <div class="campo" style="margin:0;">
-        <label for="f-estado">Estado</label>
+        <label for="f-estado">{% translate "Estado" %}</label>
         <select id="f-estado" name="estado">
-          <option value="">Todos</option>
+          <option value="">{% translate "Todos" %}</option>
           {% for val, etq in estados %}
             <option value="{{ val }}" {% if filtros.estado == val %}selected{% endif %}>{{ etq }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="campo" style="margin:0;">
-        <label for="f-flujo">Flujo</label>
+        <label for="f-flujo">{% translate "Flujo" %}</label>
         <select id="f-flujo" name="flujo">
-          <option value="">Todos</option>
+          <option value="">{% translate "Todos" %}</option>
           {% for val, etq in flujos %}
             <option value="{{ val }}" {% if filtros.flujo == val %}selected{% endif %}>{{ etq }}</option>
           {% endfor %}
         </select>
       </div>
-      <button type="submit" class="boton">Filtrar</button>
+      <button type="submit" class="boton">{% translate "Filtrar" %}</button>
     </form>
 
     <table class="tabla">
       <thead>
         <tr>
-          <th>Radicado</th>
-          <th>Flujo</th>
-          <th>Negocio</th>
-          <th>Autor</th>
-          <th>Asunto</th>
-          <th>Estado</th>
-          <th>Prioridad</th>
-          <th>Semáforo</th>
-          <th>Límite</th>
+          <th>{% translate "Radicado" %}</th>
+          <th>{% translate "Flujo" %}</th>
+          <th>{% translate "Negocio" %}</th>
+          <th>{% translate "Autor" %}</th>
+          <th>{% translate "Asunto" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th>{% translate "Prioridad" %}</th>
+          <th>{% translate "Semáforo" %}</th>
+          <th>{% translate "Límite" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -66,7 +67,7 @@
             <td>{{ p.fecha_limite|date:"d/m/Y" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="9">No hay PQRS registradas.</td></tr>
+          <tr><td colspan="9">{% translate "No hay PQRS registradas." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

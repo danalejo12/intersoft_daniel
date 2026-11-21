@@ -1,4 +1,5 @@
 """Documentos operativos del ERP. Los efectos se aplican mediante erp_services."""
+from django.utils.translation import gettext, gettext_lazy, gettext_noop
 from decimal import Decimal
 
 from django.conf import settings
@@ -27,7 +28,7 @@ class RegistroERP(ModeloTenant):
             if campo.is_relation and campo.name != "empresa" and getattr(self, campo.attname):
                 relacionado = getattr(self, campo.name)
                 if hasattr(relacionado, "empresa_id") and relacionado.empresa_id != self.empresa_id:
-                    raise ValidationError({campo.name: "El registro no pertenece a esta empresa."})
+                    raise ValidationError({campo.name: gettext("El registro no pertenece a esta empresa.")})
 
 
 class Proveedor(RegistroERP):
@@ -48,14 +49,14 @@ class Proveedor(RegistroERP):
 
 class Compra(RegistroERP):
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
-    referencia = models.CharField("Factura del proveedor", max_length=60)
+    referencia = models.CharField(gettext_lazy("Factura del proveedor"), max_length=60)
     bodega = models.ForeignKey(
         "Bodega",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name="compras",
-        verbose_name="bodega destino",
+        verbose_name=gettext_lazy("bodega destino"),
     )
     fecha = models.DateField(default=timezone.localdate)
     vencimiento = models.DateField()
@@ -69,7 +70,7 @@ class Compra(RegistroERP):
         constraints = [models.UniqueConstraint(fields=["empresa", "proveedor", "referencia"], name="uq_compra_referencia")]
 
     def __str__(self):
-        return f"Compra {self.referencia} · {self.proveedor}"
+        return gettext("Compra {referencia} · {proveedor}").format(referencia=self.referencia, proveedor=self.proveedor)
 
 
 class LineaCompra(RegistroERP):
@@ -85,7 +86,7 @@ class LineaCompra(RegistroERP):
 
 class CuentaTesoreria(RegistroERP):
     nombre = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=10, choices=[("caja", "Caja"), ("banco", "Banco")])
+    tipo = models.CharField(max_length=10, choices=[("caja", gettext_lazy("Caja")), ("banco", gettext_lazy("Banco"))])
     activa = models.BooleanField(default=True)
 
     class Meta(RegistroERP.Meta):
@@ -97,7 +98,7 @@ class CuentaTesoreria(RegistroERP):
 
 
 class CuentaCartera(RegistroERP):
-    tipo = models.CharField(max_length=10, choices=[("cobrar", "Por cobrar"), ("pagar", "Por pagar")])
+    tipo = models.CharField(max_length=10, choices=[("cobrar", gettext_lazy("Por cobrar")), ("pagar", gettext_lazy("Por pagar"))])
     tercero = models.CharField(max_length=150)
     concepto = models.CharField(max_length=200)
     fecha = models.DateField(default=timezone.localdate)
@@ -117,8 +118,8 @@ class CuentaCartera(RegistroERP):
     @property
     def estado(self):
         if not self.saldo:
-            return "Pagada"
-        return "Vencida" if self.vencimiento < timezone.localdate() else "Pendiente"
+            return gettext_noop(gettext("Pagada"))
+        return gettext_noop(gettext("Vencida")) if self.vencimiento < timezone.localdate() else gettext_noop(gettext("Pendiente"))
 
     def __str__(self):
         return f"{self.tercero} · {self.concepto}"
@@ -126,7 +127,7 @@ class CuentaCartera(RegistroERP):
 
 class MovimientoTesoreria(RegistroERP):
     cuenta = models.ForeignKey(CuentaTesoreria, on_delete=models.PROTECT, related_name="movimientos")
-    tipo = models.CharField(max_length=10, choices=[("ingreso", "Ingreso"), ("egreso", "Egreso")])
+    tipo = models.CharField(max_length=10, choices=[("ingreso", gettext_lazy("Ingreso")), ("egreso", gettext_lazy("Egreso"))])
     fecha = models.DateField(default=timezone.localdate)
     concepto = models.CharField(max_length=200)
     monto = importe()
@@ -143,7 +144,7 @@ class MovimientoTesoreria(RegistroERP):
 class CuentaContable(RegistroERP):
     codigo = models.CharField(max_length=20)
     nombre = models.CharField(max_length=100)
-    naturaleza = models.CharField(max_length=10, choices=[("debito", "Débito"), ("credito", "Crédito")])
+    naturaleza = models.CharField(max_length=10, choices=[("debito", gettext_lazy("Débito")), ("credito", gettext_lazy("Crédito"))])
 
     class Meta(RegistroERP.Meta):
         ordering = ["codigo"]
@@ -178,7 +179,7 @@ class LineaAsiento(RegistroERP):
         debito = self.debito or Decimal("0")
         credito = self.credito or Decimal("0")
         if (debito > 0 and credito > 0) or (debito <= 0 and credito <= 0):
-            raise ValidationError("Cada línea debe tener un valor mayor que cero en débito o en crédito, pero no en ambos.")
+            raise ValidationError(gettext("Cada línea debe tener un valor mayor que cero en débito o en crédito, pero no en ambos."))
 
 
 class Empleado(RegistroERP):
@@ -215,13 +216,13 @@ class LiquidacionNomina(RegistroERP):
     def clean(self):
         super().clean()
         if self.desde and self.hasta and self.hasta < self.desde:
-            raise ValidationError({"hasta": "La fecha final del período no puede ser anterior a la inicial."})
+            raise ValidationError({"hasta": gettext("La fecha final del período no puede ser anterior a la inicial.")})
         base = self.base if self.base is not None else Decimal("0")
         adicionales = self.adicionales if self.adicionales is not None else Decimal("0")
         deducciones = self.deducciones if self.deducciones is not None else Decimal("0")
         self.neto = base + adicionales - deducciones
         if self.neto <= 0:
-            raise ValidationError("El neto a pagar (base + adicionales − deducciones) debe ser mayor que cero.")
+            raise ValidationError(gettext("El neto a pagar (base + adicionales − deducciones) debe ser mayor que cero."))
 
     def __str__(self):
         return f"{self.empleado} · {self.desde} / {self.hasta}"
@@ -244,7 +245,7 @@ class OrdenProduccion(RegistroERP):
 class InsumoProduccion(RegistroERP):
     orden = models.ForeignKey(OrdenProduccion, on_delete=models.PROTECT, related_name="insumos")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT)
-    cantidad = models.PositiveIntegerField("Cantidad total a consumir", validators=[MinValueValidator(1)])
+    cantidad = models.PositiveIntegerField(gettext_lazy("Cantidad total a consumir"), validators=[MinValueValidator(1)])
 
     class Meta(RegistroERP.Meta):
         constraints = [models.UniqueConstraint(fields=["orden", "producto"], name="uq_produccion_insumo"), models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_insumo_cantidad")]
@@ -252,7 +253,7 @@ class InsumoProduccion(RegistroERP):
     def clean(self):
         super().clean()
         if self.orden_id and self.producto_id and self.orden.producto_id == self.producto_id:
-            raise ValidationError("El producto terminado no puede ser su propio insumo.")
+            raise ValidationError(gettext("El producto terminado no puede ser su propio insumo."))
 
 
 class Servicio(RegistroERP):
@@ -275,7 +276,7 @@ class Cita(RegistroERP):
     servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT)
     inicio = models.DateTimeField()
     fin = models.DateTimeField(editable=False)
-    estado = models.CharField(max_length=12, choices=[("pendiente", "Pendiente"), ("atendida", "Atendida"), ("cancelada", "Cancelada")], default="pendiente", editable=False)
+    estado = models.CharField(max_length=12, choices=[("pendiente", gettext_lazy("Pendiente")), ("atendida", gettext_lazy("Atendida")), ("cancelada", gettext_lazy("Cancelada"))], default="pendiente", editable=False)
     total = importe(editable=False)
     cartera = models.OneToOneField(CuentaCartera, on_delete=models.PROTECT, null=True, blank=True, editable=False)
     observaciones = models.TextField(blank=True)

@@ -5,6 +5,7 @@ paga en el checkout de Wompi -> el plan se activa SOLO cuando el servidor confir
 (al volver, por el webhook firmado o por la conciliación periódica). Reutiliza la firma, la consulta
 y la verificación de eventos de core.pagos: la misma lógica ya probada con los pedidos.
 """
+from django.utils.translation import gettext
 import logging
 import uuid
 from collections import Counter
@@ -73,7 +74,7 @@ def credenciales_intersoft() -> CredencialesWompi:
     integridad = settings.SUSCRIPCIONES_WOMPI_INTEGRITY_SECRET
     if not publica or not integridad:
         raise CobroNoDisponible(
-            "El pago de planes en línea todavía no está habilitado. Escríbenos y activamos tu plan."
+            gettext("El pago de planes en línea todavía no está habilitado. Escríbenos y activamos tu plan.")
         )
     return CredencialesWompi(
         publica=publica,
@@ -91,7 +92,7 @@ def es_plan_pago(plan: Plan) -> bool:
 def _normalizar_ciclo(ciclo) -> str:
     ciclo = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
     if ciclo not in Suscripcion.Ciclo.values:
-        raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
+        raise ValidationError(gettext("Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.").format(ciclo=ciclo))
     return ciclo
 
 
@@ -117,7 +118,7 @@ def cotizar(
 
     if cupon is not None:
         if not cupon.esta_vigente():
-            raise ValidationError(f"El cupón '{cupon.codigo}' no está vigente o agotó sus usos.")
+            raise ValidationError(gettext("El cupón '{codigo}' no está vigente o agotó sus usos.").format(codigo=cupon.codigo))
         if cupon.tipo == CuponPlan.Tipo.PORCENTAJE:
             pct = min(cupon.valor, Decimal("100.00"))
             monto = (monto * (Decimal("100") - pct) / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
@@ -139,7 +140,7 @@ def iniciar_cobro(*, empresa, plan, ciclo, usuario, cupon_codigo: str = "") -> C
     ciclo = _normalizar_ciclo(ciclo)
     precio_ciclo = plan.precio_anual if ciclo == Suscripcion.Ciclo.ANUAL else plan.precio_mensual
     if precio_ciclo <= 0:
-        raise ValidationError(f"El plan {plan.nombre} no tiene precio para el ciclo {ciclo.lower()}.")
+        raise ValidationError(gettext("El plan {nombre} no tiene precio para el ciclo {lower}.").format(nombre=plan.nombre, lower=ciclo.lower()))
     validar_limites(empresa, plan)  # antes de cobrar: no se cobra un plan al que no se puede pasar
     credenciales_intersoft()  # sin llaves no se crea un cobro que nadie podría pagar
 
@@ -148,7 +149,7 @@ def iniciar_cobro(*, empresa, plan, ciclo, usuario, cupon_codigo: str = "") -> C
     if codigo_limpio:
         cupon = CuponPlan.objects.filter(codigo=codigo_limpio).first()
         if cupon is None or not cupon.esta_vigente():
-            raise ValidationError(f"El cupón '{codigo_limpio}' no existe, expiró o alcanzó su límite de usos.")
+            raise ValidationError(gettext("El cupón '{codigo_limpio}' no existe, expiró o alcanzó su límite de usos.").format(codigo_limpio=codigo_limpio))
 
     suscripcion = crear_suscripcion_inicial(empresa)
     precio, descuento, monto = cotizar(suscripcion, plan, ciclo, cupon=cupon)

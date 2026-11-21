@@ -1,27 +1,28 @@
 {% extends "core/base.html" %}
-{% block titulo %}PQRS del negocio · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "PQRS del negocio · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>PQRS del negocio</h1>
-      <p class="nota">Solicitudes recibidas de compradores (flujo B) y PQRS enviadas a Intersoft (flujo A).</p>
+      <h1>{% translate "PQRS del negocio" %}</h1>
+      <p class="nota">{% translate "Solicitudes recibidas de compradores (flujo B) y PQRS enviadas a Intersoft (flujo A)." %}</p>
     </div>
-    <a class="boton" href="{% url 'panel_pqrs_nueva' %}">Radicar PQRS a Intersoft</a>
+    <a class="boton" href="{% url 'panel_pqrs_nueva' %}">{% translate "Radicar PQRS a Intersoft" %}</a>
   </div>
 
   <article class="tarjeta">
     <table class="tabla">
       <thead>
         <tr>
-          <th>Radicado</th>
-          <th>Flujo</th>
-          <th>Tipo</th>
-          <th>Asunto</th>
-          <th>Autor</th>
-          <th>Estado</th>
-          <th>Semáforo</th>
-          <th>Límite</th>
+          <th>{% translate "Radicado" %}</th>
+          <th>{% translate "Flujo" %}</th>
+          <th>{% translate "Tipo" %}</th>
+          <th>{% translate "Asunto" %}</th>
+          <th>{% translate "Autor" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th>{% translate "Semáforo" %}</th>
+          <th>{% translate "Límite" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -37,7 +38,7 @@
             <td>{{ p.fecha_limite|date:"d/m/Y" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="8">No hay PQRS registradas para este negocio.</td></tr>
+          <tr><td colspan="8">{% translate "No hay PQRS registradas para este negocio." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

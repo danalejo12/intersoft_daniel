@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
-{% block titulo %}{% if es_nuevo %}Agregar miembro{% else %}Editar miembro{% endif %} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% if es_nuevo %}{% translate "Agregar miembro" %}{% else %}{% translate "Editar miembro" %}{% endif %} {% translate "· Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="max-width: 920px; margin: 0 auto 18px;">
@@ -8,18 +9,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
       </span>
       <div>
-        <h1>{% if es_nuevo %}Agregar miembro al equipo{% else %}Editar membresía de {{ membresia.usuario.email }}{% endif %}</h1>
-        <p class="nota" style="margin: 0;">Asigna el rol y estado de acceso dentro del negocio.</p>
+        <h1>{% if es_nuevo %}{% translate "Agregar miembro al equipo" %}{% else %}{% blocktranslate with email=membresia.usuario.email %}Editar membresía de {{ email }}{% endblocktranslate %}{% endif %}</h1>
+        <p class="nota" style="margin: 0;">{% translate "Asigna el rol y estado de acceso dentro del negocio." %}</p>
       </div>
     </div>
-    <a class="boton secundario" href="{% url 'equipo_lista' %}">← Volver al equipo</a>
+    <a class="boton secundario" href="{% url 'equipo_lista' %}">{% translate "← Volver al equipo" %}</a>
   </div>
 
   <form method="post" class="formulario" novalidate>
     {% csrf_token %}
 
     {% if form.errors %}
-      <p class="error aviso">Revisa los campos marcados en rojo.</p>
+      <p class="error aviso">{% translate "Revisa los campos marcados en rojo." %}</p>
     {% endif %}
 
     {% for error in form.non_field_errors %}
@@ -40,10 +41,10 @@
     {% endfor %}
 
     <div class="acciones">
-      <a class="boton fantasma" href="{% url 'equipo_lista' %}">Cancelar</a>
+      <a class="boton fantasma" href="{% url 'equipo_lista' %}">{% translate "Cancelar" %}</a>
       <button type="submit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        Guardar
+        {% translate "Guardar" %}
       </button>
     </div>
   </form>

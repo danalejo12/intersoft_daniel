@@ -1,68 +1,69 @@
 """Catálogo central de permisos y plantillas de roles por defecto para cada negocio."""
+from django.utils.translation import gettext_noop
 from .models import Permiso, Rol
 
 GRUPOS_PERMISOS = (
     (
-        "Negocio y equipo",
+        gettext_noop("Negocio y equipo"),
         (
-            ("negocio.editar", "Editar datos del negocio"),
-            ("pagos.configurar", "Conectar y administrar la pasarela de pagos (llaves de Wompi)"),
-            ("equipo.ver", "Ver miembros del equipo y roles"),
-            ("equipo.gestionar", "Gestionar miembros del equipo y roles"),
+            ("negocio.editar", gettext_noop("Editar datos del negocio")),
+            ("pagos.configurar", gettext_noop("Conectar y administrar la pasarela de pagos (llaves de Wompi)")),
+            ("equipo.ver", gettext_noop("Ver miembros del equipo y roles")),
+            ("equipo.gestionar", gettext_noop("Gestionar miembros del equipo y roles")),
         ),
     ),
     (
-        "Clientes",
+        gettext_noop("Clientes"),
         (
-            ("clientes.ver", "Ver clientes"),
-            ("clientes.crear", "Crear clientes"),
-            ("clientes.editar", "Editar clientes"),
-            ("clientes.eliminar", "Desactivar clientes"),
+            ("clientes.ver", gettext_noop("Ver clientes")),
+            ("clientes.crear", gettext_noop("Crear clientes")),
+            ("clientes.editar", gettext_noop("Editar clientes")),
+            ("clientes.eliminar", gettext_noop("Desactivar clientes")),
         ),
     ),
     (
-        "Inventario",
+        gettext_noop("Inventario"),
         (
-            ("inventario.ver", "Ver productos y kardex"),
-            ("inventario.crear", "Crear productos"),
-            ("inventario.editar", "Editar productos"),
-            ("inventario.movimientos", "Registrar entradas, salidas y ajustes de stock"),
-            ("inventario.eliminar", "Desactivar productos"),
+            ("inventario.ver", gettext_noop("Ver productos y kardex")),
+            ("inventario.crear", gettext_noop("Crear productos")),
+            ("inventario.editar", gettext_noop("Editar productos")),
+            ("inventario.movimientos", gettext_noop("Registrar entradas, salidas y ajustes de stock")),
+            ("inventario.eliminar", gettext_noop("Desactivar productos")),
         ),
     ),
     (
-        "Ventas, POS y facturación",
+        gettext_noop("Ventas, POS y facturación"),
         (
-            ("ventas.ver", "Ver facturas, turnos de caja y recibos"),
-            ("ventas.crear", "Crear facturas y vender en el punto de venta (POS)"),
-            ("ventas.cobrar", "Cobrar facturas con pasarela de pagos"),
-            ("facturas.anular", "Anular facturas emitidas"),
+            ("ventas.ver", gettext_noop("Ver facturas, turnos de caja y recibos")),
+            ("ventas.crear", gettext_noop("Crear facturas y vender en el punto de venta (POS)")),
+            ("ventas.cobrar", gettext_noop("Cobrar facturas con pasarela de pagos")),
+            ("facturas.anular", gettext_noop("Anular facturas emitidas")),
         ),
     ),
     (
-        "Módulos ERP y reportes",
+        gettext_noop("Módulos ERP y reportes"),
         (
-            ("compras.ver", "Ver proveedores y compras"),
-            ("compras.gestionar", "Registrar y recibir compras y proveedores"),
-            ("cartera.ver", "Ver cuentas por cobrar y por pagar"),
-            ("cartera.gestionar", "Gestionar cuentas por cobrar y por pagar"),
-            ("tesoreria.ver", "Ver cajas, bancos y movimientos de tesorería"),
-            ("tesoreria.gestionar", "Registrar ingresos, egresos y conciliaciones"),
-            ("contabilidad.ver", "Ver plan de cuentas y comprobantes contables"),
-            ("contabilidad.gestionar", "Crear y confirmar comprobantes contables"),
-            ("nomina.ver", "Ver empleados y liquidaciones de nómina"),
-            ("nomina.gestionar", "Gestionar empleados y aprobar nómina"),
-            ("produccion.ver", "Ver órdenes de producción"),
-            ("produccion.gestionar", "Crear y completar órdenes de producción"),
-            ("agenda.ver", "Ver catálogo de servicios y agenda de citas"),
-            ("agenda.gestionar", "Agendar y atender citas de servicios"),
-            ("reportes.ver", "Ver reportes operativos y financieros"),
+            ("compras.ver", gettext_noop("Ver proveedores y compras")),
+            ("compras.gestionar", gettext_noop("Registrar y recibir compras y proveedores")),
+            ("cartera.ver", gettext_noop("Ver cuentas por cobrar y por pagar")),
+            ("cartera.gestionar", gettext_noop("Gestionar cuentas por cobrar y por pagar")),
+            ("tesoreria.ver", gettext_noop("Ver cajas, bancos y movimientos de tesorería")),
+            ("tesoreria.gestionar", gettext_noop("Registrar ingresos, egresos y conciliaciones")),
+            ("contabilidad.ver", gettext_noop("Ver plan de cuentas y comprobantes contables")),
+            ("contabilidad.gestionar", gettext_noop("Crear y confirmar comprobantes contables")),
+            ("nomina.ver", gettext_noop("Ver empleados y liquidaciones de nómina")),
+            ("nomina.gestionar", gettext_noop("Gestionar empleados y aprobar nómina")),
+            ("produccion.ver", gettext_noop("Ver órdenes de producción")),
+            ("produccion.gestionar", gettext_noop("Crear y completar órdenes de producción")),
+            ("agenda.ver", gettext_noop("Ver catálogo de servicios y agenda de citas")),
+            ("agenda.gestionar", gettext_noop("Agendar y atender citas de servicios")),
+            ("reportes.ver", gettext_noop("Ver reportes operativos y financieros")),
         ),
     ),
     (
-        "Atención al cliente (PQRS)",
+        gettext_noop("Atención al cliente (PQRS)"),
         (
-            ("pqrs.gestionar", "Ver y responder PQRS de compradores y radicar a Intersoft"),
+            ("pqrs.gestionar", gettext_noop("Ver y responder PQRS de compradores y radicar a Intersoft")),
         ),
     ),
 )
@@ -73,8 +74,8 @@ CATALOGO_PERMISOS = tuple(
 
 ROLES_BASE = (
     {
-        "nombre": "Cajero POS",
-        "descripcion": "Atención en mostrador: abre y cierra caja, vende en POS y consulta o registra clientes.",
+        "nombre": gettext_noop("Cajero POS"),
+        "descripcion": gettext_noop("Atención en mostrador: abre y cierra caja, vende en POS y consulta o registra clientes."),
         "permisos": (
             "ventas.crear",
             "ventas.ver",
@@ -84,8 +85,8 @@ ROLES_BASE = (
         ),
     },
     {
-        "nombre": "Asesor comercial",
-        "descripcion": "Gestión de clientes, facturación, cobros y agenda de servicios.",
+        "nombre": gettext_noop("Asesor comercial"),
+        "descripcion": gettext_noop("Gestión de clientes, facturación, cobros y agenda de servicios."),
         "permisos": (
             "clientes.ver",
             "clientes.crear",
@@ -100,8 +101,8 @@ ROLES_BASE = (
         ),
     },
     {
-        "nombre": "Bodega e inventario",
-        "descripcion": "Control de catálogo de productos, movimientos de kardex, compras y producción.",
+        "nombre": gettext_noop("Bodega e inventario"),
+        "descripcion": gettext_noop("Control de catálogo de productos, movimientos de kardex, compras y producción."),
         "permisos": (
             "inventario.ver",
             "inventario.crear",
@@ -114,8 +115,8 @@ ROLES_BASE = (
         ),
     },
     {
-        "nombre": "Contador",
-        "descripcion": "Consulta de facturación y gestión de cartera, tesorería, contabilidad, nómina y reportes.",
+        "nombre": gettext_noop("Contador"),
+        "descripcion": gettext_noop("Consulta de facturación y gestión de cartera, tesorería, contabilidad, nómina y reportes."),
         "permisos": (
             "ventas.ver",
             "clientes.ver",
@@ -131,8 +132,8 @@ ROLES_BASE = (
         ),
     },
     {
-        "nombre": "Empleado",
-        "descripcion": "Consulta básica de catálogo, clientes y agenda de servicios.",
+        "nombre": gettext_noop("Empleado"),
+        "descripcion": gettext_noop("Consulta básica de catálogo, clientes y agenda de servicios."),
         "permisos": (
             "inventario.ver",
             "clientes.ver",

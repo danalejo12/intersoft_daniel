@@ -1,23 +1,24 @@
 {% extends "core/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Inicio · Intersoft{% endblock %}
+{% block titulo %}{% translate "Inicio · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   {% if primeros_pasos %}
   <section class="guia" aria-labelledby="titulo-guia">
     <div class="guia-cabeza">
       <div>
-        <h2 id="titulo-guia">Prepara tu negocio para vender</h2>
-        <p>{{ pasos_hechos }} de {{ primeros_pasos|length }} pasos listos</p>
+        <h2 id="titulo-guia">{% translate "Prepara tu negocio para vender" %}</h2>
+        <p>{% blocktranslate with pasos_hechos=pasos_hechos primeros_pasos=primeros_pasos|length %}{{ pasos_hechos }} de {{ primeros_pasos }} pasos listos{% endblocktranslate %}</p>
       </div>
-      <div class="guia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pasos_avance }}" aria-label="Avance de la guía"><span style="width: {{ pasos_avance }}%"></span></div>
+      <div class="guia-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pasos_avance }}" aria-label="{% translate 'Avance de la guía' %}"><span style="width: {{ pasos_avance }}%"></span></div>
     </div>
     <ol class="guia-pasos">
       {% for paso in primeros_pasos %}
         <li class="{% if paso.hecho %}hecho{% endif %}">
           <span class="guia-marca" aria-hidden="true">{% if paso.hecho %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
           <div class="guia-texto">
-            <strong>{{ paso.titulo }}{% if paso.hecho %}<span class="visualmente-oculto"> (listo)</span>{% endif %}</strong>
+            <strong>{{ paso.titulo }}{% if paso.hecho %}<span class="visualmente-oculto"> {% translate "(listo)" %}</span>{% endif %}</strong>
             <small>{{ paso.ayuda }}</small>
           </div>
           {% if not paso.hecho and paso.url %}<a class="boton guia-accion" href="{{ paso.url }}">{{ paso.accion }}</a>{% endif %}
@@ -29,9 +30,9 @@
 
   {% if puede_ver_ventas and bodegas_disponibles|length > 1 %}
     <form method="get" class="acciones-fila mb-18">
-      <label for="dashboard-bodega" class="nota">Bodega:</label>
-      <select id="dashboard-bodega" name="bodega" aria-label="Filtrar ventas del tablero por bodega" data-auto-enviar>
-        <option value="">Todas las bodegas</option>
+      <label for="dashboard-bodega" class="nota">{% translate "Bodega:" %}</label>
+      <select id="dashboard-bodega" name="bodega" aria-label="{% translate 'Filtrar ventas del tablero por bodega' %}" data-auto-enviar>
+        <option value="">{% translate "Todas las bodegas" %}</option>
         {% for b in bodegas_disponibles %}
           <option value="{{ b.pk }}" {% if bodega_activa and bodega_activa.pk == b.pk %}selected{% endif %}>{{ b.nombre }}</option>
         {% endfor %}
@@ -45,55 +46,55 @@
     <article class="kpi">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span>
-        <span>Ventas del mes{% if bodega_activa %} · {{ bodega_activa.nombre }}{% endif %}</span>
+        <span>{% translate "Ventas del mes" %}{% if bodega_activa %} · {{ bodega_activa.nombre }}{% endif %}</span>
       </div>
       <strong>$ {{ ventas_mes|floatformat:"0g" }}</strong>
       <small>
-        {{ facturas_mes }} factura{{ facturas_mes|pluralize }} <em>este mes</em>
+        {% blocktranslate with facturas_mes=facturas_mes facturas_mes2=facturas_mes|pluralize %}{{ facturas_mes }} factura{{ facturas_mes2 }}{% endblocktranslate %} <em>{% translate "este mes" %}</em>
         {% if variacion_mes_pct is not None %}
-          · {% if variacion_mes_pct >= 0 %}+{% endif %}{{ variacion_mes_pct }}% vs. mes anterior ($ {{ ventas_mes_anterior|floatformat:"0g" }})
+          · {% if variacion_mes_pct >= 0 %}+{% endif %}{% blocktranslate with variacion_mes_pct=variacion_mes_pct ventas_mes_anterior=ventas_mes_anterior|floatformat:"0g" %}{{ variacion_mes_pct }}% vs. mes anterior ($ {{ ventas_mes_anterior }}){% endblocktranslate %}
         {% elif ventas_mes_anterior %}
-          · Mes anterior: $ {{ ventas_mes_anterior|floatformat:"0g" }}
+          {% blocktranslate with ventas_mes_anterior=ventas_mes_anterior|floatformat:"0g" %}· Mes anterior: $ {{ ventas_mes_anterior }}{% endblocktranslate %}
         {% endif %}
       </small>
-      <canvas class="sparkline" id="sparkline-ventas" aria-label="Ventas de los últimos 7 días"></canvas>
+      <canvas class="sparkline" id="sparkline-ventas" aria-label="{% translate 'Ventas de los últimos 7 días' %}"></canvas>
     </article>
     {% endif %}
 
     <article class="kpi verde">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg></span>
-        <span>Clientes activos</span>
+        <span>{% translate "Clientes activos" %}</span>
       </div>
       <strong>{{ total_clientes }}</strong>
-      <small><a href="{% url 'clientes_lista' %}">Ver clientes</a></small>
+      <small><a href="{% url 'clientes_lista' %}">{% translate "Ver clientes" %}</a></small>
     </article>
 
     <article class="kpi violeta">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg></span>
-        <span>Productos activos</span>
+        <span>{% translate "Productos activos" %}</span>
       </div>
       <strong>{{ total_productos }}</strong>
-      <small><a href="{% url 'productos_lista' %}">Ver inventario</a></small>
+      <small><a href="{% url 'productos_lista' %}">{% translate "Ver inventario" %}</a></small>
     </article>
 
     <article class="kpi {% if n_stock_bajo %}rojo{% else %}verde{% endif %}">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
-        <span>Con stock bajo</span>
+        <span>{% translate "Con stock bajo" %}</span>
       </div>
       <strong>{{ n_stock_bajo }}</strong>
-      <small>{% if n_stock_bajo %}<a href="{% url 'productos_lista' %}?bajo=1">Revisar productos</a>{% else %}Todo en orden{% endif %}</small>
+      <small>{% if n_stock_bajo %}<a href="{% url 'productos_lista' %}?bajo=1">{% translate "Revisar productos" %}</a>{% else %}{% translate "Todo en orden" %}{% endif %}</small>
     </article>
   </section>
 
   <section class="paneles">
     <!-- Medidor: qué porcentaje del inventario está sobre su mínimo -->
     <article class="tarjeta {% if salud_inventario >= 70 %}verde{% elif salud_inventario >= 40 %}ambar{% else %}rojo{% endif %}">
-      <div class="tarjeta-cabecera"><h2>Salud del inventario</h2></div>
+      <div class="tarjeta-cabecera"><h2>{% translate "Salud del inventario" %}</h2></div>
       <div class="medidor-caja">
-        <svg class="medidor" viewBox="0 0 200 124" role="img" aria-label="{{ salud_inventario }} % del inventario sobre el mínimo">
+        <svg class="medidor" viewBox="0 0 200 124" role="img" aria-label="{% blocktranslate with salud_inventario=salud_inventario %}{{ salud_inventario }} % del inventario sobre el mínimo{% endblocktranslate %}">
           <path class="medidor-pista" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"/>
           <path class="medidor-valor" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100" style="stroke-dasharray: {{ salud_inventario }} 100"/>
           <text x="20" y="122" text-anchor="middle">0</text>
@@ -102,8 +103,8 @@
         <div class="medidor-cifra">{{ salud_inventario }}%</div>
       </div>
       <div class="medidor-pie">
-        <div>Sobre el mínimo<strong>{{ productos_sanos }}</strong></div>
-        <div>En alerta<strong>{{ n_stock_bajo }}</strong></div>
+        <div>{% translate "Sobre el mínimo" %}<strong>{{ productos_sanos }}</strong></div>
+        <div>{% translate "En alerta" %}<strong>{{ n_stock_bajo }}</strong></div>
       </div>
     </article>
 
@@ -111,30 +112,30 @@
     <!-- Gráfica de ventas de los últimos 6 meses -->
     <article class="tarjeta">
       <div class="tarjeta-cabecera">
-        <h2>Ventas de los últimos 6 meses</h2>
-        <a class="boton secundario" href="{% url 'facturas_lista' %}">Ver facturas</a>
+        <h2>{% translate "Ventas de los últimos 6 meses" %}</h2>
+        <a class="boton secundario" href="{% url 'facturas_lista' %}">{% translate "Ver facturas" %}</a>
       </div>
-      <div class="leyenda"><span>Facturado (sin anuladas)</span></div>
-      <div class="grafica"><canvas id="grafica-ventas" aria-label="Ventas por mes"></canvas></div>
+      <div class="leyenda"><span>{% translate "Facturado (sin anuladas)" %}</span></div>
+      <div class="grafica"><canvas id="grafica-ventas" aria-label="{% translate 'Ventas por mes' %}"></canvas></div>
     </article>
     {% endif %}
   </section>
 
   <section class="paneles parejos">
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Stock bajo</h2></div>
+      <div class="tarjeta-cabecera"><h2>{% translate "Stock bajo" %}</h2></div>
       <table class="tabla">
-        <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th><th></th></tr></thead>
+        <thead><tr><th>{% translate "Producto" %}</th><th class="num">{% translate "Stock" %}</th><th class="num">{% translate "Mínimo" %}</th><th></th></tr></thead>
         <tbody>
           {% for producto in stock_bajo %}
             <tr>
               <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
-              <td class="num">{{ producto.stock }} <span class="alerta">bajo</span></td>
+              <td class="num">{{ producto.stock }} <span class="alerta">{% translate "bajo" %}</span></td>
               <td class="num">{{ producto.stock_minimo }}</td>
-              <td>{% if puede_mover %}<a href="{% url 'productos_movimiento' producto.pk %}">Reponer</a>{% endif %}</td>
+              <td>{% if puede_mover %}<a href="{% url 'productos_movimiento' producto.pk %}">{% translate "Reponer" %}</a>{% endif %}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
+            <tr><td colspan="4">{% translate "Todo el inventario está por encima del mínimo." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -142,9 +143,9 @@
 
     {% if puede_ver_ventas %}
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Últimas facturas</h2></div>
+      <div class="tarjeta-cabecera"><h2>{% translate "Últimas facturas" %}</h2></div>
       <table class="tabla">
-        <thead><tr><th>N.º</th><th>Cliente</th><th class="num">Total</th></tr></thead>
+        <thead><tr><th>N.º</th><th>{% translate "Cliente" %}</th><th class="num">{% translate "Total" %}</th></tr></thead>
         <tbody>
           {% for factura in ultimas_facturas %}
             <tr>
@@ -153,7 +154,7 @@
               <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="3">Aún no hay facturas.</td></tr>
+            <tr><td colspan="3">{% translate "Aún no hay facturas." %}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -168,6 +169,6 @@
   {{ serie_meses|json_script:"datos-meses" }}
   {{ serie_dias|json_script:"datos-dias" }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
-  <script defer src="{% static 'core/js/dashboard.js' %}"></script>
+  <script defer src="{% static 'core/js/dashboard.js' %}?v=i18n1"></script>
   {% endif %}
 {% endblock %}

@@ -1,3 +1,4 @@
+from django.utils.translation import gettext
 from django.db.models import F
 from django.urls import reverse
 
@@ -19,8 +20,8 @@ def _notificaciones_panel(empresa, nav_permisos: dict) -> dict:
         ).count()
         if por_despachar:
             items.append({
-                "titulo": f"{por_despachar} pedido(s) por despachar",
-                "detalle": "Pedidos pagados pendientes de envío.",
+                "titulo": gettext("{por_despachar} pedido(s) por despachar").format(por_despachar=por_despachar),
+                "detalle": gettext("Pedidos pagados pendientes de envío."),
                 "url": f"{reverse('pedidos_panel_lista')}?estado=pagado&envio=pendiente",
                 "tipo": "info",
             })
@@ -34,8 +35,8 @@ def _notificaciones_panel(empresa, nav_permisos: dict) -> dict:
         ).count()
         if stock_bajo:
             items.append({
-                "titulo": f"{stock_bajo} producto(s) en stock bajo",
-                "detalle": "Revisa existencias mínimas en catálogo.",
+                "titulo": gettext("{stock_bajo} producto(s) en stock bajo").format(stock_bajo=stock_bajo),
+                "detalle": gettext("Revisa existencias mínimas en catálogo."),
                 "url": reverse("productos_lista"),
                 "tipo": "alerta",
             })
@@ -47,8 +48,8 @@ def _notificaciones_panel(empresa, nav_permisos: dict) -> dict:
         ).count()
         if pqrs_abiertas:
             items.append({
-                "titulo": f"{pqrs_abiertas} PQRS por atender",
-                "detalle": "Solicitudes abiertas o escaladas.",
+                "titulo": gettext("{pqrs_abiertas} PQRS por atender").format(pqrs_abiertas=pqrs_abiertas),
+                "detalle": gettext("Solicitudes abiertas o escaladas."),
                 "url": reverse("panel_pqrs_lista"),
                 "tipo": "alerta",
             })

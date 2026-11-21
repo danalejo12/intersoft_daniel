@@ -1,49 +1,50 @@
 {% extends "core/base.html" %}
-{% block titulo %}Bodegas · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Bodegas · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Bodegas</h1>
-      <p class="nota">La Principal recibe compras y producción. El marketplace vende desde la bodega «En línea» y cada caja POS desde la que elijas al abrirla.</p>
+      <h1>{% translate "Bodegas" %}</h1>
+      <p class="nota">{% translate "La Principal recibe compras y producción. El marketplace vende desde la bodega «En línea» y cada caja POS desde la que elijas al abrirla." %}</p>
     </div>
     <div class="acciones-fila">
-      <a class="boton secundario" href="{% url 'productos_lista' %}">← Productos</a>
+      <a class="boton secundario" href="{% url 'productos_lista' %}">{% translate "← Productos" %}</a>
       {% if puede_editar and permite_varias %}
         <a class="boton" href="{% url 'bodegas_crear' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Nueva bodega
+          {% translate "Nueva bodega" %}
         </a>
       {% endif %}
     </div>
   </div>
 
   {% if not permite_varias %}
-    <p class="nota">Tu plan incluye una bodega. Para gestionar varias sedes, cambia al plan Pro en <a href="{% url 'suscripcion_panel' %}">Plan y suscripción</a>.</p>
+    <p class="nota">{% translate "Tu plan incluye una bodega. Para gestionar varias sedes, cambia al plan Pro en" %} <a href="{% url 'suscripcion_panel' %}">{% translate "Plan y suscripción" %}</a>.</p>
   {% endif %}
 
   <table class="tabla">
-    <thead><tr><th>Nombre</th><th>Dirección</th><th class="num">Productos con stock</th><th class="num">Unidades</th><th></th></tr></thead>
+    <thead><tr><th>{% translate "Nombre" %}</th><th>{% translate "Dirección" %}</th><th class="num">{% translate "Productos con stock" %}</th><th class="num">{% translate "Unidades" %}</th><th></th></tr></thead>
     <tbody>
       {% for bodega in bodegas %}
         <tr>
           <td>
             {{ bodega.nombre }}
-            {% if bodega.es_principal %}<span class="badge neutro">Principal</span>{% endif %}
-            {% if bodega.vende_en_linea %}<span class="badge info">En línea</span>{% endif %}
-            {% if not bodega.activa %}<span class="badge advertencia">Inactiva</span>{% endif %}
+            {% if bodega.es_principal %}<span class="badge neutro">{% translate "Principal" %}</span>{% endif %}
+            {% if bodega.vende_en_linea %}<span class="badge info">{% translate "En línea" %}</span>{% endif %}
+            {% if not bodega.activa %}<span class="badge advertencia">{% translate "Inactiva" %}</span>{% endif %}
           </td>
           <td>{{ bodega.direccion|default:"—" }}</td>
           <td class="num">{{ bodega.productos }}</td>
           <td class="num">{{ bodega.unidades|default:0 }}</td>
           <td class="acciones-fila">
             {% if puede_editar %}
-              <a class="boton secundario pequeno" href="{% url 'bodegas_editar' bodega.pk %}">Editar</a>
+              <a class="boton secundario pequeno" href="{% url 'bodegas_editar' bodega.pk %}">{% translate "Editar" %}</a>
               {% if bodega.activa and not bodega.es_principal and not bodega.vende_en_linea %}
                 <form method="post" action="{% url 'bodegas_desactivar' bodega.pk %}" style="display:inline"
-                      data-confirmar="¿Desactivar esta bodega?">
+                      data-confirmar="{% translate '¿Desactivar esta bodega?' %}">
                   {% csrf_token %}
-                  <button type="submit" class="boton peligro pequeno">Desactivar</button>
+                  <button type="submit" class="boton peligro pequeno">{% translate "Desactivar" %}</button>
                 </form>
               {% endif %}
             {% endif %}

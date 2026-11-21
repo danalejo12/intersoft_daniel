@@ -3,6 +3,7 @@
 La venta reutiliza services.crear_factura: mismos precios, IVA, consecutivo y kardex
 que el resto del sistema. Lo único nuevo es cómo se registra el pago.
 """
+from django.utils.translation import gettext
 from decimal import Decimal, InvalidOperation
 import uuid
 
@@ -29,23 +30,23 @@ class OperacionCaja(Exception):
 def dinero(valor, campo="valor"):
     """Convierte lo que llega del navegador en pesos con dos decimales, o falla con un mensaje claro."""
     if isinstance(valor, bool) or valor is None:
-        raise OperacionCaja(f"El {campo} no es un número válido.")
+        raise OperacionCaja(gettext("El {campo} no es un número válido.").format(campo=campo))
     try:
         cantidad = Decimal(str(valor).replace(",", ".").strip() or "0")
     except (InvalidOperation, ValueError, TypeError):
-        raise OperacionCaja(f"El {campo} no es un número válido.") from None
+        raise OperacionCaja(gettext("El {campo} no es un número válido.").format(campo=campo)) from None
     if not cantidad.is_finite():
-        raise OperacionCaja(f"El {campo} no es un número válido.")
+        raise OperacionCaja(gettext("El {campo} no es un número válido.").format(campo=campo))
     if cantidad < 0:
-        raise OperacionCaja(f"El {campo} no puede ser negativo.")
+        raise OperacionCaja(gettext("El {campo} no puede ser negativo.").format(campo=campo))
     if cantidad > MAXIMO_DINERO:
-        raise OperacionCaja(f"El {campo} supera el monto máximo permitido.")
+        raise OperacionCaja(gettext("El {campo} supera el monto máximo permitido.").format(campo=campo))
     try:
         redondeado = cantidad.quantize(CENTAVOS)
     except InvalidOperation:
-        raise OperacionCaja(f"El {campo} no es un número válido.") from None
+        raise OperacionCaja(gettext("El {campo} no es un número válido.").format(campo=campo)) from None
     if cantidad != redondeado:
-        raise OperacionCaja(f"El {campo} tiene más de dos decimales.")
+        raise OperacionCaja(gettext("El {campo} tiene más de dos decimales.").format(campo=campo))
     return redondeado
 
 
@@ -63,7 +64,7 @@ def turno_abierto(empresa, usuario):
 def abrir_turno(*, empresa, usuario, base, bodega=None):
     """La caja vende desde `bodega` durante todo el turno (sin bodega: la Principal)."""
     if turno_abierto(empresa, usuario):
-        raise OperacionCaja("Ya tienes una caja abierta.")
+        raise OperacionCaja(gettext("Ya tienes una caja abierta."))
     try:
         bodega = bodegas.validar_bodega(empresa, bodega)
     except ValueError as error:
@@ -71,10 +72,10 @@ def abrir_turno(*, empresa, usuario, base, bodega=None):
     try:
         with transaction.atomic():
             return TurnoCaja.objects.create(empresa=empresa, cajero=usuario, bodega=bodega,
-                                            base_inicial=dinero(base, "valor de la base"))
+                                            base_inicial=dinero(base, gettext("valor de la base")))
     except IntegrityError:
         # Dos aperturas al mismo tiempo: la base de datos solo deja una
-        raise OperacionCaja("Ya tienes una caja abierta.") from None
+        raise OperacionCaja(gettext("Ya tienes una caja abierta.")) from None
 
 
 def consumidor_final(empresa):
@@ -90,35 +91,35 @@ def consumidor_final(empresa):
 def _validar_pagos(pagos, total):
     """Calcula cómo se reparte el total. El efectivo cubre lo que falte y puede dar cambio."""
     if not isinstance(pagos, list) or not pagos:
-        raise OperacionCaja("Indica cómo pagó el cliente.")
+        raise OperacionCaja(gettext("Indica cómo pagó el cliente."))
 
     efectivo = None
     otros = []
     for pago in pagos:
         if not isinstance(pago, dict):
-            raise OperacionCaja("El pago no tiene un formato válido.")
+            raise OperacionCaja(gettext("El pago no tiene un formato válido."))
         metodo = pago.get("metodo")
         if metodo == Metodo.EFECTIVO:
             if efectivo is not None:
-                raise OperacionCaja("Registra el efectivo en una sola línea.")
-            efectivo = dinero(pago.get("recibido"), "efectivo recibido")
+                raise OperacionCaja(gettext("Registra el efectivo en una sola línea."))
+            efectivo = dinero(pago.get("recibido"), gettext("efectivo recibido"))
         elif metodo in (Metodo.TARJETA, Metodo.TRANSFERENCIA):
             monto = dinero(pago.get("monto"), "monto")
             if monto > 0:
                 otros.append((metodo, monto, str(pago.get("referencia") or "").strip()[:60]))
         else:
-            raise OperacionCaja("Medio de pago no reconocido.")
+            raise OperacionCaja(gettext("Medio de pago no reconocido."))
 
     sin_efectivo = sum((monto for _, monto, _ in otros), Decimal("0"))
     if sin_efectivo > total:
-        raise OperacionCaja("Los pagos con tarjeta o transferencia superan el total: el cambio solo se da en efectivo.")
+        raise OperacionCaja(gettext("Los pagos con tarjeta o transferencia superan el total: el cambio solo se da en efectivo."))
     falta = total - sin_efectivo
     if falta > 0 and not efectivo:
-        raise OperacionCaja(f"Falta por pagar {pesos(falta)}.")
+        raise OperacionCaja(gettext("Falta por pagar {pesos}.").format(pesos=pesos(falta)))
     if efectivo and efectivo < falta:
-        raise OperacionCaja("El efectivo recibido no alcanza para completar el pago.")
+        raise OperacionCaja(gettext("El efectivo recibido no alcanza para completar el pago."))
     if falta == 0 and efectivo:
-        raise OperacionCaja("El total ya está cubierto: quita el efectivo.")
+        raise OperacionCaja(gettext("El total ya está cubierto: quita el efectivo."))
     return otros, (falta, efectivo) if falta > 0 else None
 
 
@@ -128,25 +129,25 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=Non
     operacion_uuid = None
     if operacion is not None:
         if isinstance(operacion, bool):
-            raise OperacionCaja("La clave de operación no es válida.")
+            raise OperacionCaja(gettext("La clave de operación no es válida."))
         try:
             operacion_uuid = operacion if isinstance(operacion, uuid.UUID) else uuid.UUID(str(operacion))
         except (ValueError, TypeError, AttributeError):
-            raise OperacionCaja("La clave de operación no es válida.") from None
+            raise OperacionCaja(gettext("La clave de operación no es válida.")) from None
 
     turno = TurnoCaja.objects.select_for_update().get(pk=turno.pk)
     if turno.cajero_id != usuario.pk:
-        raise OperacionCaja("Solo el cajero que abrió la caja puede vender en ella.")
+        raise OperacionCaja(gettext("Solo el cajero que abrió la caja puede vender en ella."))
     if not items:
-        raise OperacionCaja("Agrega al menos un producto.")
+        raise OperacionCaja(gettext("Agrega al menos un producto."))
     if cliente is not None and cliente.empresa_id != turno.empresa_id:
-        raise OperacionCaja("El cliente no pertenece a este negocio.")
+        raise OperacionCaja(gettext("El cliente no pertenece a este negocio."))
 
     if operacion_uuid is not None:
         existente = Factura.objects.filter(empresa=turno.empresa, operacion_pos=operacion_uuid).first()
         if existente is not None:
             if existente.turno_id != turno.pk:
-                raise OperacionCaja("Esta clave de operación ya fue usada en otra caja.")
+                raise OperacionCaja(gettext("Esta clave de operación ya fue usada en otra caja."))
             cantidades_pedidas = {}
             for item in items:
                 prod = item["producto"]
@@ -154,11 +155,11 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=Non
             cantidades_existentes = {d.producto_id: d.cantidad for d in existente.detalles.all()}
             cliente_esperado = cliente.pk if cliente is not None else consumidor_final(turno.empresa).pk
             if cantidades_pedidas != cantidades_existentes or existente.cliente_id != cliente_esperado:
-                raise OperacionCaja("Esta clave de operación ya fue usada con otros datos.")
+                raise OperacionCaja(gettext("Esta clave de operación ya fue usada con otros datos."))
             return existente
 
     if not turno.abierto:
-        raise OperacionCaja("Esta caja ya está cerrada. Abre una nueva para seguir vendiendo.")
+        raise OperacionCaja(gettext("Esta caja ya está cerrada. Abre una nueva para seguir vendiendo."))
 
     try:
         factura = crear_factura(
@@ -170,7 +171,7 @@ def registrar_venta(*, turno, usuario, items, pagos, cliente=None, operacion=Non
     except ValueError as error:
         raise OperacionCaja(str(error)) from None
     if factura.total > MAXIMO_DINERO:
-        raise OperacionCaja("El total de la venta supera el monto máximo permitido.")
+        raise OperacionCaja(gettext("El total de la venta supera el monto máximo permitido."))
     factura.turno = turno
     factura.operacion_pos = operacion_uuid
     factura.save(update_fields=["turno", "operacion_pos"])
@@ -211,10 +212,10 @@ def cerrar_turno(*, turno, usuario, contado, observaciones=""):
     """Arqueo a ciegas: el cajero cuenta sin ver lo esperado y el sistema calcula la diferencia."""
     turno = TurnoCaja.objects.select_for_update().get(pk=turno.pk)
     if not turno.abierto:
-        raise OperacionCaja("Esta caja ya estaba cerrada.")
+        raise OperacionCaja(gettext("Esta caja ya estaba cerrada."))
     if turno.cajero_id != usuario.pk:
-        raise OperacionCaja("Solo el cajero que abrió la caja puede cerrarla.")
-    contado = dinero(contado, "efectivo contado")
+        raise OperacionCaja(gettext("Solo el cajero que abrió la caja puede cerrarla."))
+    contado = dinero(contado, gettext("efectivo contado"))
     esperado = resumen_turno(turno)["efectivo_esperado"]
     turno.cerrado_en = timezone.now()
     turno.efectivo_esperado = esperado

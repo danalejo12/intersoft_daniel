@@ -1,15 +1,16 @@
 {% extends "core/base.html" %}
-{% block titulo %}Simulador de pago · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Simulador de pago · Intersoft" %}{% endblock %}
 
 {% block contenido %}
-  <h1>Simulador de pago</h1>
-  <p class="nota"><strong>Modo de prueba:</strong> aquí no se cobra dinero real.</p>
-  <p>Factura {{ pago.factura.numero }} · Total: $ {{ pago.factura.total|floatformat:"0g" }}</p>
+  <h1>{% translate "Simulador de pago" %}</h1>
+  <p class="nota"><strong>{% translate "Modo de prueba:" %}</strong> {% translate "aquí no se cobra dinero real." %}</p>
+  <p>{% blocktranslate with numero=pago.factura.numero total=pago.factura.total|floatformat:"0g" %}Factura {{ numero }} · Total: $ {{ total }}{% endblocktranslate %}</p>
 
   <form method="post">
     {% csrf_token %}
-    <button type="submit" name="resultado" value="APPROVED">Aprobar</button>
-    <button type="submit" name="resultado" value="DECLINED">Rechazar</button>
-    <button type="submit" name="resultado" value="ERROR">Simular error</button>
+    <button type="submit" name="resultado" value="APPROVED">{% translate "Aprobar" %}</button>
+    <button type="submit" name="resultado" value="DECLINED">{% translate "Rechazar" %}</button>
+    <button type="submit" name="resultado" value="ERROR">{% translate "Simular error" %}</button>
   </form>
 {% endblock %}

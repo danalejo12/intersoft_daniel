@@ -1,7 +1,7 @@
-{% if pqrs.semaforo == "rojo" %}
-  <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .55);">Vencida</span>
+{% load i18n %}{% if pqrs.semaforo == "rojo" %}
+  <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .55);">{% translate "Vencida" %}</span>
 {% elif pqrs.semaforo == "amarillo" %}
-  <span class="badge advertencia">Por vencer</span>
+  <span class="badge advertencia">{% translate "Por vencer" %}</span>
 {% else %}
-  <span class="badge exito">A tiempo</span>
+  <span class="badge exito">{% translate "A tiempo" %}</span>
 {% endif %}

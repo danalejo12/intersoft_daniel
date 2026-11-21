@@ -1,4 +1,5 @@
 """Inventario: categorías, productos, bodegas con sus existencias y kardex de movimientos."""
+from django.utils.translation import gettext, gettext_lazy
 import os
 import uuid
 from decimal import Decimal
@@ -19,8 +20,8 @@ class Categoria(ModeloTenant):
     activa = models.BooleanField(default=True)
  
     class Meta:
-        verbose_name = "categoría"
-        verbose_name_plural = "categorías"
+        verbose_name = gettext_lazy("categoría")
+        verbose_name_plural = gettext_lazy("categorías")
         ordering = ["nombre"]
         constraints = [
             models.UniqueConstraint(fields=["empresa", "nombre"], name="uq_categoria_nombre_por_empresa"),
@@ -47,7 +48,7 @@ class Producto(ModeloTenant):
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
     )
     iva_porcentaje = models.DecimalField(
-        "IVA (%)",
+        gettext_lazy("IVA (%)"),
         max_digits=5,
         decimal_places=2,
         default=Decimal("19.00"),
@@ -55,7 +56,7 @@ class Producto(ModeloTenant):
     )
     stock = models.IntegerField(default=0)
     stock_minimo = models.IntegerField(default=0)  # Para alertas de reabastecimiento.
-    peso_gramos = models.PositiveIntegerField("Peso (gramos)", default=0)
+    peso_gramos = models.PositiveIntegerField(gettext_lazy("Peso (gramos)"), default=0)
     activo = models.BooleanField(default=True)
     publicado = models.BooleanField(default=False)  # Cada negocio decide qué se ve en el marketplace.
     imagen = models.ImageField(
@@ -122,21 +123,21 @@ class FotoProducto(ModeloTenant):
     orden = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
-        verbose_name = "foto de producto"
-        verbose_name_plural = "fotos de producto"
+        verbose_name = gettext_lazy("foto de producto")
+        verbose_name_plural = gettext_lazy("fotos de producto")
         ordering = ["orden", "creado_en"]
 
     def __str__(self):
-        return f"Foto {self.orden + 1} · {self.producto.nombre}"
+        return gettext("Foto {orden___1} · {nombre}").format(orden___1=self.orden + 1, nombre=self.producto.nombre)
 
 
 class MovimientoInventario(ModeloTenant):
     """Historial inmutable de cada cambio de stock (kardex)."""
  
     class Tipo(models.TextChoices):
-        ENTRADA = "entrada", "Entrada"
-        SALIDA = "salida", "Salida"
-        AJUSTE = "ajuste", "Ajuste"
+        ENTRADA = "entrada", gettext_lazy("Entrada")
+        SALIDA = "salida", gettext_lazy("Salida")
+        AJUSTE = "ajuste", gettext_lazy("Ajuste")
  
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="movimientos")
     tipo = models.CharField(max_length=10, choices=Tipo.choices)
@@ -151,8 +152,8 @@ class MovimientoInventario(ModeloTenant):
     )
  
     class Meta:
-        verbose_name = "movimiento de inventario"
-        verbose_name_plural = "movimientos de inventario"
+        verbose_name = gettext_lazy("movimiento de inventario")
+        verbose_name_plural = gettext_lazy("movimientos de inventario")
         ordering = ["-creado_en"]
         indexes = [
             models.Index(fields=["empresa", "producto", "-creado_en"], name="ix_movimiento_producto_fecha"),
@@ -201,27 +202,27 @@ class Existencia(ModeloTenant):
     bodega = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="existencias")
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="existencias")
     cantidad = models.IntegerField(default=0)
-    stock_minimo = models.PositiveIntegerField("stock mínimo en bodega", null=True, blank=True)
+    stock_minimo = models.PositiveIntegerField(gettext_lazy("stock mínimo en bodega"), null=True, blank=True)
 
     class Meta:
-        verbose_name = "existencia por bodega"
-        verbose_name_plural = "existencias por bodega"
+        verbose_name = gettext_lazy("existencia por bodega")
+        verbose_name_plural = gettext_lazy("existencias por bodega")
         constraints = [
             models.UniqueConstraint(fields=["bodega", "producto"], name="uq_existencia_bodega_producto"),
             models.CheckConstraint(condition=Q(cantidad__gte=0), name="ck_existencia_no_negativa"),
         ]
 
     def __str__(self):
-        return f"{self.producto} en {self.bodega}: {self.cantidad}"
+        return gettext("{producto} en {bodega}: {cantidad}").format(producto=self.producto, bodega=self.bodega, cantidad=self.cantidad)
 
 
 class TrasladoBodega(ModeloTenant):
     """Traslado en tránsito entre bodegas: descuenta al enviar y suma al confirmar recepción."""
 
     class Estado(models.TextChoices):
-        ENVIADO = "enviado", "En tránsito (enviado)"
-        RECIBIDO = "recibido", "Recibido"
-        CANCELADO = "cancelado", "Cancelado"
+        ENVIADO = "enviado", gettext_lazy("En tránsito (enviado)")
+        RECIBIDO = "recibido", gettext_lazy("Recibido")
+        CANCELADO = "cancelado", gettext_lazy("Cancelado")
 
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="traslados")
     origen = models.ForeignKey(Bodega, on_delete=models.PROTECT, related_name="traslados_salida")
@@ -238,8 +239,8 @@ class TrasladoBodega(ModeloTenant):
     recibido_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = "traslado entre bodegas"
-        verbose_name_plural = "traslados entre bodegas"
+        verbose_name = gettext_lazy("traslado entre bodegas")
+        verbose_name_plural = gettext_lazy("traslados entre bodegas")
         ordering = ["-enviado_en"]
 
     def __str__(self):
@@ -258,12 +259,12 @@ class ConteoFisico(ModeloTenant):
     aplicado_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = "conteo físico"
-        verbose_name_plural = "conteos físicos"
+        verbose_name = gettext_lazy("conteo físico")
+        verbose_name_plural = gettext_lazy("conteos físicos")
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"Conteo {self.bodega} ({self.creado_en:%d/%m/%Y})"
+        return gettext("Conteo {bodega} ({creado_en:%d/%m/%Y})").format(bodega=self.bodega, creado_en=self.creado_en)
 
 
 class LineaConteoFisico(ModeloBase):
@@ -276,6 +277,6 @@ class LineaConteoFisico(ModeloBase):
     diferencia = models.IntegerField()
 
     class Meta:
-        verbose_name = "línea de conteo físico"
-        verbose_name_plural = "líneas de conteo físico"
+        verbose_name = gettext_lazy("línea de conteo físico")
+        verbose_name_plural = gettext_lazy("líneas de conteo físico")
 

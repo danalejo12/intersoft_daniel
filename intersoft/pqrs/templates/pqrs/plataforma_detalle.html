@@ -1,22 +1,23 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}{{ pqrs.radicado }} · PQRS · Consola de Plataforma{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with radicado=pqrs.radicado %}{{ radicado }} · PQRS · Consola de Plataforma{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
       <h1><code>{{ pqrs.radicado }}</code> · {{ pqrs.asunto }}</h1>
-      <p class="nota">{{ pqrs.get_flujo_display }} · {{ pqrs.empresa.nombre|default:"Sin negocio" }} · Autor: {{ pqrs.autor.email }}</p>
+      <p class="nota">{% blocktranslate with get_flujo_display=pqrs.get_flujo_display nombre=pqrs.empresa.nombre|default:_("Sin negocio") email=pqrs.autor.email %}{{ get_flujo_display }} · {{ nombre }} · Autor: {{ email }}{% endblocktranslate %}</p>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
       {% include "pqrs/_semaforo.html" with pqrs=pqrs %}
-      <a class="boton secundario" href="{% url 'plataforma_pqrs' %}">Volver</a>
+      <a class="boton secundario" href="{% url 'plataforma_pqrs' %}">{% translate "Volver" %}</a>
     </div>
   </div>
 
   <article class="tarjeta" style="margin-bottom: 20px;">
     <p>{{ pqrs.descripcion|linebreaksbr }}</p>
-    {% if pqrs.adjunto %}<p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>{% endif %}
-    <small class="nota">Límite: {{ pqrs.fecha_limite|date:"d/m/Y H:i" }}</small>
+    {% if pqrs.adjunto %}<p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">{% translate "Ver adjunto" %}</a></p>{% endif %}
+    <small class="nota">{% blocktranslate with fecha_limite=pqrs.fecha_limite|date:"d/m/Y H:i" %}Límite: {{ fecha_limite }}{% endblocktranslate %}</small>
 
     <form method="post" class="formulario" style="margin-top: 16px;" novalidate>
       {% csrf_token %}
@@ -28,22 +29,22 @@
           {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
         </div>
       {% endfor %}
-      <button type="submit" class="boton">Guardar estado y asignación</button>
+      <button type="submit" class="boton">{% translate "Guardar estado y asignación" %}</button>
     </form>
   </article>
 
   <article class="tarjeta">
-    <h2>Conversación y notas internas</h2>
+    <h2>{% translate "Conversación y notas internas" %}</h2>
     {% for m in mensajes %}
       <div style="padding: 10px 0; border-bottom: 1px solid rgba(148,163,184,.2);">
         <strong>{{ m.autor.get_full_name|default:m.autor.email }}</strong>
-        {% if m.interno %}<span class="badge advertencia">Nota interna (oculta al ciudadano)</span>{% endif %}
+        {% if m.interno %}<span class="badge advertencia">{% translate "Nota interna (oculta al ciudadano)" %}</span>{% endif %}
         <small class="nota">· {{ m.creado_en|date:"d/m/Y H:i" }}</small>
         <p style="margin: 6px 0 0;">{{ m.texto|linebreaksbr }}</p>
-        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">Adjunto</a></p>{% endif %}
+        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">{% translate "Adjunto" %}</a></p>{% endif %}
       </div>
     {% empty %}
-      <p class="nota">Aún no hay mensajes.</p>
+      <p class="nota">{% translate "Aún no hay mensajes." %}</p>
     {% endfor %}
 
     <form method="post" enctype="multipart/form-data" class="formulario" style="margin-top: 16px;" novalidate>
@@ -56,7 +57,7 @@
           {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
         </div>
       {% endfor %}
-      <button type="submit" class="boton">Enviar mensaje / nota</button>
+      <button type="submit" class="boton">{% translate "Enviar mensaje / nota" %}</button>
     </form>
   </article>
 {% endblock %}

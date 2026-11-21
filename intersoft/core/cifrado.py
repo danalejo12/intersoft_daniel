@@ -4,6 +4,7 @@ Las llaves viven en PAGOS_CLAVES_CIFRADO (.env), separadas por comas: la primera
 todas descifran. Para rotar, se pone la nueva primero y se ejecuta `rotar_secretos_pago`.
 Sin esa variable se deriva una clave de SECRET_KEY y el chequeo de despliegue avisa.
 """
+from django.utils.translation import gettext
 import base64
 import hashlib
 import re
@@ -45,8 +46,8 @@ def _cifrador(claves: tuple[str, ...], secret_key: str) -> MultiFernet:
         return MultiFernet([Fernet(c.encode()) for c in claves])
     except (ValueError, TypeError) as error:
         raise ImproperlyConfigured(
-            "PAGOS_CLAVES_CIFRADO tiene una clave inválida. Genera una con "
-            "Fernet.generate_key()."
+            gettext("PAGOS_CLAVES_CIFRADO tiene una clave inválida. Genera una con "
+            "Fernet.generate_key().")
         ) from error
 
 
@@ -68,7 +69,7 @@ def descifrar(token: str) -> str:
     try:
         return cifrador().decrypt(token.encode()).decode()
     except InvalidToken as error:
-        raise SecretoIlegible("No se pudo descifrar el secreto de pago.") from error
+        raise SecretoIlegible(gettext("No se pudo descifrar el secreto de pago.")) from error
 
 
 @sensitive_variables()
@@ -79,14 +80,14 @@ def recifrar(token: str, *, incluir_clave_derivada=False) -> str:
     actual = cifrador()
     if incluir_clave_derivada:
         if not _claves_configuradas():
-            raise ImproperlyConfigured("Configura la nueva PAGOS_CLAVES_CIFRADO antes de migrar el cifrado.")
+            raise ImproperlyConfigured(gettext("Configura la nueva PAGOS_CLAVES_CIFRADO antes de migrar el cifrado."))
         derivada = base64.urlsafe_b64encode(hashlib.sha256(
             CONTEXTO_DERIVACION + settings.SECRET_KEY.encode()).digest()).decode()
         actual = _cifrador((*_claves_configuradas(), derivada), settings.SECRET_KEY)
     try:
         return actual.rotate(token.encode()).decode()
     except InvalidToken as error:
-        raise SecretoIlegible("No se pudo recifrar el secreto de pago.") from error
+        raise SecretoIlegible(gettext("No se pudo recifrar el secreto de pago.")) from error
 
 
 @register(deploy=True)

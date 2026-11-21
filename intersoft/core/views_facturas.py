@@ -1,4 +1,5 @@
 """Vistas de facturación, cobro con Wompi, simulador de pagos y webhook."""
+from django.utils.translation import gettext
 import json
 from datetime import timedelta
 
@@ -156,7 +157,7 @@ class FacturaCreateView(PermisoRequeridoMixin, View):
             except StockInsuficiente as error:
                 messages.error(request, str(error))   # se muestra y se vuelve a pintar el formulario
             else:
-                messages.success(request, f"Factura N.º {factura.numero} creada correctamente.")
+                messages.success(request, gettext("Factura N.º {numero} creada correctamente.").format(numero=factura.numero))
                 return redirect("facturas_detalle", pk=factura.pk)   # Post/Redirect/Get
 
         return self.mostrar(form, lineas)
@@ -173,7 +174,7 @@ class FacturaAnularView(PermisoRequeridoMixin, View):
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
         try:
             anular_factura(factura=factura, usuario=request.user)
-            messages.success(request, f"Factura {factura.numero} anulada.")
+            messages.success(request, gettext("Factura {numero} anulada.").format(numero=factura.numero))
         except ValueError as error:
             messages.error(request, str(error))
         return redirect("facturas_lista")
@@ -210,7 +211,7 @@ class FacturaEmitirDianView(TenantMixin, View):
                 or request.membresia.tiene_permiso("contabilidad.gestionar")
             )
         ):
-            raise PermissionDenied("No tienes permiso para emitir documentos electrónicos.")
+            raise PermissionDenied(gettext("No tienes permiso para emitir documentos electrónicos."))
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
         try:
             factura = emitir_factura_electronica(factura=factura)
@@ -218,9 +219,9 @@ class FacturaEmitirDianView(TenantMixin, View):
             messages.error(request, str(error))
         else:
             if factura.estado_dian == Factura.EstadoDian.ACEPTADA:
-                messages.success(request, f"Factura #{factura.numero} validada ante DIAN (CUFE generado).")
+                messages.success(request, gettext("Factura #{numero} validada ante DIAN (CUFE generado).").format(numero=factura.numero))
             else:
-                messages.warning(request, f"Respuesta DIAN: {factura.dian_respuesta}")
+                messages.warning(request, gettext("Respuesta DIAN: {dian_respuesta}").format(dian_respuesta=factura.dian_respuesta))
         return redirect("facturas_detalle", pk=factura.pk)
 
 
@@ -237,7 +238,7 @@ class FacturaContabilizarView(TenantMixin, View):
                 or request.membresia.tiene_permiso("ventas.crear")
             )
         ):
-            raise PermissionDenied("No tienes permiso para contabilizar facturas.")
+            raise PermissionDenied(gettext("No tienes permiso para contabilizar facturas."))
         factura = get_object_or_404(Factura.objects.de_empresa(request.empresa), pk=pk)
         try:
             asiento = contabilizar_factura(factura=factura, usuario=request.user)
@@ -252,10 +253,10 @@ class FacturaContabilizarView(TenantMixin, View):
                 )
                 messages.success(
                     request,
-                    f"Comprobantes contables {asiento.referencia} y {asiento_rec.referencia} generados.",
+                    gettext("Comprobantes contables {referencia} y {referencia2} generados.").format(referencia=asiento.referencia, referencia2=asiento_rec.referencia),
                 )
             else:
-                messages.success(request, f"Comprobante contable {asiento.referencia} generado.")
+                messages.success(request, gettext("Comprobante contable {referencia} generado.").format(referencia=asiento.referencia))
         except ValueError as error:
             messages.error(request, str(error))
         return redirect("facturas_detalle", pk=factura.pk)

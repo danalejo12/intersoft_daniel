@@ -1,37 +1,38 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}{{ pqrs.radicado }} · Mis PQRS · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with radicado=pqrs.radicado %}{{ radicado }} · Mis PQRS · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
     <div>
       <h1><code>{{ pqrs.radicado }}</code> · {{ pqrs.asunto }}</h1>
-      <p class="nota">{{ pqrs.get_tipo_display }} · {{ pqrs.empresa.nombre|default:"Intersoft" }} · Estado: <strong>{{ pqrs.get_estado_display }}</strong></p>
+      <p class="nota">{% blocktranslate with get_tipo_display=pqrs.get_tipo_display nombre=pqrs.empresa.nombre|default:"Intersoft" %}{{ get_tipo_display }} · {{ nombre }} · Estado:{% endblocktranslate %} <strong>{{ pqrs.get_estado_display }}</strong></p>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
       {% include "pqrs/_semaforo.html" with pqrs=pqrs %}
-      <a class="boton secundario" href="{% url 'pqrs_mis_list' %}">Volver</a>
+      <a class="boton secundario" href="{% url 'pqrs_mis_list' %}">{% translate "Volver" %}</a>
     </div>
   </div>
 
   <article class="tarjeta" style="margin-bottom: 20px;">
     <p>{{ pqrs.descripcion|linebreaksbr }}</p>
     {% if pqrs.adjunto %}
-      <p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>
+      <p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">{% translate "Ver adjunto" %}</a></p>
     {% endif %}
-    <small class="nota">Fecha límite de respuesta: {{ pqrs.fecha_limite|date:"d/m/Y H:i" }}</small>
+    <small class="nota">{% blocktranslate with fecha_limite=pqrs.fecha_limite|date:"d/m/Y H:i" %}Fecha límite de respuesta: {{ fecha_limite }}{% endblocktranslate %}</small>
   </article>
 
   <article class="tarjeta" style="margin-bottom: 20px;">
-    <h2>Conversación</h2>
+    <h2>{% translate "Conversación" %}</h2>
     {% for m in mensajes %}
       <div style="padding: 10px 0; border-bottom: 1px solid rgba(148,163,184,.2);">
         <strong>{{ m.autor.get_full_name|default:m.autor.email }}</strong>
         <small class="nota">· {{ m.creado_en|date:"d/m/Y H:i" }}</small>
         <p style="margin: 6px 0 0;">{{ m.texto|linebreaksbr }}</p>
-        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">Adjunto</a></p>{% endif %}
+        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">{% translate "Adjunto" %}</a></p>{% endif %}
       </div>
     {% empty %}
-      <p class="nota">Aún no hay mensajes en esta conversación.</p>
+      <p class="nota">{% translate "Aún no hay mensajes en esta conversación." %}</p>
     {% endfor %}
 
     {% if pqrs.estado != "cerrada" %}
@@ -45,15 +46,15 @@
             {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
           </div>
         {% endfor %}
-        <button type="submit" class="boton">Enviar mensaje</button>
+        <button type="submit" class="boton">{% translate "Enviar mensaje" %}</button>
       </form>
     {% endif %}
   </article>
 
   <article class="tarjeta">
-    <h2>Encuesta de satisfacción</h2>
+    <h2>{% translate "Encuesta de satisfacción" %}</h2>
     {% if pqrs.calificacion %}
-      <p>Calificación registrada: <strong>{{ pqrs.calificacion }} / 5</strong>{% if pqrs.comentario_satisfaccion %} — {{ pqrs.comentario_satisfaccion }}{% endif %}</p>
+      <p>{% translate "Calificación registrada:" %} <strong>{{ pqrs.calificacion }} / 5</strong>{% if pqrs.comentario_satisfaccion %} — {{ pqrs.comentario_satisfaccion }}{% endif %}</p>
     {% else %}
       <form method="post" class="formulario" novalidate>
         {% csrf_token %}
@@ -65,7 +66,7 @@
             {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
           </div>
         {% endfor %}
-        <button type="submit" class="boton">Calificar y cerrar PQRS</button>
+        <button type="submit" class="boton">{% translate "Calificar y cerrar PQRS" %}</button>
       </form>
     {% endif %}
   </article>

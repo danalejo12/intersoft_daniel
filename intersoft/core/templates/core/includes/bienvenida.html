@@ -1,17 +1,17 @@
-{% load static %}{% if bienvenida_nombre %}
+{% load i18n %}{% load static %}{% if bienvenida_nombre %}
 <div class="bv" id="bienvenida" role="status" aria-live="polite" data-nombre="{{ bienvenida_nombre }}">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&amp;display=swap">
   <link rel="stylesheet" href="{% static 'core/css/bienvenida.css' %}">
 
   <div class="bv-halo" aria-hidden="true"></div>
   <div class="bv-escena">
-    <p class="bv-saludo" id="bv-saludo">Hola</p>
+    <p class="bv-saludo" id="bv-saludo">{% translate "Hola" %}</p>
     <h2 class="bv-nombre" id="bv-nombre">{{ bienvenida_nombre }}</h2>
     <span class="bv-linea" aria-hidden="true"></span>
-    <p class="bv-sub">Qué gusto tenerte de vuelta<span class="bv-fecha" id="bv-fecha"></span></p>
+    <p class="bv-sub">{% translate "Qué gusto tenerte de vuelta" %}<span class="bv-fecha" id="bv-fecha"></span></p>
   </div>
-  <span class="bv-saltar" aria-hidden="true">Toca para continuar</span>
+  <span class="bv-saltar" aria-hidden="true">{% translate "Toca para continuar" %}</span>
 
-  <script defer src="{% static 'core/js/bienvenida.js' %}"></script>
+  <script defer src="{% static 'core/js/bienvenida.js' %}?v=i18n1"></script>
 </div>
 {% endif %}

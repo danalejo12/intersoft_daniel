@@ -1,4 +1,5 @@
 """Cálculo de métricas SaaS para la consola de plataforma."""
+from django.utils.translation import gettext_lazy
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -11,18 +12,18 @@ from suscripciones.models import CobroSuscripcion, HistorialSuscripcion, Suscrip
 CENTAVOS = Decimal("0.01")
 MESES_ES = (
     "",
-    "Ene",
-    "Feb",
-    "Mar",
-    "Abr",
-    "May",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dic",
+    gettext_lazy("Ene"),
+    gettext_lazy("Feb"),
+    gettext_lazy("Mar"),
+    gettext_lazy("Abr"),
+    gettext_lazy("May"),
+    gettext_lazy("Jun"),
+    gettext_lazy("Jul"),
+    gettext_lazy("Ago"),
+    gettext_lazy("Sep"),
+    gettext_lazy("Oct"),
+    gettext_lazy("Nov"),
+    gettext_lazy("Dic"),
 )
 
 

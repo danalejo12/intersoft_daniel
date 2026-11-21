@@ -2,6 +2,7 @@
 
 Quien llama debe tener bloqueado el pedido (select_for_update) dentro de una transacción.
 """
+from django.utils.translation import gettext
 import logging
 
 from django.db import transaction
@@ -42,14 +43,14 @@ def hay_productos_inactivos(pedido):
 
 def reservar_stock(pedido):
     if hay_productos_inactivos(pedido):
-        raise StockInsuficiente("Un producto del pedido ya no está disponible.")
+        raise StockInsuficiente(gettext("Un producto del pedido ya no está disponible."))
     _mover_stock(pedido, MovimientoInventario.Tipo.SALIDA, f"Reserva pedido {pedido.numero}")
 
 
 def liberar_pedido(pedido, nuevo_estado):
     """Devuelve el stock reservado. Solo un pedido pendiente tiene reserva."""
     if pedido.estado != Estado.PENDIENTE:
-        raise ValueError("Este pedido no tiene una reserva activa.")
+        raise ValueError(gettext("Este pedido no tiene una reserva activa."))
     _mover_stock(pedido, MovimientoInventario.Tipo.ENTRADA, f"Liberación pedido {pedido.numero}")
     pedido.estado = nuevo_estado
     pedido.save(update_fields=["estado", "actualizado_en"])
@@ -99,10 +100,10 @@ def registrar_reembolso(*, pedido, usuario, referencia, nota=""):
     """Marca un pedido en 'requiere_reembolso' como reembolsado dejando trazabilidad completa."""
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.REQUIERE_REEMBOLSO:
-        raise ValueError("Solo se pueden reembolsar pedidos en estado 'Requiere reembolso'.")
+        raise ValueError(gettext("Solo se pueden reembolsar pedidos en estado 'Requiere reembolso'."))
     referencia_limpia = (referencia or "").strip()
     if not referencia_limpia:
-        raise ValueError("Debes indicar la referencia o comprobante del reembolso.")
+        raise ValueError(gettext("Debes indicar la referencia o comprobante del reembolso."))
     bloqueado.estado = Estado.REEMBOLSADO
     bloqueado.reembolsado_en = timezone.now()
     bloqueado.reembolso_referencia = referencia_limpia[:80]
@@ -127,9 +128,9 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
     """Actualiza el estado logístico y datos de guía de un pedido pagado."""
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.PAGADO:
-        raise ValueError("Solo se puede gestionar el envío de pedidos pagados.")
+        raise ValueError(gettext("Solo se puede gestionar el envío de pedidos pagados."))
     if estado_envio not in Pedido.EstadoEnvio.values:
-        raise ValueError("Estado de envío no válido.")
+        raise ValueError(gettext("Estado de envío no válido."))
 
     ahora = timezone.now()
     bloqueado.estado_envio = estado_envio
@@ -157,16 +158,16 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
 @transaction.atomic
 def registrar_dispersion_pedido(*, pedido, referencia, estado_dispersion=Pedido.EstadoDispersion.LIQUIDADA):
     if pedido.pago_directo:
-        raise ValueError("Los pagos directos no requieren dispersión de Intersoft.")
+        raise ValueError(gettext("Los pagos directos no requieren dispersión de Intersoft."))
     """Registra la dispersión o liquidación del neto del vendedor para un pedido pagado."""
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.PAGADO:
-        raise ValueError("Solo se puede dispersar un pedido pagado.")
+        raise ValueError(gettext("Solo se puede dispersar un pedido pagado."))
     if estado_dispersion not in Pedido.EstadoDispersion.values:
-        raise ValueError("Estado de dispersión no válido.")
+        raise ValueError(gettext("Estado de dispersión no válido."))
     referencia_limpia = (referencia or "").strip()
     if not referencia_limpia:
-        raise ValueError("Debes indicar la referencia de la transferencia o dispersión.")
+        raise ValueError(gettext("Debes indicar la referencia de la transferencia o dispersión."))
 
     bloqueado.estado_dispersion = estado_dispersion
     bloqueado.dispersion_referencia = referencia_limpia[:80]

@@ -1,16 +1,17 @@
 {% extends "core/base.html" %}
-{% block titulo %}Ideas y mejoras · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Ideas y mejoras · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Ideas y sugerencias de producto</h1>
-      <p class="nota">Propón nuevas funcionalidades o vota por las que más necesita tu negocio.</p>
+      <h1>{% translate "Ideas y sugerencias de producto" %}</h1>
+      <p class="nota">{% translate "Propón nuevas funcionalidades o vota por las que más necesita tu negocio." %}</p>
     </div>
   </div>
 
   <article class="tarjeta" style="margin-bottom: 24px;">
-    <h2>Proponer una idea</h2>
+    <h2>{% translate "Proponer una idea" %}</h2>
     <form method="post" class="formulario" novalidate>
       {% csrf_token %}
       {% for campo in form %}
@@ -20,18 +21,18 @@
           {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
         </div>
       {% endfor %}
-      <button type="submit" class="boton">Publicar idea</button>
+      <button type="submit" class="boton">{% translate "Publicar idea" %}</button>
     </form>
   </article>
 
   <article class="tarjeta">
-    <h2>Ideas propuestas</h2>
+    <h2>{% translate "Ideas propuestas" %}</h2>
     <table class="tabla">
       <thead>
         <tr>
-          <th>Idea</th>
-          <th>Estado</th>
-          <th class="num">Votos</th>
+          <th>{% translate "Idea" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th class="num">{% translate "Votos" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -45,15 +46,15 @@
               <form method="post" action="{% url 'soporte_votar_idea' idea.pk %}" style="margin: 0;">
                 {% csrf_token %}
                 {% if idea.pk in mis_votos_ids %}
-                  <button type="submit" class="boton secundario" disabled>Votada</button>
+                  <button type="submit" class="boton secundario" disabled>{% translate "Votada" %}</button>
                 {% else %}
-                  <button type="submit" class="boton">Votar</button>
+                  <button type="submit" class="boton">{% translate "Votar" %}</button>
                 {% endif %}
               </form>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">Aún no hay ideas propuestas. ¡Sé el primero!</td></tr>
+          <tr><td colspan="4">{% translate "Aún no hay ideas propuestas. ¡Sé el primero!" %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

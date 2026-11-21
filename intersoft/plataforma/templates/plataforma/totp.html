@@ -1,33 +1,34 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}Verificación 2FA (TOTP) · Consola de Plataforma{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Verificación 2FA (TOTP) · Consola de Plataforma" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Verificación en dos pasos (2FA / TOTP)</h1>
-      <p class="nota">El acceso a la consola /plataforma/ requiere autenticación TOTP obligatoria.</p>
+      <h1>{% translate "Verificación en dos pasos (2FA / TOTP)" %}</h1>
+      <p class="nota">{% translate "El acceso a la consola /plataforma/ requiere autenticación TOTP obligatoria." %}</p>
     </div>
   </div>
 
   <article class="tarjeta" style="max-width: 520px;">
     {% if configurando %}
-      <h2>Activar 2FA en tu cuenta</h2>
-      <p>Agrega esta clave en Google Authenticator, Authy o tu gestor de contraseñas:</p>
+      <h2>{% translate "Activar 2FA en tu cuenta" %}</h2>
+      <p>{% translate "Agrega esta clave en Google Authenticator, Authy o tu gestor de contraseñas:" %}</p>
       <p><code>{{ secreto_nuevo }}</code></p>
-      <p><small class="nota">URI otpauth: <code>{{ uri_totp }}</code></small></p>
+      <p><small class="nota">{% translate "URI otpauth:" %} <code>{{ uri_totp }}</code></small></p>
     {% else %}
-      <h2>Ingresa tu código de verificación</h2>
-      <p class="nota">Escribe el código de 6 dígitos generado por tu aplicación de autenticación.</p>
+      <h2>{% translate "Ingresa tu código de verificación" %}</h2>
+      <p class="nota">{% translate "Escribe el código de 6 dígitos generado por tu aplicación de autenticación." %}</p>
     {% endif %}
 
     <form method="post" class="formulario" novalidate>
       {% csrf_token %}
       <div class="campo">
-        <label for="id_codigo">Código TOTP (6 dígitos)</label>
+        <label for="id_codigo">{% translate "Código TOTP (6 dígitos)" %}</label>
         <input id="id_codigo" type="text" name="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required autofocus>
       </div>
       <button type="submit" class="boton">
-        {% if configurando %}Activar y entrar{% else %}Verificar código{% endif %}
+        {% if configurando %}{% translate "Activar y entrar" %}{% else %}{% translate "Verificar código" %}{% endif %}
       </button>
     </form>
   </article>

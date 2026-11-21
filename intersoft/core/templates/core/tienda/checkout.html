@@ -1,10 +1,11 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Datos de envío · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Datos de envío · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   {% include "core/tienda/pasos.html" with paso=2 %}
-  <h1 class="titulo-compra">¿A dónde te lo enviamos?</h1>
-  <p class="nota">Son solo unos datos. Todavía no se hace ningún cobro.</p>
+  <h1 class="titulo-compra">{% translate "¿A dónde te lo enviamos?" %}</h1>
+  <p class="nota">{% translate "Son solo unos datos. Todavía no se hace ningún cobro." %}</p>
 
   <form method="post" class="compra-rejilla" data-un-envio>
     {% csrf_token %}
@@ -13,7 +14,7 @@
     </div>
 
     <aside class="resumen">
-      <h3>Tu pedido en {{ negocio.nombre }}</h3>
+      <h3>{% blocktranslate with nombre=negocio.nombre %}Tu pedido en {{ nombre }}{% endblocktranslate %}</h3>
       <ul class="resumen-lineas">
         {% for linea in grupo.lineas %}
           <li><span>{{ linea.cantidad }} × {{ linea.producto.nombre }}</span><span>${{ linea.total|floatformat:"-2g" }}</span></li>
@@ -21,26 +22,26 @@
       </ul>
       <dl>
         <div>
-          <dt>Envío</dt>
+          <dt>{% translate "Envío" %}</dt>
           <dd>
             {% if grupo.costo_envio %}
               ${{ grupo.costo_envio|floatformat:"-2g" }}
             {% elif negocio.envio_gratis_desde and grupo.subtotal >= negocio.envio_gratis_desde %}
-              Gratis
+              {% translate "Gratis" %}
             {% else %}
-              Lo coordinas con el negocio
+              {% translate "Lo coordinas con el negocio" %}
             {% endif %}
           </dd>
         </div>
-                {% if grupo.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
-        <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
+                {% if grupo.cargo_pasarela %}<div><dt>{% translate "Cargo pasarela de pagos (Wompi)" %}</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
+        <div class="resumen-total"><dt>{% translate "Total" %}</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
       </dl>
-      <button type="submit" class="boton boton-grande boton-ancho">Continuar al pago</button>
+      <button type="submit" class="boton boton-grande boton-ancho">{% translate "Continuar al pago" %}</button>
       <p class="confianza">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        Pagas en la página segura de Wompi. Nosotros nunca vemos tu tarjeta.
+        {% translate "Pagas en la página segura de Wompi. Nosotros nunca vemos tu tarjeta." %}
       </p>
-      <a class="volver" href="{% url 'carrito' %}">← Volver al carrito</a>
+      <a class="volver" href="{% url 'carrito' %}">{% translate "← Volver al carrito" %}</a>
     </aside>
   </form>
 {% endblock %}

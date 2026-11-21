@@ -1,15 +1,16 @@
 {% extends "core/base.html" %}
-{% block titulo %}Facturas · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Facturas · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>Facturas</h1>
-    <a class="boton" href="{% url 'facturas_crear' %}">Nueva factura</a>
+    <h1>{% translate "Facturas" %}</h1>
+    <a class="boton" href="{% url 'facturas_crear' %}">{% translate "Nueva factura" %}</a>
   </div>
 
   <table class="tabla">
     <thead>
-      <tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th class="num">Total</th><th></th></tr>
+      <tr><th>N.º</th><th>{% translate "Fecha" %}</th><th>{% translate "Cliente" %}</th><th>{% translate "Estado" %}</th><th class="num">{% translate "Total" %}</th><th></th></tr>
     </thead>
     <tbody>
       {% for factura in facturas %}
@@ -17,35 +18,35 @@
           <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
           <td>{{ factura.creado_en|date:"d/m/Y H:i" }}</td>
           <td>{{ factura.cliente.nombre }}</td>
-          <td>{% if factura.pagada %}Pagada{% else %}{{ factura.get_estado_display }}{% endif %}</td>
+          <td>{% if factura.pagada %}{% translate "Pagada" %}{% else %}{{ factura.get_estado_display }}{% endif %}</td>
           <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
           <td class="acciones-fila">
-            <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Ver</a>
+            <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">{% translate "Ver" %}</a>
             {% if factura.pagada %}
-              <span class="etiqueta-pagada">Pagada</span>
+              <span class="etiqueta-pagada">{% translate "Pagada" %}</span>
             {% elif factura.en_cartera %}
-              <span class="etiqueta">En cartera</span>
+              <span class="etiqueta">{% translate "En cartera" %}</span>
             {% elif factura.pago_en_proceso %}
-              <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Verificar pago</a>
+              <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">{% translate "Verificar pago" %}</a>
             {% elif puede_cobrar and factura.estado == "emitida" %}
               <form method="post" action="{% url 'facturas_cobrar' factura.pk %}">
                 {% csrf_token %}
-                <button type="submit">Pagar con Wompi</button>
+                <button type="submit">{% translate "Pagar con Wompi" %}</button>
               </form>
             {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6">Aún no hay facturas.</td></tr>
+        <tr><td colspan="6">{% translate "Aún no hay facturas." %}</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
   {% if is_paginated %}
     <nav class="paginacion">
-      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">← Anterior</a>{% endif %}
-      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">Siguiente →</a>{% endif %}
+      {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}">{% translate "← Anterior" %}</a>{% endif %}
+      <span>{% blocktranslate with number=page_obj.number num_pages=page_obj.paginator.num_pages %}Página {{ number }} de {{ num_pages }}{% endblocktranslate %}</span>
+      {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}">{% translate "Siguiente →" %}</a>{% endif %}
     </nav>
   {% endif %}
 {% endblock %}

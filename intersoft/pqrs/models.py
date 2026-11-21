@@ -1,4 +1,5 @@
 """Modelos del módulo de PQRS (Peticiones, Quejas, Reclamos y Sugerencias)."""
+from django.utils.translation import gettext, gettext_lazy
 import os
 
 from django.conf import settings
@@ -23,21 +24,21 @@ def validar_archivo_pqrs(archivo):
     ext = os.path.splitext(nombre)[1].lower()
     if ext not in EXTENSIONES_PERMITIDAS_PQRS:
         raise ValidationError(
-            "Formato de archivo no permitido. Usa imágenes (JPG, PNG, WEBP, GIF) o PDF."
+            gettext("Formato de archivo no permitido. Usa imágenes (JPG, PNG, WEBP, GIF) o PDF.")
         )
     if archivo.size > MAX_BYTES_ADJUNTO_PQRS:
-        raise ValidationError("El archivo supera el tamaño máximo permitido de 5 MB.")
+        raise ValidationError(gettext("El archivo supera el tamaño máximo permitido de 5 MB."))
 
 
 class SecuenciaRadicadoPQRS(ModeloBase):
     """Consecutivo anual para generar radicados únicos PQRS-AAAA-00001."""
 
-    anio = models.PositiveSmallIntegerField("año", unique=True)
-    ultimo_consecutivo = models.PositiveIntegerField("último consecutivo", default=0)
+    anio = models.PositiveSmallIntegerField(gettext_lazy("año"), unique=True)
+    ultimo_consecutivo = models.PositiveIntegerField(gettext_lazy("último consecutivo"), default=0)
 
     class Meta:
-        verbose_name = "secuencia de radicado PQRS"
-        verbose_name_plural = "secuencias de radicado PQRS"
+        verbose_name = gettext_lazy("secuencia de radicado PQRS")
+        verbose_name_plural = gettext_lazy("secuencias de radicado PQRS")
 
     def __str__(self):
         return f"{self.anio}: {self.ultimo_consecutivo}"
@@ -64,27 +65,27 @@ class PQRS(ModeloBase):
     """Solicitud PQRS en flujo A (Negocio -> Intersoft) o flujo B (Comprador -> Negocio)."""
 
     class Tipo(models.TextChoices):
-        PETICION = "peticion", "Petición"
-        QUEJA = "queja", "Queja"
-        RECLAMO = "reclamo", "Reclamo"
-        SUGERENCIA = "sugerencia", "Sugerencia"
+        PETICION = "peticion", gettext_lazy("Petición")
+        QUEJA = "queja", gettext_lazy("Queja")
+        RECLAMO = "reclamo", gettext_lazy("Reclamo")
+        SUGERENCIA = "sugerencia", gettext_lazy("Sugerencia")
 
     class Flujo(models.TextChoices):
-        NEGOCIO_INTERSOFT = "A", "Negocio → Intersoft"
-        COMPRADOR_NEGOCIO = "B", "Comprador → Negocio"
+        NEGOCIO_INTERSOFT = "A", gettext_lazy("Negocio → Intersoft")
+        COMPRADOR_NEGOCIO = "B", gettext_lazy("Comprador → Negocio")
 
     class Estado(models.TextChoices):
-        RADICADA = "radicada", "Radicada"
-        EN_TRAMITE = "en_tramite", "En trámite"
-        RESPONDIDA = "respondida", "Respondida"
-        CERRADA = "cerrada", "Cerrada"
-        ESCALADA = "escalada", "Escalada a Intersoft"
+        RADICADA = "radicada", gettext_lazy("Radicada")
+        EN_TRAMITE = "en_tramite", gettext_lazy("En trámite")
+        RESPONDIDA = "respondida", gettext_lazy("Respondida")
+        CERRADA = "cerrada", gettext_lazy("Cerrada")
+        ESCALADA = "escalada", gettext_lazy("Escalada a Intersoft")
 
     class Prioridad(models.TextChoices):
-        BAJA = "baja", "Baja"
-        MEDIA = "media", "Media"
-        ALTA = "alta", "Alta"
-        URGENTE = "urgente", "Urgente"
+        BAJA = "baja", gettext_lazy("Baja")
+        MEDIA = "media", gettext_lazy("Media")
+        ALTA = "alta", gettext_lazy("Alta")
+        URGENTE = "urgente", gettext_lazy("Urgente")
 
     radicado = models.CharField("radicado", max_length=24, unique=True, editable=False)
     tipo = models.CharField("tipo", max_length=20, choices=Tipo.choices)
@@ -112,7 +113,7 @@ class PQRS(ModeloBase):
         verbose_name="autor",
     )
     asunto = models.CharField("asunto", max_length=160)
-    descripcion = models.TextField("descripción")
+    descripcion = models.TextField(gettext_lazy("descripción"))
     adjunto = models.FileField(
         "adjunto",
         upload_to="pqrs/adjuntos/%Y/%m/",
@@ -139,27 +140,27 @@ class PQRS(ModeloBase):
         null=True,
         blank=True,
         related_name="pqrs_asignadas",
-        verbose_name="asignado a",
+        verbose_name=gettext_lazy("asignado a"),
     )
-    fecha_limite = models.DateTimeField("fecha límite de respuesta", db_index=True)
-    escalada_en = models.DateTimeField("escalada en", null=True, blank=True)
-    respondida_en = models.DateTimeField("respondida en", null=True, blank=True)
-    cerrada_en = models.DateTimeField("cerrada en", null=True, blank=True)
+    fecha_limite = models.DateTimeField(gettext_lazy("fecha límite de respuesta"), db_index=True)
+    escalada_en = models.DateTimeField(gettext_lazy("escalada en"), null=True, blank=True)
+    respondida_en = models.DateTimeField(gettext_lazy("respondida en"), null=True, blank=True)
+    cerrada_en = models.DateTimeField(gettext_lazy("cerrada en"), null=True, blank=True)
     calificacion = models.PositiveSmallIntegerField(
-        "calificación de satisfacción",
+        gettext_lazy("calificación de satisfacción"),
         null=True,
         blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     comentario_satisfaccion = models.CharField(
-        "comentario de satisfacción",
+        gettext_lazy("comentario de satisfacción"),
         max_length=255,
         blank=True,
     )
 
     class Meta:
-        verbose_name = "PQRS"
-        verbose_name_plural = "PQRS"
+        verbose_name = gettext_lazy("PQRS")
+        verbose_name_plural = gettext_lazy("PQRS")
         ordering = ["-creado_en"]
         indexes = [
             models.Index(fields=["empresa", "estado", "-creado_en"], name="ix_pqrs_emp_est_fec"),
@@ -189,7 +190,7 @@ class MensajePQRS(ModeloBase):
         PQRS,
         on_delete=models.CASCADE,
         related_name="mensajes",
-        verbose_name="PQRS",
+        verbose_name=gettext_lazy("PQRS"),
     )
     autor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -205,13 +206,13 @@ class MensajePQRS(ModeloBase):
         null=True,
         validators=[validar_archivo_pqrs],
     )
-    interno = models.BooleanField("nota interna", default=False)
+    interno = models.BooleanField(gettext_lazy("nota interna"), default=False)
 
     class Meta:
-        verbose_name = "mensaje de PQRS"
-        verbose_name_plural = "mensajes de PQRS"
+        verbose_name = gettext_lazy("mensaje de PQRS")
+        verbose_name_plural = gettext_lazy("mensajes de PQRS")
         ordering = ["creado_en"]
 
     def __str__(self):
-        marca = " [Interna]" if self.interno else ""
+        marca = gettext(" [Interna]") if self.interno else ""
         return f"{self.pqrs.radicado} · {self.autor}{marca}"

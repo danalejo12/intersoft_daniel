@@ -1,4 +1,5 @@
 """Automatización contable (asientos por evento con PUC base) y calculadora de aportes de nómina."""
+from django.utils.translation import gettext
 from decimal import Decimal
 
 from django.db import transaction
@@ -65,7 +66,7 @@ def _crear_asiento_idempotente(*, empresa, usuario, referencia, concepto, fecha,
 def contabilizar_factura(*, factura, usuario=None):
     """Genera el asiento contable de causación de una factura emitida (1305 vs 4135 + 2408)."""
     if factura.estado == "anulada" or factura.total <= 0:
-        raise ValueError("Solo se pueden contabilizar facturas vigentes con total positivo.")
+        raise ValueError(gettext("Solo se pueden contabilizar facturas vigentes con total positivo."))
     cuentas = asegurar_cuentas_puc(factura.empresa)
     ingreso_neto = (factura.total - factura.iva).quantize(CENTAVOS)
     movimientos = [
@@ -88,11 +89,11 @@ def contabilizar_factura(*, factura, usuario=None):
 def contabilizar_recaudo_factura(*, factura, monto=None, referencia_pago="PAGO", usuario=None):
     """Genera el asiento de recaudo (1105 Caja y bancos vs 1305 Clientes) causando primero la factura si falta."""
     if factura.estado == "anulada" or factura.total <= 0:
-        raise ValueError("Solo se puede contabilizar el recaudo de facturas vigentes con total positivo.")
+        raise ValueError(gettext("Solo se puede contabilizar el recaudo de facturas vigentes con total positivo."))
     contabilizar_factura(factura=factura, usuario=usuario)
     monto_recaudo = Decimal(str(monto if monto is not None else factura.total)).quantize(CENTAVOS)
     if monto_recaudo <= 0 or monto_recaudo > factura.total:
-        raise ValueError("El monto del recaudo debe ser mayor que cero y no superar el total de la factura.")
+        raise ValueError(gettext("El monto del recaudo debe ser mayor que cero y no superar el total de la factura."))
     cuentas = asegurar_cuentas_puc(factura.empresa)
     sufijo = (str(referencia_pago or "PAGO").strip() or "PAGO")[:60]
     return _crear_asiento_idempotente(
@@ -157,7 +158,7 @@ def reversar_asiento_factura(*, factura, usuario=None):
 def contabilizar_compra(*, compra, usuario):
     """Genera el asiento contable de una compra recibida (1435 + 2408 vs 2205)."""
     if not compra.recibida or compra.total <= 0:
-        raise ValueError("Solo se pueden contabilizar compras recibidas con total positivo.")
+        raise ValueError(gettext("Solo se pueden contabilizar compras recibidas con total positivo."))
     cuentas = asegurar_cuentas_puc(compra.empresa)
     movimientos = [
         (cuentas["1435"], compra.subtotal, Decimal("0")),
@@ -206,7 +207,7 @@ def contabilizar_movimiento_tesoreria(*, movimiento, usuario=None):
 def contabilizar_nomina(*, nomina, usuario):
     """Genera el asiento contable de causación de una nómina aprobada (5105 vs 2505)."""
     if not nomina.aprobada or nomina.neto <= 0:
-        raise ValueError("Solo se pueden contabilizar liquidaciones de nómina aprobadas.")
+        raise ValueError(gettext("Solo se pueden contabilizar liquidaciones de nómina aprobadas."))
     cuentas = asegurar_cuentas_puc(nomina.empresa)
     return _crear_asiento_idempotente(
         empresa=nomina.empresa,
@@ -227,9 +228,9 @@ def calcular_aportes_nomina_colombia(*, salario_base, adicionales_salariales=Dec
     adicionales = Decimal(str(adicionales_salariales))
     auxilio = Decimal(str(auxilio_transporte))
     if base <= 0:
-        raise ValueError("El salario base debe ser mayor que cero.")
+        raise ValueError(gettext("El salario base debe ser mayor que cero."))
     if adicionales < 0 or auxilio < 0:
-        raise ValueError("Los valores adicionales o de auxilio no pueden ser negativos.")
+        raise ValueError(gettext("Los valores adicionales o de auxilio no pueden ser negativos."))
 
     ibc = (base + adicionales).quantize(CENTAVOS)
     base_prestaciones = (ibc + auxilio).quantize(CENTAVOS)

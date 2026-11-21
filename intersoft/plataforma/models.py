@@ -1,4 +1,5 @@
 """Modelos de la consola interna de plataforma: roles internos, auditoría y llaves de cobro de Intersoft."""
+from django.utils.translation import gettext, gettext_lazy
 from django.conf import settings
 from django.db import OperationalError, ProgrammingError, models
 from django.db.models import Q
@@ -32,10 +33,10 @@ class RolPlataforma(ModeloBase):
     """Rol interno asignado a miembros del equipo dueño de Intersoft (is_staff)."""
 
     class Rol(models.TextChoices):
-        DUENO = "dueno", "Dueño"
-        FINANZAS = "finanzas", "Finanzas"
-        SOPORTE = "soporte", "Soporte"
-        DESARROLLADOR = "desarrollador", "Desarrollador"
+        DUENO = "dueno", gettext_lazy("Dueño")
+        FINANZAS = "finanzas", gettext_lazy("Finanzas")
+        SOPORTE = "soporte", gettext_lazy("Soporte")
+        DESARROLLADOR = "desarrollador", gettext_lazy("Desarrollador")
 
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -43,10 +44,10 @@ class RolPlataforma(ModeloBase):
         related_name="rol_plataforma",
         verbose_name="usuario",
     )
-    rol = models.CharField("rol interno", max_length=20, choices=Rol.choices)
+    rol = models.CharField(gettext_lazy("rol interno"), max_length=20, choices=Rol.choices)
     activo = models.BooleanField("activo", default=True)
     totp_secreto_cifrado = models.TextField(blank=True)
-    totp_activo = models.BooleanField("2FA TOTP activado", default=False)
+    totp_activo = models.BooleanField(gettext_lazy("2FA TOTP activado"), default=False)
 
     @property
     def totp_secreto(self) -> str:
@@ -56,8 +57,8 @@ class RolPlataforma(ModeloBase):
         self.totp_secreto_cifrado = cifrar(secreto) if secreto else ""
 
     class Meta:
-        verbose_name = "rol de plataforma"
-        verbose_name_plural = "roles de plataforma"
+        verbose_name = gettext_lazy("rol de plataforma")
+        verbose_name_plural = gettext_lazy("roles de plataforma")
         ordering = ["usuario__email"]
 
     def __str__(self):
@@ -82,16 +83,16 @@ class AuditoriaPlataforma(ModeloBase):
         related_name="+",
         verbose_name="actor",
     )
-    accion = models.CharField("acción", max_length=80, db_index=True)
-    objeto_tipo = models.CharField("tipo de objeto", max_length=60, blank=True)
-    objeto_id = models.CharField("id de objeto", max_length=60, blank=True)
-    detalle = models.JSONField("detalle (sin secretos)", default=dict, blank=True)
-    ip = models.GenericIPAddressField("dirección IP", null=True, blank=True)
+    accion = models.CharField(gettext_lazy("acción"), max_length=80, db_index=True)
+    objeto_tipo = models.CharField(gettext_lazy("tipo de objeto"), max_length=60, blank=True)
+    objeto_id = models.CharField(gettext_lazy("id de objeto"), max_length=60, blank=True)
+    detalle = models.JSONField(gettext_lazy("detalle (sin secretos)"), default=dict, blank=True)
+    ip = models.GenericIPAddressField(gettext_lazy("dirección IP"), null=True, blank=True)
     fecha = models.DateTimeField("fecha", default=timezone.now, db_index=True)
 
     class Meta:
-        verbose_name = "auditoría de plataforma"
-        verbose_name_plural = "auditorías de plataforma"
+        verbose_name = gettext_lazy("auditoría de plataforma")
+        verbose_name_plural = gettext_lazy("auditorías de plataforma")
         ordering = ["-fecha", "-creado_en"]
 
     def __str__(self):
@@ -109,19 +110,19 @@ class ConfiguracionCobroPlataforma(ModeloBase):
     """Configuración singleton con las llaves cifradas de Wompi de Intersoft para cobrar planes."""
 
     class Modo(models.TextChoices):
-        PRUEBAS = "pruebas", "Pruebas (sandbox)"
-        PRODUCCION = "produccion", "Producción"
+        PRUEBAS = "pruebas", gettext_lazy("Pruebas (sandbox)")
+        PRODUCCION = "produccion", gettext_lazy("Producción")
 
     clave_unica = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     modo = models.CharField("modo", max_length=20, choices=Modo.choices, default=Modo.PRUEBAS)
-    llave_publica = models.CharField("llave pública", max_length=120, blank=True)
+    llave_publica = models.CharField(gettext_lazy("llave pública"), max_length=120, blank=True)
     llave_privada_cifrada = models.TextField(blank=True)
     secreto_integridad_cifrado = models.TextField(blank=True)
     secreto_eventos_cifrado = models.TextField(blank=True)
     llave_privada_final = models.CharField(max_length=4, blank=True)
     secreto_integridad_final = models.CharField(max_length=4, blank=True)
     secreto_eventos_final = models.CharField(max_length=4, blank=True)
-    activa = models.BooleanField("usar estas llaves para cobrar planes", default=False)
+    activa = models.BooleanField(gettext_lazy("usar estas llaves para cobrar planes"), default=False)
     verificada_en = models.DateTimeField(null=True, blank=True)
     comercio_verificado = models.CharField(max_length=200, blank=True)
     ultimo_intento_verificacion = models.DateTimeField(null=True, blank=True)
@@ -131,12 +132,12 @@ class ConfiguracionCobroPlataforma(ModeloBase):
         null=True,
         blank=True,
         related_name="+",
-        verbose_name="actualizada por",
+        verbose_name=gettext_lazy("actualizada por"),
     )
 
     class Meta:
-        verbose_name = "configuración de cobro de plataforma"
-        verbose_name_plural = "configuraciones de cobro de plataforma"
+        verbose_name = gettext_lazy("configuración de cobro de plataforma")
+        verbose_name_plural = gettext_lazy("configuraciones de cobro de plataforma")
 
     def __str__(self):
         return f"Wompi Intersoft · {self.get_modo_display()}"
@@ -165,7 +166,7 @@ class ConfiguracionCobroPlataforma(ModeloBase):
     def poner_secreto(self, campo: str, valor: str) -> None:
         """Cifra un secreto y guarda únicamente los últimos 4 caracteres visibles."""
         if campo not in CAMPOS_SECRETOS_PLATAFORMA:
-            raise ValueError(f"Campo secreto desconocido: {campo}")
+            raise ValueError(gettext("Campo secreto desconocido: {campo}").format(campo=campo))
         limpio = (valor or "").strip()
         setattr(self, CAMPOS_SECRETOS_PLATAFORMA[campo], cifrar(limpio) if limpio else "")
         setattr(self, f"{campo}_final", limpio[-4:] if limpio else "")
@@ -175,15 +176,15 @@ class AnuncioGlobal(ModeloBase):
     """Anuncio global publicado desde /plataforma/ visible como aviso en el /panel/ de los negocios."""
 
     class Tipo(models.TextChoices):
-        INFO = "info", "Información"
-        ADVERTENCIA = "advertencia", "Advertencia"
-        MANTENIMIENTO = "mantenimiento", "Mantenimiento"
+        INFO = "info", gettext_lazy("Información")
+        ADVERTENCIA = "advertencia", gettext_lazy("Advertencia")
+        MANTENIMIENTO = "mantenimiento", gettext_lazy("Mantenimiento")
 
-    titulo = models.CharField("título", max_length=140)
+    titulo = models.CharField(gettext_lazy("título"), max_length=140)
     mensaje = models.TextField("mensaje")
     tipo = models.CharField("tipo", max_length=20, choices=Tipo.choices, default=Tipo.INFO)
-    inicia_en = models.DateTimeField("vigente desde", default=timezone.now)
-    vence_en = models.DateTimeField("vigente hasta", null=True, blank=True)
+    inicia_en = models.DateTimeField(gettext_lazy("vigente desde"), default=timezone.now)
+    vence_en = models.DateTimeField(gettext_lazy("vigente hasta"), null=True, blank=True)
     activo = models.BooleanField("activo", default=True)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -191,12 +192,12 @@ class AnuncioGlobal(ModeloBase):
         null=True,
         blank=True,
         related_name="+",
-        verbose_name="creado por",
+        verbose_name=gettext_lazy("creado por"),
     )
 
     class Meta:
-        verbose_name = "anuncio global"
-        verbose_name_plural = "anuncios globales"
+        verbose_name = gettext_lazy("anuncio global")
+        verbose_name_plural = gettext_lazy("anuncios globales")
         ordering = ["-inicia_en", "-creado_en"]
 
     def __str__(self):
@@ -224,12 +225,12 @@ class FeatureFlag(ModeloBase):
         related_name="feature_flags",
         verbose_name="negocio",
     )
-    codigo = models.CharField("código de función", max_length=60)
+    codigo = models.CharField(gettext_lazy("código de función"), max_length=60)
     habilitado = models.BooleanField("habilitado", default=True)
 
     class Meta:
-        verbose_name = "interruptor de función"
-        verbose_name_plural = "interruptores de función"
+        verbose_name = gettext_lazy("interruptor de función")
+        verbose_name_plural = gettext_lazy("interruptores de función")
         ordering = ["empresa__nombre", "codigo"]
         constraints = [
             models.UniqueConstraint(fields=["empresa", "codigo"], name="uq_feature_flag_empresa_codigo"),

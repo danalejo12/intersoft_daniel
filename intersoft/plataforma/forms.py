@@ -1,4 +1,5 @@
 """Formularios para la consola interna de plataforma."""
+from django.utils.translation import gettext, gettext_lazy
 from decimal import Decimal
 
 from django import forms
@@ -11,18 +12,18 @@ from suscripciones.models import CuponPlan, Plan
 from .models import AnuncioGlobal, ConfiguracionCobroPlataforma, FeatureFlag
 
 FEATURES_DISPONIBLES = [
-    ("marketplace", "Marketplace"),
-    ("marketplace_destacado", "Marketplace destacado"),
-    ("pos", "POS (Punto de venta)"),
-    ("inventario", "Inventario"),
-    ("alertas_inventario", "Alertas de inventario"),
-    ("roles", "Roles de equipo"),
-    ("reportes_basicos", "Reportes básicos"),
-    ("reportes_avanzados", "Reportes avanzados"),
-    ("multisede", "Multisede"),
-    ("exportacion", "Exportación de datos"),
-    ("prioridad_busqueda", "Prioridad en búsqueda"),
-    ("asistente_ia", "Asistente IA"),
+    ("marketplace", gettext_lazy("Marketplace")),
+    ("marketplace_destacado", gettext_lazy("Marketplace destacado")),
+    ("pos", gettext_lazy("POS (Punto de venta)")),
+    ("inventario", gettext_lazy("Inventario")),
+    ("alertas_inventario", gettext_lazy("Alertas de inventario")),
+    ("roles", gettext_lazy("Roles de equipo")),
+    ("reportes_basicos", gettext_lazy("Reportes básicos")),
+    ("reportes_avanzados", gettext_lazy("Reportes avanzados")),
+    ("multisede", gettext_lazy("Multisede")),
+    ("exportacion", gettext_lazy("Exportación de datos")),
+    ("prioridad_busqueda", gettext_lazy("Prioridad en búsqueda")),
+    ("asistente_ia", gettext_lazy("Asistente IA")),
 ]
 
 
@@ -30,27 +31,27 @@ class ConfiguracionCobroPlataformaForm(forms.ModelForm):
     """Formulario seguro para las llaves de Wompi de Intersoft: nunca expone secretos existentes."""
 
     llave_privada = forms.CharField(
-        label="Llave privada",
+        label=gettext_lazy("Llave privada"),
         required=False,
         widget=forms.PasswordInput(
             render_value=False,
-            attrs={"placeholder": "Déjala vacía para conservar la actual", "autocomplete": "new-password"},
+            attrs={"placeholder": gettext_lazy("Déjala vacía para conservar la actual"), "autocomplete": "new-password"},
         ),
     )
     secreto_integridad = forms.CharField(
-        label="Secreto de integridad",
+        label=gettext_lazy("Secreto de integridad"),
         required=False,
         widget=forms.PasswordInput(
             render_value=False,
-            attrs={"placeholder": "Déjalo vacío para conservar el actual", "autocomplete": "new-password"},
+            attrs={"placeholder": gettext_lazy("Déjalo vacío para conservar el actual"), "autocomplete": "new-password"},
         ),
     )
     secreto_eventos = forms.CharField(
-        label="Secreto de eventos (webhook)",
+        label=gettext_lazy("Secreto de eventos (webhook)"),
         required=False,
         widget=forms.PasswordInput(
             render_value=False,
-            attrs={"placeholder": "Déjalo vacío para conservar el actual", "autocomplete": "new-password"},
+            attrs={"placeholder": gettext_lazy("Déjalo vacío para conservar el actual"), "autocomplete": "new-password"},
         ),
     )
 
@@ -58,12 +59,12 @@ class ConfiguracionCobroPlataformaForm(forms.ModelForm):
         model = ConfiguracionCobroPlataforma
         fields = ["modo", "llave_publica", "activa"]
         labels = {
-            "modo": "Entorno de Wompi",
-            "llave_publica": "Llave pública",
-            "activa": "Activar cobro de planes con estas llaves",
+            "modo": gettext_lazy("Entorno de Wompi"),
+            "llave_publica": gettext_lazy("Llave pública"),
+            "activa": gettext_lazy("Activar cobro de planes con estas llaves"),
         }
         widgets = {
-            "llave_publica": forms.TextInput(attrs={"placeholder": "pub_test_... o pub_prod_..."}),
+            "llave_publica": forms.TextInput(attrs={"placeholder": gettext_lazy("pub_test_... o pub_prod_...")}),
         }
 
     def clean(self):
@@ -75,9 +76,9 @@ class ConfiguracionCobroPlataformaForm(forms.ModelForm):
         if publica:
             modo_pub = modo_de_llave("llave_publica", publica)
             if modo_pub is None:
-                self.add_error("llave_publica", f"Formato inválido. Ejemplo: {EJEMPLOS['llave_publica']}")
+                self.add_error("llave_publica", gettext("Formato inválido. Ejemplo: {llave_publica}").format(llave_publica=EJEMPLOS['llave_publica']))
             elif modo and modo_pub != modo:
-                self.add_error("llave_publica", f"La llave pública no corresponde al modo {modo}.")
+                self.add_error("llave_publica", gettext("La llave pública no corresponde al modo {modo}.").format(modo=modo))
 
         for campo in ("llave_privada", "secreto_integridad", "secreto_eventos"):
             valor = (datos.get(campo) or "").strip()
@@ -85,16 +86,16 @@ class ConfiguracionCobroPlataformaForm(forms.ModelForm):
             if valor:
                 modo_val = modo_de_llave(campo, valor)
                 if modo_val is None:
-                    self.add_error(campo, f"Formato inválido. Ejemplo: {EJEMPLOS[campo]}")
+                    self.add_error(campo, gettext("Formato inválido. Ejemplo: {campo}").format(campo=EJEMPLOS[campo]))
                 elif modo and modo_val != modo:
-                    self.add_error(campo, f"Este secreto no corresponde al modo {modo}.")
+                    self.add_error(campo, gettext("Este secreto no corresponde al modo {modo}.").format(modo=modo))
 
         if datos.get("activa"):
             if not publica:
-                self.add_error("llave_publica", "Ingresa la llave pública para activar los cobros.")
+                self.add_error("llave_publica", gettext("Ingresa la llave pública para activar los cobros."))
             tiene_integridad = bool(datos.get("secreto_integridad") or self.instance.secreto_integridad_cifrado)
             if not tiene_integridad:
-                self.add_error("secreto_integridad", "El secreto de integridad es obligatorio para activar cobros.")
+                self.add_error("secreto_integridad", gettext("El secreto de integridad es obligatorio para activar cobros."))
 
         return datos
 
@@ -125,19 +126,19 @@ class PlanPlataformaForm(forms.ModelForm):
     """Editor de precios, límites, funcionalidades, comisión y estado de un plan."""
 
     limite_productos = forms.IntegerField(
-        label="Límite de productos",
+        label=gettext_lazy("Límite de productos"),
         required=False,
         min_value=0,
-        help_text="Déjalo vacío para ilimitado.",
+        help_text=gettext_lazy("Déjalo vacío para ilimitado."),
     )
     limite_usuarios = forms.IntegerField(
-        label="Límite de usuarios",
+        label=gettext_lazy("Límite de usuarios"),
         required=False,
         min_value=0,
-        help_text="Déjalo vacío para ilimitado.",
+        help_text=gettext_lazy("Déjalo vacío para ilimitado."),
     )
     features = forms.MultipleChoiceField(
-        label="Funcionalidades (features)",
+        label=gettext_lazy("Funcionalidades (features)"),
         required=False,
         choices=FEATURES_DISPONIBLES,
         widget=forms.CheckboxSelectMultiple,
@@ -167,11 +168,11 @@ class PlanPlataformaForm(forms.ModelForm):
             precio_m = datos.get("precio_mensual")
             precio_a = datos.get("precio_anual")
             if precio_m is not None and precio_m != Decimal("0.00"):
-                self.add_error("precio_mensual", "El plan gratis debe mantener precio mensual 0.")
+                self.add_error("precio_mensual", gettext("El plan gratis debe mantener precio mensual 0."))
             if precio_a is not None and precio_a != Decimal("0.00"):
-                self.add_error("precio_anual", "El plan gratis debe mantener precio anual 0.")
+                self.add_error("precio_anual", gettext("El plan gratis debe mantener precio anual 0."))
             if datos.get("activo") is False:
-                self.add_error("activo", "El plan gratis no se puede desactivar.")
+                self.add_error("activo", gettext("El plan gratis no se puede desactivar."))
         return datos
 
     def guardar(self) -> tuple[Plan, dict]:
@@ -217,25 +218,25 @@ class CortesiaPlataformaForm(forms.Form):
     """Formulario para otorgar días gratis o un plan de cortesía a un negocio."""
 
     empresa = forms.ModelChoiceField(
-        label="Negocio",
+        label=gettext_lazy("Negocio"),
         queryset=Empresa.objects.filter(activa=True).order_by("nombre"),
     )
     plan = forms.ModelChoiceField(
-        label="Plan de cortesía (opcional)",
+        label=gettext_lazy("Plan de cortesía (opcional)"),
         queryset=Plan.objects.filter(activo=True).order_by("orden", "precio_mensual"),
         required=False,
-        empty_label="Conservar plan actual",
+        empty_label=gettext_lazy("Conservar plan actual"),
     )
     dias = forms.IntegerField(
-        label="Días gratis (opcional)",
+        label=gettext_lazy("Días gratis (opcional)"),
         required=False,
         min_value=1,
-        help_text="Si se omite al asignar un plan pago, se otorgan 30 días.",
+        help_text=gettext_lazy("Si se omite al asignar un plan pago, se otorgan 30 días."),
     )
     motivo = forms.CharField(
-        label="Motivo",
+        label=gettext_lazy("Motivo"),
         max_length=255,
-        widget=forms.TextInput(attrs={"placeholder": "Ej. Compensación de soporte o alianza"}),
+        widget=forms.TextInput(attrs={"placeholder": gettext_lazy("Ej. Compensación de soporte o alianza")}),
     )
 
     def clean(self):
@@ -243,9 +244,9 @@ class CortesiaPlataformaForm(forms.Form):
         motivo = (datos.get("motivo") or "").strip()
         datos["motivo"] = motivo
         if not motivo:
-            self.add_error("motivo", "El motivo es obligatorio.")
+            self.add_error("motivo", gettext("El motivo es obligatorio."))
         if not datos.get("dias") and not datos.get("plan"):
-            raise forms.ValidationError("Debes indicar días gratis o seleccionar un plan de cortesía.")
+            raise forms.ValidationError(gettext("Debes indicar días gratis o seleccionar un plan de cortesía."))
         return datos
 
 
@@ -253,7 +254,7 @@ class CuposFundadorForm(forms.Form):
     """Formulario para ajustar el máximo de cupos de fundador en la base de datos."""
 
     cupos_fundador = forms.IntegerField(
-        label="Cupos totales de fundador",
+        label=gettext_lazy("Cupos totales de fundador"),
         min_value=0,
     )
 
@@ -306,7 +307,7 @@ class CuponPlanForm(forms.ModelForm):
 class FeatureFlagForm(forms.ModelForm):
     """Formulario para activar/desactivar una función específica por negocio."""
 
-    codigo = forms.ChoiceField(label="Funcionalidad", choices=FEATURES_DISPONIBLES)
+    codigo = forms.ChoiceField(label=gettext_lazy("Funcionalidad"), choices=FEATURES_DISPONIBLES)
 
     class Meta:
         model = FeatureFlag

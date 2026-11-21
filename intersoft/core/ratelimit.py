@@ -1,4 +1,5 @@
 """Limitación de peticiones (rate limiting) basada en caché para webhooks y endpoints críticos."""
+from django.utils.translation import gettext
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
@@ -66,7 +67,7 @@ class RateLimitMiddleware:
 
     @staticmethod
     def _respuesta_429(request, espera: int) -> HttpResponse:
-        mensaje = "Demasiadas peticiones. Por favor espera un momento antes de intentarlo de nuevo."
+        mensaje = gettext("Demasiadas peticiones. Por favor espera un momento antes de intentarlo de nuevo.")
         acepta = request.META.get("HTTP_ACCEPT", "")
         if (
             request.path.startswith("/webhooks/")

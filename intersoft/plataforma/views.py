@@ -1,4 +1,5 @@
 """Vistas de la consola interna de plataforma (/plataforma/)."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -182,7 +183,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
             return self._guardar_feature_flag(request, config)
 
         if not self._puede_editar_llaves(request):
-            raise PermissionDenied("Solo el rol Dueño puede editar o verificar las llaves de Wompi.")
+            raise PermissionDenied(gettext("Solo el rol Dueño puede editar o verificar las llaves de Wompi."))
 
         if accion == "verificar":
             return self._verificar_llaves(request, config)
@@ -202,14 +203,14 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.success(request, "Configuración de cobro de Intersoft guardada correctamente.")
+            messages.success(request, gettext("Configuración de cobro de Intersoft guardada correctamente."))
             return redirect("plataforma_planes_cobros")
 
         return render(request, self.template_name, self._contexto(request, config, form))
 
     def _verificar_llaves(self, request, config):
         if not config.llave_publica:
-            messages.error(request, "Guarda primero una llave pública antes de verificar.")
+            messages.error(request, gettext("Guarda primero una llave pública antes de verificar."))
             return redirect("plataforma_planes_cobros")
 
         resultado = verificar_llaves(config)
@@ -227,7 +228,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
             )
             messages.success(
                 request,
-                f"Llaves verificadas correctamente en Wompi ({resultado.comercio or config.get_modo_display()}).",
+                gettext("Llaves verificadas correctamente en Wompi ({get_modo_display}).").format(get_modo_display=resultado.comercio or config.get_modo_display()),
             )
         else:
             config.verificada_en = None
@@ -266,7 +267,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
                 detalle={"antes": anterior, "despues": nuevo_cupo},
                 request=request,
             )
-            messages.success(request, f"Cupos de fundador actualizados a {nuevo_cupo}.")
+            messages.success(request, gettext("Cupos de fundador actualizados a {nuevo_cupo}.").format(nuevo_cupo=nuevo_cupo))
             return redirect("plataforma_planes_cobros")
 
         form = ConfiguracionCobroPlataformaForm(instance=config)
@@ -304,7 +305,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
                 )
                 messages.success(
                     request,
-                    f"Cortesía aplicada a {empresa.nombre} (plan {suscripcion.plan.nombre}).",
+                    gettext("Cortesía aplicada a {nombre} (plan {nombre2}).").format(nombre=empresa.nombre, nombre2=suscripcion.plan.nombre),
                 )
                 return redirect("plataforma_planes_cobros")
 
@@ -333,7 +334,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
         messages.info(
             request,
-            f"Cobro {cobro.referencia} consultado en Wompi. Estado actual: {cobro_actualizado.get_estado_display()}.",
+            gettext("Cobro {referencia} consultado en Wompi. Estado actual: {get_estado_display}.").format(referencia=cobro.referencia, get_estado_display=cobro_actualizado.get_estado_display()),
         )
         return redirect("plataforma_planes_cobros")
 
@@ -344,10 +345,10 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
         motivo = (request.POST.get("motivo") or "").strip()
         if not motivo:
-            messages.error(request, "Debes indicar un motivo para aplicar manualmente el cobro.")
+            messages.error(request, gettext("Debes indicar un motivo para aplicar manualmente el cobro."))
             return redirect("plataforma_planes_cobros")
         if cobro.estado == CobroSuscripcion.Estado.APROBADO:
-            messages.warning(request, f"El cobro {cobro.referencia} ya estaba aprobado.")
+            messages.warning(request, gettext("El cobro {referencia} ya estaba aprobado.").format(referencia=cobro.referencia))
             return redirect("plataforma_planes_cobros")
 
         actor_nombre = request.user.get_full_name() or request.user.email
@@ -367,7 +368,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         except ValidationError as exc:
             messages.error(
                 request,
-                f"No se pudo activar el plan: {exc.messages[0] if exc.messages else exc}",
+                gettext("No se pudo activar el plan: {messages_else_exc}").format(messages_else_exc=exc.messages[0] if exc.messages else exc),
             )
             return redirect("plataforma_planes_cobros")
 
@@ -386,7 +387,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
         messages.success(
             request,
-            f"Cobro {cobro.referencia} aplicado manualmente y plan {cobro.plan.nombre} activado.",
+            gettext("Cobro {referencia} aplicado manualmente y plan {nombre} activado.").format(referencia=cobro.referencia, nombre=cobro.plan.nombre),
         )
         return redirect("plataforma_planes_cobros")
 
@@ -402,7 +403,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
                 detalle={"codigo": cupon.codigo, "tipo": cupon.tipo, "valor": str(cupon.valor)},
                 request=request,
             )
-            messages.success(request, f"Cupón {cupon.codigo} creado correctamente.")
+            messages.success(request, gettext("Cupón {codigo} creado correctamente.").format(codigo=cupon.codigo))
             return redirect("plataforma_planes_cobros")
         ctx = self._contexto(request, config, ConfiguracionCobroPlataformaForm(instance=config))
         ctx["cupon_form"] = cupon_form
@@ -420,7 +421,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
             detalle={"codigo": cupon.codigo, "activo": cupon.activo},
             request=request,
         )
-        messages.success(request, f"Cupón {cupon.codigo} {'activado' if cupon.activo else 'desactivado'}.")
+        messages.success(request, gettext("Cupón {codigo} {activo_else__desactivado}.").format(codigo=cupon.codigo, activo_else__desactivado='activado' if cupon.activo else 'desactivado'))
         return redirect("plataforma_planes_cobros")
 
     def _guardar_feature_flag(self, request, config):
@@ -443,7 +444,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.success(request, f"Feature flag '{flag.codigo}' actualizado para {flag.empresa.nombre}.")
+            messages.success(request, gettext("Feature flag '{codigo}' actualizado para {nombre}.").format(codigo=flag.codigo, nombre=flag.empresa.nombre))
             return redirect("plataforma_planes_cobros")
         ctx = self._contexto(request, config, ConfiguracionCobroPlataformaForm(instance=config))
         ctx["feature_flag_form"] = ff_form
@@ -474,7 +475,7 @@ class EditarPlanPlataformaView(PlataformaMixin, View):
                 detalle={"codigo": plan_actualizado.codigo, "cambios": cambios},
                 request=request,
             )
-            messages.success(request, f"Plan {plan_actualizado.nombre} actualizado correctamente.")
+            messages.success(request, gettext("Plan {nombre} actualizado correctamente.").format(nombre=plan_actualizado.nombre))
             return redirect("plataforma_planes_cobros")
         return render(request, self.template_name, {"plan": plan, "form": form})
 
@@ -508,7 +509,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
 
         if accion == "entrar_como":
             if request.rol_plataforma.rol not in (RolPlataforma.Rol.DUENO, RolPlataforma.Rol.SOPORTE):
-                raise PermissionDenied("Solo Dueño o Soporte pueden entrar como un negocio.")
+                raise PermissionDenied(gettext("Solo Dueño o Soporte pueden entrar como un negocio."))
             empresa = get_object_or_404(Empresa, pk=request.POST.get("empresa_id"))
             modo = (request.POST.get("modo") or "lectura").strip().lower()
             solo_lectura = modo != "escritura"
@@ -542,7 +543,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
                 detalle={"titulo": anuncio.titulo, "activo": anuncio.activo},
                 request=request,
             )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» actualizado.")
+            messages.success(request, gettext("Anuncio «{titulo}» actualizado.").format(titulo=anuncio.titulo))
             return redirect("plataforma_negocios")
 
         anuncio_form = AnuncioGlobalForm(request.POST)
@@ -558,7 +559,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
                 detalle={"titulo": anuncio.titulo, "tipo": anuncio.tipo, "activo": anuncio.activo},
                 request=request,
             )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» publicado.")
+            messages.success(request, gettext("Anuncio «{titulo}» publicado.").format(titulo=anuncio.titulo))
             return redirect("plataforma_negocios")
 
         return render(request, self.template_name, self._contexto(request, anuncio_form=anuncio_form))
@@ -586,7 +587,7 @@ class SalirModoSoporteView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.info(request, "Saliste del modo soporte.")
+            messages.info(request, gettext("Saliste del modo soporte."))
         return redirect("plataforma_negocios")
 
     def post(self, request, pk):
@@ -602,7 +603,7 @@ class SalirModoSoporteView(PlataformaMixin, View):
                 detalle={"codigo": plan_actualizado.codigo, "cambios": cambios},
                 request=request,
             )
-            messages.success(request, f"Plan {plan_actualizado.nombre} actualizado correctamente.")
+            messages.success(request, gettext("Plan {nombre} actualizado correctamente.").format(nombre=plan_actualizado.nombre))
             return redirect("plataforma_planes_cobros")
         return render(request, self.template_name, {"plan": plan, "form": form})
 
@@ -636,7 +637,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
 
         if accion == "entrar_como":
             if request.rol_plataforma.rol not in (RolPlataforma.Rol.DUENO, RolPlataforma.Rol.SOPORTE):
-                raise PermissionDenied("Solo Dueño o Soporte pueden entrar como un negocio.")
+                raise PermissionDenied(gettext("Solo Dueño o Soporte pueden entrar como un negocio."))
             empresa = get_object_or_404(Empresa, pk=request.POST.get("empresa_id"))
             modo = (request.POST.get("modo") or "lectura").strip().lower()
             solo_lectura = modo != "escritura"
@@ -670,7 +671,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
                 detalle={"titulo": anuncio.titulo, "activo": anuncio.activo},
                 request=request,
             )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» actualizado.")
+            messages.success(request, gettext("Anuncio «{titulo}» actualizado.").format(titulo=anuncio.titulo))
             return redirect("plataforma_negocios")
 
         anuncio_form = AnuncioGlobalForm(request.POST)
@@ -686,7 +687,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
                 detalle={"titulo": anuncio.titulo, "tipo": anuncio.tipo, "activo": anuncio.activo},
                 request=request,
             )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» publicado.")
+            messages.success(request, gettext("Anuncio «{titulo}» publicado.").format(titulo=anuncio.titulo))
             return redirect("plataforma_negocios")
 
         return render(request, self.template_name, self._contexto(request, anuncio_form=anuncio_form))
@@ -714,7 +715,7 @@ class SalirModoSoporteView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.info(request, "Saliste del modo soporte.")
+            messages.info(request, gettext("Saliste del modo soporte."))
         return redirect("plataforma_negocios")
 
 
@@ -766,7 +767,7 @@ class PlataformaTOTPView(PlataformaMixin, View):
         if not rol.totp_activo:
             secreto = request.session.get("plataforma_totp_setup") or ""
             if not verificar_codigo_totp(secreto, codigo):
-                messages.error(request, "Código TOTP inválido. Verifica la hora de tu dispositivo e inténtalo de nuevo.")
+                messages.error(request, gettext("Código TOTP inválido. Verifica la hora de tu dispositivo e inténtalo de nuevo."))
                 return render(
                     request,
                     self.template_name,
@@ -789,11 +790,11 @@ class PlataformaTOTPView(PlataformaMixin, View):
                 detalle={"rol": rol.rol},
                 request=request,
             )
-            messages.success(request, "Autenticación en dos pasos (2FA) activada correctamente.")
+            messages.success(request, gettext("Autenticación en dos pasos (2FA) activada correctamente."))
             return redirect("plataforma_inicio")
 
         if not verificar_codigo_totp(rol.totp_secreto, codigo):
-            messages.error(request, "Código TOTP incorrecto.")
+            messages.error(request, gettext("Código TOTP incorrecto."))
             return render(request, self.template_name, {"configurando": False})
 
         request.session["plataforma_totp_verificado"] = str(request.user.pk)

@@ -1,59 +1,60 @@
 {% extends "core/base.html" %}
-{% block titulo %}{{ config.titulo }} · ERP · Intersoft{% endblock %}
+{% load i18n idiomas %}
+{% block titulo %}{% blocktranslate with titulo=config.titulo %}{{ titulo }} · ERP · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <h1>{{ config.titulo }}</h1>
-        <span class="badge info">{{ total_registros }} registro{{ total_registros|pluralize }}</span>
+        <span class="badge info">{% blocktranslate with total_registros=total_registros total_registros2=total_registros|pluralize %}{{ total_registros }} registro{{ total_registros2 }}{% endblocktranslate %}</span>
       </div>
       {% if config.ayuda %}
         <p class="nota">{{ config.ayuda }}</p>
       {% else %}
-        <p class="nota"><a href="{% url 'erp_inicio' %}">← Volver a Gestión ERP</a></p>
+        <p class="nota"><a href="{% url 'erp_inicio' %}">{% translate "← Volver a Gestión ERP" %}</a></p>
       {% endif %}
     </div>
     <div class="erp-toolbar">
       <a class="boton secundario" href="{% url 'erp_inicio' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        Módulos ERP
+        {% translate "Módulos ERP" %}
       </a>
       <a class="boton secundario" href="?q={{ q|urlencode }}&estado={{ estado|urlencode }}&exportar=csv">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Exportar CSV
+        {% translate "Exportar CSV" %}
       </a>
       {% if puede_llevar_factura %}
         <a class="boton secundario" href="{% url 'erp_cartera_factura' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Llevar factura a cartera
+          {% translate "Llevar factura a cartera" %}
         </a>
       {% endif %}
       {% if puede_gestionar %}
         <a class="boton" href="{% url 'erp_crear' modulo %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Nuevo registro
+          {% translate "Nuevo registro" %}
         </a>
       {% endif %}
     </div>
   </div>
 
   <form method="get" class="erp-filtros-barra">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar en {{ config.titulo|lower }}…" aria-label="Buscar">
+    <input type="search" name="q" value="{{ q }}" placeholder="{% blocktranslate with titulo=config.titulo|lower %}Buscar en {{ titulo }}…{% endblocktranslate %}" aria-label="{% translate 'Buscar' %}">
     {% if modulo == "cartera" %}
-      <select name="estado" aria-label="Filtrar por estado">
-        <option value="" {% if not estado %}selected{% endif %}>Todos los estados</option>
-        <option value="pendiente" {% if estado == "pendiente" %}selected{% endif %}>Pendientes</option>
-        <option value="vencida" {% if estado == "vencida" %}selected{% endif %}>Vencidas</option>
-        <option value="pagada" {% if estado == "pagada" %}selected{% endif %}>Pagadas</option>
+      <select name="estado" aria-label="{% translate 'Filtrar por estado' %}">
+        <option value="" {% if not estado %}selected{% endif %}>{% translate "Todos los estados" %}</option>
+        <option value="pendiente" {% if estado == "pendiente" %}selected{% endif %}>{% translate "Pendientes" %}</option>
+        <option value="vencida" {% if estado == "vencida" %}selected{% endif %}>{% translate "Vencidas" %}</option>
+        <option value="pagada" {% if estado == "pagada" %}selected{% endif %}>{% translate "Pagadas" %}</option>
       </select>
     {% endif %}
     <button type="submit" class="boton secundario">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-      Filtrar
+      {% translate "Filtrar" %}
     </button>
     {% if q or estado %}
-      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">Limpiar</a>
+      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">{% translate "Limpiar" %}</a>
     {% endif %}
   </form>
 
@@ -72,29 +73,29 @@
           {% for v in fila.valores %}
             <td>
               {% if v == "Sí" or v == "Pagada" or v == "Atendida" %}
-                <span class="badge exito">{{ v }}</span>
+                <span class="badge exito">{{ v|traducir }}</span>
               {% elif v == "No" or v == "Pendiente" %}
-                <span class="badge alerta">{{ v }}</span>
+                <span class="badge alerta">{{ v|traducir }}</span>
               {% elif v == "Vencida" or v == "Cancelada" %}
-                <span class="badge peligro">{{ v }}</span>
+                <span class="badge peligro">{{ v|traducir }}</span>
               {% else %}
                 {{ v }}
               {% endif %}
             </td>
           {% endfor %}
           <td class="acciones-fila">
-            <a class="boton secundario pequeno" href="{% url 'erp_detalle' modulo fila.pk %}">Ver detalle →</a>
+            <a class="boton secundario pequeno" href="{% url 'erp_detalle' modulo fila.pk %}">{% translate "Ver detalle →" %}</a>
           </td>
         </tr>
       {% empty %}
         <tr>
           <td colspan="{{ cabeceras|length|add:1 }}">
             <div class="erp-vacio">
-              <strong>No hay registros para mostrar</strong>
+              <strong>{% translate "No hay registros para mostrar" %}</strong>
               {% if q or estado %}
-                Prueba cambiando o limpiando los filtros de búsqueda.
+                {% translate "Prueba cambiando o limpiando los filtros de búsqueda." %}
               {% elif puede_gestionar %}
-                Crea el primer registro con el botón "Nuevo registro".
+                {% translate 'Crea el primer registro con el botón "Nuevo registro".' %}
               {% endif %}
             </div>
           </td>
@@ -104,13 +105,13 @@
   </table>
 
   {% if pagina.has_other_pages %}
-    <nav class="paginacion" aria-label="Paginación">
+    <nav class="paginacion" aria-label="{% translate 'Paginación' %}">
       {% if pagina.has_previous %}
-        <a href="?page={{ pagina.previous_page_number }}&q={{ q|urlencode }}&estado={{ estado|urlencode }}">← Anterior</a>
+        <a href="?page={{ pagina.previous_page_number }}&q={{ q|urlencode }}&estado={{ estado|urlencode }}">{% translate "← Anterior" %}</a>
       {% endif %}
-      <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+      <span>{% blocktranslate with number=pagina.number num_pages=pagina.paginator.num_pages %}Página {{ number }} de {{ num_pages }}{% endblocktranslate %}</span>
       {% if pagina.has_next %}
-        <a href="?page={{ pagina.next_page_number }}&q={{ q|urlencode }}&estado={{ estado|urlencode }}">Siguiente →</a>
+        <a href="?page={{ pagina.next_page_number }}&q={{ q|urlencode }}&estado={{ estado|urlencode }}">{% translate "Siguiente →" %}</a>
       {% endif %}
     </nav>
   {% endif %}

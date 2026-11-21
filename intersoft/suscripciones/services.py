@@ -3,6 +3,7 @@
 Toda la lógica de dominio vive aquí (nunca en vistas ni serializers) para que
 pueda invocarse por igual desde endpoints DRF, comandos de gestión, señales o tests.
 """
+from django.utils.translation import gettext
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -54,7 +55,7 @@ def _obtener_plan(plan_o_codigo) -> Plan:
     try:
         return Plan.objects.get(codigo=codigo, activo=True)
     except Plan.DoesNotExist as exc:
-        raise ValidationError(f"El plan '{codigo}' no existe o no está activo.") from exc
+        raise ValidationError(gettext("El plan '{codigo}' no existe o no está activo.").format(codigo=codigo)) from exc
 
 
 def uso_actual(empresa: Empresa) -> dict:
@@ -156,13 +157,12 @@ def validar_limites(empresa: Empresa, plan_destino: Plan) -> None:
                 "exceso": sobrante,
             }
             detalles_exceso.append(
-                f"tienes {cantidad_actual} {recurso} y el plan {plan_destino.nombre} permite máximo {limite_recurso} "
-                f"(debes reducir al menos {sobrante})"
+                gettext("tienes {cantidad_actual} {recurso} y el plan {nombre} permite máximo {limite_recurso} (debes reducir al menos {sobrante})").format(cantidad_actual=cantidad_actual, recurso=recurso, nombre=plan_destino.nombre, limite_recurso=limite_recurso, sobrante=sobrante)
             )
 
     if detalles_exceso:
         mensaje = (
-            f"No puedes cambiar al plan {plan_destino.nombre} porque tu uso actual excede sus límites: "
+            gettext("No puedes cambiar al plan {nombre} porque tu uso actual excede sus límites: ").format(nombre=plan_destino.nombre)
             + "; ".join(detalles_exceso)
             + "."
         )
@@ -184,7 +184,7 @@ def cambiar_plan(
     que ya se cobró, aunque los cupos se hayan llenado mientras la persona pagaba."""
     ciclo_normalizado = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
     if ciclo_normalizado not in Suscripcion.Ciclo.values:
-        raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
+        raise ValidationError(gettext("Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.").format(ciclo=ciclo))
 
     plan_destino = _obtener_plan(plan)
     crear_suscripcion_inicial(empresa)
@@ -274,14 +274,14 @@ def calcular_comision(empresa: Empresa, monto, canal: str) -> Decimal:
     - Rechaza valores tipo float para garantizar exactitud financiera.
     """
     if isinstance(monto, float):
-        raise TypeError("El monto debe ser Decimal, int o cadena numérica, nunca float.")
+        raise TypeError(gettext("El monto debe ser Decimal, int o cadena numérica, nunca float."))
     monto_dec = Decimal(str(monto))
     if monto_dec < Decimal("0.00"):
-        raise ValueError("El monto no puede ser negativo.")
+        raise ValueError(gettext("El monto no puede ser negativo."))
 
     canal_norm = str(canal or "").strip().upper()
     if canal_norm not in CanalVenta.VALORES:
-        raise ValueError(f"Canal de venta no válido: '{canal}'. Usa MARKETPLACE o POS.")
+        raise ValueError(gettext("Canal de venta no válido: '{canal}'. Usa MARKETPLACE o POS.").format(canal=canal))
 
     if canal_norm == CanalVenta.POS or monto_dec == Decimal("0.00"):
         return Decimal("0.00")
@@ -372,13 +372,13 @@ def otorgar_cortesia(
     """Otorga días gratis o un plan de cortesía a una empresa dejando rastro en HistorialSuscripcion."""
     motivo_limpio = str(motivo or "").strip()
     if not motivo_limpio:
-        raise ValidationError("El motivo de la cortesía es obligatorio.")
+        raise ValidationError(gettext("El motivo de la cortesía es obligatorio."))
 
     dias_num = int(dias) if dias not in (None, "") else None
     if dias_num is not None and dias_num <= 0:
-        raise ValidationError("Los días de cortesía deben ser mayores a 0.")
+        raise ValidationError(gettext("Los días de cortesía deben ser mayores a 0."))
     if dias_num is None and plan is None:
-        raise ValidationError("Debes indicar días gratis o un plan de cortesía.")
+        raise ValidationError(gettext("Debes indicar días gratis o un plan de cortesía."))
 
     plan_destino = _obtener_plan(plan) if plan is not None else None
 
@@ -492,14 +492,10 @@ def enviar_recordatorios_vencimiento(ahora=None, base_url: str = "") -> int:
             continue
 
         asunto = (
-            f"Tu plan {sub.plan.nombre} vence en {dias_restantes} "
-            f"día{'s' if dias_restantes != 1 else ''} · {sub.empresa.nombre}"
+            gettext("Tu plan {nombre} vence en {dias_restantes} día{s__if_dias_restantes____1_else} · {nombre2}").format(nombre=sub.plan.nombre, dias_restantes=dias_restantes, s__if_dias_restantes____1_else='s' if dias_restantes != 1 else '', nombre2=sub.empresa.nombre)
         )
         cuerpo = (
-            f"Hola equipo de {sub.empresa.nombre},\n\n"
-            f"Te recordamos que tu suscripción ({sub.get_estado_display()} - plan {sub.plan.nombre}) "
-            f"vence el {fecha_vence.strftime('%d/%m/%Y')} (en {dias_restantes} día(s)).\n\n"
-            f"Renueva o paga tu plan directamente aquí:\n{ruta_pago}\n"
+            gettext("Hola equipo de {nombre},\n\nTe recordamos que tu suscripción ({get_estado_display} - plan {nombre2}) vence el {strftime} (en {dias_restantes} día(s)).\n\nRenueva o paga tu plan directamente aquí:\n{ruta_pago}\n").format(nombre=sub.empresa.nombre, get_estado_display=sub.get_estado_display(), nombre2=sub.plan.nombre, strftime=fecha_vence.strftime('%d/%m/%Y'), dias_restantes=dias_restantes, ruta_pago=ruta_pago)
         )
         if _enviar(asunto=asunto, mensaje=cuerpo, destinatarios=destinatarios) > 0:
             enviados += 1

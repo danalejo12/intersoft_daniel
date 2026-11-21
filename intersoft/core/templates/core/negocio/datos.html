@@ -1,35 +1,36 @@
 {% extends "core/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Perfil del negocio · {{ object.nombre }} · Intersoft{% endblock %}
+{% block titulo %}{% blocktranslate with nombre=object.nombre %}Perfil del negocio · {{ nombre }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Perfil del negocio</h1>
-      <p class="nota">Tus compradores ven estos datos en tu tienda y en cada pedido. La ley exige dirección y teléfono visibles para publicar en el marketplace.</p>
+      <h1>{% translate "Perfil del negocio" %}</h1>
+      <p class="nota">{% translate "Tus compradores ven estos datos en tu tienda y en cada pedido. La ley exige dirección y teléfono visibles para publicar en el marketplace." %}</p>
     </div>
     <div class="acciones-fila">
       {% if object.datos_completos %}
         <a class="boton exito" href="{% url 'tienda_negocio' object.slug %}" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Ver tienda pública
+          {% translate "Ver tienda pública" %}
         </a>
       {% endif %}
       {% if nav_permisos.editar_negocio %}
         <a class="boton secundario" href="{% url 'suscripcion_panel' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          Plan y suscripción
+          {% translate "Plan y suscripción" %}
         </a>
       {% endif %}
       {% if nav_permisos.configurar_pagos %}
         <a class="boton secundario" href="{% url 'negocio_pagos' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-          Pagos en línea
+          {% translate "Pagos en línea" %}
         </a>
       {% endif %}
       <a class="boton secundario" href="{% url 'dashboard' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-        Volver al panel
+        {% translate "Volver al panel" %}
       </a>
     </div>
   </div>
@@ -46,13 +47,13 @@
         </span>
         <div class="perfil-identidad">
           <h2 class="perfil-nombre">{{ object.nombre }}</h2>
-          <p class="perfil-correo">NIT {{ object.nit }} · Slug: <code>/tienda/{{ object.slug }}/</code></p>
+          <p class="perfil-correo">{% blocktranslate with nit=object.nit %}NIT {{ nit }} · Slug:{% endblocktranslate %} <code>{% blocktranslate with slug=object.slug %}/tienda/{{ slug }}/{% endblocktranslate %}</code></p>
           <div class="perfil-etiquetas">
-            <span class="badge info">Plan {{ object.get_plan_display }}</span>
+            <span class="badge info">{% blocktranslate with get_plan_display=object.get_plan_display %}Plan {{ get_plan_display }}{% endblocktranslate %}</span>
             {% if object.datos_completos %}
-              <span class="badge exito">Visible en Marketplace</span>
+              <span class="badge exito">{% translate "Visible en Marketplace" %}</span>
             {% else %}
-              <span class="badge advertencia">Faltan datos legales</span>
+              <span class="badge advertencia">{% translate "Faltan datos legales" %}</span>
             {% endif %}
           </div>
         </div>
@@ -60,45 +61,45 @@
 
       <dl class="perfil-detalles">
         <div class="perfil-dato">
-          <dt>Dirección de notificaciones</dt>
-          <dd>{{ object.direccion|default:"Pendiente por registrar" }}</dd>
+          <dt>{% translate "Dirección de notificaciones" %}</dt>
+          <dd>{{ object.direccion|default:_("Pendiente por registrar") }}</dd>
         </div>
         <div class="perfil-dato">
-          <dt>Teléfono de contacto</dt>
-          <dd>{{ object.telefono|default:"Pendiente por registrar" }}</dd>
+          <dt>{% translate "Teléfono de contacto" %}</dt>
+          <dd>{{ object.telefono|default:_("Pendiente por registrar") }}</dd>
         </div>
         <div class="perfil-dato">
-          <dt>Correo del negocio</dt>
-          <dd>{{ object.email|default:"Sin correo configurado" }}</dd>
+          <dt>{% translate "Correo del negocio" %}</dt>
+          <dd>{{ object.email|default:_("Sin correo configurado") }}</dd>
         </div>
         <div class="perfil-dato">
-          <dt>Sitio web / red social</dt>
+          <dt>{% translate "Sitio web / red social" %}</dt>
           <dd>
             {% if object.sitio_web %}
               <a class="boton secundario pequeno" href="{{ object.sitio_web }}" target="_blank" rel="noopener" style="margin-top: 4px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                Visitar sitio web
+                {% translate "Visitar sitio web" %}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </a>
             {% else %}
-              <span style="color: var(--tenue);">No registrado</span>
+              <span style="color: var(--tenue);">{% translate "No registrado" %}</span>
             {% endif %}
           </dd>
         </div>
         <div class="perfil-dato perfil-dato-ancho">
-          <dt>Descripción pública del negocio</dt>
-          <dd>{{ object.descripcion|default:"Agrega una descripción para contarle a tus clientes qué ofrece tu negocio."|linebreaksbr }}</dd>
+          <dt>{% translate "Descripción pública del negocio" %}</dt>
+          <dd>{{ object.descripcion|default:_("Agrega una descripción para contarle a tus clientes qué ofrece tu negocio.")|linebreaksbr }}</dd>
         </div>
       </dl>
     </article>
 
     <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      <h2>Editar perfil del negocio</h2>
-      <p class="nota">El nombre legal y el NIT son fijos por seguridad fiscal. Puedes actualizar tu logo, descripción, contacto y tarifas de envío.</p>
+      <h2>{% translate "Editar perfil del negocio" %}</h2>
+      <p class="nota">{% translate "El nombre legal y el NIT son fijos por seguridad fiscal. Puedes actualizar tu logo, descripción, contacto y tarifas de envío." %}</p>
 
       {% if form.errors %}
-        <p class="error aviso">Revisa los campos marcados antes de guardar.</p>
+        <p class="error aviso">{% translate "Revisa los campos marcados antes de guardar." %}</p>
       {% endif %}
 
       <div class="campo campo-ancho perfil-foto-editor{% if form.logo.errors %} con-error{% endif %}">
@@ -106,7 +107,7 @@
         <div class="perfil-foto-controles">
           <span class="perfil-foto-mini" id="negocio-logo-preview">
             {% if object.logo %}
-              <img src="{{ object.logo.url }}" alt="Logo de {{ object.nombre }}">
+              <img src="{{ object.logo.url }}" alt="{% blocktranslate with nombre=object.nombre %}Logo de {{ nombre }}{% endblocktranslate %}">
             {% else %}
               <span>{{ object.nombre|first|upper }}</span>
             {% endif %}
@@ -115,10 +116,10 @@
             <div class="perfil-foto-botones">
               <label for="{{ form.logo.id_for_label }}" class="boton secundario pequeno">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                {% if object.logo %}Cambiar logo{% else %}Subir logo{% endif %}
+                {% if object.logo %}{% translate "Cambiar logo" %}{% else %}{% translate "Subir logo" %}{% endif %}
               </label>
               <span class="perfil-nombre-archivo" id="negocio-logo-nombre">
-                {% if object.logo %}Logo actual cargado{% else %}Ningún archivo seleccionado{% endif %}
+                {% if object.logo %}{% translate "Logo actual cargado" %}{% else %}{% translate "Ningún archivo seleccionado" %}{% endif %}
               </span>
             </div>
             {{ form.logo }}
@@ -126,7 +127,7 @@
             {% if object.logo %}
               <label class="perfil-quitar-check">
                 {{ form.quitar_logo }}
-                <span>Quitar logo actual al guardar</span>
+                <span>{% translate "Quitar logo actual al guardar" %}</span>
               </label>
             {% endif %}
           </div>
@@ -150,10 +151,10 @@
       {% endfor %}
 
       <div class="acciones">
-        <a class="boton secundario" href="{% url 'dashboard' %}">Cancelar</a>
+        <a class="boton secundario" href="{% url 'dashboard' %}">{% translate "Cancelar" %}</a>
         <button type="submit" class="boton">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          Guardar perfil del negocio
+          {% translate "Guardar perfil del negocio" %}
         </button>
       </div>
     </form>
@@ -163,6 +164,6 @@
        data-preview-input="{{ form.logo.id_for_label }}"
        data-preview-target="negocio-logo-preview"
        data-preview-nombre="negocio-logo-nombre"
-       data-preview-alt="Vista previa del logo"></div>
-  <script defer src="{% static 'core/js/preview-imagen.js' %}"></script>
+       data-preview-alt="{% translate 'Vista previa del logo' %}"></div>
+  <script defer src="{% static 'core/js/preview-imagen.js' %}?v=i18n1"></script>
 {% endblock %}

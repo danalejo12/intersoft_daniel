@@ -1,3 +1,6 @@
+/* Traducción en el navegador: usa el catálogo de /jsi18n/ si está cargado. */
+function _t(s) { return window.gettext ? window.gettext(s) : s; }
+function _tf(s, a) { var r = _t(s); for (var i = 0; i < a.length; i++) { r = r.replace("%s", a[i]); } return r; }
 /* Punto de venta. El navegador solo arma la venta; el servidor recalcula precios, IVA y total. */
 (function () {
   "use strict";
@@ -85,7 +88,7 @@
     var linea = venta.find(function (l) { return l.id === producto.id; });
     var actual = linea ? linea.cantidad : 0;
     if (actual + cantidad > producto.stock) {
-      avisar(producto.stock > 0 ? "Solo hay " + producto.stock + " de " + producto.nombre + "." : producto.nombre + " está agotado.", true);
+      avisar(producto.stock > 0 ? _tf("Solo hay %s de %s.", [producto.stock, producto.nombre]) : _tf("%s está agotado.", [producto.nombre]), true);
       return;
     }
     if (linea) {
@@ -94,7 +97,7 @@
       venta.push({ id: producto.id, cantidad: cantidad });
     }
     operacionActual = null;
-    avisar("Agregado: " + producto.nombre);
+    avisar(_tf("Agregado: %s", [producto.nombre]));
     pintar();
   }
 
@@ -106,7 +109,7 @@
     if (!cantidad || cantidad < 1) {
       venta = venta.filter(function (l) { return l.id !== id; });
     } else if (cantidad > catalogo[id].stock) {
-      avisar("Solo hay " + catalogo[id].stock + " de " + catalogo[id].nombre + ".", true);
+      avisar(_tf("Solo hay %s de %s.", [catalogo[id].stock, catalogo[id].nombre]), true);
       linea.cantidad = catalogo[id].stock;
     } else {
       linea.cantidad = cantidad;
@@ -145,18 +148,18 @@
       var menos = document.createElement("button");
       menos.type = "button";
       menos.textContent = "−";
-      menos.setAttribute("aria-label", "Una unidad menos de " + p.nombre);
+      menos.setAttribute("aria-label", _tf("Una unidad menos de %s", [p.nombre]));
       menos.addEventListener("click", function () { cambiarCantidad(l.id, l.cantidad - 1); });
       var campo = document.createElement("input");
       campo.type = "number";
       campo.min = "1";
       campo.value = l.cantidad;
-      campo.setAttribute("aria-label", "Cantidad de " + p.nombre);
+      campo.setAttribute("aria-label", _tf("Cantidad de %s", [p.nombre]));
       campo.addEventListener("change", function () { cambiarCantidad(l.id, parseInt(campo.value, 10)); });
       var mas = document.createElement("button");
       mas.type = "button";
       mas.textContent = "+";
-      mas.setAttribute("aria-label", "Una unidad más de " + p.nombre);
+      mas.setAttribute("aria-label", _tf("Una unidad más de %s", [p.nombre]));
       mas.addEventListener("click", function () { cambiarCantidad(l.id, l.cantidad + 1); });
       controles.append(menos, campo, mas);
 
@@ -168,7 +171,7 @@
       quitar.type = "button";
       quitar.className = "pos-quitar";
       quitar.textContent = "×";
-      quitar.setAttribute("aria-label", "Quitar " + p.nombre);
+      quitar.setAttribute("aria-label", _tf("Quitar %s", [p.nombre]));
       quitar.addEventListener("click", function () { cambiarCantidad(l.id, 0); });
 
       li.append(nombre, controles, total, quitar);
@@ -206,7 +209,7 @@
       var nombre = document.createElement("span");
       nombre.textContent = p.nombre + " · " + p.codigo;
       var detalle = document.createElement("small");
-      detalle.textContent = pesos(centavos(p.precio) + ivaCentavos(centavos(p.precio), p.iva)) + " · " + (p.stock > 0 ? p.stock + " en stock" : "agotado");
+      detalle.textContent = pesos(centavos(p.precio) + ivaCentavos(centavos(p.precio), p.iva)) + " · " + (p.stock > 0 ? _tf("%s en stock", [p.stock]) : _t("agotado"));
       li.append(nombre, detalle);
       li.addEventListener("mousedown", function (e) { e.preventDefault(); elegir(i); });
       resultados.appendChild(li);
@@ -272,7 +275,7 @@
         } else if (datos.productos.length) {
           mostrarResultados(datos.productos);
         } else {
-          avisar("No encontramos «" + texto + "».", true);
+          avisar(_tf("No encontramos «%s».", [texto]), true);
         }
       });
     }
@@ -297,7 +300,7 @@
   function elegirCliente(c) {
     cliente = c;
     operacionActual = null;
-    $("pos-cliente-nombre").textContent = c ? c.nombre + " · " + c.documento : "Consumidor final";
+    $("pos-cliente-nombre").textContent = c ? c.nombre + " · " + c.documento : _t("Consumidor final");
     $("pos-cliente-quitar").hidden = !c;
     buscadorCliente.value = "";
     listaClientes.hidden = true;
@@ -326,7 +329,7 @@
           if (!datos.clientes.length) {
             var vacio = document.createElement("li");
             vacio.className = "pos-resultado";
-            vacio.textContent = "Sin resultados. Créalo en Clientes.";
+            vacio.textContent = _t("Sin resultados. Créalo en Clientes.");
             listaClientes.appendChild(vacio);
           }
           listaClientes.hidden = false;
@@ -339,7 +342,7 @@
   $("pos-cliente-quitar").addEventListener("click", function () { elegirCliente(null); });
 
   $("pos-vaciar").addEventListener("click", function () {
-    if (venta.length && window.confirm("¿Vaciar la venta actual?")) {
+    if (venta.length && window.confirm(_t("¿Vaciar la venta actual?"))) {
       venta = [];
       elegirCliente(null);
       pintar();
@@ -362,26 +365,26 @@
     var efectivo = leerMonto(campos.efectivo.value);
     var resultado = { total: total, tarjeta: tarjeta, transferencia: transferencia, efectivo: efectivo, valido: false, texto: "" };
     if (isNaN(tarjeta) || isNaN(transferencia) || isNaN(efectivo)) {
-      resultado.texto = "Revisa los montos: escribe solo números.";
+      resultado.texto = _t("Revisa los montos: escribe solo números.");
       return resultado;
     }
     var otros = tarjeta + transferencia;
     if (otros > total) {
-      resultado.texto = "Tarjeta y transferencia superan el total. El cambio solo se da en efectivo.";
+      resultado.texto = _t("Tarjeta y transferencia superan el total. El cambio solo se da en efectivo.");
       return resultado;
     }
     resultado.falta = total - otros;
     if (resultado.falta === 0) {
       resultado.valido = efectivo === 0;
-      resultado.texto = efectivo ? "El total ya está cubierto: deja el efectivo en 0." : "Pago completo.";
+      resultado.texto = efectivo ? _t("El total ya está cubierto: deja el efectivo en 0.") : _t("Pago completo.");
       return resultado;
     }
     if (efectivo < resultado.falta) {
-      resultado.texto = "Falta " + pesos(resultado.falta - efectivo) + " por recibir.";
+      resultado.texto = _tf("Falta %s por recibir.", [pesos(resultado.falta - efectivo)]);
       return resultado;
     }
     resultado.valido = true;
-    resultado.texto = "Cambio: " + pesos(efectivo - resultado.falta);
+    resultado.texto = _tf("Cambio: %s", [pesos(efectivo - resultado.falta)]);
     return resultado;
   }
 
@@ -400,7 +403,7 @@
     var exacto = document.createElement("button");
     exacto.type = "button";
     exacto.className = "boton secundario";
-    exacto.textContent = "Exacto";
+    exacto.textContent = _t("Exacto");
     exacto.addEventListener("click", function () {
       campos.efectivo.value = falta > 0 ? pesos(falta).replace("$", "") : "";
       actualizarCobro();
@@ -507,11 +510,11 @@
       $("pos-nueva").focus();
     }).catch(function () {
       var error = $("pos-error-cobro");
-      error.textContent = "No pudimos comunicarnos con el servidor. Revisa la conexión e inténtalo de nuevo.";
+      error.textContent = _t("No pudimos comunicarnos con el servidor. Revisa la conexión e inténtalo de nuevo.");
       error.hidden = false;
     }).finally(function () {
       boton.disabled = false;
-      boton.textContent = "Confirmar venta";
+      boton.textContent = _t("Confirmar venta");
     });
   });
 

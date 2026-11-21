@@ -1,6 +1,7 @@
 {% extends "core/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Punto de venta · Intersoft{% endblock %}
+{% block titulo %}{% translate "Punto de venta · Intersoft" %}{% endblock %}
 
 {% block contenido %}
 <link rel="stylesheet" href="{% static 'core/css/pos-camara.css' %}?v=1">
@@ -10,45 +11,45 @@
      data-url-vender="{% url 'pos_vender' %}">
   {% csrf_token %}
 
-  <section class="pos-catalogo" aria-label="Productos">
+  <section class="pos-catalogo" aria-label="{% translate 'Productos' %}">
     <div class="encabezado pos-encabezado">
       <div class="titulo-con-icono">
         <span class="icono-caja ambar" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
         </span>
         <div>
-          <h1>Punto de venta</h1>
+          <h1>{% translate "Punto de venta" %}</h1>
           <div class="pos-turno">
-            <span class="badge exito">Caja abierta · {{ turno.creado_en|date:"g:i a" }}</span>{% if bodega and not bodega.es_principal %} <span class="badge info">{{ bodega.nombre }}</span>{% endif %}
+            <span class="badge exito">{% blocktranslate with creado_en=turno.creado_en|date:"g:i a" %}Caja abierta · {{ creado_en }}{% endblocktranslate %}</span>{% if bodega and not bodega.es_principal %} <span class="badge info">{{ bodega.nombre }}</span>{% endif %}
           </div>
         </div>
       </div>
       <div class="pos-turno">
         <a class="boton secundario" href="{% url 'pos_turnos' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-          Turnos
+          {% translate "Turnos" %}
         </a>
         <a class="boton peligro" href="{% url 'pos_cerrar' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Cerrar caja
+          {% translate "Cerrar caja" %}
         </a>
       </div>
     </div>
 
     <div class="pos-buscar-fila">
       <div class="pos-buscar">
-        <input type="search" id="pos-buscar" placeholder="Escanea el código o escribe el nombre" autocomplete="off" autofocus
-               aria-label="Buscar producto por código o nombre" aria-controls="pos-resultados">
-        <ul class="pos-resultados" id="pos-resultados" role="listbox" aria-label="Resultados de productos" hidden></ul>
+        <input type="search" id="pos-buscar" placeholder="{% translate 'Escanea el código o escribe el nombre' %}" autocomplete="off" autofocus
+               aria-label="{% translate 'Buscar producto por código o nombre' %}" aria-controls="pos-resultados">
+        <ul class="pos-resultados" id="pos-resultados" role="listbox" aria-label="{% translate 'Resultados de productos' %}" hidden></ul>
       </div>
-      <button type="button" class="boton secundario pos-camara-btn" id="pos-escanear-camara" aria-label="Escanear código de barras con cámara">
+      <button type="button" class="boton secundario pos-camara-btn" id="pos-escanear-camara" aria-label="{% translate 'Escanear código de barras con cámara' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        Cámara
+        {% translate "Cámara" %}
       </button>
     </div>
     <p class="pos-aviso" id="pos-aviso" role="status" aria-live="polite"></p>
 
-    <h2 class="pos-subtitulo">Más vendidos</h2>
+    <h2 class="pos-subtitulo">{% translate "Más vendidos" %}</h2>
     {% if frecuentes %}
       <div class="pos-rejilla">
         {% for producto in frecuentes %}
@@ -60,60 +61,60 @@
             {% endif %}
             <span class="pos-producto-nombre">{{ producto.nombre }}</span>
             <span class="pos-producto-precio">${{ producto.precio_con_iva|floatformat:"-2g" }}</span>
-            <small class="{% if producto.disponible <= producto.stock_minimo %}pos-stock-bajo{% endif %}">{% if producto.disponible > 0 %}{{ producto.disponible }} en stock{% else %}Agotado{% endif %}</small>
+            <small class="{% if producto.disponible <= producto.stock_minimo %}pos-stock-bajo{% endif %}">{% if producto.disponible > 0 %}{% blocktranslate with disponible=producto.disponible %}{{ disponible }} en stock{% endblocktranslate %}{% else %}{% translate "Agotado" %}{% endif %}</small>
           </button>
         {% endfor %}
       </div>
     {% else %}
-      <p class="nota">Aún no tienes productos activos. Créalos en <a href="{% url 'productos_lista' %}">Productos</a>.</p>
+      <p class="nota">{% translate "Aún no tienes productos activos. Créalos en" %} <a href="{% url 'productos_lista' %}">{% translate "Productos" %}</a>.</p>
     {% endif %}
   </section>
 
-  <aside class="pos-venta tarjeta" aria-label="Venta actual">
+  <aside class="pos-venta tarjeta" aria-label="{% translate 'Venta actual' %}">
     <div class="pos-cliente">
-      <label for="pos-cliente-buscar">Cliente</label>
+      <label for="pos-cliente-buscar">{% translate "Cliente" %}</label>
       <div class="pos-cliente-elegido" id="pos-cliente-elegido">
-        <span id="pos-cliente-nombre">Consumidor final</span>
-        <button type="button" class="pos-enlace" id="pos-cliente-quitar" hidden>Quitar</button>
+        <span id="pos-cliente-nombre">{% translate "Consumidor final" %}</span>
+        <button type="button" class="pos-enlace" id="pos-cliente-quitar" hidden>{% translate "Quitar" %}</button>
       </div>
-      <input type="search" id="pos-cliente-buscar" placeholder="Buscar por nombre o documento" autocomplete="off" aria-label="Buscar cliente por nombre o documento" aria-controls="pos-clientes">
-      <ul class="pos-resultados" id="pos-clientes" role="listbox" aria-label="Resultados de clientes" hidden></ul>
+      <input type="search" id="pos-cliente-buscar" placeholder="{% translate 'Buscar por nombre o documento' %}" autocomplete="off" aria-label="{% translate 'Buscar cliente por nombre o documento' %}" aria-controls="pos-clientes">
+      <ul class="pos-resultados" id="pos-clientes" role="listbox" aria-label="{% translate 'Resultados de clientes' %}" hidden></ul>
     </div>
 
-    <ol class="pos-lineas" id="pos-lineas" aria-live="polite" aria-label="Productos en la venta"></ol>
-    <p class="pos-vacio" id="pos-vacio">Escanea o toca un producto para empezar.</p>
+    <ol class="pos-lineas" id="pos-lineas" aria-live="polite" aria-label="{% translate 'Productos en la venta' %}"></ol>
+    <p class="pos-vacio" id="pos-vacio">{% translate "Escanea o toca un producto para empezar." %}</p>
 
     <dl class="pos-totales">
-      <div><dt>Subtotal</dt><dd id="pos-subtotal">$0</dd></div>
-      <div><dt>IVA</dt><dd id="pos-iva">$0</dd></div>
-      <div class="pos-total"><dt>Total</dt><dd id="pos-total">$0</dd></div>
+      <div><dt>{% translate "Subtotal" %}</dt><dd id="pos-subtotal">$0</dd></div>
+      <div><dt>{% translate "IVA" %}</dt><dd id="pos-iva">$0</dd></div>
+      <div class="pos-total"><dt>{% translate "Total" %}</dt><dd id="pos-total">$0</dd></div>
     </dl>
-    <button type="button" class="boton pos-cobrar" id="pos-cobrar" disabled>Cobrar <kbd>F2</kbd></button>
-    <button type="button" class="pos-enlace" id="pos-vaciar" aria-label="Vaciar venta actual">Vaciar venta</button>
+    <button type="button" class="boton pos-cobrar" id="pos-cobrar" disabled>{% translate "Cobrar" %} <kbd>F2</kbd></button>
+    <button type="button" class="pos-enlace" id="pos-vaciar" aria-label="{% translate 'Vaciar venta actual' %}">{% translate "Vaciar venta" %}</button>
   </aside>
 </div>
 
 <dialog class="pos-dialogo" id="pos-cobro" aria-labelledby="pos-cobro-titulo">
   <form method="dialog" id="pos-form-cobro" novalidate>
-    <h2 id="pos-cobro-titulo">Cobrar <span id="pos-cobro-total"></span></h2>
+    <h2 id="pos-cobro-titulo">{% translate "Cobrar" %} <span id="pos-cobro-total"></span></h2>
 
     <div class="pos-pago">
-      <label for="pos-efectivo">Efectivo recibido</label>
+      <label for="pos-efectivo">{% translate "Efectivo recibido" %}</label>
       <input type="text" id="pos-efectivo" inputmode="decimal" autocomplete="off" placeholder="0">
-      <div class="pos-rapidos" id="pos-rapidos" aria-label="Montos rápidos"></div>
+      <div class="pos-rapidos" id="pos-rapidos" aria-label="{% translate 'Montos rápidos' %}"></div>
     </div>
     <div class="pos-pago">
-      <label for="pos-tarjeta">Tarjeta (datáfono)</label>
+      <label for="pos-tarjeta">{% translate "Tarjeta (datáfono)" %}</label>
       <div class="pos-pago-fila">
         <input type="text" id="pos-tarjeta" inputmode="decimal" autocomplete="off" placeholder="0">
-        <input type="text" id="pos-tarjeta-ref" autocomplete="off" placeholder="Comprobante (opcional)" maxlength="60">
+        <input type="text" id="pos-tarjeta-ref" autocomplete="off" placeholder="{% translate 'Comprobante (opcional)' %}" maxlength="60">
       </div>
     </div>
     <div class="pos-pago">
-      <label for="pos-transferencia">Transferencia o Nequi</label>
+      <label for="pos-transferencia">{% translate "Transferencia o Nequi" %}</label>
       <div class="pos-pago-fila">
         <input type="text" id="pos-transferencia" inputmode="decimal" autocomplete="off" placeholder="0">
-        <input type="text" id="pos-transferencia-ref" autocomplete="off" placeholder="Referencia (opcional)" maxlength="60">
+        <input type="text" id="pos-transferencia-ref" autocomplete="off" placeholder="{% translate 'Referencia (opcional)' %}" maxlength="60">
       </div>
     </div>
 
@@ -121,37 +122,37 @@
     <p class="error" id="pos-error-cobro" role="alert" hidden></p>
 
     <div class="acciones">
-      <button type="button" class="boton secundario" id="pos-volver">Volver</button>
-      <button type="submit" class="boton" id="pos-confirmar">Confirmar venta</button>
+      <button type="button" class="boton secundario" id="pos-volver">{% translate "Volver" %}</button>
+      <button type="submit" class="boton" id="pos-confirmar">{% translate "Confirmar venta" %}</button>
     </div>
   </form>
 </dialog>
 
 <dialog class="pos-dialogo pos-listo" id="pos-listo" aria-labelledby="pos-listo-titulo">
-  <h2 id="pos-listo-titulo">Venta N.º <span id="pos-listo-numero"></span> registrada</h2>
-  <p class="pos-cambio">Cambio: <strong id="pos-listo-cambio">$0</strong></p>
+  <h2 id="pos-listo-titulo">{% translate "Venta N.º" %} <span id="pos-listo-numero"></span> {% translate "registrada" %}</h2>
+  <p class="pos-cambio">{% translate "Cambio:" %} <strong id="pos-listo-cambio">$0</strong></p>
   <div class="acciones">
-    <a class="boton secundario" id="pos-imprimir" href="#" target="_blank" rel="noopener">Imprimir ticket</a>
-    <button type="button" class="boton" id="pos-nueva">Nueva venta</button>
+    <a class="boton secundario" id="pos-imprimir" href="#" target="_blank" rel="noopener">{% translate "Imprimir ticket" %}</a>
+    <button type="button" class="boton" id="pos-nueva">{% translate "Nueva venta" %}</button>
   </div>
 </dialog>
 
 {{ frecuentes_datos|json_script:"pos-frecuentes" }}
 
 <dialog class="pos-dialogo pos-camara-dialogo" id="pos-camara-dialogo" aria-labelledby="pos-camara-titulo">
-  <h2 id="pos-camara-titulo">Escanear código de barras</h2>
+  <h2 id="pos-camara-titulo">{% translate "Escanear código de barras" %}</h2>
   <div class="pos-camara-visor">
     <video id="pos-camara-video" playsinline muted></video>
     <div class="pos-camara-guia" aria-hidden="true"></div>
   </div>
-  <p class="nota" id="pos-camara-estado" role="status" aria-live="polite">Iniciando cámara…</p>
+  <p class="nota" id="pos-camara-estado" role="status" aria-live="polite">{% translate "Iniciando cámara…" %}</p>
   <div class="acciones">
-    <button type="button" class="boton secundario" id="pos-camara-cerrar">Cerrar</button>
+    <button type="button" class="boton secundario" id="pos-camara-cerrar">{% translate "Cerrar" %}</button>
   </div>
 </dialog>
 {% endblock %}
 
 {% block scripts %}
-  <script src="{% static 'core/js/pos.js' %}?v=1" defer></script>
-  <script src="{% static 'core/js/pos-camara.js' %}?v=1" defer></script>
+  <script src="{% static 'core/js/pos.js' %}?v=2" defer></script>
+  <script src="{% static 'core/js/pos-camara.js' %}?v=2" defer></script>
 {% endblock %}

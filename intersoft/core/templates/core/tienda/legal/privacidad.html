@@ -1,40 +1,41 @@
 {% extends "core/tienda/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Política de privacidad y tratamiento de datos · InterSoft{% endblock %}
+{% block titulo %}{% translate "Política de privacidad y tratamiento de datos · InterSoft" %}{% endblock %}
 
 {% block contenido %}
   <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=1">
 
   <div class="legal-contenedor">
-    <nav class="legal-nav" aria-label="Documentos legales">
-      <a href="{% url 'legal_terminos' %}">Términos y condiciones</a>
-      <a class="activo" href="{% url 'legal_privacidad' %}">Política de privacidad</a>
-      <a href="{% url 'legal_devoluciones' %}">Devoluciones y reembolsos</a>
+    <nav class="legal-nav" aria-label="{% translate 'Documentos legales' %}">
+      <a href="{% url 'legal_terminos' %}">{% translate "Términos y condiciones" %}</a>
+      <a class="activo" href="{% url 'legal_privacidad' %}">{% translate "Política de privacidad" %}</a>
+      <a href="{% url 'legal_devoluciones' %}">{% translate "Devoluciones y reembolsos" %}</a>
     </nav>
 
     <article class="legal-documento">
-      <h1>Política de Privacidad y Tratamiento de Datos Personales</h1>
-      <p class="nota">Marco normativo: Ley 1581 de 2012 y Decreto 1377 de 2013 (Colombia)</p>
+      <h1>{% translate "Política de Privacidad y Tratamiento de Datos Personales" %}</h1>
+      <p class="nota">{% translate "Marco normativo: Ley 1581 de 2012 y Decreto 1377 de 2013 (Colombia)" %}</p>
 
       <div class="legal-aviso" role="note">
-        <strong>Documento base:</strong> completar razón social, NIT, dirección física y correo del oficial de datos personales antes de salir a producción.
+        <strong>{% translate "Documento base:" %}</strong> {% translate "completar razón social, NIT, dirección física y correo del oficial de datos personales antes de salir a producción." %}
       </div>
 
-      <h2>1. Datos que recolectamos</h2>
+      <h2>{% translate "1. Datos que recolectamos" %}</h2>
       <ul>
-        <li><strong>Compradores:</strong> nombre completo, tipo y número de documento, correo electrónico, teléfono y dirección de entrega necesaria para procesar y despachar pedidos.</li>
-        <li><strong>Comercios (negocios):</strong> razón social, NIT, datos de contacto legal, usuarios autorizados y configuración cifrada de pasarela de pagos.</li>
-        <li><strong>Operación y seguridad:</strong> registros técnicos de auditoría, IP de acceso y reportes de soporte enviados voluntariamente.</li>
+        <li><strong>{% translate "Compradores:" %}</strong> {% translate "nombre completo, tipo y número de documento, correo electrónico, teléfono y dirección de entrega necesaria para procesar y despachar pedidos." %}</li>
+        <li><strong>{% translate "Comercios (negocios):" %}</strong> {% translate "razón social, NIT, datos de contacto legal, usuarios autorizados y configuración cifrada de pasarela de pagos." %}</li>
+        <li><strong>{% translate "Operación y seguridad:" %}</strong> {% translate "registros técnicos de auditoría, IP de acceso y reportes de soporte enviados voluntariamente." %}</li>
       </ul>
 
-      <h2>2. Finalidad del tratamiento</h2>
-      <p>Utilizamos los datos exclusivamente para gestionar compras en el marketplace, coordinar envíos con el comercio vendedor, emitir soportes de venta, atender solicitudes <a href="{% url 'pqrs_mis_list' %}">PQRS</a>, prevenir fraude y enviar notificaciones transaccionales del servicio.</p>
+      <h2>{% translate "2. Finalidad del tratamiento" %}</h2>
+      <p>{% translate "Utilizamos los datos exclusivamente para gestionar compras en el marketplace, coordinar envíos con el comercio vendedor, emitir soportes de venta, atender solicitudes" %} <a href="{% url 'pqrs_mis_list' %}">PQRS</a>{% translate ", prevenir fraude y enviar notificaciones transaccionales del servicio." %}</p>
 
-      <h2>3. Seguridad de la información</h2>
-      <p>InterSoft no almacena números completos de tarjetas de crédito/débito; el procesamiento de pagos se delega a pasarelas certificadas (Wompi). Las llaves de integración de cada comercio se almacenan cifradas en base de datos.</p>
+      <h2>{% translate "3. Seguridad de la información" %}</h2>
+      <p>{% translate "InterSoft no almacena números completos de tarjetas de crédito/débito; el procesamiento de pagos se delega a pasarelas certificadas (Wompi). Las llaves de integración de cada comercio se almacenan cifradas en base de datos." %}</p>
 
-      <h2>4. Derechos del titular (ARCO)</h2>
-      <p>Como titular de los datos puedes conocer, actualizar, rectificar o solicitar la supresión de tu información personal en cualquier momento radicando una solicitud en nuestro canal de <a href="{% url 'pqrs_mis_list' %}">PQRS</a>.</p>
+      <h2>{% translate "4. Derechos del titular (ARCO)" %}</h2>
+      <p>{% translate "Como titular de los datos puedes conocer, actualizar, rectificar o solicitar la supresión de tu información personal en cualquier momento radicando una solicitud en nuestro canal de" %} <a href="{% url 'pqrs_mis_list' %}">PQRS</a>.</p>
     </article>
   </div>
 {% endblock %}

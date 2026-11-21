@@ -1,4 +1,5 @@
 """Vistas públicas del marketplace y registro de cuentas y negocios."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -127,7 +128,7 @@ class RegistrarNegocioView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         empresa = registrar_negocio(usuario=self.request.user, datos=form.cleaned_data)
         self.request.session["empresa_id"] = str(empresa.pk)  # la sesión solo guarda texto, no UUID
-        messages.success(self.request, f"¡Listo! {empresa.nombre} ya está registrado.")
+        messages.success(self.request, gettext("¡Listo! {nombre} ya está registrado.").format(nombre=empresa.nombre))
         return redirect("dashboard")
 
 

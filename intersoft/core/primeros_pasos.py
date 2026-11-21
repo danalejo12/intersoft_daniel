@@ -1,4 +1,5 @@
 """Guía de primeros pasos para negocios nuevos: qué falta para vender en el marketplace."""
+from django.utils.translation import gettext
 from dataclasses import dataclass
 
 from django.urls import reverse
@@ -28,29 +29,29 @@ def pasos_del_negocio(empresa, usuario) -> list[Paso]:
     )
     cobros = _cobros_activos(empresa)
     if cobros:
-        ayuda_cobros = "Tus clientes ya pueden pagar con tarjeta, PSE o Nequi por Wompi."
+        ayuda_cobros = gettext("Tus clientes ya pueden pagar con tarjeta, PSE o Nequi por Wompi.")
     else:
-        ayuda_cobros = "Conecta, verifica y activa la cuenta de Wompi de tu negocio en Pagos."
+        ayuda_cobros = gettext("Conecta, verifica y activa la cuenta de Wompi de tu negocio en Pagos.")
     return [
         Paso(
-            "Completa el perfil del negocio",
-            "NIT, dirección, teléfono y correo. Sin ellos la ley no permite publicar tus productos.",
-            perfil_completo, reverse("negocio_datos"), "Completar perfil",
+            gettext("Completa el perfil del negocio"),
+            gettext("NIT, dirección, teléfono y correo. Sin ellos la ley no permite publicar tus productos."),
+            perfil_completo, reverse("negocio_datos"), gettext("Completar perfil"),
         ),
         Paso(
-            "Crea tu primer producto",
-            "Nombre, precio e inventario. Puedes empezar con uno solo.",
-            productos.exists(), reverse("productos_crear"), "Crear producto",
+            gettext("Crea tu primer producto"),
+            gettext("Nombre, precio e inventario. Puedes empezar con uno solo."),
+            productos.exists(), reverse("productos_crear"), gettext("Crear producto"),
         ),
         Paso(
-            "Publícalo con una buena foto",
-            "Marca «Publicado» y sube una foto: los productos con foto se venden mucho más.",
-            productos.filter(publicado=True).exclude(imagen="").exists(), reverse("productos_lista"), "Ver productos",
+            gettext("Publícalo con una buena foto"),
+            gettext("Marca «Publicado» y sube una foto: los productos con foto se venden mucho más."),
+            productos.filter(publicado=True).exclude(imagen="").exists(), reverse("productos_lista"), gettext("Ver productos"),
         ),
-        Paso("Activa los cobros con Wompi", ayuda_cobros, cobros, reverse("negocio_pagos"), "Configurar pagos"),
+        Paso(gettext("Activa los cobros con Wompi"), ayuda_cobros, cobros, reverse("negocio_pagos"), gettext("Configurar pagos")),
         Paso(
-            "Haz tu primera venta",
-            "Desde el punto de venta o cuando entre tu primer pedido pagado del marketplace.",
-            vendio, reverse("pos"), "Abrir punto de venta",
+            gettext("Haz tu primera venta"),
+            gettext("Desde el punto de venta o cuando entre tu primer pedido pagado del marketplace."),
+            vendio, reverse("pos"), gettext("Abrir punto de venta"),
         ),
     ]

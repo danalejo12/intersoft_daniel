@@ -1,4 +1,5 @@
 """Vistas principales del panel: inicio, configuración del negocio, clientes y re-exportaciones."""
+from django.utils.translation import gettext
 from datetime import date, timedelta
 
 from django.conf import settings
@@ -203,7 +204,7 @@ class CambiarNegocioView(TenantMixin, View):
     def post(self, request, *args, **kwargs):
         empresa_id = (request.POST.get("empresa_id") or "").strip()
         if not empresa_id:
-            raise Http404("Negocio no especificado.")
+            raise Http404(gettext("Negocio no especificado."))
         try:
             membresia = (
                 Membresia.objects.select_related("empresa")
@@ -216,13 +217,13 @@ class CambiarNegocioView(TenantMixin, View):
                 .first()
             )
         except (ValueError, ValidationError) as error:
-            raise Http404("Identificador de negocio inválido.") from error
+            raise Http404(gettext("Identificador de negocio inválido.")) from error
 
         if membresia is None:
-            raise Http404("No tienes una membresía activa en ese negocio.")
+            raise Http404(gettext("No tienes una membresía activa en ese negocio."))
 
         request.session["empresa_id"] = str(membresia.empresa_id)
-        messages.success(request, f"Cambiaste al negocio «{membresia.empresa.nombre}».")
+        messages.success(request, gettext("Cambiaste al negocio «{nombre}».").format(nombre=membresia.empresa.nombre))
         return HttpResponseRedirect(destino_seguro(request) or reverse("dashboard"))
 
 

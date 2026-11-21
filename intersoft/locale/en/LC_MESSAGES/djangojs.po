@@ -1,0 +1,175 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Intersoft\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, python-format
+msgid "%s en stock"
+msgstr "%s in stock"
+
+#, python-format
+msgid "%s está agotado."
+msgstr "%s is out of stock."
+
+msgid "Abriendo cámara…"
+msgstr "Opening camera…"
+
+#, python-format
+msgid "Agregado: %s"
+msgstr "Added: %s"
+
+msgid "Apunta el código de barras dentro del recuadro…"
+msgstr "Point the barcode inside the frame…"
+
+msgid "Buenas noches"
+msgstr "Good evening"
+
+msgid "Buenas tardes"
+msgstr "Good afternoon"
+
+msgid "Buenos días"
+msgstr "Good morning"
+
+msgid "Cambiar a modo día"
+msgstr "Switch to day mode"
+
+msgid "Cambiar a modo noche"
+msgstr "Switch to night mode"
+
+#, python-format
+msgid "Cambio: %s"
+msgstr "Change: %s"
+
+#, python-format
+msgid "Cantidad de %s"
+msgstr "Quantity of %s"
+
+msgid "Cerrar aviso"
+msgstr "Close notice"
+
+msgid "Confirmar venta"
+msgstr "Confirm sale"
+
+msgid "Consumidor final"
+msgstr "Walk-in customer"
+
+msgid "Contraer menú"
+msgstr "Collapse menu"
+
+msgid "Contraer todos"
+msgstr "Collapse all"
+
+msgid "Copiar URL"
+msgstr "Copy URL"
+
+msgid "Cámara activa, pero este navegador no soporta detección automática de códigos (usa Chrome/Edge en Android)."
+msgstr "Camera active, but this browser doesn't support automatic code detection (use Chrome/Edge on Android)."
+
+msgid "El total ya está cubierto: deja el efectivo en 0."
+msgstr "The total is already covered: leave cash at 0."
+
+msgid "Este navegador o conexión no permite usar la cámara (requiere HTTPS)."
+msgstr "This browser or connection doesn't allow using the camera (requires HTTPS)."
+
+msgid "Exacto"
+msgstr "Exact"
+
+msgid "Expandir todos"
+msgstr "Expand all"
+
+#, python-format
+msgid "Falta %s por recibir."
+msgstr "%s left to receive."
+
+msgid "Gracias por tu sinceridad. ¿Qué deberíamos mejorar?"
+msgstr "Thanks for your honesty. What should we improve?"
+
+msgid "Guardando tu pedido…"
+msgstr "Saving your order…"
+
+msgid "Mostrar nombres del menú"
+msgstr "Show menu names"
+
+#, python-format
+msgid "No encontramos «%s»."
+msgstr "We couldn't find “%s”."
+
+msgid "No pudimos comunicarnos con el servidor. Revisa la conexión e inténtalo de nuevo."
+msgstr "We couldn't reach the server. Check your connection and try again."
+
+msgid "No se pudo acceder a la cámara. Revisa los permisos del navegador."
+msgstr "Couldn't access the camera. Check the browser permissions."
+
+msgid "Pago completo."
+msgstr "Payment complete."
+
+msgid "Productos"
+msgstr "Products"
+
+#, python-format
+msgid "Puntaje elegido: %s/10 · %s"
+msgstr "Score chosen: %s/10 · %s"
+
+#, python-format
+msgid "Quitar %s"
+msgstr "Remove %s"
+
+msgid "Revisa los montos: escribe solo números."
+msgstr "Check the amounts: enter numbers only."
+
+msgid "Sin resultados. Créalo en Clientes."
+msgstr "No results. Create it in Customers."
+
+#, python-format
+msgid "Solo hay %s de %s."
+msgstr "There are only %s of %s."
+
+msgid "Tarjeta y transferencia superan el total. El cambio solo se da en efectivo."
+msgstr "Card and transfer exceed the total. Change is only given in cash."
+
+msgid "Tiendas"
+msgstr "Stores"
+
+msgid "Todas"
+msgstr "All"
+
+#, python-format
+msgid "Una unidad menos de %s"
+msgstr "One less unit of %s"
+
+#, python-format
+msgid "Una unidad más de %s"
+msgstr "One more unit of %s"
+
+msgid "Ver carrito"
+msgstr "View cart"
+
+#, python-format
+msgid "Ver todos los resultados para «%s»"
+msgstr "View all results for “%s”"
+
+msgid "Vista previa"
+msgstr "Preview"
+
+msgid "agotado"
+msgstr "out of stock"
+
+msgid "¡Copiada!"
+msgstr "Copied!"
+
+msgid "¡Gracias! ¿Qué nos falta para llegar al 10?"
+msgstr "Thanks! What's missing to reach a 10?"
+
+msgid "¡Qué alegría! ¿Qué es lo que más valoras de InterSoft?"
+msgstr "So glad to hear it! What do you value most about InterSoft?"
+
+msgid "¿Borrar tus llaves de Wompi?"
+msgstr "Delete your Wompi keys?"
+
+msgid "¿Vaciar la venta actual?"
+msgstr "Clear the current sale?"
+

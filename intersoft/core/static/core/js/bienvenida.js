@@ -1,12 +1,15 @@
+/* Traducción en el navegador: usa el catálogo de /jsi18n/ si está cargado. */
+function _t(s) { return window.gettext ? window.gettext(s) : s; }
+function _tf(s, a) { var r = _t(s); for (var i = 0; i < a.length; i++) { r = r.replace("%s", a[i]); } return r; }
 (function () {
   var raiz = document.getElementById("bienvenida");
   if (!raiz) return;
   var ahora = new Date();
   var hora = ahora.getHours();
   document.getElementById("bv-saludo").textContent =
-    hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+    hora < 12 ? _t("Buenos días") : hora < 19 ? _t("Buenas tardes") : _t("Buenas noches");
   document.getElementById("bv-fecha").textContent =
-    ahora.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+    ahora.toLocaleDateString(document.documentElement.lang || "es-CO", { weekday: "long", day: "numeric", month: "long" });
 
   // Letra por letra con textContent: el nombre nunca se interpreta como HTML
   var caja = document.getElementById("bv-nombre");

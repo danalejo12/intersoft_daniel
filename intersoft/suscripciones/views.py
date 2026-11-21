@@ -1,4 +1,5 @@
 """Vistas API (DRF) para consulta de planes y gestión de la suscripción del tenant activo."""
+from django.utils.translation import gettext
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -84,7 +85,7 @@ class CambiarPlanAPIView(APIView):
             return Response(
                 {
                     "code": "pago_requerido",
-                    "detail": "El plan se activa cuando Wompi confirme el pago.",
+                    "detail": gettext("El plan se activa cuando Wompi confirme el pago."),
                     "cobro_id": str(cobro.pk),
                     "monto": str(cobro.monto),
                     "checkout_url": cobros.url_pago(cobro, redirect_url=volver),

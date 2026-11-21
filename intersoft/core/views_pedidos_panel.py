@@ -1,4 +1,5 @@
 """Panel del comercio para gestionar pedidos del marketplace: liquidación, logística y reembolsos."""
+from django.utils.translation import gettext
 from decimal import Decimal
 
 from django.contrib import messages
@@ -37,7 +38,7 @@ class AccesoPedidosPanelMixin(TenantMixin):
     def dispatch(self, request, *args, **kwargs):
         membresia = getattr(request, "membresia", None)
         if membresia and not any(membresia.tiene_permiso(p) for p in self.permisos_requeridos):
-            raise PermissionDenied("No tienes permiso para esta acción.")
+            raise PermissionDenied(gettext("No tienes permiso para esta acción."))
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -170,7 +171,7 @@ class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
 
         if accion == "reembolsar":
             if not _puede_reembolsar(membresia):
-                raise PermissionDenied("No tienes permiso para registrar reembolsos.")
+                raise PermissionDenied(gettext("No tienes permiso para registrar reembolsos."))
             try:
                 reservas.registrar_reembolso(
                     pedido=pedido,
@@ -181,12 +182,12 @@ class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
             except ValueError as error:
                 messages.error(request, str(error))
             else:
-                messages.success(request, f"Reembolso del pedido #{pedido.numero} registrado correctamente.")
+                messages.success(request, gettext("Reembolso del pedido #{numero} registrado correctamente.").format(numero=pedido.numero))
             return redirect("pedidos_panel_detalle", pk=pedido.pk)
 
         if accion == "actualizar_envio":
             if not _puede_gestionar_envio(membresia):
-                raise PermissionDenied("No tienes permiso para actualizar el despacho de pedidos.")
+                raise PermissionDenied(gettext("No tienes permiso para actualizar el despacho de pedidos."))
             try:
                 reservas.actualizar_envio_pedido(
                     pedido=pedido,
@@ -197,12 +198,12 @@ class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
             except ValueError as error:
                 messages.error(request, str(error))
             else:
-                messages.success(request, f"Estado de envío del pedido #{pedido.numero} actualizado.")
+                messages.success(request, gettext("Estado de envío del pedido #{numero} actualizado.").format(numero=pedido.numero))
             return redirect("pedidos_panel_detalle", pk=pedido.pk)
 
         if accion == "registrar_dispersion":
             if not _puede_reembolsar(membresia):
-                raise PermissionDenied("No tienes permiso para registrar la dispersión del pedido.")
+                raise PermissionDenied(gettext("No tienes permiso para registrar la dispersión del pedido."))
             try:
                 reservas.registrar_dispersion_pedido(
                     pedido=pedido,
@@ -216,9 +217,9 @@ class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
             else:
                 messages.success(
                     request,
-                    f"Dispersión del pedido #{pedido.numero} registrada correctamente.",
+                    gettext("Dispersión del pedido #{numero} registrada correctamente.").format(numero=pedido.numero),
                 )
             return redirect("pedidos_panel_detalle", pk=pedido.pk)
 
-        messages.error(request, "Acción no reconocida.")
+        messages.error(request, gettext("Acción no reconocida."))
         return redirect("pedidos_panel_detalle", pk=pedido.pk)

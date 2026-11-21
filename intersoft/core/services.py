@@ -4,6 +4,7 @@ Servicios de Intersoft: aquí vive la LÓGICA DE NEGOCIO.
 Las vistas reciben la petición y llaman a un servicio; el servicio hace el trabajo
 y garantiza la integridad. Así la misma lógica sirve para la web, una API o un comando.
 """
+from django.utils.translation import gettext
 from decimal import Decimal
 
 from django.db import transaction
@@ -38,10 +39,10 @@ def crear_factura(*, empresa, usuario, cliente, items, bodega=None):
     PostgreSQL deshace todo lo hecho dentro de la función.
     """
     if cliente.empresa_id != empresa.id:
-        raise ValueError("El cliente no pertenece a esta empresa.")
+        raise ValueError(gettext("El cliente no pertenece a esta empresa."))
     bodega = bodegas.validar_bodega(empresa, bodega)  # sin bodega: la Principal
     if not items:
-        raise ValueError("La factura necesita al menos un producto.")
+        raise ValueError(gettext("La factura necesita al menos un producto."))
 
     # 1. Bloquear los productos que se van a vender.
     #    select_for_update = "nadie más toca estas filas hasta que yo termine".
@@ -60,12 +61,12 @@ def crear_factura(*, empresa, usuario, cliente, items, bodega=None):
         producto = productos.get(item["producto"].id)
         raw_cantidad = item["cantidad"]
         if isinstance(raw_cantidad, bool):
-            raise ValueError("La cantidad debe ser un número entero.")
+            raise ValueError(gettext("La cantidad debe ser un número entero."))
         cantidad = int(raw_cantidad)
         if producto is None:
-            raise ValueError("Producto inexistente, inactivo o de otra empresa.")
+            raise ValueError(gettext("Producto inexistente, inactivo o de otra empresa."))
         if cantidad <= 0:
-            raise ValueError("La cantidad debe ser mayor que cero.")
+            raise ValueError(gettext("La cantidad debe ser mayor que cero."))
         acumulado[producto.id] = acumulado.get(producto.id, 0) + cantidad
 
     # Se valida contra la bodega que vende, no contra el total del negocio
@@ -75,8 +76,7 @@ def crear_factura(*, empresa, usuario, cliente, items, bodega=None):
         disponible = bodegas.existencia(producto, bodega)
         if disponible < total_producto:
             raise StockInsuficiente(
-                f"Stock insuficiente de {producto.nombre} en {bodega.nombre}: "
-                f"hay {disponible}, se piden {total_producto}."
+                gettext("Stock insuficiente de {nombre} en {nombre2}: hay {disponible}, se piden {total_producto}.").format(nombre=producto.nombre, nombre2=bodega.nombre, disponible=disponible, total_producto=total_producto)
             )
 
     # 3. Consecutivo sin duplicados e instantánea descriptiva.
@@ -181,15 +181,15 @@ def anular_factura(*, factura, usuario):
     """Una factura NUNCA se borra: se anula y la mercancía vuelve al inventario."""
     factura = Factura.objects.select_for_update().get(pk=factura.pk)
     if factura.estado == Factura.Estado.ANULADA:
-        raise ValueError("La factura ya está anulada.")
+        raise ValueError(gettext("La factura ya está anulada."))
 
     if factura.esta_pagada:
-        raise ValueError("No se puede anular una factura pagada; primero debe reembolsarse.")
+        raise ValueError(gettext("No se puede anular una factura pagada; primero debe reembolsarse."))
 
     cartera = getattr(factura, "cuentacartera", None)
     if cartera is not None:
         if cartera.abonado > 0:
-            raise ValueError("No se puede anular una factura con abonos registrados en cartera.")
+            raise ValueError(gettext("No se puede anular una factura con abonos registrados en cartera."))
         cartera.delete()
 
     # La mercancía vuelve a la bodega de la que salió (las facturas antiguas, a la Principal)
@@ -234,9 +234,9 @@ def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referenc
     Tipo = MovimientoInventario.Tipo
 
     if tipo in (Tipo.ENTRADA, Tipo.SALIDA) and cantidad <= 0:
-        raise ValueError("La cantidad debe ser mayor que cero.")
+        raise ValueError(gettext("La cantidad debe ser mayor que cero."))
     if tipo == Tipo.AJUSTE and cantidad == 0:
-        raise ValueError("Un ajuste no puede ser cero.")
+        raise ValueError(gettext("Un ajuste no puede ser cero."))
 
     variacion = -cantidad if tipo == Tipo.SALIDA else cantidad
 

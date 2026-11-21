@@ -1,4 +1,5 @@
 """Notificaciones por correo electrónico para eventos del ciclo de vida de PQRS."""
+from django.utils.translation import gettext
 from core.notificaciones import _enviar, correos_del_negocio
 
 
@@ -10,30 +11,19 @@ def _destinatarios_empresa(pqrs) -> list[str]:
 
 def notificar_pqrs_radicada(pqrs) -> int:
     """Envía confirmación al autor de la PQRS y avisa al negocio si es flujo B."""
-    asunto = f"[{pqrs.radicado}] PQRS radicada: {pqrs.asunto}"
+    asunto = gettext("[{radicado}] PQRS radicada: {asunto}").format(radicado=pqrs.radicado, asunto=pqrs.asunto)
     fecha_txt = pqrs.fecha_limite.strftime("%d/%m/%Y %H:%M")
     mensaje = (
-        f"Hola,\n\n"
-        f"Tu solicitud ha sido radicada con éxito.\n"
-        f"Radicado: {pqrs.radicado}\n"
-        f"Tipo: {pqrs.get_tipo_display()}\n"
-        f"Asunto: {pqrs.asunto}\n"
-        f"Estado actual: {pqrs.get_estado_display()}\n"
-        f"Fecha límite estimada de respuesta: {fecha_txt}\n"
+        gettext("Hola,\n\nTu solicitud ha sido radicada con éxito.\nRadicado: {radicado}\nTipo: {get_tipo_display}\nAsunto: {asunto}\nEstado actual: {get_estado_display}\nFecha límite estimada de respuesta: {fecha_txt}\n").format(radicado=pqrs.radicado, get_tipo_display=pqrs.get_tipo_display(), asunto=pqrs.asunto, get_estado_display=pqrs.get_estado_display(), fecha_txt=fecha_txt)
     )
     enviados = _enviar(asunto=asunto, mensaje=mensaje, destinatarios=[pqrs.autor.email])
 
     if pqrs.flujo == pqrs.Flujo.COMPRADOR_NEGOCIO:
         correos_neg = _destinatarios_empresa(pqrs)
         if correos_neg:
-            asunto_neg = f"[{pqrs.radicado}] Nueva PQRS de comprador · {pqrs.empresa.nombre}"
+            asunto_neg = gettext("[{radicado}] Nueva PQRS de comprador · {nombre}").format(radicado=pqrs.radicado, nombre=pqrs.empresa.nombre)
             mensaje_neg = (
-                f"Hola equipo de {pqrs.empresa.nombre},\n\n"
-                f"Un comprador radicó una nueva PQRS.\n"
-                f"Radicado: {pqrs.radicado}\n"
-                f"Asunto: {pqrs.asunto}\n"
-                f"Fecha límite para responder antes de escalar a Intersoft: {fecha_txt}\n"
-                f"Ingresa a /panel/pqrs/ para gestionarla.\n"
+                gettext("Hola equipo de {nombre},\n\nUn comprador radicó una nueva PQRS.\nRadicado: {radicado}\nAsunto: {asunto}\nFecha límite para responder antes de escalar a Intersoft: {fecha_txt}\nIngresa a /panel/pqrs/ para gestionarla.\n").format(nombre=pqrs.empresa.nombre, radicado=pqrs.radicado, asunto=pqrs.asunto, fecha_txt=fecha_txt)
             )
             enviados += _enviar(asunto=asunto_neg, mensaje=mensaje_neg, destinatarios=correos_neg)
     return enviados
@@ -41,18 +31,18 @@ def notificar_pqrs_radicada(pqrs) -> int:
 
 def notificar_pqrs_estado(pqrs, estado_anterior: str = "") -> int:
     """Notifica por correo el cambio de estado de una PQRS."""
-    asunto = f"[{pqrs.radicado}] Cambio de estado: {pqrs.get_estado_display()}"
+    asunto = gettext("[{radicado}] Cambio de estado: {get_estado_display}").format(radicado=pqrs.radicado, get_estado_display=pqrs.get_estado_display())
     lineas = [
-        "Hola,",
+        gettext("Hola,"),
         "",
-        f"Tu PQRS {pqrs.radicado} ({pqrs.asunto}) cambió de estado.",
+        gettext("Tu PQRS {radicado} ({asunto}) cambió de estado.").format(radicado=pqrs.radicado, asunto=pqrs.asunto),
     ]
     if estado_anterior:
-        lineas.append(f"Estado anterior: {estado_anterior}")
-    lineas.append(f"Estado actual: {pqrs.get_estado_display()}")
+        lineas.append(gettext("Estado anterior: {estado_anterior}").format(estado_anterior=estado_anterior))
+    lineas.append(gettext("Estado actual: {get_estado_display}").format(get_estado_display=pqrs.get_estado_display()))
     if pqrs.estado == pqrs.Estado.ESCALADA:
         lineas.append(
-            "La solicitud venció sin respuesta oportuna y fue escalada al equipo de Intersoft."
+            gettext("La solicitud venció sin respuesta oportuna y fue escalada al equipo de Intersoft.")
         )
     destinatarios = [pqrs.autor.email]
     if pqrs.estado == pqrs.Estado.ESCALADA and pqrs.empresa_id:
@@ -65,12 +55,9 @@ def notificar_pqrs_respuesta(pqrs, mensaje_pqrs) -> int:
     if mensaje_pqrs.interno:
         return 0
 
-    asunto = f"[{pqrs.radicado}] Nueva respuesta en tu PQRS"
+    asunto = gettext("[{radicado}] Nueva respuesta en tu PQRS").format(radicado=pqrs.radicado)
     cuerpo = (
-        f"Hola,\n\n"
-        f"Hay un nuevo mensaje en la PQRS {pqrs.radicado} ({pqrs.asunto}):\n\n"
-        f"{mensaje_pqrs.texto}\n\n"
-        f"Estado actual: {pqrs.get_estado_display()}\n"
+        gettext("Hola,\n\nHay un nuevo mensaje en la PQRS {radicado} ({asunto}):\n\n{texto}\n\nEstado actual: {get_estado_display}\n").format(radicado=pqrs.radicado, asunto=pqrs.asunto, texto=mensaje_pqrs.texto, get_estado_display=pqrs.get_estado_display())
     )
     if mensaje_pqrs.autor_id == pqrs.autor_id and pqrs.flujo == pqrs.Flujo.COMPRADOR_NEGOCIO:
         destinatarios = _destinatarios_empresa(pqrs)

@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
-{% block titulo %}{% if es_nuevo %}Nuevo rol{% else %}Editar rol{% endif %} · Intersoft{% endblock %}
+{% load i18n idiomas %}
+{% block titulo %}{% if es_nuevo %}{% translate "Nuevo rol" %}{% else %}{% translate "Editar rol" %}{% endif %} {% translate "· Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="max-width: 920px; margin: 0 auto 18px;">
@@ -8,18 +9,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </span>
       <div>
-        <h1>{% if es_nuevo %}Nuevo rol{% else %}Editar rol «{{ rol.nombre }}»{% endif %}</h1>
-        <p class="nota" style="margin: 0;">Configura el alcance de permisos para este perfil.</p>
+        <h1>{% if es_nuevo %}{% translate "Nuevo rol" %}{% else %}{% blocktranslate with nombre=rol.nombre %}Editar rol «{{ nombre }}»{% endblocktranslate %}{% endif %}</h1>
+        <p class="nota" style="margin: 0;">{% translate "Configura el alcance de permisos para este perfil." %}</p>
       </div>
     </div>
-    <a class="boton secundario" href="{% url 'equipo_lista' %}">← Volver al equipo</a>
+    <a class="boton secundario" href="{% url 'equipo_lista' %}">{% translate "← Volver al equipo" %}</a>
   </div>
 
   <form method="post" class="formulario" novalidate>
     {% csrf_token %}
 
     {% if form.errors %}
-      <p class="error aviso">Revisa los campos marcados en rojo.</p>
+      <p class="error aviso">{% translate "Revisa los campos marcados en rojo." %}</p>
     {% endif %}
 
     {% for error in form.non_field_errors %}
@@ -45,7 +46,7 @@
     <div class="campo{% if form.es_admin.errors %} con-error{% endif %}" style="grid-column: 1 / -1;">
       <label class="equipo-permiso-item" style="background: rgba(91, 140, 255, .10); border: 1px solid rgba(91, 140, 255, .28);">
         {{ form.es_admin }}
-        <span><strong>{{ form.es_admin.label }}</strong> — Concede acceso completo a todos los módulos del negocio.</span>
+        <span><strong>{{ form.es_admin.label }}</strong> {% translate "— Concede acceso completo a todos los módulos del negocio." %}</span>
       </label>
       {% for error in form.es_admin.errors %}
         <p class="error">{{ error }}</p>
@@ -54,11 +55,11 @@
 
     <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 6px;">
       <div>
-        <h2 style="font-size: 1.2rem; margin: 0;">Permisos por módulo</h2>
-        <p class="nota" style="margin: 2px 0 0;">Abre el menú ☰ de cada módulo para marcar o desmarcar sus permisos.</p>
+        <h2 style="font-size: 1.2rem; margin: 0;">{% translate "Permisos por módulo" %}</h2>
+        <p class="nota" style="margin: 2px 0 0;">{% translate "Abre el menú ☰ de cada módulo para marcar o desmarcar sus permisos." %}</p>
       </div>
       <button type="button" class="boton secundario pequeno" data-toggle-todos="#permisos-modulos-grid [data-hamburguesa]">
-        Expandir todos
+        {% translate "Expandir todos" %}
       </button>
     </div>
     {% for error in form.permisos.errors %}
@@ -70,7 +71,7 @@
         <fieldset class="tarjeta equipo-permiso-grupo">
           <div class="equipo-grupo-cabecera">
             <div class="equipo-grupo-titulo">
-              <span>{{ grupo.titulo }}</span>
+              <span>{{ grupo.titulo|traducir }}</span>
               <span class="badge neutro" data-contador-permisos>0 / {{ grupo.permisos|length }}</span>
             </div>
             <button
@@ -79,7 +80,7 @@
               data-hamburguesa
               aria-expanded="false"
               aria-controls="gaveta-mod-{{ forloop.counter }}"
-              aria-label="Desplegar permisos de {{ grupo.titulo }}"
+              aria-label="{% blocktranslate with titulo=grupo.titulo|traducir %}Desplegar permisos de {{ titulo }}{% endblocktranslate %}"
             >
               <span class="icono-hamburguesa" aria-hidden="true">
                 <span></span><span></span><span></span>
@@ -89,13 +90,13 @@
 
           <div class="rol-gaveta" id="gaveta-mod-{{ forloop.counter }}" hidden>
             <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
-              <button type="button" class="boton fantasma pequeno" data-marcar-modulo>Alternar todo el módulo</button>
+              <button type="button" class="boton fantasma pequeno" data-marcar-modulo>{% translate "Alternar todo el módulo" %}</button>
             </div>
             {% for p in grupo.permisos %}
               <label class="equipo-permiso-item">
                 <input type="checkbox" name="permisos" value="{{ p.pk }}" {% if p.marcado %}checked{% endif %}>
                 <span>
-                  {{ p.descripcion }}
+                  {{ p.descripcion|traducir }}
                   <small class="ayuda" style="display: block;">{{ p.codigo }}</small>
                 </span>
               </label>
@@ -106,10 +107,10 @@
     </div>
 
     <div class="acciones">
-      <a class="boton fantasma" href="{% url 'equipo_lista' %}">Cancelar</a>
+      <a class="boton fantasma" href="{% url 'equipo_lista' %}">{% translate "Cancelar" %}</a>
       <button type="submit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        Guardar rol
+        {% translate "Guardar rol" %}
       </button>
     </div>
   </form>

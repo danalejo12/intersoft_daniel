@@ -1,15 +1,16 @@
 {% extends "core/base.html" %}
-{% block titulo %}Conteo físico · {{ bodega.nombre }}{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with nombre=bodega.nombre %}Conteo físico · {{ nombre }}{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Conteo físico: {{ bodega.nombre }}</h1>
-      <p class="nota">Imprime esta hoja para el conteo en piso o ingresa las cantidades contadas para ajustar el inventario.</p>
+      <h1>{% blocktranslate with nombre=bodega.nombre %}Conteo físico: {{ nombre }}{% endblocktranslate %}</h1>
+      <p class="nota">{% translate "Imprime esta hoja para el conteo en piso o ingresa las cantidades contadas para ajustar el inventario." %}</p>
     </div>
     <div style="display:flex; gap:8px;">
-      <button type="button" class="boton secundario" data-imprimir>Imprimir hoja</button>
-      <a class="boton secundario" href="{% url 'bodegas_lista' %}">Volver</a>
+      <button type="button" class="boton secundario" data-imprimir>{% translate "Imprimir hoja" %}</button>
+      <a class="boton secundario" href="{% url 'bodegas_lista' %}">{% translate "Volver" %}</a>
     </div>
   </div>
 
@@ -17,16 +18,16 @@
     <form method="post" class="formulario">
       {% csrf_token %}
       <div class="campo">
-        <label for="id_obs">Observaciones del conteo</label>
-        <input id="id_obs" type="text" name="observaciones" placeholder="Ej. Conteo mensual de inventario">
+        <label for="id_obs">{% translate "Observaciones del conteo" %}</label>
+        <input id="id_obs" type="text" name="observaciones" placeholder="{% translate 'Ej. Conteo mensual de inventario' %}">
       </div>
       <div class="tabla-wrap"><table class="tabla">
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Producto</th>
-            <th class="num">Stock sistema</th>
-            <th class="num">Conteo físico</th>
+            <th>{% translate "Código" %}</th>
+            <th>{% translate "Producto" %}</th>
+            <th class="num">{% translate "Stock sistema" %}</th>
+            <th class="num">{% translate "Conteo físico" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -43,7 +44,7 @@
         </tbody>
       </table></div>
       <div class="acciones" style="margin-top: 16px;">
-        <button type="submit" class="boton">Aplicar ajuste masivo</button>
+        <button type="submit" class="boton">{% translate "Aplicar ajuste masivo" %}</button>
       </div>
     </form>
   </article>

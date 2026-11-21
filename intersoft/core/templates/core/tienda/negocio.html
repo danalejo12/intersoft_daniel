@@ -1,8 +1,9 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}{{ negocio.nombre }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with nombre=negocio.nombre %}{{ nombre }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
-  <p class="migas"><a href="{% url 'marketplace' %}">Marketplace</a> / {{ negocio.nombre }}</p>
+  <p class="migas"><a href="{% url 'marketplace' %}">{% translate "Marketplace" %}</a> / {{ negocio.nombre }}</p>
 
   <div class="encabezado-negocio">
     {% if negocio.logo %}
@@ -19,7 +20,7 @@
         <p style="margin: 10px 0 0;">
           <a class="boton secundario pequeno" href="{{ negocio.sitio_web }}" target="_blank" rel="noopener">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            Visitar sitio web / red social
+            {% translate "Visitar sitio web / red social" %}
           </a>
         </p>
       {% endif %}
@@ -34,6 +35,6 @@
     </div>
     {% include "core/tienda/paginacion.html" %}
   {% else %}
-    <p class="vacio">Este negocio todavía no tiene productos publicados.</p>
+    <p class="vacio">{% translate "Este negocio todavía no tiene productos publicados." %}</p>
   {% endif %}
 {% endblock %}

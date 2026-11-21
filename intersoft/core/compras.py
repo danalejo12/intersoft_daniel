@@ -1,4 +1,5 @@
 """Compra en el marketplace: el pedido reserva el stock y la factura nace al aprobarse el pago."""
+from django.utils.translation import gettext
 from datetime import timedelta
 from decimal import Decimal
 
@@ -55,7 +56,7 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         .order_by("id")
     )
     if len(productos) != len(cantidades):
-        raise ValueError("Producto inexistente, inactivo o de otro negocio.")
+        raise ValueError(gettext("Producto inexistente, inactivo o de otro negocio."))
 
     subtotal = iva = Decimal("0")
     peso_total_gramos = 0
@@ -126,7 +127,7 @@ def crear_orden(*, usuario, grupos, datos):
     Todo o nada: si un negocio no puede vender (stock, pasarela), no se crea ningún pedido.
     Los negocios se procesan por id para que dos compras simultáneas bloqueen filas en el mismo orden."""
     if not grupos:
-        raise ValueError("No hay productos para comprar.")
+        raise ValueError(gettext("No hay productos para comprar."))
     orden = Orden.objects.create(comprador=usuario)
     for grupo in sorted(grupos, key=lambda g: str(g["negocio"].pk)):
         pedido = crear_pedido(usuario=usuario, negocio=grupo["negocio"], lineas=grupo["lineas"], datos=datos)
@@ -146,16 +147,16 @@ def cancelar_pedido(pedido):
     """Solo se cancela si Wompi confirma que ningún intento sigue vivo."""
     resultado = revisar_en_wompi(pedido)
     if resultado == ResultadoWompi.APROBADO:
-        raise OperacionNoPermitida("Tu pago ya fue aprobado, así que este pedido no se puede cancelar.")
+        raise OperacionNoPermitida(gettext("Tu pago ya fue aprobado, así que este pedido no se puede cancelar."))
     if resultado == ResultadoWompi.EN_PROCESO:
-        raise OperacionNoPermitida("Tu pago sigue en proceso en Wompi. Espera el resultado antes de cancelar.")
+        raise OperacionNoPermitida(gettext("Tu pago sigue en proceso en Wompi. Espera el resultado antes de cancelar."))
     if resultado == ResultadoWompi.SIN_RESPUESTA:
-        raise OperacionNoPermitida("No pudimos confirmar tu pago con Wompi. Inténtalo de nuevo en un momento.")
+        raise OperacionNoPermitida(gettext("No pudimos confirmar tu pago con Wompi. Inténtalo de nuevo en un momento."))
 
     with transaction.atomic():
         bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
         if bloqueado.estado != Estado.PENDIENTE:
-            raise OperacionNoPermitida("Este pedido ya no se puede cancelar.")
+            raise OperacionNoPermitida(gettext("Este pedido ya no se puede cancelar."))
         reservas.liberar_pedido(bloqueado, Estado.CANCELADO)
 
 
@@ -188,9 +189,9 @@ def vencer_pedido(pedido_id):
 def renovar_reserva(pedido):
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if not pedido.pago_directo:
-        raise OperacionNoPermitida("Este pedido usa el cobro anterior. Crea un pedido nuevo.")
+        raise OperacionNoPermitida(gettext("Este pedido usa el cobro anterior. Crea un pedido nuevo."))
     if pedido.renovaciones >= settings.PEDIDO_MAX_RENOVACIONES:
-        raise OperacionNoPermitida("Ya renovaste esta reserva las veces permitidas. Puedes hacer un pedido nuevo.")
+        raise OperacionNoPermitida(gettext("Ya renovaste esta reserva las veces permitidas. Puedes hacer un pedido nuevo."))
 
     if pedido.estado == Estado.VENCIDO:
         # El stock se había liberado: hay que volver a reservarlo con lo que haya hoy
@@ -198,14 +199,14 @@ def renovar_reserva(pedido):
             with transaction.atomic():
                 reservas.reservar_stock(pedido)
         except StockInsuficiente:
-            raise OperacionNoPermitida("Lo sentimos, ya no hay unidades suficientes para este pedido.") from None
+            raise OperacionNoPermitida(gettext("Lo sentimos, ya no hay unidades suficientes para este pedido.")) from None
     elif pedido.estado == Estado.PENDIENTE:
         if not pedido.necesita_renovar:
-            raise OperacionNoPermitida("Tu reserva sigue vigente, no hace falta renovarla.")
+            raise OperacionNoPermitida(gettext("Tu reserva sigue vigente, no hace falta renovarla."))
         if reservas.hay_productos_inactivos(pedido):
-            raise OperacionNoPermitida("Lo sentimos, un producto de este pedido ya no está disponible.")
+            raise OperacionNoPermitida(gettext("Lo sentimos, un producto de este pedido ya no está disponible."))
     else:
-        raise OperacionNoPermitida("Este pedido ya no se puede renovar.")
+        raise OperacionNoPermitida(gettext("Este pedido ya no se puede renovar."))
 
     pedido.estado = Estado.PENDIENTE
     pedido.expira_en = _nuevo_vencimiento()

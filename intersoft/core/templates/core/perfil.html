@@ -1,23 +1,24 @@
 {% extends plantilla_base %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Mi perfil · Intersoft{% endblock %}
+{% block titulo %}{% translate "Mi perfil · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Mi perfil</h1>
-      <p class="nota">Consulta tu información personal y mantén actualizados tu foto, datos de contacto y descripción.</p>
+      <h1>{% translate "Mi perfil" %}</h1>
+      <p class="nota">{% translate "Consulta tu información personal y mantén actualizados tu foto, datos de contacto y descripción." %}</p>
     </div>
     <div class="acciones-fila">
       {% if request.empresa %}
         <a class="boton secundario" href="{% url 'dashboard' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-          Volver al panel
+          {% translate "Volver al panel" %}
         </a>
       {% else %}
         <a class="boton secundario" href="{% url 'marketplace' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-          Volver al marketplace
+          {% translate "Volver al marketplace" %}
         </a>
       {% endif %}
     </div>
@@ -38,10 +39,10 @@
           <p class="perfil-correo">{{ user.email }}</p>
           <div class="perfil-etiquetas">
             {% if request.membresia %}
-              <span class="badge info">Rol: {{ request.membresia.rol.nombre }}</span>
-              <span class="badge neutro">Empresa: {{ request.empresa.nombre }}</span>
+              <span class="badge info">{% blocktranslate with nombre=request.membresia.rol.nombre %}Rol: {{ nombre }}{% endblocktranslate %}</span>
+              <span class="badge neutro">{% blocktranslate with nombre=request.empresa.nombre %}Empresa: {{ nombre }}{% endblocktranslate %}</span>
             {% else %}
-              <span class="badge neutro">Cuenta de comprador</span>
+              <span class="badge neutro">{% translate "Cuenta de comprador" %}</span>
             {% endif %}
           </div>
         </div>
@@ -49,27 +50,27 @@
 
       <dl class="perfil-detalles">
         <div class="perfil-dato">
-          <dt>Cargo o especialidad</dt>
-          <dd>{{ user.cargo|default:"Sin definir" }}</dd>
+          <dt>{% translate "Cargo o especialidad" %}</dt>
+          <dd>{{ user.cargo|default:_("Sin definir") }}</dd>
         </div>
         <div class="perfil-dato">
-          <dt>Teléfono de contacto</dt>
-          <dd>{{ user.telefono|default:"Sin teléfono registrado" }}</dd>
+          <dt>{% translate "Teléfono de contacto" %}</dt>
+          <dd>{{ user.telefono|default:_("Sin teléfono registrado") }}</dd>
         </div>
         <div class="perfil-dato perfil-dato-ancho">
-          <dt>Sobre mí / Descripción</dt>
-          <dd>{{ user.descripcion|default:"Aún no has agregado una descripción sobre ti. Completa el formulario de abajo para presentarte."|linebreaksbr }}</dd>
+          <dt>{% translate "Sobre mí / Descripción" %}</dt>
+          <dd>{{ user.descripcion|default:_("Aún no has agregado una descripción sobre ti. Completa el formulario de abajo para presentarte.")|linebreaksbr }}</dd>
         </div>
       </dl>
     </article>
 
     <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      <h2>Editar información</h2>
-      <p class="nota">Actualiza tu foto, nombre visible y descripción. Los campos marcados con * son obligatorios.</p>
+      <h2>{% translate "Editar información" %}</h2>
+      <p class="nota">{% translate "Actualiza tu foto, nombre visible y descripción. Los campos marcados con * son obligatorios." %}</p>
 
       {% if form.errors %}
-        <p class="error aviso">Revisa los campos marcados antes de guardar.</p>
+        <p class="error aviso">{% translate "Revisa los campos marcados antes de guardar." %}</p>
       {% endif %}
 
       {% for error in form.non_field_errors %}
@@ -81,7 +82,7 @@
         <div class="perfil-foto-controles">
           <span class="perfil-foto-mini" id="perfil-preview">
             {% if user.foto %}
-              <img src="{{ user.foto.url }}" alt="Vista previa de foto actual">
+              <img src="{{ user.foto.url }}" alt="{% translate 'Vista previa de foto actual' %}">
             {% else %}
               <span>{{ user.first_name|default:user.email|first|upper }}</span>
             {% endif %}
@@ -90,10 +91,10 @@
             <div class="perfil-foto-botones">
               <label for="{{ form.foto.id_for_label }}" class="boton secundario pequeno">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                {% if user.foto %}Cambiar foto{% else %}Subir foto{% endif %}
+                {% if user.foto %}{% translate "Cambiar foto" %}{% else %}{% translate "Subir foto" %}{% endif %}
               </label>
               <span class="perfil-nombre-archivo" id="perfil-nombre-archivo">
-                {% if user.foto %}Foto actual cargada{% else %}Ningún archivo seleccionado{% endif %}
+                {% if user.foto %}{% translate "Foto actual cargada" %}{% else %}{% translate "Ningún archivo seleccionado" %}{% endif %}
               </span>
             </div>
             {{ form.foto }}
@@ -101,7 +102,7 @@
             {% if user.foto %}
               <label class="perfil-quitar-check">
                 {{ form.quitar_foto }}
-                <span>Quitar foto actual al guardar</span>
+                <span>{% translate "Quitar foto actual al guardar" %}</span>
               </label>
             {% endif %}
           </div>
@@ -125,10 +126,10 @@
       {% endfor %}
 
       <div class="acciones">
-        <a class="boton secundario" href="{% if request.empresa %}{% url 'dashboard' %}{% else %}{% url 'marketplace' %}{% endif %}">Cancelar</a>
+        <a class="boton secundario" href="{% if request.empresa %}{% url 'dashboard' %}{% else %}{% url 'marketplace' %}{% endif %}">{% translate "Cancelar" %}</a>
         <button type="submit" class="boton">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          Guardar cambios
+          {% translate "Guardar cambios" %}
         </button>
       </div>
     </form>
@@ -138,6 +139,6 @@
        data-preview-input="{{ form.foto.id_for_label }}"
        data-preview-target="perfil-preview"
        data-preview-nombre="perfil-nombre-archivo"
-       data-preview-alt="Vista previa"></div>
-  <script defer src="{% static 'core/js/preview-imagen.js' %}"></script>
+       data-preview-alt="{% translate 'Vista previa' %}"></div>
+  <script defer src="{% static 'core/js/preview-imagen.js' %}?v=i18n1"></script>
 {% endblock %}

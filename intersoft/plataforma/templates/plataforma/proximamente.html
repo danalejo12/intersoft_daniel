@@ -1,5 +1,6 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}{{ titulo_seccion }} · Consola de Plataforma · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with titulo_seccion=titulo_seccion %}{{ titulo_seccion }} · Consola de Plataforma · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
@@ -7,14 +8,14 @@
       <h1>{{ titulo_seccion }}</h1>
       <p class="nota">{{ descripcion_seccion }}</p>
     </div>
-    <a class="boton secundario" href="{% url 'plataforma_inicio' %}">← Volver al inicio</a>
+    <a class="boton secundario" href="{% url 'plataforma_inicio' %}">{% translate "← Volver al inicio" %}</a>
   </div>
 
   <article class="tarjeta" style="padding: 32px; text-align: center;">
-    <span class="badge info" style="margin-bottom: 12px;">En desarrollo</span>
-    <h2 style="margin: 8px 0;">Próximamente</h2>
+    <span class="badge info" style="margin-bottom: 12px;">{% translate "En desarrollo" %}</span>
+    <h2 style="margin: 8px 0;">{% translate "Próximamente" %}</h2>
     <p class="nota" style="max-width: 520px; margin: 0 auto;">
-      Esta sección de la consola interna estará disponible en la siguiente iteración de la plataforma.
+      {% translate "Esta sección de la consola interna estará disponible en la siguiente iteración de la plataforma." %}
     </p>
   </article>
 {% endblock %}

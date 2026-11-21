@@ -1,44 +1,44 @@
-﻿{% load static %}<!doctype html>
-<html lang="es">
+{% load i18n %}{% load static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Recibo {{ factura.numero }} · {{ factura.empresa_nombre|default:empresa.nombre }}</title>
+  <title>{% blocktranslate with numero=factura.numero empresa_nombre=factura.empresa_nombre|default:empresa.nombre %}Recibo {{ numero }} · {{ empresa_nombre }}{% endblocktranslate %}</title>
   <link rel="stylesheet" href="{% static 'core/css/ticket.css' %}">
 </head>
 <body{% if imprimir %} data-auto-imprimir="1"{% endif %}>
   <main class="visor">
     <div class="barra">
-      <span>Recibo de venta · 80 mm</span>
+      <span>{% translate "Recibo de venta · 80 mm" %}</span>
       <div class="acciones">
         <a href="{% url 'pos_ticket_pdf' factura.pk %}" target="_blank" rel="noopener"><button type="button">PDF</button></a>
-        <button type="button" id="ticket-cerrar">Cerrar</button>
-        <button class="imprimir" type="button" id="ticket-imprimir">Imprimir</button>
+        <button type="button" id="ticket-cerrar">{% translate "Cerrar" %}</button>
+        <button class="imprimir" type="button" id="ticket-imprimir">{% translate "Imprimir" %}</button>
       </div>
     </div>
     <form method="post" action="{% url 'pos_ticket_correo' factura.pk %}" class="form-correo">
       {% csrf_token %}
-      <input type="email" name="correo" value="{{ factura.cliente.email }}" placeholder="correo@cliente.com" required aria-label="Correo del cliente">
-      <button type="submit">Enviar PDF</button>
+      <input type="email" name="correo" value="{{ factura.cliente.email }}" placeholder="{% translate 'correo@cliente.com' %}" required aria-label="{% translate 'Correo del cliente' %}">
+      <button type="submit">{% translate "Enviar PDF" %}</button>
     </form>
-    <article class="recibo" aria-label="Recibo de venta {{ factura.numero }}">
+    <article class="recibo" aria-label="{% blocktranslate with numero=factura.numero %}Recibo de venta {{ numero }}{% endblocktranslate %}">
       <header class="cabecera">
-        <p class="etiqueta">Recibo de venta POS</p>
+        <p class="etiqueta">{% translate "Recibo de venta POS" %}</p>
         <h1>{{ factura.empresa_nombre|default:empresa.nombre }}</h1>
-        <p class="contacto">NIT {{ factura.empresa_nit|default:empresa.nit }}
+        <p class="contacto">{% blocktranslate with empresa_nit=factura.empresa_nit|default:empresa.nit %}NIT {{ empresa_nit }}{% endblocktranslate %}
           {% with dir_ticket=factura.empresa_direccion|default:empresa.direccion tel_ticket=factura.empresa_telefono|default:empresa.telefono %}
           {% if dir_ticket %}<br>{{ dir_ticket }}{% endif %}
-          {% if tel_ticket %}<br>Tel. {{ tel_ticket }}{% endif %}
+          {% if tel_ticket %}<br>{% blocktranslate with tel_ticket=tel_ticket %}Tel. {{ tel_ticket }}{% endblocktranslate %}{% endif %}
           {% endwith %}
         </p>
       </header>
-      <div class="folio"><span>Venta <strong>N.º {{ factura.numero }}</strong></span><span>{{ factura.creado_en|date:"d/m/Y" }}<br>{{ factura.creado_en|date:"g:i a" }}</span></div>
+      <div class="folio"><span>{% translate "Venta" %} <strong>N.º {{ factura.numero }}</strong></span><span>{{ factura.creado_en|date:"d/m/Y" }}<br>{{ factura.creado_en|date:"g:i a" }}</span></div>
       <dl class="datos">
-        <div><dt>Cajero</dt><dd>{{ factura.creada_por.get_full_name|default:factura.creada_por.email }}</dd></div>
-        <div><dt>Cliente</dt><dd>{{ factura.cliente_nombre|default:factura.cliente.nombre }}{% if not consumidor_final %}<br>{% if factura.cliente_documento %}{{ factura.cliente_documento }}{% else %}{{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }}{% endif %}{% endif %}</dd></div>
+        <div><dt>{% translate "Cajero" %}</dt><dd>{{ factura.creada_por.get_full_name|default:factura.creada_por.email }}</dd></div>
+        <div><dt>{% translate "Cliente" %}</dt><dd>{{ factura.cliente_nombre|default:factura.cliente.nombre }}{% if not consumidor_final %}<br>{% if factura.cliente_documento %}{{ factura.cliente_documento }}{% else %}{{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }}{% endif %}{% endif %}</dd></div>
       </dl>
-      <table aria-label="Productos de la venta">
-        <thead><tr><th scope="col">Producto / cantidad</th><th scope="col" class="num">Importe</th></tr></thead>
+      <table aria-label="{% translate 'Productos de la venta' %}">
+        <thead><tr><th scope="col">{% translate "Producto / cantidad" %}</th><th scope="col" class="num">{% translate "Importe" %}</th></tr></thead>
         {% for detalle in detalles %}
         <tbody>
           <tr class="producto"><td colspan="2">{{ detalle.nombre_producto|default:detalle.producto.nombre }}</td></tr>
@@ -46,19 +46,19 @@
         </tbody>
         {% endfor %}
       </table>
-      <table class="totales" aria-label="Resumen de la venta">
-        <tr><td>Subtotal</td><td class="num">${{ factura.subtotal|floatformat:"-2g" }}</td></tr>
-        <tr><td>IVA</td><td class="num">${{ factura.iva|floatformat:"-2g" }}</td></tr>
-        <tr class="total"><td>TOTAL</td><td class="num">${{ factura.total|floatformat:"-2g" }}</td></tr>
+      <table class="totales" aria-label="{% translate 'Resumen de la venta' %}">
+        <tr><td>{% translate "Subtotal" %}</td><td class="num">${{ factura.subtotal|floatformat:"-2g" }}</td></tr>
+        <tr><td>{% translate "IVA" %}</td><td class="num">${{ factura.iva|floatformat:"-2g" }}</td></tr>
+        <tr class="total"><td>{% translate "TOTAL" %}</td><td class="num">${{ factura.total|floatformat:"-2g" }}</td></tr>
       </table>
-      <h2>Detalle del pago</h2>
-      <table aria-label="Medios de pago y cambio">
+      <h2>{% translate "Detalle del pago" %}</h2>
+      <table aria-label="{% translate 'Medios de pago y cambio' %}">
         {% for pago in pagos %}
-        <tr><td>{{ pago.get_metodo_display }}{% if pago.recibido %}<span class="referencia">Recibido</span>{% endif %}{% if pago.referencia %}<span class="referencia">Ref. {{ pago.referencia }}</span>{% endif %}</td><td class="num">${% if pago.recibido %}{{ pago.recibido|floatformat:"-2g" }}{% else %}{{ pago.monto|floatformat:"-2g" }}{% endif %}</td></tr>
+        <tr><td>{{ pago.get_metodo_display }}{% if pago.recibido %}<span class="referencia">{% translate "Recibido" %}</span>{% endif %}{% if pago.referencia %}<span class="referencia">{% blocktranslate with referencia=pago.referencia %}Ref. {{ referencia }}{% endblocktranslate %}</span>{% endif %}</td><td class="num">${% if pago.recibido %}{{ pago.recibido|floatformat:"-2g" }}{% else %}{{ pago.monto|floatformat:"-2g" }}{% endif %}</td></tr>
         {% endfor %}
-        {% if cambio %}<tr class="cambio"><td>Cambio</td><td class="num">${{ cambio|floatformat:"-2g" }}</td></tr>{% endif %}
+        {% if cambio %}<tr class="cambio"><td>{% translate "Cambio" %}</td><td class="num">${{ cambio|floatformat:"-2g" }}</td></tr>{% endif %}
       </table>
-      <footer><strong>¡Gracias por tu compra!</strong><p>Conserva este recibo como soporte de tu compra.</p><p>{{ factura.empresa_nombre|default:empresa.nombre }}</p></footer>
+      <footer><strong>{% translate "¡Gracias por tu compra!" %}</strong><p>{% translate "Conserva este recibo como soporte de tu compra." %}</p><p>{{ factura.empresa_nombre|default:empresa.nombre }}</p></footer>
     </article>
   </main>
   <script defer src="{% static 'core/js/ticket.js' %}"></script>

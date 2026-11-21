@@ -1,11 +1,12 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Demasiados intentos · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Demasiados intentos · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <section class="caja-formulario">
-    <h1>Tómate un respiro</h1>
-    <p>Hubo varios intentos de ingreso fallidos con este correo, así que pausamos el acceso por 15 minutos para proteger tu cuenta.</p>
-    <p class="nota">Cuando pase ese tiempo podrás intentarlo de nuevo. Si no recuerdas tu contraseña, revisa que el correo esté bien escrito.</p>
-    <a class="boton boton-ancho" href="{% url 'marketplace' %}">Volver al catálogo</a>
+    <h1>{% translate "Tómate un respiro" %}</h1>
+    <p>{% translate "Hubo varios intentos de ingreso fallidos con este correo, así que pausamos el acceso por 15 minutos para proteger tu cuenta." %}</p>
+    <p class="nota">{% translate "Cuando pase ese tiempo podrás intentarlo de nuevo. Si no recuerdas tu contraseña, revisa que el correo esté bien escrito." %}</p>
+    <a class="boton boton-ancho" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
   </section>
 {% endblock %}

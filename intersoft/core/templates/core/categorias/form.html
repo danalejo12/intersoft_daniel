@@ -1,10 +1,11 @@
 {% extends "core/base.html" %}
-{% block titulo %}{% if object %}Editar{% else %}Nueva{% endif %} categoría · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% if object %}{% translate "Editar" %}{% else %}{% translate "Nueva" %}{% endif %} {% translate "categoría · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>{% if object %}Editar categoría{% else %}Nueva categoría{% endif %}</h1>
-    <a class="boton secundario" href="{% url 'categorias_lista' %}">← Volver a categorías</a>
+    <h1>{% if object %}{% translate "Editar categoría" %}{% else %}{% translate "Nueva categoría" %}{% endif %}</h1>
+    <a class="boton secundario" href="{% url 'categorias_lista' %}">{% translate "← Volver a categorías" %}</a>
   </div>
 
   <form method="post" class="formulario" novalidate>
@@ -18,10 +19,10 @@
       </div>
     {% endfor %}
     <div class="acciones">
-      <a class="boton secundario" href="{% url 'categorias_lista' %}">Cancelar</a>
+      <a class="boton secundario" href="{% url 'categorias_lista' %}">{% translate "Cancelar" %}</a>
       <button type="submit" class="boton">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        Guardar categoría
+        {% translate "Guardar categoría" %}
       </button>
     </div>
   </form>

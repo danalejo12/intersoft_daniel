@@ -1,4 +1,5 @@
 """Panel operativo ERP: catálogos, documentos, transiciones y reportes."""
+from django.utils.translation import gettext, gettext_lazy, gettext_noop
 import csv
 from decimal import Decimal
 
@@ -28,18 +29,18 @@ from .services import StockInsuficiente
 
 
 MODULOS = {
-    "proveedores": dict(model=m.Proveedor, titulo="Proveedores", permiso="compras", categoria="Abastecimiento", color="azul", icono="truck", descripcion="Directorio de proveedores, NIT y datos de contacto.", campos=["nombre", "documento", "email", "telefono", "direccion", "activo"], columnas=["nombre", "documento", "telefono", "activo"], buscar=["nombre", "documento"]),
-    "compras": dict(model=m.Compra, titulo="Compras", permiso="compras", categoria="Abastecimiento", color="azul", icono="bag", descripcion="Órdenes de compra, recepción en Kardex y cuentas por pagar.", campos=["proveedor", "referencia", "bodega", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
-    "cartera": dict(model=m.CuentaCartera, titulo="Cuentas por cobrar y pagar", permiso="cartera", categoria="Finanzas", color="ambar", icono="wallet", descripcion="Control de vencimientos, saldos pendientes y abonos.", campos=["tipo", "tercero", "concepto", "fecha", "vencimiento", "total"], columnas=["tipo", "tercero", "concepto", "vencimiento", "total", "saldo", "estado"], buscar=["tercero", "concepto"]),
-    "cuentas": dict(model=m.CuentaTesoreria, titulo="Cajas y bancos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="bank", descripcion="Cuentas bancarias y cajas disponibles para recaudos y pagos.", campos=["nombre", "tipo", "activa"], columnas=["nombre", "tipo", "activa"], buscar=["nombre"]),
-    "tesoreria": dict(model=m.MovimientoTesoreria, titulo="Ingresos y egresos", permiso="tesoreria", categoria="Finanzas", color="verde", icono="arrows", descripcion="Movimientos de caja/banco, abonos a cartera y conciliación.", campos=[], columnas=["fecha", "cuenta", "tipo", "concepto", "monto", "conciliado"], buscar=["concepto", "referencia"], accion="conciliar", etiqueta="Marcar conciliado", cerrado="conciliado"),
-    "plan-contable": dict(model=m.CuentaContable, titulo="Plan de cuentas", permiso="contabilidad", categoria="Contabilidad", color="violeta", icono="book", descripcion="Catálogo PUC de cuentas de débito y crédito por empresa.", campos=["codigo", "nombre", "naturaleza"], columnas=["codigo", "nombre", "naturaleza"], buscar=["codigo", "nombre"]),
-    "contabilidad": dict(model=m.AsientoContable, titulo="Comprobantes contables", permiso="contabilidad", categoria="Contabilidad", color="violeta", icono="scale", descripcion="Asientos de diario con validación de partida doble.", campos=["fecha", "concepto", "referencia"], columnas=["fecha", "concepto", "referencia", "confirmado"], buscar=["concepto", "referencia"], linea=m.LineaAsiento, relacion="asiento", campos_linea=["cuenta", "debito", "credito"], accion="confirmar", etiqueta="Confirmar comprobante", cerrado="confirmado"),
-    "empleados": dict(model=m.Empleado, titulo="Empleados y profesionales", permiso="nomina", categoria="Talento Humano", color="azul", icono="users", descripcion="Personal activo, cargos, salarios base y agenda.", campos=["nombre", "documento", "cargo", "salario_base", "fecha_ingreso", "activo"], columnas=["nombre", "documento", "cargo", "salario_base", "activo"], buscar=["nombre", "documento"]),
-    "nomina": dict(model=m.LiquidacionNomina, titulo="Liquidaciones de nómina", permiso="nomina", categoria="Talento Humano", color="ambar", icono="receipt", descripcion="Liquidaciones por período con generación de cuenta por pagar.", campos=["empleado", "desde", "hasta", "base", "adicionales", "deducciones", "observaciones"], columnas=["empleado", "desde", "hasta", "neto", "aprobada"], buscar=["empleado__nombre"], accion="aprobar", etiqueta="Aprobar y generar cuenta por pagar", cerrado="aprobada", ayuda="Registra los valores revisados de cada período. Base, adicionales y deducciones se ingresan manualmente; no se calculan aportes ni prestaciones automáticamente."),
-    "produccion": dict(model=m.OrdenProduccion, titulo="Órdenes de producción", permiso="produccion", categoria="Operación", color="violeta", icono="factory", descripcion="Transformación de insumos en producto terminado en Kardex.", campos=["producto", "cantidad", "fecha", "observaciones"], columnas=["producto", "cantidad", "fecha", "completada"], buscar=["producto__nombre"], linea=m.InsumoProduccion, relacion="orden", campos_linea=["producto", "cantidad"], accion="producir", etiqueta="Consumir insumos y recibir producto", cerrado="completada", ayuda="Indica las cantidades totales de insumos para esta orden, en unidades enteras."),
-    "servicios": dict(model=m.Servicio, titulo="Catálogo de servicios", permiso="agenda", categoria="Operación", color="verde", icono="sparkles", descripcion="Servicios ofertados, tarifas, IVA y duración estimada.", campos=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], columnas=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], buscar=["nombre"]),
-    "agenda": dict(model=m.Cita, titulo="Agenda de servicios", permiso="agenda", categoria="Operación", color="azul", icono="calendar", descripcion="Programación de citas sin cruces y facturación en cartera.", campos=["cliente", "empleado", "servicio", "inicio", "observaciones"], columnas=["inicio", "fin", "cliente", "empleado", "servicio", "total", "estado"], buscar=["cliente__nombre", "empleado__nombre", "servicio__nombre"], ayuda="Al atender una cita se genera una cuenta por cobrar. Registra su cobro desde Ingresos y egresos."),
+    "proveedores": dict(model=m.Proveedor, titulo=gettext_lazy("Proveedores"), permiso="compras", categoria=gettext_noop("Abastecimiento"), color="azul", icono="truck", descripcion=gettext_lazy("Directorio de proveedores, NIT y datos de contacto."), campos=["nombre", "documento", "email", "telefono", "direccion", "activo"], columnas=["nombre", "documento", "telefono", "activo"], buscar=["nombre", "documento"]),
+    "compras": dict(model=m.Compra, titulo=gettext_lazy("Compras"), permiso="compras", categoria=gettext_noop("Abastecimiento"), color="azul", icono="bag", descripcion=gettext_lazy("Órdenes de compra, recepción en Kardex y cuentas por pagar."), campos=["proveedor", "referencia", "bodega", "fecha", "vencimiento", "observaciones"], columnas=["referencia", "proveedor", "fecha", "total", "recibida"], buscar=["referencia", "proveedor__nombre"], linea=m.LineaCompra, relacion="compra", campos_linea=["producto", "cantidad", "costo", "iva_porcentaje"], accion="recibir", etiqueta="Recibir mercancía", cerrado="recibida"),
+    "cartera": dict(model=m.CuentaCartera, titulo=gettext_lazy("Cuentas por cobrar y pagar"), permiso="cartera", categoria=gettext_noop("Finanzas"), color="ambar", icono="wallet", descripcion=gettext_lazy("Control de vencimientos, saldos pendientes y abonos."), campos=["tipo", "tercero", "concepto", "fecha", "vencimiento", "total"], columnas=["tipo", "tercero", "concepto", "vencimiento", "total", "saldo", "estado"], buscar=["tercero", "concepto"]),
+    "cuentas": dict(model=m.CuentaTesoreria, titulo=gettext_lazy("Cajas y bancos"), permiso="tesoreria", categoria=gettext_noop("Finanzas"), color="verde", icono="bank", descripcion=gettext_lazy("Cuentas bancarias y cajas disponibles para recaudos y pagos."), campos=["nombre", "tipo", "activa"], columnas=["nombre", "tipo", "activa"], buscar=["nombre"]),
+    "tesoreria": dict(model=m.MovimientoTesoreria, titulo=gettext_lazy("Ingresos y egresos"), permiso="tesoreria", categoria=gettext_noop("Finanzas"), color="verde", icono="arrows", descripcion=gettext_lazy("Movimientos de caja/banco, abonos a cartera y conciliación."), campos=[], columnas=["fecha", "cuenta", "tipo", "concepto", "monto", "conciliado"], buscar=["concepto", "referencia"], accion="conciliar", etiqueta="Marcar conciliado", cerrado="conciliado"),
+    "plan-contable": dict(model=m.CuentaContable, titulo=gettext_lazy("Plan de cuentas"), permiso="contabilidad", categoria=gettext_noop("Contabilidad"), color="violeta", icono="book", descripcion=gettext_lazy("Catálogo PUC de cuentas de débito y crédito por empresa."), campos=["codigo", "nombre", "naturaleza"], columnas=["codigo", "nombre", "naturaleza"], buscar=["codigo", "nombre"]),
+    "contabilidad": dict(model=m.AsientoContable, titulo=gettext_lazy("Comprobantes contables"), permiso="contabilidad", categoria=gettext_noop("Contabilidad"), color="violeta", icono="scale", descripcion=gettext_lazy("Asientos de diario con validación de partida doble."), campos=["fecha", "concepto", "referencia"], columnas=["fecha", "concepto", "referencia", "confirmado"], buscar=["concepto", "referencia"], linea=m.LineaAsiento, relacion="asiento", campos_linea=["cuenta", "debito", "credito"], accion="confirmar", etiqueta="Confirmar comprobante", cerrado="confirmado"),
+    "empleados": dict(model=m.Empleado, titulo=gettext_lazy("Empleados y profesionales"), permiso="nomina", categoria=gettext_noop("Talento Humano"), color="azul", icono="users", descripcion=gettext_lazy("Personal activo, cargos, salarios base y agenda."), campos=["nombre", "documento", "cargo", "salario_base", "fecha_ingreso", "activo"], columnas=["nombre", "documento", "cargo", "salario_base", "activo"], buscar=["nombre", "documento"]),
+    "nomina": dict(model=m.LiquidacionNomina, titulo=gettext_lazy("Liquidaciones de nómina"), permiso="nomina", categoria=gettext_noop("Talento Humano"), color="ambar", icono="receipt", descripcion=gettext_lazy("Liquidaciones por período con generación de cuenta por pagar."), campos=["empleado", "desde", "hasta", "base", "adicionales", "deducciones", "observaciones"], columnas=["empleado", "desde", "hasta", "neto", "aprobada"], buscar=["empleado__nombre"], accion="aprobar", etiqueta="Aprobar y generar cuenta por pagar", cerrado="aprobada", ayuda="Registra los valores revisados de cada período. Base, adicionales y deducciones se ingresan manualmente; no se calculan aportes ni prestaciones automáticamente."),
+    "produccion": dict(model=m.OrdenProduccion, titulo=gettext_lazy("Órdenes de producción"), permiso="produccion", categoria=gettext_noop("Operación"), color="violeta", icono="factory", descripcion=gettext_lazy("Transformación de insumos en producto terminado en Kardex."), campos=["producto", "cantidad", "fecha", "observaciones"], columnas=["producto", "cantidad", "fecha", "completada"], buscar=["producto__nombre"], linea=m.InsumoProduccion, relacion="orden", campos_linea=["producto", "cantidad"], accion="producir", etiqueta="Consumir insumos y recibir producto", cerrado="completada", ayuda="Indica las cantidades totales de insumos para esta orden, en unidades enteras."),
+    "servicios": dict(model=m.Servicio, titulo=gettext_lazy("Catálogo de servicios"), permiso="agenda", categoria=gettext_noop("Operación"), color="verde", icono="sparkles", descripcion=gettext_lazy("Servicios ofertados, tarifas, IVA y duración estimada."), campos=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], columnas=["nombre", "precio", "iva_porcentaje", "duracion_minutos", "activo"], buscar=["nombre"]),
+    "agenda": dict(model=m.Cita, titulo=gettext_lazy("Agenda de servicios"), permiso="agenda", categoria=gettext_noop("Operación"), color="azul", icono="calendar", descripcion=gettext_lazy("Programación de citas sin cruces y facturación en cartera."), campos=["cliente", "empleado", "servicio", "inicio", "observaciones"], columnas=["inicio", "fin", "cliente", "empleado", "servicio", "total", "estado"], buscar=["cliente__nombre", "empleado__nombre", "servicio__nombre"], ayuda="Al atender una cita se genera una cuenta por cobrar. Registra su cobro desde Ingresos y egresos."),
 }
 
 DINERO = {"total", "subtotal", "iva", "abonado", "saldo", "monto", "precio", "salario_base", "base", "adicionales", "deducciones", "neto", "costo", "debito", "credito"}
@@ -197,12 +198,12 @@ class CrearERP(AccesoERP):
                             obj = s.reservar_cita(obj)
                         else:
                             obj = s.guardar(obj)
-                messages.success(request, "Registro guardado.")
+                messages.success(request, gettext("Registro guardado."))
                 return redirect("erp_detalle", modulo=modulo, pk=obj.pk)
             except ValidationError as error:
                 form.add_error(None, " ".join(error.messages))
             except IntegrityError:
-                form.add_error(None, "Ya existe un registro con esos datos. Revisa el listado antes de reintentar.")
+                form.add_error(None, gettext("Ya existe un registro con esos datos. Revisa el listado antes de reintentar."))
         return self.mostrar(request, modulo, form)
 
 
@@ -271,7 +272,7 @@ class DetalleERP(AccesoERP):
                 obj = s.bloquear(self.config["model"], request.empresa, pk)
                 if accion in ("agregar", "quitar") and "linea" in self.config:
                     if getattr(obj, self.config["cerrado"]):
-                        raise ValidationError("El documento ya está confirmado y no se puede modificar.")
+                        raise ValidationError(gettext("El documento ya está confirmado y no se puede modificar."))
                     if accion == "agregar":
                         form = formulario(self.config["linea"], self.config["campos_linea"])(request.POST, empresa=request.empresa)
                         if form.is_valid():
@@ -299,7 +300,7 @@ class DetalleERP(AccesoERP):
                     s.guardar(obj)
                 elif modulo == "nomina" and accion == "calcular_aportes":
                     if obj.aprobada:
-                        raise ValidationError("La nómina ya fue aprobada.")
+                        raise ValidationError(gettext("La nómina ya fue aprobada."))
                     aportes = calcular_aportes_nomina_colombia(
                         salario_base=obj.base, auxilio_transporte=obj.adicionales
                     )
@@ -317,21 +318,21 @@ class DetalleERP(AccesoERP):
                         contabilizar_nomina(nomina=obj, usuario=request.user)
                 elif accion == "eliminar_borrador" and "cerrado" in self.config:
                     if getattr(obj, self.config["cerrado"]):
-                        raise ValidationError("El documento ya está confirmado y no se puede eliminar.")
+                        raise ValidationError(gettext("El documento ya está confirmado y no se puede eliminar."))
                     if "linea" in self.config:
                         self.config["linea"].objects.filter(
                             empresa=request.empresa, **{self.config["relacion"]: obj}
                         ).delete()
                     obj.delete()
-                    messages.success(request, "Borrador eliminado.")
+                    messages.success(request, gettext("Borrador eliminado."))
                     return redirect("erp_lista", modulo=modulo)
                 else:
-                    raise ValidationError("Acción no válida para este documento.")
-            messages.success(request, "Operación realizada.")
+                    raise ValidationError(gettext("Acción no válida para este documento."))
+            messages.success(request, gettext("Operación realizada."))
         except (ValidationError, StockInsuficiente, ValueError) as error:
             messages.error(request, " ".join(error.messages) if isinstance(error, ValidationError) else str(error))
         except IntegrityError:
-            messages.error(request, "La operación entra en conflicto con un registro existente.")
+            messages.error(request, gettext("La operación entra en conflicto con un registro existente."))
         return redirect("erp_detalle", modulo=modulo, pk=pk)
 
 
@@ -342,7 +343,7 @@ class CarteraFacturaERP(AccesoERP):
         return self.mostrar(request, CarteraFacturaForm(empresa=request.empresa))
 
     def mostrar(self, request, form):
-        return render(request, "core/erp/form.html", dict(form=form, config={"titulo": "Llevar factura a cartera"}, modulo="cartera"))
+        return render(request, "core/erp/form.html", dict(form=form, config={"titulo": gettext("Llevar factura a cartera")}, modulo="cartera"))
 
     def post(self, request):
         if not request.membresia.tiene_permiso("cartera.gestionar") or not request.membresia.tiene_permiso("ventas.ver"):
@@ -359,7 +360,7 @@ class CarteraFacturaERP(AccesoERP):
 
 
 def _datos_reportes(request):
-    datos = {"titulo": "Reportes operativos"}
+    datos = {"titulo": gettext("Reportes operativos")}
     if request.membresia.tiene_permiso("cartera.ver"):
         cartera = m.CuentaCartera.objects.filter(empresa=request.empresa)
         datos["cartera"] = [
@@ -367,7 +368,7 @@ def _datos_reportes(request):
                 tipo=titulo,
                 total=cartera.filter(tipo=tipo).aggregate(v=Sum(F("total") - F("abonado")))["v"] or 0,
             )
-            for tipo, titulo in [("cobrar", "Por cobrar"), ("pagar", "Por pagar")]
+            for tipo, titulo in [("cobrar", gettext("Por cobrar")), ("pagar", gettext("Por pagar"))]
         ]
     if request.membresia.tiene_permiso("tesoreria.ver"):
         movimientos = m.MovimientoTesoreria.objects.filter(empresa=request.empresa)
@@ -483,7 +484,7 @@ class ReportesExportarExcelView(AccesoERP):
         if not sub.puede("exportacion"):
             messages.error(
                 request,
-                f"La exportación a Excel está disponible en el plan Pro (tu plan actual es {sub.plan.nombre}).",
+                gettext("La exportación a Excel está disponible en el plan Pro (tu plan actual es {nombre}).").format(nombre=sub.plan.nombre),
             )
             return redirect("suscripcion_panel")
 

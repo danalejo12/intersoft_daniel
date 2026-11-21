@@ -1,3 +1,4 @@
+from django.utils.translation import gettext
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
@@ -32,5 +33,5 @@ class PermisoRequeridoMixin(TenantMixin):
     def dispatch(self, request, *args, **kwargs):
         membresia = request.membresia
         if membresia and self.permiso_requerido and not membresia.tiene_permiso(self.permiso_requerido):
-            raise PermissionDenied("No tienes permiso para esta acción.")
+            raise PermissionDenied(gettext("No tienes permiso para esta acción."))
         return super().dispatch(request, *args, **kwargs)

@@ -1,4 +1,5 @@
 """Llaves de Wompi de cada negocio: formato, modo (pruebas / producción) y verificación en línea."""
+from django.utils.translation import gettext, gettext_lazy
 import json
 import logging
 import re
@@ -31,10 +32,10 @@ PATRONES = {
     "secreto_eventos": re.compile(rf"^(test|prod)_events_{_CUERPO}$"),
 }
 EJEMPLOS = {
-    "llave_publica": "pub_test_… o pub_prod_…",
-    "llave_privada": "prv_test_… o prv_prod_…",
-    "secreto_integridad": "test_integrity_… o prod_integrity_…",
-    "secreto_eventos": "test_events_… o prod_events_…",
+    "llave_publica": gettext_lazy("pub_test_… o pub_prod_…"),
+    "llave_privada": gettext_lazy("prv_test_… o prv_prod_…"),
+    "secreto_integridad": gettext_lazy("test_integrity_… o prod_integrity_…"),
+    "secreto_eventos": gettext_lazy("test_events_… o prod_events_…"),
 }
 
 
@@ -67,15 +68,15 @@ def _verificar_publica(base: str, llave: str) -> tuple[str, str | None]:
     try:
         datos = _pedir_json(f"{base}/merchants/{quote(llave, safe='')}")["data"]
         if not isinstance(datos, dict):
-            raise ValueError("Respuesta inválida")
+            raise ValueError(gettext("Respuesta inválida"))
     except HTTPError as error:
         if error.code in (401, 404, 422):
-            return "", "Wompi no reconoce la llave pública."
+            return "", gettext("Wompi no reconoce la llave pública.")
         logger.warning("Wompi respondió %s al verificar una llave pública", error.code)
-        return "", "Wompi no respondió bien. Intenta de nuevo en unos minutos."
+        return "", gettext("Wompi no respondió bien. Intenta de nuevo en unos minutos.")
     except (OSError, HTTPException, ValueError, KeyError, TypeError) as error:
         logger.warning("No se pudo verificar una llave pública en Wompi (%s)", type(error).__name__)
-        return "", "No pudimos conectarnos con Wompi. Intenta de nuevo en unos minutos."
+        return "", gettext("No pudimos conectarnos con Wompi. Intenta de nuevo en unos minutos.")
     nombre = str(datos.get("legal_name") or datos.get("name") or "").strip()[:200]
     return nombre, None
 
@@ -88,15 +89,15 @@ def _verificar_privada(base: str, llave: str) -> str | None:
         datos = _pedir_json(f"{base}/transactions?{urlencode({'reference': referencia})}",
                             {"Authorization": f"Bearer {llave}"})
         if not isinstance(datos, dict) or not isinstance(datos.get("data"), list):
-            raise ValueError("Respuesta inválida")
+            raise ValueError(gettext("Respuesta inválida"))
     except HTTPError as error:
         if error.code in (401, 403):
-            return "Wompi rechazó la llave privada."
+            return gettext("Wompi rechazó la llave privada.")
         logger.warning("Wompi respondió %s al verificar una llave privada", error.code)
-        return "Wompi no respondió bien. Intenta de nuevo en unos minutos."
+        return gettext("Wompi no respondió bien. Intenta de nuevo en unos minutos.")
     except (OSError, HTTPException, ValueError, TypeError) as error:
         logger.warning("No se pudo verificar una llave privada en Wompi (%s)", type(error).__name__)
-        return "No pudimos conectarnos con Wompi. Intenta de nuevo en unos minutos."
+        return gettext("No pudimos conectarnos con Wompi. Intenta de nuevo en unos minutos.")
     return None
 
 

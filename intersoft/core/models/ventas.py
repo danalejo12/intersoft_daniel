@@ -1,4 +1,5 @@
 """Ventas: facturas y su detalle."""
+from django.utils.translation import gettext, gettext_lazy
 from decimal import Decimal
  
 from django.conf import settings
@@ -12,14 +13,14 @@ from .base import ModeloTenant
  
 class Factura(ModeloTenant):
     class Estado(models.TextChoices):
-        EMITIDA = "emitida", "Emitida"
-        ANULADA = "anulada", "Anulada"
+        EMITIDA = "emitida", gettext_lazy("Emitida")
+        ANULADA = "anulada", gettext_lazy("Anulada")
 
     class EstadoDian(models.TextChoices):
-        NO_APLICA = "no_aplica", "Interna (sin envío DIAN)"
-        PENDIENTE = "pendiente", "Pendiente de envío"
-        ACEPTADA = "aceptada", "Aceptada por DIAN"
-        RECHAZADA = "rechazada", "Rechazada por DIAN"
+        NO_APLICA = "no_aplica", gettext_lazy("Interna (sin envío DIAN)")
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente de envío")
+        ACEPTADA = "aceptada", gettext_lazy("Aceptada por DIAN")
+        RECHAZADA = "rechazada", gettext_lazy("Rechazada por DIAN")
  
     numero = models.PositiveIntegerField()  # Consecutivo por empresa (lo asigna el servicio de ventas).
     cliente = models.ForeignKey("Cliente", on_delete=models.PROTECT, related_name="facturas")
@@ -50,8 +51,8 @@ class Factura(ModeloTenant):
     estado_dian = models.CharField(
         max_length=15, choices=EstadoDian.choices, default=EstadoDian.NO_APLICA
     )
-    cufe = models.CharField("CUFE", max_length=120, blank=True)
-    cude_nota_credito = models.CharField("CUDE Nota Crédito", max_length=120, blank=True)
+    cufe = models.CharField(gettext_lazy("CUFE"), max_length=120, blank=True)
+    cude_nota_credito = models.CharField(gettext_lazy("CUDE Nota Crédito"), max_length=120, blank=True)
     dian_xml_url = models.URLField(blank=True)
     dian_pdf_url = models.URLField(blank=True)
     dian_respuesta = models.CharField(max_length=250, blank=True)
@@ -76,7 +77,7 @@ class Factura(ModeloTenant):
         ]
  
     def __str__(self):
-        return f"Factura {self.numero}"
+        return gettext("Factura {numero}").format(numero=self.numero)
 
     @property
     def esta_pagada(self):
@@ -103,8 +104,8 @@ class DetalleFactura(ModeloTenant):
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
  
     class Meta:
-        verbose_name = "detalle de factura"
-        verbose_name_plural = "detalles de factura"
+        verbose_name = gettext_lazy("detalle de factura")
+        verbose_name_plural = gettext_lazy("detalles de factura")
         constraints = [
             models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_detalle_cantidad_positiva"),
         ]

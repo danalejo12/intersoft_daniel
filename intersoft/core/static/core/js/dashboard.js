@@ -41,7 +41,7 @@
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: function (c) { return " $ " + c.parsed.y.toLocaleString("es-CO"); } } },
+        tooltip: { callbacks: { label: function (c) { return " $ " + c.parsed.y.toLocaleString(document.documentElement.lang || "es-CO"); } } },
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: "rgba(244,242,238,.45)" }, border: { display: false } },

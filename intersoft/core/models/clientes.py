@@ -1,4 +1,5 @@
 """Clientes de cada empresa."""
+from django.utils.translation import gettext_lazy
 from django.db import models
  
 from .base import ModeloTenant
@@ -6,10 +7,10 @@ from .base import ModeloTenant
  
 class Cliente(ModeloTenant):
     class TipoDocumento(models.TextChoices):
-        CC = "CC", "Cédula de ciudadanía"
-        NIT = "NIT", "NIT"
-        CE = "CE", "Cédula de extranjería"
-        PP = "PP", "Pasaporte"
+        CC = "CC", gettext_lazy("Cédula de ciudadanía")
+        NIT = "NIT", gettext_lazy("NIT")
+        CE = "CE", gettext_lazy("Cédula de extranjería")
+        PP = "PP", gettext_lazy("Pasaporte")
  
     tipo_documento = models.CharField(max_length=5, choices=TipoDocumento.choices)
     numero_documento = models.CharField(max_length=20)

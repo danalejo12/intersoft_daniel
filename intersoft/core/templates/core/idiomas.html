@@ -1,0 +1,35 @@
+{% extends plantilla_base %}
+{% load i18n static %}
+{% block titulo %}{% translate "Idiomas · Intersoft" %}{% endblock %}
+
+{% block contenido %}
+<link rel="stylesheet" href="{% static 'core/css/idiomas.css' %}?v=1">
+<section class="idiomas{% if plantilla_base == 'core/tienda/base.html' %} contenedor{% endif %}">
+  <div class="encabezado">
+    <div>
+      <h1>{% translate "Idiomas" %}</h1>
+      <p class="nota">{% translate "Elige el idioma en el que quieres ver Intersoft. El cambio aplica a todo el software y se recuerda en este navegador." %}</p>
+    </div>
+  </div>
+
+  <div class="idiomas-rejilla">
+    {% for idioma in idiomas %}
+    <form method="post" action="{% url 'set_language' %}" class="idioma-tarjeta{% if idioma.activo %} activo{% endif %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ destino }}">
+      <input type="hidden" name="language" value="{{ idioma.codigo }}">
+      <span class="idioma-bandera" aria-hidden="true">{{ idioma.bandera }}</span>
+      <span class="idioma-textos">
+        <strong lang="{{ idioma.codigo }}">{{ idioma.nombre_local }}</strong>
+        <small>{{ idioma.nombre_traducido }} · {{ idioma.region }}</small>
+      </span>
+      {% if idioma.activo %}
+        <span class="badge exito idioma-estado">{% translate "En uso" %}</span>
+      {% else %}
+        <button type="submit" class="boton idioma-estado">{% translate "Usar este idioma" %}</button>
+      {% endif %}
+    </form>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

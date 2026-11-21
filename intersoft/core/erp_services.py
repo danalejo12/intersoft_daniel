@@ -1,4 +1,5 @@
 """Transiciones del ERP: validación, bloqueo y efectos atómicos."""
+from django.utils.translation import gettext
 from datetime import timedelta
 from decimal import Decimal
 
@@ -34,7 +35,7 @@ def recibir_compra(*, empresa, pk, usuario):
         return compra
     lineas = list(compra.lineas.select_related("producto"))
     if not lineas:
-        raise ValidationError("Agrega al menos un producto antes de recibir la compra.")
+        raise ValidationError(gettext("Agrega al menos un producto antes de recibir la compra."))
     subtotal = iva = Decimal("0")
     from .bodegas import bodega_principal
 
@@ -69,18 +70,18 @@ def registrar_tesoreria(*, empresa, usuario, cuenta, monto, tipo, concepto, fech
                 or anterior.cartera_id != (cartera.pk if cartera else None)
                 or anterior.concepto != concepto or anterior.fecha != fecha
                 or anterior.referencia != referencia):
-            raise ValidationError("Esta operación ya se utilizó con otros datos.")
+            raise ValidationError(gettext("Esta operación ya se utilizó con otros datos."))
         return anterior
     if not cuenta.activa:
-        raise ValidationError("La cuenta de tesorería está inactiva.")
+        raise ValidationError(gettext("La cuenta de tesorería está inactiva."))
     if monto <= 0:
-        raise ValidationError("El monto debe ser mayor que cero.")
+        raise ValidationError(gettext("El monto debe ser mayor que cero."))
     if cartera:
         cartera = bloquear(CuentaCartera, empresa, cartera.pk)
         if monto > cartera.saldo:
-            raise ValidationError("El abono supera el saldo pendiente.")
+            raise ValidationError(gettext("El abono supera el saldo pendiente."))
         if tipo != ("ingreso" if cartera.tipo == "cobrar" else "egreso"):
-            raise ValidationError("El tipo de movimiento no corresponde a la cuenta por cobrar/pagar.")
+            raise ValidationError(gettext("El tipo de movimiento no corresponde a la cuenta por cobrar/pagar."))
         cartera.abonado += monto
         guardar(cartera)
     return guardar(MovimientoTesoreria(empresa=empresa, cuenta=cuenta, monto=monto, tipo=tipo,
@@ -95,9 +96,9 @@ def llevar_factura_a_cartera(*, empresa, pk, vencimiento):
     if existente:
         return existente
     if factura.estado == "anulada" or factura.esta_pagada or factura.total <= 0:
-        raise ValidationError("Solo puedes llevar a cartera facturas vigentes, con saldo y sin pagos aprobados.")
+        raise ValidationError(gettext("Solo puedes llevar a cartera facturas vigentes, con saldo y sin pagos aprobados."))
     if factura.pagos.filter(estado="pendiente").exists():
-        raise ValidationError("La factura tiene un intento de pago pendiente. Resuélvelo antes de llevarla a cartera.")
+        raise ValidationError(gettext("La factura tiene un intento de pago pendiente. Resuélvelo antes de llevarla a cartera."))
     return guardar(CuentaCartera(empresa=empresa, tipo="cobrar", tercero=factura.cliente.nombre,
                    concepto=f"Factura {factura.numero}", total=factura.total,
                    vencimiento=vencimiento, factura=factura))
@@ -110,13 +111,13 @@ def confirmar_asiento(*, empresa, pk):
         return asiento
     lineas = list(asiento.lineas.select_related("cuenta"))
     if len(lineas) < 2:
-        raise ValidationError("Un asiento necesita al menos dos líneas.")
+        raise ValidationError(gettext("Un asiento necesita al menos dos líneas."))
     for linea in lineas:
         linea.full_clean()
     debito = sum((l.debito for l in lineas), Decimal("0"))
     credito = sum((l.credito for l in lineas), Decimal("0"))
     if debito <= 0 or debito != credito:
-        raise ValidationError("El asiento debe tener débitos y créditos iguales y mayores que cero.")
+        raise ValidationError(gettext("El asiento debe tener débitos y créditos iguales y mayores que cero."))
     asiento.confirmado = True
     return guardar(asiento)
 
@@ -127,13 +128,13 @@ def aprobar_nomina(*, empresa, pk):
     if nomina.aprobada:
         return nomina
     if not nomina.empleado.activo:
-        raise ValidationError("El empleado está inactivo.")
+        raise ValidationError(gettext("El empleado está inactivo."))
     if LiquidacionNomina.objects.filter(empresa=empresa, empleado=nomina.empleado, aprobada=True,
                                        desde__lte=nomina.hasta, hasta__gte=nomina.desde).exclude(pk=pk).exists():
-        raise ValidationError("El empleado ya tiene una liquidación aprobada que cruza este período.")
+        raise ValidationError(gettext("El empleado ya tiene una liquidación aprobada que cruza este período."))
     nomina.neto = nomina.base + nomina.adicionales - nomina.deducciones
     if nomina.neto <= 0:
-        raise ValidationError("El neto a pagar debe ser mayor que cero.")
+        raise ValidationError(gettext("El neto a pagar debe ser mayor que cero."))
     nomina.cartera = guardar(CuentaCartera(empresa=empresa, tipo="pagar", tercero=nomina.empleado.nombre,
         concepto=f"Nómina {nomina.desde} / {nomina.hasta}", total=nomina.neto, vencimiento=nomina.hasta))
     nomina.aprobada = True
@@ -147,15 +148,15 @@ def completar_produccion(*, empresa, pk, usuario):
         return orden
     insumos = list(orden.insumos.select_related("producto"))
     if not insumos:
-        raise ValidationError("Agrega los insumos antes de completar la producción.")
+        raise ValidationError(gettext("Agrega los insumos antes de completar la producción."))
     if not orden.producto.activo:
-        raise ValidationError("El producto terminado está inactivo.")
+        raise ValidationError(gettext("El producto terminado está inactivo."))
     for insumo in insumos:
         insumo.full_clean()
         if insumo.producto_id == orden.producto_id:
-            raise ValidationError("El producto terminado no puede ser su propio insumo.")
+            raise ValidationError(gettext("El producto terminado no puede ser su propio insumo."))
         if not insumo.producto.activo:
-            raise ValidationError("Uno de los insumos está inactivo.")
+            raise ValidationError(gettext("Uno de los insumos está inactivo."))
         registrar_movimiento(empresa=empresa, usuario=usuario, producto=insumo.producto,
                              tipo="salida", cantidad=insumo.cantidad, referencia=f"Producción {str(pk)[:8]}")
     registrar_movimiento(empresa=empresa, usuario=usuario, producto=orden.producto,
@@ -168,11 +169,11 @@ def completar_produccion(*, empresa, pk, usuario):
 def reservar_cita(cita):
     bloquear(Empleado, cita.empresa, cita.empleado_id)
     if not cita.empleado.activo or not cita.servicio.activo or not cita.cliente.activo:
-        raise ValidationError("El cliente, profesional y servicio deben estar activos.")
+        raise ValidationError(gettext("El cliente, profesional y servicio deben estar activos."))
     cita.fin = cita.inicio + timedelta(minutes=cita.servicio.duracion_minutos)
     if Cita.objects.filter(empresa=cita.empresa, empleado=cita.empleado, estado="pendiente",
                            inicio__lt=cita.fin, fin__gt=cita.inicio).exclude(pk=cita.pk).exists():
-        raise ValidationError("El profesional ya tiene una cita en ese horario.")
+        raise ValidationError(gettext("El profesional ya tiene una cita en ese horario."))
     cita.total = cita.servicio.precio + calcular_iva(cita.servicio.precio, cita.servicio.iva_porcentaje)
     return guardar(cita)
 
@@ -183,9 +184,9 @@ def cambiar_cita(*, empresa, pk, estado):
     if cita.estado != "pendiente":
         if cita.estado == estado:
             return cita
-        raise ValidationError("La cita ya fue atendida o cancelada.")
+        raise ValidationError(gettext("La cita ya fue atendida o cancelada."))
     if estado not in ("atendida", "cancelada"):
-        raise ValidationError("Estado de cita no válido.")
+        raise ValidationError(gettext("Estado de cita no válido."))
     if estado == "atendida" and cita.total > 0:
         cita.cartera = guardar(CuentaCartera(empresa=empresa, tipo="cobrar", tercero=cita.cliente.nombre,
                  concepto=f"Servicio: {cita.servicio.nombre}"[:200], total=cita.total, vencimiento=timezone.localdate()))
@@ -198,10 +199,10 @@ def trasladar_turno_a_tesoreria(*, empresa, turno, cuenta_tesoreria, usuario):
     """Traslada de forma idempotente el efectivo contado de un turno POS cerrado hacia una cuenta de tesorería."""
     turno_bloqueado = bloquear(TurnoCaja, empresa, turno.pk)
     if turno_bloqueado.abierto:
-        raise ValidationError("Solo se puede trasladar a tesorería una caja cerrada.")
+        raise ValidationError(gettext("Solo se puede trasladar a tesorería una caja cerrada."))
     monto = turno_bloqueado.efectivo_contado or Decimal("0.00")
     if monto <= Decimal("0.00"):
-        raise ValidationError("El turno cerrado no tiene efectivo contado positivo para trasladar.")
+        raise ValidationError(gettext("El turno cerrado no tiene efectivo contado positivo para trasladar."))
 
     existente = MovimientoTesoreria.objects.filter(empresa=empresa, operacion=turno_bloqueado.pk).first()
     if existente is not None:

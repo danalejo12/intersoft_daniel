@@ -1,60 +1,61 @@
 {% extends "core/base.html" %}
-{% block titulo %}Factura {{ factura.numero }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with numero=factura.numero %}Factura {{ numero }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>Factura N.º {{ factura.numero }}</h1>
-    <a href="{% url 'facturas_lista' %}">← Volver a facturas</a>
+    <h1>{% blocktranslate with numero=factura.numero %}Factura N.º {{ numero }}{% endblocktranslate %}</h1>
+    <a href="{% url 'facturas_lista' %}">{% translate "← Volver a facturas" %}</a>
   </div>
 
   <p>
-    <strong>Cliente:</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
-    <strong>Fecha:</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
-    <strong>Estado:</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>Pagada</strong>{% endif %} ·
-    <strong>DIAN:</strong> {{ factura.get_estado_dian_display }}{% if factura.cufe %} (<small>CUFE: <code>{{ factura.cufe|slice:":24" }}…</code></small>){% endif %}{% if factura.cude_nota_credito %} · <strong>Nota Crédito (CUDE):</strong> <small><code>{{ factura.cude_nota_credito|slice:":24" }}…</code></small>{% endif %} ·
-    {% if factura.pedido %}<strong>Origen:</strong> Compra en el marketplace{% else %}<strong>Vendedor:</strong> {{ factura.creada_por.email }}{% endif %}
+    <strong>{% translate "Cliente:" %}</strong> {{ factura.cliente.nombre }} ({{ factura.cliente.tipo_documento }} {{ factura.cliente.numero_documento }})<br>
+    <strong>{% translate "Fecha:" %}</strong> {{ factura.creado_en|date:"d/m/Y H:i" }} ·
+    <strong>{% translate "Estado:" %}</strong> {{ factura.get_estado_display }}{% if factura.esta_pagada %} · <strong>{% translate "Pagada" %}</strong>{% endif %} ·
+    <strong>{% translate "DIAN:" %}</strong> {{ factura.get_estado_dian_display }}{% if factura.cufe %} (<small>{% translate "CUFE:" %} <code>{{ factura.cufe|slice:":24" }}…</code></small>){% endif %}{% if factura.cude_nota_credito %} · <strong>{% translate "Nota Crédito (CUDE):" %}</strong> <small><code>{{ factura.cude_nota_credito|slice:":24" }}…</code></small>{% endif %} ·
+    {% if factura.pedido %}<strong>{% translate "Origen:" %}</strong> {% translate "Compra en el marketplace" %}{% else %}<strong>{% translate "Vendedor:" %}</strong> {{ factura.creada_por.email }}{% endif %}
   </p>
   <div class="acciones" style="margin-bottom: 1rem;">
     <a class="boton secundario" href="{% url 'facturas_pdf' factura.pk %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Descargar PDF
+      {% translate "Descargar PDF" %}
     </a>
     {% if factura.estado == "emitida" and factura.estado_dian != "aceptada" and puede_emitir_dian %}
       <form method="post" action="{% url 'facturas_emitir_dian' factura.pk %}" style="display: inline;">
         {% csrf_token %}
-        <button type="submit" class="boton secundario">Emitir factura electrónica DIAN</button>
+        <button type="submit" class="boton secundario">{% translate "Emitir factura electrónica DIAN" %}</button>
       </form>
     {% endif %}
     {% if asiento_contable %}
       <a class="boton secundario" href="{% url 'erp_detalle' 'contabilidad' asiento_contable.pk %}">
-        Comprobante contable ({{ asiento_contable.referencia }})
+        {% blocktranslate with referencia=asiento_contable.referencia %}Comprobante contable ({{ referencia }}){% endblocktranslate %}
       </a>
     {% elif factura.estado == "emitida" and puede_contabilizar %}
       <form method="post" action="{% url 'facturas_contabilizar' factura.pk %}" style="display: inline;">
         {% csrf_token %}
-        <button type="submit" class="boton secundario">Generar comprobante contable</button>
+        <button type="submit" class="boton secundario">{% translate "Generar comprobante contable" %}</button>
       </form>
     {% endif %}
     {% if asiento_recaudo %}
       <a class="boton exito" href="{% url 'erp_detalle' 'contabilidad' asiento_recaudo.pk %}">
-        Recaudo contable ({{ asiento_recaudo.referencia }})
+        {% blocktranslate with referencia=asiento_recaudo.referencia %}Recaudo contable ({{ referencia }}){% endblocktranslate %}
       </a>
     {% elif asiento_contable and factura.estado == "emitida" and factura.esta_pagada and puede_contabilizar %}
       <form method="post" action="{% url 'facturas_contabilizar' factura.pk %}" style="display: inline;">
         {% csrf_token %}
-        <button type="submit" class="boton exito">Contabilizar recaudo (Caja/Bancos)</button>
+        <button type="submit" class="boton exito">{% translate "Contabilizar recaudo (Caja/Bancos)" %}</button>
       </form>
     {% endif %}
     {% if asiento_anulacion %}
       <a class="boton peligro" href="{% url 'erp_detalle' 'contabilidad' asiento_anulacion.pk %}">
-        Reversión contable ({{ asiento_anulacion.referencia }})
+        {% blocktranslate with referencia=asiento_anulacion.referencia %}Reversión contable ({{ referencia }}){% endblocktranslate %}
       </a>
     {% endif %}
   </div>
 
   <table class="tabla">
     <thead>
-      <tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio unit.</th><th class="num">IVA</th><th class="num">Subtotal</th></tr>
+      <tr><th>{% translate "Producto" %}</th><th class="num">{% translate "Cantidad" %}</th><th class="num">{% translate "Precio unit." %}</th><th class="num">{% translate "IVA" %}</th><th class="num">{% translate "Subtotal" %}</th></tr>
     </thead>
     <tbody>
       {% for detalle in factura.detalles.all %}
@@ -68,14 +69,14 @@
       {% endfor %}
     </tbody>
     <tfoot>
-      <tr><td colspan="4" class="num">Subtotal</td><td class="num">$ {{ factura.subtotal|floatformat:"0g" }}</td></tr>
-      <tr><td colspan="4" class="num">IVA</td><td class="num">$ {{ factura.iva|floatformat:"0g" }}</td></tr>
-      <tr class="total"><td colspan="4" class="num">Total</td><td class="num">$ {{ factura.total|floatformat:"0g" }}</td></tr>
+      <tr><td colspan="4" class="num">{% translate "Subtotal" %}</td><td class="num">$ {{ factura.subtotal|floatformat:"0g" }}</td></tr>
+      <tr><td colspan="4" class="num">{% translate "IVA" %}</td><td class="num">$ {{ factura.iva|floatformat:"0g" }}</td></tr>
+      <tr class="total"><td colspan="4" class="num">{% translate "Total" %}</td><td class="num">$ {{ factura.total|floatformat:"0g" }}</td></tr>
     </tfoot>
   </table>
 
   {% if factura.pedido %}
-    <h2>Datos de envío</h2>
+    <h2>{% translate "Datos de envío" %}</h2>
     <p>
       <strong>{{ factura.pedido.nombre }}</strong><br>
       {{ factura.pedido.direccion }}{% if factura.pedido.indicaciones %} · {{ factura.pedido.indicaciones }}{% endif %}<br>
@@ -85,16 +86,16 @@
   {% endif %}
 
   {% if factura.pagos.all %}
-    <h2>Pagos</h2>
+    <h2>{% translate "Pagos" %}</h2>
     <table class="tabla">
-      <thead><tr><th>Fecha</th><th>Referencia</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>{% translate "Fecha" %}</th><th>{% translate "Referencia" %}</th><th>{% translate "Estado" %}</th><th></th></tr></thead>
       <tbody>
         {% for pago in factura.pagos.all %}
           <tr>
             <td>{{ pago.creado_en|date:"d/m/Y H:i" }}</td>
             <td>{{ pago.referencia }}</td>
             <td>{{ pago.get_estado_display }}</td>
-            <td><a href="{% url 'pagos_resultado' pago.pk %}">{% if pago.estado == "pendiente" %}Consultar estado{% else %}Ver{% endif %}</a></td>
+            <td><a href="{% url 'pagos_resultado' pago.pk %}">{% if pago.estado == "pendiente" %}{% translate "Consultar estado" %}{% else %}{% translate "Ver" %}{% endif %}</a></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -102,9 +103,9 @@
   {% endif %}
 
   {% if factura.pagos_caja.all %}
-    <h2>Pagos en caja</h2>
+    <h2>{% translate "Pagos en caja" %}</h2>
     <table class="tabla">
-      <thead><tr><th>Medio</th><th>Referencia</th><th class="num">Monto</th><th class="num">Recibido</th><th class="num">Cambio</th></tr></thead>
+      <thead><tr><th>{% translate "Medio" %}</th><th>{% translate "Referencia" %}</th><th class="num">{% translate "Monto" %}</th><th class="num">{% translate "Recibido" %}</th><th class="num">{% translate "Cambio" %}</th></tr></thead>
       <tbody>
         {% for pago in factura.pagos_caja.all %}
           <tr>
@@ -117,13 +118,13 @@
         {% endfor %}
       </tbody>
     </table>
-    <p><a class="boton secundario" href="{% url 'pos_ticket' factura.pk %}" target="_blank" rel="noopener">Ver ticket</a></p>
+    <p><a class="boton secundario" href="{% url 'pos_ticket' factura.pk %}" target="_blank" rel="noopener">{% translate "Ver ticket" %}</a></p>
   {% endif %}
 
   {% if factura.pedido.pagos.all %}
-    <h2>Pagos del pedido {{ factura.pedido.numero }}</h2>
+    <h2>{% blocktranslate with numero=factura.pedido.numero %}Pagos del pedido {{ numero }}{% endblocktranslate %}</h2>
     <table class="tabla">
-      <thead><tr><th>Fecha</th><th>Referencia</th><th>Estado</th></tr></thead>
+      <thead><tr><th>{% translate "Fecha" %}</th><th>{% translate "Referencia" %}</th><th>{% translate "Estado" %}</th></tr></thead>
       <tbody>
         {% for pago in factura.pedido.pagos.all %}
           <tr>
@@ -137,18 +138,18 @@
   {% endif %}
 
   {% if factura.cuentacartera %}
-    <h2>Cuenta por cobrar en cartera</h2>
+    <h2>{% translate "Cuenta por cobrar en cartera" %}</h2>
     <p>
-      <strong>Estado:</strong> {{ factura.cuentacartera.estado }} ·
-      <strong>Abonado:</strong> $ {{ factura.cuentacartera.abonado|floatformat:"0g" }} ·
-      <strong>Saldo pendiente:</strong> $ {{ factura.cuentacartera.saldo|floatformat:"0g" }}
-      <a class="boton secundario" href="{% url 'erp_detalle' 'cartera' factura.cuentacartera.pk %}">Ver en cartera</a>
+      <strong>{% translate "Estado:" %}</strong> {{ factura.cuentacartera.estado }} ·
+      <strong>{% translate "Abonado:" %}</strong> $ {{ factura.cuentacartera.abonado|floatformat:"0g" }} ·
+      <strong>{% translate "Saldo pendiente:" %}</strong> $ {{ factura.cuentacartera.saldo|floatformat:"0g" }}
+      <a class="boton secundario" href="{% url 'erp_detalle' 'cartera' factura.cuentacartera.pk %}">{% translate "Ver en cartera" %}</a>
     </p>
   {% elif factura.estado == "emitida" and not factura.esta_pagada and puede_cobrar %}
     <div class="acciones">
       <form method="post" action="{% url 'facturas_cobrar' factura.pk %}" style="display:inline">
         {% csrf_token %}
-        <button type="submit">Pagar con Wompi</button>
+        <button type="submit">{% translate "Pagar con Wompi" %}</button>
       </form>
     </div>
   {% endif %}

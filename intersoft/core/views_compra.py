@@ -1,4 +1,5 @@
 """Carrito, compra, pedidos y opiniones del marketplace."""
+from django.utils.translation import gettext
 from decimal import Decimal
 
 from django.contrib import messages
@@ -92,7 +93,7 @@ class ActualizarCarritoView(View):
             carrito.quitar(request, pk)
         elif not carrito.actualizar(request, producto, _entero(request.POST.get("cantidad"), 1)):
             if _entero(request.POST.get("cantidad"), 1) > 0:
-                messages.warning(request, f"Ajustamos {producto.nombre} a las unidades disponibles.")
+                messages.warning(request, gettext("Ajustamos {nombre} a las unidades disponibles.").format(nombre=producto.nombre))
         return redirect("carrito")
 
 
@@ -101,7 +102,7 @@ class QuitarDelCarritoView(View):
 
     def post(self, request, pk):
         carrito.quitar(request, pk)
-        messages.info(request, "Quitamos el producto de tu carrito.")
+        messages.info(request, gettext("Quitamos el producto de tu carrito."))
         return redirect("carrito")
 
 
@@ -131,7 +132,7 @@ class DatosEnvioMixin(LoginRequiredMixin):
         # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
         messages.warning(
             self.request,
-            "Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos.",
+            gettext("Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos."),
         )
         return redirect("carrito")
 
@@ -149,7 +150,7 @@ class CheckoutTodoView(DatosEnvioMixin, FormView):
         self.sin_compra_en_linea = [g for g in grupos if not g["negocio"].compra_en_linea]
         if not self.grupos or (avisos and request.method == "POST"):
             if not self.grupos:
-                messages.info(request, "No tienes productos que se puedan comprar en línea.")
+                messages.info(request, gettext("No tienes productos que se puedan comprar en línea."))
             return redirect("carrito")
         return super().dispatch(request, *args, **kwargs)
 
@@ -185,14 +186,14 @@ class CheckoutView(DatosEnvioMixin, FormView):
             return self.handle_no_permission()
         self.negocio = get_object_or_404(empresas_publicas(), slug=kwargs["slug"])
         if not self.negocio.compra_en_linea:
-            messages.warning(request, "Compra en línea no disponible para este negocio.")
+            messages.warning(request, gettext("Compra en línea no disponible para este negocio."))
             return redirect("carrito")
         self.grupo, avisos = carrito.grupo_de(request, self.negocio)
         _avisar(request, avisos)
         # Si algo cambió justo al confirmar, la persona debe ver el total nuevo antes de seguir
         if self.grupo is None or (avisos and request.method == "POST"):
             if self.grupo is None:
-                messages.info(request, "Ya no tienes productos de este negocio en tu carrito.")
+                messages.info(request, gettext("Ya no tienes productos de este negocio en tu carrito."))
             return redirect("carrito")
         return super().dispatch(request, *args, **kwargs)
 
@@ -350,7 +351,7 @@ class CancelarPedidoView(LoginRequiredMixin, View):
         pedido = _mi_pedido(request, pk)
         try:
             compras.cancelar_pedido(pedido)
-            messages.info(request, "Cancelamos tu pedido. Aquí seguimos cuando quieras volver.")
+            messages.info(request, gettext("Cancelamos tu pedido. Aquí seguimos cuando quieras volver."))
         except compras.OperacionNoPermitida as error:
             messages.warning(request, str(error))
         return redirect("pedido_detalle", pk=pedido.pk)
@@ -363,7 +364,7 @@ class RenovarReservaView(LoginRequiredMixin, View):
         pedido = _mi_pedido(request, pk)
         try:
             compras.renovar_reserva(pedido)
-            messages.success(request, "¡Listo! Renovamos tu reserva. Ya puedes pagar con calma.")
+            messages.success(request, gettext("¡Listo! Renovamos tu reserva. Ya puedes pagar con calma."))
         except compras.OperacionNoPermitida as error:
             messages.warning(request, str(error))
         return redirect("pedido_detalle", pk=pedido.pk)
@@ -391,7 +392,7 @@ class ComentarView(View):
                 calificacion=form.cleaned_data["calificacion"],
                 texto=form.cleaned_data["texto"],
             )
-            messages.success(request, "¡Gracias por tu opinión! Ayuda a otras personas a decidir.")
+            messages.success(request, gettext("¡Gracias por tu opinión! Ayuda a otras personas a decidir."))
         else:
             for errores in form.errors.values():
                 messages.warning(request, errores[0])
@@ -406,7 +407,7 @@ class EliminarComentarioView(LoginRequiredMixin, View):
         comentario = get_object_or_404(Comentario, pk=pk, autor=request.user)
         producto_id = comentario.producto_id
         comentario.delete()
-        messages.info(request, "Eliminamos tu opinión.")
+        messages.info(request, gettext("Eliminamos tu opinión."))
         return HttpResponseRedirect(f"{reverse('tienda_producto', args=[producto_id])}#comentarios")
 
 
@@ -435,10 +436,10 @@ class ToggleFavoritoView(LoginRequiredMixin, View):
         producto = get_object_or_404(productos_publicos(), pk=pk)
         fav, creado = Favorito.objects.get_or_create(usuario=request.user, producto=producto)
         if creado:
-            messages.success(request, f"Guardamos «{producto.nombre}» en tus favoritos.")
+            messages.success(request, gettext("Guardamos «{nombre}» en tus favoritos.").format(nombre=producto.nombre))
         else:
             fav.delete()
-            messages.info(request, f"Quitamos «{producto.nombre}» de tus favoritos.")
+            messages.info(request, gettext("Quitamos «{nombre}» de tus favoritos.").format(nombre=producto.nombre))
         return redirect("tienda_producto", pk=producto.pk)
 
 
@@ -471,6 +472,6 @@ class VolverAComprarView(LoginRequiredMixin, View):
                 msg += f" ({sin_stock} sin disponibilidad actual)."
             messages.success(request, msg)
         else:
-            messages.warning(request, "Ninguno de los productos de este pedido tiene stock disponible en este momento.")
+            messages.warning(request, gettext("Ninguno de los productos de este pedido tiene stock disponible en este momento."))
         return redirect("carrito")
 

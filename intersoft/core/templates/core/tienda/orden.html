@@ -1,5 +1,6 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Tu compra · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Tu compra · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   {% if por_pagar %}
@@ -11,23 +12,23 @@
   <section class="estado-pedido">
     {% if not por_pagar and pagados|length == pedidos|length %}
       <div class="sello sello-ok" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="trazo" d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
-      <h1 class="titulo-compra">¡Gracias por tu compra!</h1>
-      <p>Pagaste a los {{ pedidos|length }} negocios. Cada uno preparará su envío.</p>
+      <h1 class="titulo-compra">{% translate "¡Gracias por tu compra!" %}</h1>
+      <p>{% blocktranslate with pedidos=pedidos|length %}Pagaste a los {{ pedidos }} negocios. Cada uno preparará su envío.{% endblocktranslate %}</p>
     {% elif por_pagar %}
-      <h1 class="titulo-compra">Tu compra en {{ pedidos|length }} negocios</h1>
-      <p>Cada negocio cobra con su propia cuenta de Wompi. Te falta{{ por_pagar|pluralize:"n" }} {{ por_pagar|length }} pago{{ por_pagar|pluralize }}{% if pagados %} ({{ pagados|length }} ya listo{{ pagados|pluralize }}){% endif %}.</p>
+      <h1 class="titulo-compra">{% blocktranslate with pedidos=pedidos|length %}Tu compra en {{ pedidos }} negocios{% endblocktranslate %}</h1>
+      <p>{% blocktranslate with por_pagar=por_pagar|pluralize:"n" por_pagar2=por_pagar|length por_pagar3=por_pagar|pluralize %}Cada negocio cobra con su propia cuenta de Wompi. Te falta{{ por_pagar }} {{ por_pagar2 }} pago{{ por_pagar3 }}{% endblocktranslate %}{% if pagados %} {% blocktranslate with pagados=pagados|length pagados2=pagados|pluralize %}({{ pagados }} ya listo{{ pagados2 }}){% endblocktranslate %}{% endif %}.</p>
     {% else %}
-      <h1 class="titulo-compra">Tu compra en {{ pedidos|length }} negocios</h1>
-      <p>Revisa abajo el estado de cada pedido.</p>
+      <h1 class="titulo-compra">{% blocktranslate with pedidos=pedidos|length %}Tu compra en {{ pedidos }} negocios{% endblocktranslate %}</h1>
+      <p>{% translate "Revisa abajo el estado de cada pedido." %}</p>
     {% endif %}
   </section>
 
   <section class="panel-compra" aria-labelledby="titulo-pedidos">
-    <h2 class="seccion-form" id="titulo-pedidos">Pedidos de esta compra</h2>
+    <h2 class="seccion-form" id="titulo-pedidos">{% translate "Pedidos de esta compra" %}</h2>
     {% for pedido in pedidos %}
       <div class="linea orden-pedido">
         <div class="linea-datos">
-          <a class="linea-nombre" href="{% url 'pedido_detalle' pedido.pk %}">{{ pedido.empresa.nombre }} · Pedido N.º {{ pedido.numero }}</a>
+          <a class="linea-nombre" href="{% url 'pedido_detalle' pedido.pk %}">{% blocktranslate with nombre=pedido.empresa.nombre numero=pedido.numero %}{{ nombre }} · Pedido N.º {{ numero }}{% endblocktranslate %}</a>
           <small class="nota">
             {% for linea in pedido.lineas.all %}{{ linea.cantidad }} × {{ linea.producto.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
           </small>
@@ -38,24 +39,24 @@
           {% if pedido.estado == "pendiente" and pedido.empresa.compra_en_linea %}
             <form method="post" action="{% url 'pedido_pagar' pedido.pk %}">
               {% csrf_token %}
-              <button type="submit" class="boton">{% if pedido.estado_compra == "rechazado" %}Intentar de nuevo{% else %}Pagar{% endif %}</button>
+              <button type="submit" class="boton">{% if pedido.estado_compra == "rechazado" %}{% translate "Intentar de nuevo" %}{% else %}{% translate "Pagar" %}{% endif %}</button>
             </form>
           {% elif pedido.estado == "pendiente" %}
-            <span class="nota">Compra en línea no disponible</span>
+            <span class="nota">{% translate "Compra en línea no disponible" %}</span>
           {% endif %}
         </div>
       </div>
     {% endfor %}
     <dl>
-      <div class="resumen-total"><dt>Total de la compra</dt><dd>${{ total|floatformat:"-2g" }}</dd></div>
+      <div class="resumen-total"><dt>{% translate "Total de la compra" %}</dt><dd>${{ total|floatformat:"-2g" }}</dd></div>
     </dl>
     {% if por_pagar %}
-      <p class="confianza">Tus productos están reservados hasta las {{ por_pagar.0.expira_en|date:"g:i a" }}. <a href="{% url 'orden_detalle' orden.pk %}">Ya pagué, actualizar</a></p>
+      <p class="confianza">{% blocktranslate with expira_en=por_pagar.0.expira_en|date:"g:i a" %}Tus productos están reservados hasta las {{ expira_en }}.{% endblocktranslate %} <a href="{% url 'orden_detalle' orden.pk %}">{% translate "Ya pagué, actualizar" %}</a></p>
     {% endif %}
   </section>
 
   <div class="estado-acciones">
-    <a class="boton boton-claro" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
-    <a class="boton boton-claro" href="{% url 'marketplace' %}">Seguir comprando</a>
+    <a class="boton boton-claro" href="{% url 'mis_pedidos' %}">{% translate "Ver mis pedidos" %}</a>
+    <a class="boton boton-claro" href="{% url 'marketplace' %}">{% translate "Seguir comprando" %}</a>
   </div>
 {% endblock %}

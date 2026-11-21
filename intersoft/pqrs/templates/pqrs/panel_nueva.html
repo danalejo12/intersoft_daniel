@@ -1,13 +1,14 @@
 {% extends "core/base.html" %}
-{% block titulo %}Nueva PQRS a Intersoft · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Nueva PQRS a Intersoft · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Radicar PQRS a Intersoft</h1>
-      <p class="nota">Reporta peticiones, quejas, reclamos o sugerencias sobre la plataforma.</p>
+      <h1>{% translate "Radicar PQRS a Intersoft" %}</h1>
+      <p class="nota">{% translate "Reporta peticiones, quejas, reclamos o sugerencias sobre la plataforma." %}</p>
     </div>
-    <a class="boton secundario" href="{% url 'panel_pqrs_lista' %}">Volver</a>
+    <a class="boton secundario" href="{% url 'panel_pqrs_lista' %}">{% translate "Volver" %}</a>
   </div>
 
   <article class="tarjeta">
@@ -21,7 +22,7 @@
         </div>
       {% endfor %}
       <div class="acciones">
-        <button type="submit" class="boton">Enviar PQRS</button>
+        <button type="submit" class="boton">{% translate "Enviar PQRS" %}</button>
       </div>
     </form>
   </article>

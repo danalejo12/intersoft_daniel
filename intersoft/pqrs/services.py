@@ -1,4 +1,5 @@
 """Servicios de dominio para radicación, conversación, estados, encuesta y escalamiento de PQRS."""
+from django.utils.translation import gettext
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -30,13 +31,13 @@ def radicar_pqrs(
     if flujo == PQRS.Flujo.COMPRADOR_NEGOCIO:
         if pedido is not None:
             if pedido.comprador_id != autor.pk:
-                raise ValidationError("Solo puedes radicar PQRS sobre tus propios pedidos.")
+                raise ValidationError(gettext("Solo puedes radicar PQRS sobre tus propios pedidos."))
             empresa = pedido.empresa
         if empresa is None:
-            raise ValidationError("Debes seleccionar el negocio o pedido para la PQRS.")
+            raise ValidationError(gettext("Debes seleccionar el negocio o pedido para la PQRS."))
     elif flujo == PQRS.Flujo.NEGOCIO_INTERSOFT:
         if empresa is None:
-            raise ValidationError("Toda PQRS del flujo Negocio → Intersoft requiere empresa.")
+            raise ValidationError(gettext("Toda PQRS del flujo Negocio → Intersoft requiere empresa."))
 
     dias_respuesta = getattr(settings, "PQRS_DIAS_RESPUESTA", 15)
     pqrs = PQRS(
@@ -70,7 +71,7 @@ def agregar_mensaje_pqrs(
     """Agrega un mensaje o nota interna a una PQRS y notifica por correo si es público."""
     texto_limpio = (texto or "").strip()
     if not texto_limpio:
-        raise ValidationError("El texto del mensaje no puede estar vacío.")
+        raise ValidationError(gettext("El texto del mensaje no puede estar vacío."))
 
     mensaje = MensajePQRS(
         pqrs=pqrs,
@@ -159,9 +160,9 @@ def registrar_encuesta_satisfaccion(
     try:
         puntaje = int(calificacion)
     except (TypeError, ValueError) as exc:
-        raise ValidationError("La calificación debe ser un número entero entre 1 y 5.") from exc
+        raise ValidationError(gettext("La calificación debe ser un número entero entre 1 y 5.")) from exc
     if puntaje < 1 or puntaje > 5:
-        raise ValidationError("La calificación debe estar entre 1 y 5.")
+        raise ValidationError(gettext("La calificación debe estar entre 1 y 5."))
 
     estado_anterior = pqrs.estado
     ahora = timezone.now()

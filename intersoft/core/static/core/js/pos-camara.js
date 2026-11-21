@@ -1,3 +1,6 @@
+/* Traducción en el navegador: usa el catálogo de /jsi18n/ si está cargado. */
+function _t(s) { return window.gettext ? window.gettext(s) : s; }
+function _tf(s, a) { var r = _t(s); for (var i = 0; i < a.length; i++) { r = r.replace("%s", a[i]); } return r; }
 (function () {
   var btnAbrir = document.getElementById("pos-escanear-camara");
   var dialogo = document.getElementById("pos-camara-dialogo");
@@ -29,11 +32,11 @@
   async function iniciarEscaneo() {
     if (!dialogo.open) dialogo.showModal();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      if (estado) estado.textContent = "Este navegador o conexión no permite usar la cámara (requiere HTTPS).";
+      if (estado) estado.textContent = _t("Este navegador o conexión no permite usar la cámara (requiere HTTPS).");
       return;
     }
 
-    if (estado) estado.textContent = "Abriendo cámara…";
+    if (estado) estado.textContent = _t("Abriendo cámara…");
     try {
       streamActivo = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
@@ -42,12 +45,12 @@
       video.srcObject = streamActivo;
       await video.play();
     } catch (err) {
-      if (estado) estado.textContent = "No se pudo acceder a la cámara. Revisa los permisos del navegador.";
+      if (estado) estado.textContent = _t("No se pudo acceder a la cámara. Revisa los permisos del navegador.");
       return;
     }
 
     if (!("BarcodeDetector" in window)) {
-      if (estado) estado.textContent = "Cámara activa, pero este navegador no soporta detección automática de códigos (usa Chrome/Edge en Android).";
+      if (estado) estado.textContent = _t("Cámara activa, pero este navegador no soporta detección automática de códigos (usa Chrome/Edge en Android).");
       return;
     }
 
@@ -55,7 +58,7 @@
       formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code"]
     });
     escaneando = true;
-    if (estado) estado.textContent = "Apunta el código de barras dentro del recuadro…";
+    if (estado) estado.textContent = _t("Apunta el código de barras dentro del recuadro…");
 
     async function ciclo(ahora) {
       if (!escaneando) return;

@@ -1,4 +1,5 @@
 """Rutas de la consola interna de plataforma (/plataforma/)."""
+from django.utils.translation import gettext_lazy
 from django.urls import path
 
 from pqrs.views import PlataformaPQRSDetalleView, PlataformaPQRSListView
@@ -68,8 +69,8 @@ urlpatterns = [
         "operacion/",
         views.SeccionProximamenteView.as_view(
             permiso="operacion",
-            titulo_seccion="Operación",
-            descripcion_seccion="Herramientas de despliegue, ejecución manual de tareas y diagnóstico técnico.",
+            titulo_seccion=gettext_lazy("Operación"),
+            descripcion_seccion=gettext_lazy("Herramientas de despliegue, ejecución manual de tareas y diagnóstico técnico."),
         ),
         name="plataforma_operacion",
     ),

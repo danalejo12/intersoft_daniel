@@ -1,65 +1,66 @@
-{% load static %}<!doctype html>
-<html lang="es">
+{% load i18n %}{% load static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}Intersoft · Marketplace{% endblock %}</title>
+  <title>{% block titulo %}{% translate "Intersoft · Marketplace" %}{% endblock %}</title>
   <meta name="theme-color" content="#0b1020">
   <link rel="manifest" href="{% static 'core/manifest.webmanifest' %}">
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
   {# Antes de pintar: aplica el tema guardado (o el del sistema) para que no haya parpadeo #}
+  <script src="{% url 'javascript-catalog' %}"></script>
   <script src="{% static 'core/js/tema-init.js' %}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
   <link rel="stylesheet" href="{% static 'core/css/tienda.css' %}?v=14">
-  <script src="{% static 'core/js/tienda.js' %}?v=7" defer></script>
+  <script src="{% static 'core/js/tienda.js' %}?v=8" defer></script>
   <script src="{% static 'core/js/pwa-init.js' %}?v=1" defer></script>
 </head>
 <body>
-  <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
+  <a class="saltar-contenido" href="#contenido-principal">{% translate "Saltar al contenido" %}</a>
 {% include "core/includes/bienvenida.html" %}
   <div id="centinela-barra" aria-hidden="true"></div>
   {% with cats=categorias_marketplace %}
   <header class="barra">
     <div class="contenedor barra-interior">
-      <a class="marca" href="{% url 'marketplace' %}" aria-label="Intersoft, inicio del marketplace">
+      <a class="marca" href="{% url 'marketplace' %}" aria-label="{% translate 'Intersoft, inicio del marketplace' %}">
         <img class="marca-isotipo-img" src="{% static 'core/img/isotipo.png' %}" alt="" width="34" height="34" aria-hidden="true">
-        <span>Inter<span class="marca-soft">Soft</span></span>
+        <span>{% translate "Inter" %}<span class="marca-soft">{% translate "Soft" %}</span></span>
       </a>
 
       <form class="buscador" method="get" action="{% url 'marketplace' %}" role="search" data-sugerencias="{% url 'sugerencias_busqueda' %}">
         <input type="hidden" name="categoria" id="buscador-categoria" value="{{ categoria_activa|default:'' }}">
         <details class="buscador-filtro-menu" data-desplegable>
-          <summary class="buscador-filtro" aria-label="Filtrar por categoría">
-            <span class="buscador-filtro-texto" data-filtro-texto>{{ categoria_activa|default:"Todas" }}</span>
+          <summary class="buscador-filtro" aria-label="{% translate 'Filtrar por categoría' %}">
+            <span class="buscador-filtro-texto" data-filtro-texto>{{ categoria_activa|default:_("Todas") }}</span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
-          <div class="desplegable buscador-filtro-lista" role="listbox" aria-label="Categorías del catálogo">
+          <div class="desplegable buscador-filtro-lista" role="listbox" aria-label="{% translate 'Categorías del catálogo' %}">
             <button type="button" class="buscador-filtro-opcion{% if not categoria_activa %} activa{% endif %}" data-filtro-valor="">
-              <span>Todas las categorías</span>
+              <span>{% translate "Todas las categorías" %}</span>
             </button>
             {% for c in cats %}
               <button type="button" class="buscador-filtro-opcion{% if c == categoria_activa %} activa{% endif %}" data-filtro-valor="{{ c }}">
                 <span>{{ c }}</span>
               </button>
             {% empty %}
-              <span class="desplegable-vacio">Aún no hay categorías</span>
+              <span class="desplegable-vacio">{% translate "Aún no hay categorías" %}</span>
             {% endfor %}
           </div>
         </details>
-        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Busca productos o negocios" aria-label="Buscar productos o negocios" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
-        <div class="sugerencias" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></div>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="{% translate 'Busca productos o negocios' %}" aria-label="{% translate 'Buscar productos o negocios' %}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+        <div class="sugerencias" id="sugerencias" role="listbox" aria-label="{% translate 'Sugerencias' %}" hidden></div>
         {% if orden and orden != "relevancia" %}<input type="hidden" name="orden" value="{{ orden }}">{% endif %}
-        <button type="submit" class="buscador-boton" aria-label="Buscar">
+        <button type="submit" class="buscador-boton" aria-label="{% translate 'Buscar' %}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         </button>
       </form>
 
-      <nav class="menu" aria-label="Cuenta">
-        <button type="button" class="tema" role="switch" aria-checked="false" aria-label="Modo noche" data-tema-boton>
+      <nav class="menu" aria-label="{% translate 'Cuenta' %}">
+        <button type="button" class="tema" role="switch" aria-checked="false" aria-label="{% translate 'Modo noche' %}" data-tema-boton>
           <span class="tema-pista" aria-hidden="true">
             <svg class="tema-sol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
             <svg class="tema-luna" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
@@ -68,10 +69,10 @@
         </button>
 
         {% if user.is_authenticated %}
-          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">Mis pedidos</a>
+          <a class="menu-enlace" href="{% url 'mis_pedidos' %}">{% translate "Mis pedidos" %}</a>
         {% endif %}
 
-        <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="Ver carrito de compras" data-carrito>
+        <a class="carrito-enlace" href="{% url 'carrito' %}" aria-label="{% translate 'Ver carrito de compras' %}" data-carrito>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.4l2.5 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21 7.5H5.8"/></svg>
           <span class="contador" data-carrito-cantidad aria-live="polite" {% if not carrito_cantidad %}hidden{% endif %}>{{ carrito_cantidad }}</span>
         </a>
@@ -79,42 +80,43 @@
         <details class="cuenta" data-desplegable>
           <summary class="cuenta-boton">
             <span class="cuenta-avatar" aria-hidden="true">{% if user.is_authenticated and user.foto %}<img src="{{ user.foto.url }}" alt="">{% elif user.is_authenticated %}{{ user.first_name|default:user.email|first|upper }}{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>{% endif %}</span>
-            <span class="cuenta-texto">{% if user.is_authenticated %}Mi cuenta{% else %}Ingresar{% endif %}</span>
+            <span class="cuenta-texto">{% if user.is_authenticated %}{% translate "Mi cuenta" %}{% else %}{% translate "Ingresar" %}{% endif %}</span>
             <svg class="cuenta-flecha" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </summary>
           <div class="desplegable">
             {% if user.is_authenticated %}
               <p class="desplegable-quien">{{ user.get_full_name|default:user.email }}</p>
-              <a href="{% url 'perfil' %}">Mi perfil</a>
-              <a href="{% url 'dashboard' %}">Mi panel</a>
-              <a href="{% url 'mis_pedidos' %}">Mis pedidos</a>
-              <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Cerrar sesión</button></form>
+              <a href="{% url 'perfil' %}">{% translate "Mi perfil" %}</a>
+              <a href="{% url 'dashboard' %}">{% translate "Mi panel" %}</a>
+              <a href="{% url 'mis_pedidos' %}">{% translate "Mis pedidos" %}</a>
+              <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">{% translate "Cerrar sesión" %}</button></form>
             {% else %}
-              <a href="{% url 'login' %}">Ingresar</a>
-              <a href="{% url 'registro' %}">Crear cuenta</a>
-              <a href="{% url 'negocio_registrar' %}">Registrar mi negocio</a>
+              <a href="{% url 'login' %}">{% translate "Ingresar" %}</a>
+              <a href="{% url 'registro' %}">{% translate "Crear cuenta" %}</a>
+              <a href="{% url 'negocio_registrar' %}">{% translate "Registrar mi negocio" %}</a>
             {% endif %}
           </div>
         </details>
       </nav>
     </div>
 
-    <nav class="subbarra" aria-label="Secciones del marketplace">
+    <nav class="subbarra" aria-label="{% translate 'Secciones del marketplace' %}">
       <div class="contenedor subbarra-interior">
         <details class="subbarra-categorias" data-desplegable>
           <summary>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            Categorías
+            {% translate "Categorías" %}
           </summary>
           <div class="desplegable">
-            <a href="{% url 'marketplace' %}#titulo-productos">Todos los productos</a>
-            {% for c in cats %}<a href="{% url 'marketplace' %}?categoria={{ c|urlencode }}#titulo-productos">{{ c }}</a>{% empty %}<span class="desplegable-vacio">Aún no hay categorías</span>{% endfor %}
+            <a href="{% url 'marketplace' %}#titulo-productos">{% translate "Todos los productos" %}</a>
+            {% for c in cats %}<a href="{% url 'marketplace' %}?categoria={{ c|urlencode }}#titulo-productos">{{ c }}</a>{% empty %}<span class="desplegable-vacio">{% translate "Aún no hay categorías" %}</span>{% endfor %}
           </div>
         </details>
-        <a href="{% url 'marketplace' %}?orden=nuevos#titulo-productos">Novedades</a>
-        <a href="{% url 'marketplace' %}?orden=mejor_valorados#titulo-productos">Mejor valorados</a>
-        <a href="{% url 'marketplace' %}#tiendas">Tiendas</a>
-        <a class="subbarra-vende" href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
+        <a href="{% url 'marketplace' %}?orden=nuevos#titulo-productos">{% translate "Novedades" %}</a>
+        <a href="{% url 'marketplace' %}?orden=mejor_valorados#titulo-productos">{% translate "Mejor valorados" %}</a>
+        <a href="{% url 'marketplace' %}#tiendas">{% translate "Tiendas" %}</a>
+        <a href="{% url 'idiomas' %}?next={{ request.path|urlencode }}">🌐 {% translate "Idioma" %}</a>
+        <a class="subbarra-vende" href="{% url 'negocio_registrar' %}">{% translate "Vende en Intersoft" %}</a>
       </div>
     </nav>
   </header>
@@ -133,13 +135,14 @@
   <footer class="pie">
     <div class="contenedor pie-interior">
       <span class="pie-marca">Intersoft</span>
-      <nav aria-label="Enlaces del pie">
-        <a href="{% url 'precios_publicos' %}">Precios</a>
-        <a href="{% url 'negocio_registrar' %}">Vende en Intersoft</a>
-        <a href="{% url 'registro' %}">Crear cuenta</a>
-        <a href="{% url 'legal_terminos' %}">Términos</a>
-        <a href="{% url 'legal_privacidad' %}">Privacidad</a>
-        <a href="{% url 'legal_devoluciones' %}">Devoluciones</a>
+      <nav aria-label="{% translate 'Enlaces del pie' %}">
+        <a href="{% url 'precios_publicos' %}">{% translate "Precios" %}</a>
+        <a href="{% url 'negocio_registrar' %}">{% translate "Vende en Intersoft" %}</a>
+        <a href="{% url 'registro' %}">{% translate "Crear cuenta" %}</a>
+        <a href="{% url 'legal_terminos' %}">{% translate "Términos" %}</a>
+        <a href="{% url 'legal_privacidad' %}">{% translate "Privacidad" %}</a>
+        <a href="{% url 'legal_devoluciones' %}">{% translate "Devoluciones" %}</a>
+        <a href="{% url 'idiomas' %}?next={{ request.path|urlencode }}">🌐 {% translate "Idiomas" %}</a>
       </nav>
     </div>
   </footer>

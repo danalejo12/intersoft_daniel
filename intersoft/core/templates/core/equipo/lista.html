@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
-{% block titulo %}Equipo y roles · Intersoft{% endblock %}
+{% load i18n idiomas %}
+{% block titulo %}{% translate "Equipo y roles · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
@@ -8,19 +9,19 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </span>
       <div>
-        <h1>Equipo del negocio</h1>
-        <p class="nota" style="margin: 0;">Administra los colaboradores, roles y permisos granulares de <strong>{{ request.empresa.nombre }}</strong>.</p>
+        <h1>{% translate "Equipo del negocio" %}</h1>
+        <p class="nota" style="margin: 0;">{% translate "Administra los colaboradores, roles y permisos granulares de" %} <strong>{{ request.empresa.nombre }}</strong>.</p>
       </div>
     </div>
     {% if puede_gestionar %}
       <div class="erp-toolbar">
         <a class="boton secundario" href="{% url 'equipo_rol_crear' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Nuevo rol
+          {% translate "Nuevo rol" %}
         </a>
         <a class="boton" href="{% url 'equipo_miembro_crear' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          Agregar miembro
+          {% translate "Agregar miembro" %}
         </a>
       </div>
     {% endif %}
@@ -30,28 +31,28 @@
     <article class="kpi">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-        <span>Miembros del equipo</span>
+        <span>{% translate "Miembros del equipo" %}</span>
       </div>
       <strong>{{ membresias|length }}</strong>
-      <small>Integrantes vinculados</small>
+      <small>{% translate "Integrantes vinculados" %}</small>
     </article>
     <article class="kpi violeta">
       <div class="kpi-cabecera">
         <span class="kpi-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-        <span>Roles configurados</span>
+        <span>{% translate "Roles configurados" %}</span>
       </div>
       <strong>{{ roles|length }}</strong>
-      <small>Perfiles de acceso RBAC</small>
+      <small>{% translate "Perfiles de acceso RBAC" %}</small>
     </article>
   </div>
 
   <table class="tabla">
     <thead>
       <tr>
-        <th>Persona</th>
-        <th>Correo</th>
-        <th>Rol</th>
-        <th>Estado</th>
+        <th>{% translate "Persona" %}</th>
+        <th>{% translate "Correo" %}</th>
+        <th>{% translate "Rol" %}</th>
+        <th>{% translate "Estado" %}</th>
         <th></th>
       </tr>
     </thead>
@@ -67,24 +68,24 @@
           <td>{{ m.usuario.email }}</td>
           <td>
             <span class="badge {% if m.rol.es_admin %}info{% else %}neutro{% endif %}">
-              {{ m.rol.nombre }}{% if m.rol.es_admin %} (Admin){% endif %}
+              {{ m.rol.nombre|traducir }}{% if m.rol.es_admin %} {% translate "(Admin)" %}{% endif %}
             </span>
           </td>
           <td>
             {% if m.activa %}
-              <span class="badge exito">Activo</span>
+              <span class="badge exito">{% translate "Activo" %}</span>
             {% else %}
-              <span class="badge peligro">Inactivo</span>
+              <span class="badge peligro">{% translate "Inactivo" %}</span>
             {% endif %}
           </td>
           <td class="acciones-fila">
             {% if puede_gestionar %}
-              <a class="boton secundario pequeno" href="{% url 'equipo_miembro_editar' m.pk %}">Editar</a>
+              <a class="boton secundario pequeno" href="{% url 'equipo_miembro_editar' m.pk %}">{% translate "Editar" %}</a>
             {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5"><div class="erp-vacio">No hay miembros registrados en este negocio.</div></td></tr>
+        <tr><td colspan="5"><div class="erp-vacio">{% translate "No hay miembros registrados en este negocio." %}</div></td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -95,13 +96,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </span>
       <div>
-        <h2 style="font-size: 1.35rem; margin: 0;">Roles y permisos</h2>
-        <p class="nota" style="margin: 0;">Abre el menú ☰ de cada cuadro para ver sus permisos y acciones sin saturar la pantalla.</p>
+        <h2 style="font-size: 1.35rem; margin: 0;">{% translate "Roles y permisos" %}</h2>
+        <p class="nota" style="margin: 0;">{% translate "Abre el menú ☰ de cada cuadro para ver sus permisos y acciones sin saturar la pantalla." %}</p>
       </div>
     </div>
     {% if roles %}
       <button type="button" class="boton secundario pequeno" data-toggle-todos="#roles-grid [data-hamburguesa]">
-        Expandir todos
+        {% translate "Expandir todos" %}
       </button>
     {% endif %}
   </div>
@@ -116,8 +117,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </span>
               <div>
-                <h3>{{ rol.nombre }}</h3>
-                <small style="color: var(--tenue);">{{ rol.total_miembros }} miembro{{ rol.total_miembros|pluralize }}</small>
+                <h3>{{ rol.nombre|traducir }}</h3>
+                <small style="color: var(--tenue);">{% blocktranslate with total_miembros=rol.total_miembros total_miembros2=rol.total_miembros|pluralize %}{{ total_miembros }} miembro{{ total_miembros2 }}{% endblocktranslate %}</small>
               </div>
             </div>
 
@@ -127,26 +128,26 @@
               data-hamburguesa
               aria-expanded="false"
               aria-controls="gaveta-rol-{{ rol.pk }}"
-              aria-label="Ver permisos y opciones de {{ rol.nombre }}"
+              aria-label="{% blocktranslate with nombre=rol.nombre %}Ver permisos y opciones de {{ nombre }}{% endblocktranslate %}"
             >
               <span class="icono-hamburguesa" aria-hidden="true">
                 <span></span><span></span><span></span>
               </span>
-              Opciones
+              {% translate "Opciones" %}
             </button>
           </div>
 
-          <p class="rol-card-desc">{{ rol.descripcion|default:"Sin descripción adicional." }}</p>
+          <p class="rol-card-desc">{{ rol.descripcion|traducir|default:_("Sin descripción adicional.") }}</p>
 
           <div class="rol-card-resumen">
             {% if rol.es_admin %}
-              <span class="badge exito">Acceso total al negocio</span>
+              <span class="badge exito">{% translate "Acceso total al negocio" %}</span>
             {% else %}
               {% with lista_permisos=rol.permisos.all %}
                 {% if lista_permisos %}
-                  <span class="badge info">{{ lista_permisos|length }} permiso{{ lista_permisos|length|pluralize }}</span>
+                  <span class="badge info">{% blocktranslate with lista_permisos=lista_permisos|length lista_permisos2=lista_permisos|length|pluralize %}{{ lista_permisos }} permiso{{ lista_permisos2 }}{% endblocktranslate %}</span>
                 {% else %}
-                  <span class="badge alerta">Sin permisos asignados</span>
+                  <span class="badge alerta">{% translate "Sin permisos asignados" %}</span>
                 {% endif %}
               {% endwith %}
             {% endif %}
@@ -156,32 +157,32 @@
           <div class="rol-gaveta" id="gaveta-rol-{{ rol.pk }}" hidden>
             {% if rol.es_admin %}
               <p class="nota" style="margin: 0; font-size: .88rem;">
-                Este perfil tiene autorización completa sobre todos los módulos actuales y futuros del negocio.
+                {% translate "Este perfil tiene autorización completa sobre todos los módulos actuales y futuros del negocio." %}
               </p>
             {% else %}
               {% with lista_permisos=rol.permisos.all %}
                 {% if lista_permisos %}
-                  <small style="display: block; color: var(--suave); font-weight: 600; margin-bottom: 6px;">Permisos habilitados:</small>
+                  <small style="display: block; color: var(--suave); font-weight: 600; margin-bottom: 6px;">{% translate "Permisos habilitados:" %}</small>
                   <div class="permisos-lista">
                     {% for p in lista_permisos %}
-                      <span class="permiso-chip" title="{{ p.descripcion }}">{{ p.codigo }}</span>
+                      <span class="permiso-chip" title="{{ p.descripcion|traducir }}">{{ p.codigo }}</span>
                     {% endfor %}
                   </div>
                 {% else %}
-                  <p class="nota" style="margin: 0; font-size: .88rem;">No tiene permisos específicos asignados todavía.</p>
+                  <p class="nota" style="margin: 0; font-size: .88rem;">{% translate "No tiene permisos específicos asignados todavía." %}</p>
                 {% endif %}
               {% endwith %}
             {% endif %}
 
             {% if puede_gestionar %}
               <div class="rol-gaveta-acciones">
-                <a class="boton secundario pequeno" href="{% url 'equipo_rol_editar' rol.pk %}">Editar rol</a>
+                <a class="boton secundario pequeno" href="{% url 'equipo_rol_editar' rol.pk %}">{% translate "Editar rol" %}</a>
                 {% if rol.total_miembros == 0 %}
                   <form method="post" action="{% url 'equipo_rol_eliminar' rol.pk %}"
                         style="margin: 0;"
-                        data-confirmar="¿Seguro que quieres eliminar este rol?">
+                        data-confirmar="{% translate '¿Seguro que quieres eliminar este rol?' %}">
                     {% csrf_token %}
-                    <button type="submit" class="boton peligro pequeno">Eliminar</button>
+                    <button type="submit" class="boton peligro pequeno">{% translate "Eliminar" %}</button>
                   </form>
                 {% endif %}
               </div>
@@ -191,6 +192,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="tarjeta erp-vacio">No hay roles configurados.</div>
+    <div class="tarjeta erp-vacio">{% translate "No hay roles configurados." %}</div>
   {% endif %}
 {% endblock %}

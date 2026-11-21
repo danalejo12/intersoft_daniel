@@ -1,22 +1,23 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Mis favoritos · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Mis favoritos · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="margin-bottom: 20px;">
     <div>
-      <h1>Mis productos favoritos</h1>
-      <p class="nota">Productos guardados para comprar más adelante.</p>
+      <h1>{% translate "Mis productos favoritos" %}</h1>
+      <p class="nota">{% translate "Productos guardados para comprar más adelante." %}</p>
     </div>
-    <a class="boton secundario" href="{% url 'marketplace' %}">Explorar catálogo</a>
+    <a class="boton secundario" href="{% url 'marketplace' %}">{% translate "Explorar catálogo" %}</a>
   </div>
 
   <article class="tarjeta">
     <table class="tabla">
       <thead>
         <tr>
-          <th>Producto</th>
-          <th>Negocio</th>
-          <th class="num">Precio</th>
+          <th>{% translate "Producto" %}</th>
+          <th>{% translate "Negocio" %}</th>
+          <th class="num">{% translate "Precio" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -30,16 +31,16 @@
               <form method="post" action="{% url 'carrito_agregar' f.producto.pk %}" style="margin:0;">
                 {% csrf_token %}
                 <input type="hidden" name="cantidad" value="1">
-                <button type="submit" class="boton">Al carrito</button>
+                <button type="submit" class="boton">{% translate "Al carrito" %}</button>
               </form>
               <form method="post" action="{% url 'favorito_toggle' f.producto.pk %}" style="margin:0;">
                 {% csrf_token %}
-                <button type="submit" class="boton secundario">Quitar</button>
+                <button type="submit" class="boton secundario">{% translate "Quitar" %}</button>
               </form>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">Aún no tienes productos en favoritos.</td></tr>
+          <tr><td colspan="4">{% translate "Aún no tienes productos en favoritos." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

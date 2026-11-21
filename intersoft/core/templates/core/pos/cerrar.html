@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
-{% block titulo %}Cerrar caja · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Cerrar caja · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="max-width: 620px; margin: 0 auto 18px;">
@@ -8,28 +9,28 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </span>
       <div>
-        <h1>Cerrar caja</h1>
-        <p class="nota" style="margin: 0;">Arqueo de turno</p>
+        <h1>{% translate "Cerrar caja" %}</h1>
+        <p class="nota" style="margin: 0;">{% translate "Arqueo de turno" %}</p>
       </div>
     </div>
-    <a class="boton secundario" href="{% url 'pos' %}">← Volver al punto de venta</a>
+    <a class="boton secundario" href="{% url 'pos' %}">{% translate "← Volver al punto de venta" %}</a>
   </div>
 
   <form method="post" class="formulario ancho pos-abrir">
     {% csrf_token %}
-    <p class="nota">Abriste a las <strong>{{ turno.creado_en|date:"g:i a" }}</strong> y registraste <strong>{{ ventas }} venta{{ ventas|pluralize }}</strong>.</p>
-    <p class="nota">Cuenta todo el efectivo que hay en la caja, incluida la base. Al cerrar te mostramos si cuadra.</p>
+    <p class="nota">{% translate "Abriste a las" %} <strong>{{ turno.creado_en|date:"g:i a" }}</strong> {% translate "y registraste" %} <strong>{% blocktranslate with ventas=ventas ventas2=ventas|pluralize %}{{ ventas }} venta{{ ventas2 }}{% endblocktranslate %}</strong>.</p>
+    <p class="nota">{% translate "Cuenta todo el efectivo que hay en la caja, incluida la base. Al cerrar te mostramos si cuadra." %}</p>
     <div class="campo">
-      <label for="contado">Efectivo contado</label>
+      <label for="contado">{% translate "Efectivo contado" %}</label>
       <input type="text" id="contado" name="contado" inputmode="decimal" autocomplete="off" required autofocus>
     </div>
     <div class="campo">
-      <label for="observaciones">Observaciones (opcional)</label>
+      <label for="observaciones">{% translate "Observaciones (opcional)" %}</label>
       <textarea id="observaciones" name="observaciones" rows="2" maxlength="1000"></textarea>
     </div>
     <div class="acciones">
-      <a class="boton fantasma" href="{% url 'pos' %}">Cancelar</a>
-      <button type="submit" class="boton peligro" data-confirmar="¿Cerrar la caja? Después no podrás vender en este turno.">Cerrar caja</button>
+      <a class="boton fantasma" href="{% url 'pos' %}">{% translate "Cancelar" %}</a>
+      <button type="submit" class="boton peligro" data-confirmar="{% translate '¿Cerrar la caja? Después no podrás vender en este turno.' %}">{% translate "Cerrar caja" %}</button>
     </div>
   </form>
 {% endblock %}

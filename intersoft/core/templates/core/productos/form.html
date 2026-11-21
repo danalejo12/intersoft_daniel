@@ -1,10 +1,11 @@
 {% extends "core/base.html" %}
-{% block titulo %}{% if object %}Editar{% else %}Nuevo{% endif %} producto · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% if object %}{% translate "Editar" %}{% else %}{% translate "Nuevo" %}{% endif %} {% translate "producto · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
-    <h1>{% if object %}Editar producto{% else %}Nuevo producto{% endif %}</h1>
-    <a class="boton secundario" href="{% url 'productos_lista' %}">← Volver a productos</a>
+    <h1>{% if object %}{% translate "Editar producto" %}{% else %}{% translate "Nuevo producto" %}{% endif %}</h1>
+    <a class="boton secundario" href="{% url 'productos_lista' %}">{% translate "← Volver a productos" %}</a>
   </div>
 
   <form method="post" class="formulario" enctype="multipart/form-data" novalidate>
@@ -17,8 +18,8 @@
             {% for opcion in campo %}
               <label class="galeria-panel-foto">
                 {{ opcion.tag }}
-                <img src="{{ opcion.choice_label }}" alt="Foto {{ forloop.counter }} de la galería">
-                <span>Quitar</span>
+                <img src="{{ opcion.choice_label }}" alt="{% blocktranslate with counter=forloop.counter %}Foto {{ counter }} de la galería{% endblocktranslate %}">
+                <span>{% translate "Quitar" %}</span>
               </label>
             {% endfor %}
           </div>
@@ -31,10 +32,10 @@
       </div>
     {% endfor %}
     <div class="acciones">
-      <a class="boton secundario" href="{% url 'productos_lista' %}">Cancelar</a>
+      <a class="boton secundario" href="{% url 'productos_lista' %}">{% translate "Cancelar" %}</a>
       <button type="submit" class="boton">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        Guardar producto
+        {% translate "Guardar producto" %}
       </button>
     </div>
   </form>

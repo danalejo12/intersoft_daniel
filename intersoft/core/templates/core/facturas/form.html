@@ -1,8 +1,9 @@
 {% extends "core/base.html" %}
-{% block titulo %}Nueva factura · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Nueva factura · Intersoft" %}{% endblock %}
 
 {% block contenido %}
-  <h1>Nueva factura</h1>
+  <h1>{% translate "Nueva factura" %}</h1>
 
   <form method="post" class="formulario ancho" novalidate>
     {% csrf_token %}
@@ -20,7 +21,7 @@
     {% for error in lineas.non_form_errors %}<p class="error">{{ error }}</p>{% endfor %}
 
     <table class="tabla lineas">
-      <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+      <thead><tr><th>{% translate "Producto" %}</th><th>{% translate "Cantidad" %}</th></tr></thead>
       <tbody>
         {% for linea in lineas %}
           <tr>
@@ -38,8 +39,8 @@
     </table>
 
     <div class="acciones">
-      <a href="{% url 'facturas_lista' %}">Cancelar</a>
-      <button type="submit">Facturar</button>
+      <a href="{% url 'facturas_lista' %}">{% translate "Cancelar" %}</a>
+      <button type="submit">{% translate "Facturar" %}</button>
     </div>
   </form>
 {% endblock %}

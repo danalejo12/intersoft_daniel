@@ -1,4 +1,5 @@
 """Vistas del módulo de inventario: categorías, productos, movimientos de kardex y eliminación lógica."""
+from django.utils.translation import gettext
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
@@ -40,7 +41,7 @@ class EliminarLogicoView(PermisoRequeridoMixin, View):
 
         setattr(objeto, self.campo_activo, False)
         objeto.save(update_fields=[self.campo_activo, "actualizado_en"])
-        messages.success(request, f"«{objeto}» se eliminó correctamente.")
+        messages.success(request, gettext("«{objeto}» se eliminó correctamente.").format(objeto=objeto))
         return redirect(self.url_lista)
 
 
@@ -187,8 +188,7 @@ class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessag
             except LimitePlanExcedido as exc:
                 messages.error(
                     request,
-                    f"Alcanzaste el límite de {exc.limite} productos activos de tu plan ({exc.plan_actual}). "
-                    "Mejora tu plan para agregar más productos.",
+                    gettext("Alcanzaste el límite de {limite} productos activos de tu plan ({plan_actual}). Mejora tu plan para agregar más productos.").format(limite=exc.limite, plan_actual=exc.plan_actual),
                 )
                 return redirect("suscripcion_panel")
         return super().dispatch(request, *args, **kwargs)
@@ -260,7 +260,7 @@ class MovimientoCreateView(PermisoRequeridoMixin, View):
             except (StockInsuficiente, ValueError) as error:
                 form.add_error("cantidad", str(error))
             else:
-                messages.success(request, f"Movimiento registrado para «{producto.nombre}».")
+                messages.success(request, gettext("Movimiento registrado para «{nombre}».").format(nombre=producto.nombre))
                 return redirect("productos_kardex", pk=producto.pk)
         return self.mostrar(producto, form)
 

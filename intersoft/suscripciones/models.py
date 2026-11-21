@@ -7,6 +7,7 @@ Decisiones de diseño:
    para que cambiar las capacidades de un plan no requiera redesplegar código.
 3. Un límite ilimitado se representa como null (None en Python), nunca con números mágicos.
 """
+from django.utils.translation import gettext, gettext_lazy
 from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -19,42 +20,42 @@ from core.models.base import ModeloBase
 class Plan(ModeloBase):
     """Catálogo de planes comerciales de Intersoft."""
 
-    codigo = models.SlugField("código", max_length=40, unique=True)
+    codigo = models.SlugField(gettext_lazy("código"), max_length=40, unique=True)
     nombre = models.CharField("nombre", max_length=80)
     precio_mensual = models.DecimalField(
-        "precio mensual (COP)",
+        gettext_lazy("precio mensual (COP)"),
         max_digits=12,
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     precio_anual = models.DecimalField(
-        "precio anual (COP)",
+        gettext_lazy("precio anual (COP)"),
         max_digits=12,
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     comision_porcentaje = models.DecimalField(
-        "comisión marketplace (%)",
+        gettext_lazy("comisión marketplace (%)"),
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00")), MaxValueValidator(Decimal("100.00"))],
     )
     limites = models.JSONField(
-        "límites por recurso",
+        gettext_lazy("límites por recurso"),
         default=dict,
         blank=True,
-        help_text='Diccionario de límites, ej. {"productos": 200, "usuarios": 2}. null significa ilimitado.',
+        help_text=gettext_lazy('Diccionario de límites, ej. {"productos": 200, "usuarios": 2}. null significa ilimitado.'),
     )
     features = models.JSONField(
-        "funcionalidades habilitadas",
+        gettext_lazy("funcionalidades habilitadas"),
         default=list,
         blank=True,
-        help_text='Lista de códigos de funcionalidad, ej. ["marketplace", "pos", "inventario"].',
+        help_text=gettext_lazy('Lista de códigos de funcionalidad, ej. ["marketplace", "pos", "inventario"].'),
     )
-    orden = models.PositiveSmallIntegerField("orden de visualización", default=0)
+    orden = models.PositiveSmallIntegerField(gettext_lazy("orden de visualización"), default=0)
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
@@ -70,14 +71,14 @@ class Suscripcion(ModeloBase):
     """Estado de suscripción vigente de una empresa (relación 1 a 1 con core.Empresa)."""
 
     class Estado(models.TextChoices):
-        TRIAL = "TRIAL", "Periodo de prueba"
-        ACTIVA = "ACTIVA", "Activa"
-        VENCIDA = "VENCIDA", "Vencida"
-        CANCELADA = "CANCELADA", "Cancelada"
+        TRIAL = "TRIAL", gettext_lazy("Periodo de prueba")
+        ACTIVA = "ACTIVA", gettext_lazy("Activa")
+        VENCIDA = "VENCIDA", gettext_lazy("Vencida")
+        CANCELADA = "CANCELADA", gettext_lazy("Cancelada")
 
     class Ciclo(models.TextChoices):
-        MENSUAL = "MENSUAL", "Mensual"
-        ANUAL = "ANUAL", "Anual"
+        MENSUAL = "MENSUAL", gettext_lazy("Mensual")
+        ANUAL = "ANUAL", gettext_lazy("Anual")
 
     empresa = models.OneToOneField(
         "core.Empresa",
@@ -99,20 +100,20 @@ class Suscripcion(ModeloBase):
         db_index=True,
     )
     ciclo = models.CharField(
-        "ciclo de cobro",
+        gettext_lazy("ciclo de cobro"),
         max_length=10,
         choices=Ciclo.choices,
         default=Ciclo.MENSUAL,
     )
-    inicia_en = models.DateTimeField("inicia en", default=timezone.now)
-    vence_en = models.DateTimeField("vence en", null=True, blank=True, db_index=True)
+    inicia_en = models.DateTimeField(gettext_lazy("inicia en"), default=timezone.now)
+    vence_en = models.DateTimeField(gettext_lazy("vence en"), null=True, blank=True, db_index=True)
     es_fundador = models.BooleanField(
-        "es empresa fundadora",
+        gettext_lazy("es empresa fundadora"),
         default=False,
-        help_text="Las primeras 50 empresas con plan pago conservan 50% de descuento de por vida.",
+        help_text=gettext_lazy("Las primeras 50 empresas con plan pago conservan 50% de descuento de por vida."),
     )
     descuento_porcentaje = models.DecimalField(
-        "descuento permanente (%)",
+        gettext_lazy("descuento permanente (%)"),
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
@@ -120,7 +121,7 @@ class Suscripcion(ModeloBase):
     )
 
     class Meta:
-        verbose_name = "suscripción"
+        verbose_name = gettext_lazy("suscripción")
         verbose_name_plural = "suscripciones"
         ordering = ["-creado_en"]
 
@@ -163,7 +164,7 @@ class HistorialSuscripcion(ModeloBase):
         Suscripcion,
         on_delete=models.CASCADE,
         related_name="historial",
-        verbose_name="suscripción",
+        verbose_name=gettext_lazy("suscripción"),
     )
     plan_anterior = models.ForeignKey(
         Plan,
@@ -171,31 +172,31 @@ class HistorialSuscripcion(ModeloBase):
         null=True,
         blank=True,
         related_name="+",
-        verbose_name="plan anterior",
+        verbose_name=gettext_lazy("plan anterior"),
     )
     plan_nuevo = models.ForeignKey(
         Plan,
         on_delete=models.PROTECT,
         related_name="+",
-        verbose_name="plan nuevo",
+        verbose_name=gettext_lazy("plan nuevo"),
     )
     estado_anterior = models.CharField(
-        "estado anterior",
+        gettext_lazy("estado anterior"),
         max_length=15,
         choices=Suscripcion.Estado.choices,
         blank=True,
     )
     estado_nuevo = models.CharField(
-        "estado nuevo",
+        gettext_lazy("estado nuevo"),
         max_length=15,
         choices=Suscripcion.Estado.choices,
     )
     motivo = models.CharField("motivo", max_length=255, blank=True)
-    fecha = models.DateTimeField("fecha del cambio", default=timezone.now, db_index=True)
+    fecha = models.DateTimeField(gettext_lazy("fecha del cambio"), default=timezone.now, db_index=True)
 
     class Meta:
-        verbose_name = "historial de suscripción"
-        verbose_name_plural = "historial de suscripciones"
+        verbose_name = gettext_lazy("historial de suscripción")
+        verbose_name_plural = gettext_lazy("historial de suscripciones")
         ordering = ["-fecha", "-creado_en"]
 
     def __str__(self):
@@ -210,11 +211,11 @@ class CobroSuscripcion(ModeloBase):
     el navegador nunca decide. Monto, plan y ciclo quedan congelados al crear el cobro."""
 
     class Estado(models.TextChoices):
-        PENDIENTE = "pendiente", "Pendiente"
-        APROBADO = "aprobado", "Aprobado"
-        RECHAZADO = "rechazado", "Rechazado"
-        ANULADO = "anulado", "Anulado sin pago"
-        REQUIERE_REVISION = "requiere_revision", "Requiere revisión"
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente")
+        APROBADO = "aprobado", gettext_lazy("Aprobado")
+        RECHAZADO = "rechazado", gettext_lazy("Rechazado")
+        ANULADO = "anulado", gettext_lazy("Anulado sin pago")
+        REQUIERE_REVISION = "requiere_revision", gettext_lazy("Requiere revisión")
 
     empresa = models.ForeignKey("core.Empresa", on_delete=models.PROTECT, related_name="cobros_suscripcion")
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name="cobros")
@@ -227,7 +228,7 @@ class CobroSuscripcion(ModeloBase):
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PENDIENTE, db_index=True)
     transaccion_id = models.CharField(max_length=60, blank=True)
     metodo_pago = models.CharField(max_length=30, blank=True)
-    detalle = models.CharField("detalle del resultado", max_length=255, blank=True)
+    detalle = models.CharField(gettext_lazy("detalle del resultado"), max_length=255, blank=True)
     creado_por = models.ForeignKey(
         "core.Usuario", on_delete=models.PROTECT, related_name="cobros_suscripcion", null=True, blank=True
     )
@@ -242,8 +243,8 @@ class CobroSuscripcion(ModeloBase):
     )
 
     class Meta:
-        verbose_name = "cobro de suscripción"
-        verbose_name_plural = "cobros de suscripción"
+        verbose_name = gettext_lazy("cobro de suscripción")
+        verbose_name_plural = gettext_lazy("cobros de suscripción")
         ordering = ["-creado_en"]
         constraints = [
             models.CheckConstraint(condition=models.Q(monto__gt=0), name="ck_cobro_suscripcion_monto_positivo"),
@@ -263,17 +264,17 @@ class ConfiguracionSuscripciones(ModeloBase):
 
     clave_unica = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
     cupos_fundador = models.PositiveIntegerField(
-        "cupos de fundador",
+        gettext_lazy("cupos de fundador"),
         default=50,
-        help_text="Cantidad máxima de empresas que pueden obtener el descuento permanente de fundador.",
+        help_text=gettext_lazy("Cantidad máxima de empresas que pueden obtener el descuento permanente de fundador."),
     )
 
     class Meta:
-        verbose_name = "configuración de suscripciones"
-        verbose_name_plural = "configuraciones de suscripciones"
+        verbose_name = gettext_lazy("configuración de suscripciones")
+        verbose_name_plural = gettext_lazy("configuraciones de suscripciones")
 
     def __str__(self):
-        return f"Configuración de suscripciones (cupos fundador: {self.cupos_fundador})"
+        return gettext("Configuración de suscripciones (cupos fundador: {cupos_fundador})").format(cupos_fundador=self.cupos_fundador)
 
     @classmethod
     def obtener(cls):
@@ -295,26 +296,26 @@ class CuponPlan(ModeloBase):
     """Cupón de descuento aplicable al pago de planes de suscripción."""
 
     class Tipo(models.TextChoices):
-        PORCENTAJE = "porcentaje", "Porcentaje (%)"
-        VALOR_FIJO = "valor_fijo", "Valor fijo (COP)"
+        PORCENTAJE = "porcentaje", gettext_lazy("Porcentaje (%)")
+        VALOR_FIJO = "valor_fijo", gettext_lazy("Valor fijo (COP)")
 
-    codigo = models.CharField("código", max_length=40, unique=True)
-    tipo = models.CharField("tipo de descuento", max_length=15, choices=Tipo.choices, default=Tipo.PORCENTAJE)
+    codigo = models.CharField(gettext_lazy("código"), max_length=40, unique=True)
+    tipo = models.CharField(gettext_lazy("tipo de descuento"), max_length=15, choices=Tipo.choices, default=Tipo.PORCENTAJE)
     valor = models.DecimalField(
         "valor",
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
     )
-    inicia_en = models.DateTimeField("vigente desde", default=timezone.now)
-    vence_en = models.DateTimeField("vigente hasta", null=True, blank=True)
-    usos_maximos = models.PositiveIntegerField("usos máximos", null=True, blank=True)
-    usos_actuales = models.PositiveIntegerField("usos actuales", default=0)
+    inicia_en = models.DateTimeField(gettext_lazy("vigente desde"), default=timezone.now)
+    vence_en = models.DateTimeField(gettext_lazy("vigente hasta"), null=True, blank=True)
+    usos_maximos = models.PositiveIntegerField(gettext_lazy("usos máximos"), null=True, blank=True)
+    usos_actuales = models.PositiveIntegerField(gettext_lazy("usos actuales"), default=0)
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
-        verbose_name = "cupón de plan"
-        verbose_name_plural = "cupones de planes"
+        verbose_name = gettext_lazy("cupón de plan")
+        verbose_name_plural = gettext_lazy("cupones de planes")
         ordering = ["-creado_en"]
 
     def __str__(self):
@@ -345,12 +346,12 @@ class RecordatorioVencimiento(ModeloBase):
         on_delete=models.CASCADE,
         related_name="recordatorios",
     )
-    dias_antes = models.PositiveSmallIntegerField("días antes del vencimiento")
-    fecha_objetivo = models.DateField("fecha de vencimiento objetivo")
+    dias_antes = models.PositiveSmallIntegerField(gettext_lazy("días antes del vencimiento"))
+    fecha_objetivo = models.DateField(gettext_lazy("fecha de vencimiento objetivo"))
 
     class Meta:
-        verbose_name = "recordatorio de vencimiento"
-        verbose_name_plural = "recordatorios de vencimiento"
+        verbose_name = gettext_lazy("recordatorio de vencimiento")
+        verbose_name_plural = gettext_lazy("recordatorios de vencimiento")
         constraints = [
             models.UniqueConstraint(
                 fields=["suscripcion", "dias_antes", "fecha_objetivo"],

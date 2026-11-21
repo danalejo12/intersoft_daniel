@@ -1,4 +1,5 @@
 """Adaptador desacoplado de facturación electrónica DIAN (CUFE, validación previa y proveedor tecnológico)."""
+from django.utils.translation import gettext
 from dataclasses import dataclass
 import hashlib
 
@@ -60,7 +61,7 @@ class ProveedorSimuladoDian(ProveedorFacturacionElectronica):
             cufe=cufe,
             xml_url=f"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cufe}",
             pdf_url=f"https://catalogo-vpfe.dian.gov.co/Document/DownloadPDF?trackId={cufe}",
-            mensaje="Documento electrónico validado exitosamente (simulador DIAN).",
+            mensaje=gettext("Documento electrónico validado exitosamente (simulador DIAN)."),
         )
 
     def emitir_nota_credito(self, factura: Factura, motivo: str = "Anulación de operación") -> ResultadoNotaCreditoDian:
@@ -70,7 +71,7 @@ class ProveedorSimuladoDian(ProveedorFacturacionElectronica):
             cude=cude,
             xml_url=f"https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey={cude}",
             pdf_url=f"https://catalogo-vpfe.dian.gov.co/Document/DownloadPDF?trackId={cude}",
-            mensaje=f"Nota crédito electrónica validada exitosamente ({motivo}).",
+            mensaje=gettext("Nota crédito electrónica validada exitosamente ({motivo}).").format(motivo=motivo),
         )
 
 
@@ -79,9 +80,9 @@ def emitir_factura_electronica(*, factura: Factura, proveedor: ProveedorFacturac
     """Emite o sincroniza una factura ante el proveedor electrónico de forma idempotente."""
     bloqueada = Factura.objects.select_for_update().select_related("empresa", "cliente").get(pk=factura.pk)
     if bloqueada.estado == Factura.Estado.ANULADA:
-        raise ValueError("No se puede emitir ante la DIAN una factura anulada.")
+        raise ValueError(gettext("No se puede emitir ante la DIAN una factura anulada."))
     if bloqueada.total <= 0:
-        raise ValueError("Solo se pueden emitir facturas con total mayor que cero.")
+        raise ValueError(gettext("Solo se pueden emitir facturas con total mayor que cero."))
 
     # Idempotencia: si ya fue aceptada y tiene CUFE, no se vuelve a emitir
     if bloqueada.estado_dian == Factura.EstadoDian.ACEPTADA and bloqueada.cufe:
@@ -91,7 +92,7 @@ def emitir_factura_electronica(*, factura: Factura, proveedor: ProveedorFacturac
     resultado = adaptador.emitir_factura(bloqueada)
     if resultado.aceptada:
         if not (resultado.cufe or "").strip():
-            raise ValueError("El proveedor tecnológico aprobó la factura sin devolver el CUFE.")
+            raise ValueError(gettext("El proveedor tecnológico aprobó la factura sin devolver el CUFE."))
         bloqueada.estado_dian = Factura.EstadoDian.ACEPTADA
         bloqueada.cufe = resultado.cufe.strip()[:120]
         bloqueada.dian_xml_url = (resultado.xml_url or "").strip()[:200]
@@ -126,7 +127,7 @@ def emitir_nota_credito_electronica(
     """Emite de forma idempotente una Nota Crédito Electrónica (CUDE) para una factura aceptada por la DIAN."""
     bloqueada = Factura.objects.select_for_update().select_related("empresa", "cliente").get(pk=factura.pk)
     if bloqueada.estado_dian != Factura.EstadoDian.ACEPTADA or not bloqueada.cufe:
-        raise ValueError("Solo se puede emitir nota crédito electrónica para facturas aceptadas ante la DIAN.")
+        raise ValueError(gettext("Solo se puede emitir nota crédito electrónica para facturas aceptadas ante la DIAN."))
     if bloqueada.cude_nota_credito:
         return bloqueada
 

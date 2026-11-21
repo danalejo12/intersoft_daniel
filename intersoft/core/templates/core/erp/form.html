@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
-{% block titulo %}Nuevo · {{ config.titulo }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with titulo=config.titulo %}Nuevo · {{ titulo }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
@@ -8,10 +9,10 @@
       {% if config.ayuda %}
         <p class="nota">{{ config.ayuda }}</p>
       {% else %}
-        <p class="nota">Completa los datos para registrar en <strong>{{ request.empresa.nombre }}</strong>.</p>
+        <p class="nota">{% translate "Completa los datos para registrar en" %} <strong>{{ request.empresa.nombre }}</strong>.</p>
       {% endif %}
     </div>
-    <a class="boton secundario" href="{% url 'erp_lista' modulo %}">← Volver al listado</a>
+    <a class="boton secundario" href="{% url 'erp_lista' modulo %}">{% translate "← Volver al listado" %}</a>
   </div>
 
   <form method="post" class="formulario" novalidate>
@@ -40,7 +41,7 @@
             style="align-self: flex-start; margin-top: 4px;"
             data-calcular-deducciones
           >
-            Calcular 8% de ley (Salud 4% + Pensión 4%)
+            {% translate "Calcular 8% de ley (Salud 4% + Pensión 4%)" %}
           </button>
         {% endif %}
         {% if field.help_text %}
@@ -53,10 +54,10 @@
     {% endfor %}
 
     <div class="acciones">
-      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">Cancelar</a>
+      <a class="boton fantasma" href="{% url 'erp_lista' modulo %}">{% translate "Cancelar" %}</a>
       <button type="submit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Guardar
+        {% translate "Guardar" %}
       </button>
     </div>
   </form>

@@ -5,6 +5,7 @@ from django.views.generic import TemplateView
 from pqrs import views as views_pqrs
 from suscripciones import views_panel as views_suscripciones_panel
 
+from .views_idiomas import IdiomasView
 from . import views, views_bodegas, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
@@ -150,6 +151,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("entrar/", views_tienda.despues_de_login, name="despues_login"),
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
+    path("idiomas/", IdiomasView.as_view(), name="idiomas"),
     path(
         "recuperar-contrasena/",
         views.RecuperarContrasenaView.as_view(),

@@ -1,4 +1,5 @@
 """Punto de venta: turnos de caja y pagos recibidos en el mostrador."""
+from django.utils.translation import gettext, gettext_lazy
 from decimal import Decimal
 
 from django.conf import settings
@@ -23,8 +24,8 @@ class TurnoCaja(ModeloTenant):
     observaciones = models.TextField(blank=True)
 
     class Meta:
-        verbose_name = "turno de caja"
-        verbose_name_plural = "turnos de caja"
+        verbose_name = gettext_lazy("turno de caja")
+        verbose_name_plural = gettext_lazy("turnos de caja")
         ordering = ["-creado_en"]
         constraints = [
             # Un cajero no puede tener dos cajas abiertas en el mismo negocio
@@ -35,7 +36,7 @@ class TurnoCaja(ModeloTenant):
         ]
 
     def __str__(self):
-        return f"Caja de {self.cajero} · {self.creado_en:%d/%m/%Y %H:%M}"
+        return gettext("Caja de {cajero} · {creado_en:%d/%m/%Y %H:%M}").format(cajero=self.cajero, creado_en=self.creado_en)
 
     @property
     def abierto(self):
@@ -46,9 +47,9 @@ class PagoCaja(ModeloTenant):
     """Lo que entra a la caja por una venta. Una venta puede pagarse con varios medios."""
 
     class Metodo(models.TextChoices):
-        EFECTIVO = "efectivo", "Efectivo"
-        TARJETA = "tarjeta", "Tarjeta (datáfono)"
-        TRANSFERENCIA = "transferencia", "Transferencia o Nequi"
+        EFECTIVO = "efectivo", gettext_lazy("Efectivo")
+        TARJETA = "tarjeta", gettext_lazy("Tarjeta (datáfono)")
+        TRANSFERENCIA = "transferencia", gettext_lazy("Transferencia o Nequi")
 
     turno = models.ForeignKey(TurnoCaja, on_delete=models.PROTECT, related_name="pagos")
     factura = models.ForeignKey("Factura", on_delete=models.PROTECT, related_name="pagos_caja")
@@ -59,8 +60,8 @@ class PagoCaja(ModeloTenant):
     referencia = models.CharField(max_length=60, blank=True)  # comprobante de tarjeta o transferencia
 
     class Meta:
-        verbose_name = "pago de caja"
-        verbose_name_plural = "pagos de caja"
+        verbose_name = gettext_lazy("pago de caja")
+        verbose_name_plural = gettext_lazy("pagos de caja")
         ordering = ["creado_en"]
         constraints = [
             models.CheckConstraint(condition=Q(monto__gt=0), name="ck_pago_caja_monto_positivo"),

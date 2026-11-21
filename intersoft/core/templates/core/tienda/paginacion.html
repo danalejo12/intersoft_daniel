@@ -1,12 +1,12 @@
-{% if page_obj.paginator.num_pages > 1 %}
+{% load i18n %}{% if page_obj.paginator.num_pages > 1 %}
   {# Conserva búsqueda, categoría y orden al cambiar de página #}
-  <nav class="paginacion" aria-label="Páginas">
+  <nav class="paginacion" aria-label="{% translate 'Páginas' %}">
     {% if page_obj.has_previous %}
-      <a class="boton boton-claro" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if categoria_activa %}categoria={{ categoria_activa|urlencode }}&amp;{% endif %}{% if orden and orden != 'relevancia' %}orden={{ orden }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>
+      <a class="boton boton-claro" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if categoria_activa %}categoria={{ categoria_activa|urlencode }}&amp;{% endif %}{% if orden and orden != 'relevancia' %}orden={{ orden }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">{% translate "Anterior" %}</a>
     {% endif %}
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span>{% blocktranslate with number=page_obj.number num_pages=page_obj.paginator.num_pages %}Página {{ number }} de {{ num_pages }}{% endblocktranslate %}</span>
     {% if page_obj.has_next %}
-      <a class="boton boton-claro" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if categoria_activa %}categoria={{ categoria_activa|urlencode }}&amp;{% endif %}{% if orden and orden != 'relevancia' %}orden={{ orden }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente</a>
+      <a class="boton boton-claro" href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if categoria_activa %}categoria={{ categoria_activa|urlencode }}&amp;{% endif %}{% if orden and orden != 'relevancia' %}orden={{ orden }}&amp;{% endif %}page={{ page_obj.next_page_number }}">{% translate "Siguiente" %}</a>
     {% endif %}
   </nav>
 {% endif %}

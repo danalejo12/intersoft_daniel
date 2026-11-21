@@ -1,40 +1,41 @@
 {% extends "core/tienda/base.html" %}
+{% load i18n %}
 {% load static %}
-{% block titulo %}Política de devoluciones y reembolsos · InterSoft{% endblock %}
+{% block titulo %}{% translate "Política de devoluciones y reembolsos · InterSoft" %}{% endblock %}
 
 {% block contenido %}
   <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=1">
 
   <div class="legal-contenedor">
-    <nav class="legal-nav" aria-label="Documentos legales">
-      <a href="{% url 'legal_terminos' %}">Términos y condiciones</a>
-      <a href="{% url 'legal_privacidad' %}">Política de privacidad</a>
-      <a class="activo" href="{% url 'legal_devoluciones' %}">Devoluciones y reembolsos</a>
+    <nav class="legal-nav" aria-label="{% translate 'Documentos legales' %}">
+      <a href="{% url 'legal_terminos' %}">{% translate "Términos y condiciones" %}</a>
+      <a href="{% url 'legal_privacidad' %}">{% translate "Política de privacidad" %}</a>
+      <a class="activo" href="{% url 'legal_devoluciones' %}">{% translate "Devoluciones y reembolsos" %}</a>
     </nav>
 
     <article class="legal-documento">
-      <h1>Política de Devoluciones, Retracto y Reembolsos</h1>
-      <p class="nota">Marco normativo: Ley 1480 de 2011 (Estatuto del Consumidor — Colombia)</p>
+      <h1>{% translate "Política de Devoluciones, Retracto y Reembolsos" %}</h1>
+      <p class="nota">{% translate "Marco normativo: Ley 1480 de 2011 (Estatuto del Consumidor — Colombia)" %}</p>
 
       <div class="legal-aviso" role="note">
-        <strong>Documento base:</strong> validar plazos y excepciones con asesoría jurídica antes de la operación comercial definitiva.
+        <strong>{% translate "Documento base:" %}</strong> {% translate "validar plazos y excepciones con asesoría jurídica antes de la operación comercial definitiva." %}
       </div>
 
-      <h2>1. Derecho de retracto (5 días hábiles)</h2>
-      <p>Para compras realizadas en línea, el comprador podrá ejercer su derecho de retracto dentro de los <strong>cinco (5) días hábiles</strong> siguientes a la entrega del producto, siempre que este se devuelva en las mismas condiciones en que fue recibido (salvo excepciones legales como bienes perecederos, de uso personal o confeccionados a medida).</p>
+      <h2>{% translate "1. Derecho de retracto (5 días hábiles)" %}</h2>
+      <p>{% translate "Para compras realizadas en línea, el comprador podrá ejercer su derecho de retracto dentro de los" %} <strong>{% translate "cinco (5) días hábiles" %}</strong> {% translate "siguientes a la entrega del producto, siempre que este se devuelva en las mismas condiciones en que fue recibido (salvo excepciones legales como bienes perecederos, de uso personal o confeccionados a medida)." %}</p>
 
-      <h2>2. Garantía por producto defectuoso o incompleto</h2>
-      <p>Si el producto llega dañado, incompleto o no corresponde con lo ofertado, el comercio vendedor deberá ofrecer reparación, cambio o devolución del dinero conforme a la garantía legal vigente.</p>
+      <h2>{% translate "2. Garantía por producto defectuoso o incompleto" %}</h2>
+      <p>{% translate "Si el producto llega dañado, incompleto o no corresponde con lo ofertado, el comercio vendedor deberá ofrecer reparación, cambio o devolución del dinero conforme a la garantía legal vigente." %}</p>
 
-      <h2>3. Cómo solicitar una devolución o reembolso</h2>
+      <h2>{% translate "3. Cómo solicitar una devolución o reembolso" %}</h2>
       <ol>
-        <li>Ingresa a <a href="{% url 'mis_pedidos' %}">Mis pedidos</a> y selecciona el pedido correspondiente.</li>
-        <li>Radica una solicitud de reclamo en <a href="{% url 'pqrs_mis_list' %}">PQRS</a> indicando el número de pedido y, si aplica, adjunta evidencia fotográfica o en PDF.</li>
-        <li>El comercio vendedor responderá dentro del plazo legal; si no responde a tiempo, el caso se escalará automáticamente al equipo de soporte de InterSoft.</li>
+        <li>{% translate "Ingresa a" %} <a href="{% url 'mis_pedidos' %}">{% translate "Mis pedidos" %}</a> {% translate "y selecciona el pedido correspondiente." %}</li>
+        <li>{% translate "Radica una solicitud de reclamo en" %} <a href="{% url 'pqrs_mis_list' %}">PQRS</a> {% translate "indicando el número de pedido y, si aplica, adjunta evidencia fotográfica o en PDF." %}</li>
+        <li>{% translate "El comercio vendedor responderá dentro del plazo legal; si no responde a tiempo, el caso se escalará automáticamente al equipo de soporte de InterSoft." %}</li>
       </ol>
 
-      <h2>4. Plazo del reembolso</h2>
-      <p>Una vez aprobada la devolución o el reembolso por pago duplicado/inconsistente, el reintegro del dinero se procesará en un plazo máximo de <strong>treinta (30) días calendario</strong>, quedando la referencia registrada en el detalle del pedido.</p>
+      <h2>{% translate "4. Plazo del reembolso" %}</h2>
+      <p>{% translate "Una vez aprobada la devolución o el reembolso por pago duplicado/inconsistente, el reintegro del dinero se procesará en un plazo máximo de" %} <strong>{% translate "treinta (30) días calendario" %}</strong>{% translate ", quedando la referencia registrada en el detalle del pedido." %}</p>
     </article>
   </div>
 {% endblock %}

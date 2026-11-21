@@ -1,3 +1,4 @@
+from django.utils.translation import gettext, gettext_lazy
 import uuid
 from decimal import Decimal
 
@@ -15,11 +16,11 @@ class Pago(ModeloTenant):
     """Un intento de cobro de una factura a través de la pasarela."""
 
     class Estado(models.TextChoices):
-        PENDIENTE = "pendiente", "Pendiente"
-        APROBADO = "aprobado", "Aprobado"
-        RECHAZADO = "rechazado", "Rechazado"
-        ANULADO = "anulado", "Anulado"
-        ERROR = "error", "Error"
+        PENDIENTE = "pendiente", gettext_lazy("Pendiente")
+        APROBADO = "aprobado", gettext_lazy("Aprobado")
+        RECHAZADO = "rechazado", gettext_lazy("Rechazado")
+        ANULADO = "anulado", gettext_lazy("Anulado")
+        ERROR = "error", gettext_lazy("Error")
 
     # Exactamente uno: el panel cobra facturas; el marketplace cobra pedidos.
     factura = models.ForeignKey("Factura", on_delete=models.PROTECT, related_name="pagos", null=True, blank=True)
@@ -66,11 +67,11 @@ class ConfiguracionPagos(ModeloTenant):
     y nunca se vuelven a mostrar: solo sus últimos 4 caracteres."""
 
     class Proveedor(models.TextChoices):
-        WOMPI = "wompi", "Wompi"
+        WOMPI = "wompi", gettext_lazy("Wompi")
 
     class Modo(models.TextChoices):
-        PRUEBAS = "pruebas", "Pruebas (sandbox)"
-        PRODUCCION = "produccion", "Producción"
+        PRUEBAS = "pruebas", gettext_lazy("Pruebas (sandbox)")
+        PRODUCCION = "produccion", gettext_lazy("Producción")
 
     empresa = models.OneToOneField("Empresa", on_delete=models.PROTECT, related_name="pasarela")
 
@@ -83,17 +84,17 @@ class ConfiguracionPagos(ModeloTenant):
     llave_privada_final = models.CharField(max_length=4, blank=True)
     secreto_integridad_final = models.CharField(max_length=4)
     secreto_eventos_final = models.CharField(max_length=4)
-    activa = models.BooleanField("Cobrar en línea con estas llaves", default=False)
+    activa = models.BooleanField(gettext_lazy("Cobrar en línea con estas llaves"), default=False)
     cobrar_tarifa_al_comprador = models.BooleanField(
-        "Sumar la tarifa de la pasarela al precio", default=True,
-        help_text="Si lo desactivas, tu negocio asume la tarifa de cada transacción.",
+        gettext_lazy("Sumar la tarifa de la pasarela al precio"), default=True,
+        help_text=gettext_lazy("Si lo desactivas, tu negocio asume la tarifa de cada transacción."),
     )
     tarifa_porcentaje = models.DecimalField(
-        "Tarifa de la pasarela (%)", max_digits=5, decimal_places=2, default=Decimal("2.65"),
+        gettext_lazy("Tarifa de la pasarela (%)"), max_digits=5, decimal_places=2, default=Decimal("2.65"),
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("15"))],
     )
     tarifa_fija = models.DecimalField(
-        "Tarifa fija por transacción ($)", max_digits=10, decimal_places=2, default=Decimal("700"),
+        gettext_lazy("Tarifa fija por transacción ($)"), max_digits=10, decimal_places=2, default=Decimal("700"),
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("20000"))],
     )
     verificada_en = models.DateTimeField(null=True, blank=True)
@@ -105,8 +106,8 @@ class ConfiguracionPagos(ModeloTenant):
     revision = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
-        verbose_name = "configuración de pagos"
-        verbose_name_plural = "configuraciones de pagos"
+        verbose_name = gettext_lazy("configuración de pagos")
+        verbose_name_plural = gettext_lazy("configuraciones de pagos")
 
     def __str__(self):
         return f"{self.get_proveedor_display()} · {self.get_modo_display()}"
@@ -130,7 +131,7 @@ class ConfiguracionPagos(ModeloTenant):
     def poner_secreto(self, campo: str, valor: str) -> None:
         """campo: 'llave_privada', 'secreto_integridad' o 'secreto_eventos'."""
         if campo not in CAMPOS_SECRETOS:
-            raise ValueError(f"Campo secreto desconocido: {campo}")
+            raise ValueError(gettext("Campo secreto desconocido: {campo}").format(campo=campo))
         setattr(self, CAMPOS_SECRETOS[campo], cifrar(valor))
         setattr(self, f"{campo}_final", valor[-4:] if valor else "")
 

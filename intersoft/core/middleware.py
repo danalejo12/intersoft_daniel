@@ -1,3 +1,4 @@
+from django.utils.translation import gettext
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
@@ -42,7 +43,7 @@ class TenantMiddleware:
                     and request.method not in ("GET", "HEAD", "OPTIONS")
                 ):
                     raise PermissionDenied(
-                        "Modo soporte de solo lectura: no se permiten cambios en este negocio."
+                        gettext("Modo soporte de solo lectura: no se permiten cambios en este negocio.")
                     )
             else:
                 membresia = self._membresia_activa(request)

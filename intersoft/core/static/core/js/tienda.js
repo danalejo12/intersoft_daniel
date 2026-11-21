@@ -1,3 +1,6 @@
+/* Traducción en el navegador: usa el catálogo de /jsi18n/ si está cargado. */
+function _t(s) { return window.gettext ? window.gettext(s) : s; }
+function _tf(s, a) { var r = _t(s); for (var i = 0; i < a.length; i++) { r = r.replace("%s", a[i]); } return r; }
 /* Solo mejora la experiencia: sin este archivo todos los formularios siguen funcionando. */
 (function () {
   "use strict";
@@ -55,7 +58,7 @@
     if (correcto) {
       var enlace = document.createElement("a");
       enlace.href = document.querySelector("[data-carrito]").getAttribute("href");
-      enlace.textContent = "Ver carrito";
+      enlace.textContent = _t("Ver carrito");
       aviso.appendChild(enlace);
     }
     contenedor.appendChild(aviso);
@@ -141,7 +144,7 @@
         var boton = formulario.querySelector("button[type=submit]");
         window.setTimeout(function () {
           boton.disabled = true;
-          boton.textContent = "Guardando tu pedido…";
+          boton.textContent = _t("Guardando tu pedido…");
         }, 0);
       });
     });
@@ -223,7 +226,7 @@
     function pintar() {
       var oscuro = raiz.getAttribute("data-tema") === "oscuro";
       boton.setAttribute("aria-checked", oscuro ? "true" : "false");
-      boton.title = oscuro ? "Cambiar a modo día" : "Cambiar a modo noche";
+      boton.title = oscuro ? _t("Cambiar a modo día") : _t("Cambiar a modo noche");
     }
     boton.addEventListener("click", function () {
       var nuevo = raiz.getAttribute("data-tema") === "oscuro" ? "claro" : "oscuro";
@@ -338,7 +341,7 @@
     function pintar(datos) {
       lista.textContent = "";
       if (datos.productos.length) {
-        lista.appendChild(titulo("Productos"));
+        lista.appendChild(titulo(_t("Productos")));
         datos.productos.forEach(function (p, i) {
           lista.appendChild(opcion("sug-p-" + i, p.url, function (a) {
             var foto = document.createElement(p.imagen ? "img" : "span");
@@ -362,7 +365,7 @@
         });
       }
       if (datos.negocios.length) {
-        lista.appendChild(titulo("Tiendas"));
+        lista.appendChild(titulo(_t("Tiendas")));
         datos.negocios.forEach(function (n, i) {
           lista.appendChild(opcion("sug-n-" + i, n.url, function (a) {
             var texto = document.createElement("span");
@@ -376,7 +379,7 @@
       }
       lista.appendChild(opcion("sug-todo", formulario.action + "?q=" + encodeURIComponent(campo.value.trim()), function (a) {
         a.classList.add("sugerencia-todo");
-        a.textContent = "Ver todos los resultados para «" + campo.value.trim() + "»";
+        a.textContent = _tf("Ver todos los resultados para «%s»", [campo.value.trim()]);
       }));
       lista.hidden = false;
       campo.setAttribute("aria-expanded", "true");
@@ -431,7 +434,7 @@
     if (!boton) return;
     var valor = boton.getAttribute("data-filtro-valor") || "";
     hidden.value = valor;
-    if (texto) texto.textContent = valor || "Todas";
+    if (texto) texto.textContent = valor || _t("Todas");
     menu.querySelectorAll(".buscador-filtro-opcion").forEach(function (b) {
       b.classList.toggle("activa", b === boton);
     });

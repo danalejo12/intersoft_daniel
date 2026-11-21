@@ -1,74 +1,75 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}Inicio · Consola de Plataforma · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Inicio · Consola de Plataforma · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
-      <h1>Consola de Plataforma</h1>
-      <p class="nota">Resumen operativo global de negocios, suscripciones, cobros y tareas periódicas de InterSoft.</p>
+      <h1>{% translate "Consola de Plataforma" %}</h1>
+      <p class="nota">{% translate "Resumen operativo global de negocios, suscripciones, cobros y tareas periódicas de InterSoft." %}</p>
     </div>
   </div>
 
   <section class="kpis" style="margin-bottom: 24px;">
     <article class="kpi">
-      <div class="kpi-cabecera"><span>Negocios activos</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Negocios activos" %}</span></div>
       <strong>{{ negocios_activos }}</strong>
-      <small>Empresas habilitadas en la plataforma</small>
+      <small>{% translate "Empresas habilitadas en la plataforma" %}</small>
     </article>
 
     <article class="kpi">
-      <div class="kpi-cabecera"><span>En prueba (TRIAL)</span></div>
+      <div class="kpi-cabecera"><span>{% translate "En prueba (TRIAL)" %}</span></div>
       <strong>{{ negocios_prueba }}</strong>
-      <small>Periodo gratis de 14 días en curso</small>
+      <small>{% translate "Periodo gratis de 14 días en curso" %}</small>
     </article>
 
     <article class="kpi verde">
-      <div class="kpi-cabecera"><span>Con plan pago</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Con plan pago" %}</span></div>
       <strong>{{ negocios_plan_pago }}</strong>
-      <small>Emprendedor, Negocio o Pro activos</small>
+      <small>{% translate "Emprendedor, Negocio o Pro activos" %}</small>
     </article>
 
     <article class="kpi">
-      <div class="kpi-cabecera"><span>Cobros pendientes</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Cobros pendientes" %}</span></div>
       <strong>{{ cobros_pendientes }}</strong>
-      <small>Intentos de pago de plan en proceso</small>
+      <small>{% translate "Intentos de pago de plan en proceso" %}</small>
     </article>
 
     <article class="kpi {% if cobros_revision > 0 %}rojo{% endif %}">
-      <div class="kpi-cabecera"><span>Cobros en revisión</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Cobros en revisión" %}</span></div>
       <strong>{{ cobros_revision }}</strong>
-      <small>Requieren verificación o reembolso</small>
+      <small>{% translate "Requieren verificación o reembolso" %}</small>
     </article>
 
     <article class="kpi verde">
-      <div class="kpi-cabecera"><span>MRR (con descuentos)</span></div>
+      <div class="kpi-cabecera"><span>{% translate "MRR (con descuentos)" %}</span></div>
       <strong>$ {{ metricas.mrr|floatformat:"0g" }}</strong>
-      <small>Ingreso mensual recurrente</small>
+      <small>{% translate "Ingreso mensual recurrente" %}</small>
     </article>
 
     <article class="kpi">
-      <div class="kpi-cabecera"><span>ARR proyectado</span></div>
+      <div class="kpi-cabecera"><span>{% translate "ARR proyectado" %}</span></div>
       <strong>$ {{ metricas.arr|floatformat:"0g" }}</strong>
-      <small>MRR × 12 meses</small>
+      <small>{% translate "MRR × 12 meses" %}</small>
     </article>
 
     <article class="kpi">
-      <div class="kpi-cabecera"><span>Conversión 30 días</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Conversión 30 días" %}</span></div>
       <strong>{{ metricas.tasa_conversion_30d }}%</strong>
-      <small>{{ metricas.convertidos_30d }} de {{ metricas.base_trial_30d }} en prueba</small>
+      <small>{% blocktranslate with convertidos_30d=metricas.convertidos_30d base_trial_30d=metricas.base_trial_30d %}{{ convertidos_30d }} de {{ base_trial_30d }} en prueba{% endblocktranslate %}</small>
     </article>
 
     <article class="kpi {% if metricas.total_vencimientos_7d > 0 %}advertencia{% endif %}">
-      <div class="kpi-cabecera"><span>Vencen en 7 días</span></div>
+      <div class="kpi-cabecera"><span>{% translate "Vencen en 7 días" %}</span></div>
       <strong>{{ metricas.total_vencimientos_7d }}</strong>
-      <small>Pruebas y suscripciones próximas a vencer</small>
+      <small>{% translate "Pruebas y suscripciones próximas a vencer" %}</small>
     </article>
   </section>
 
   <article class="tarjeta" style="margin-bottom: 24px;">
     <div class="tarjeta-cabecera">
-      <h2>Ingresos cobrados por mes (últimos 6 meses)</h2>
-      <span class="badge exito">Total 6m: $ {{ metricas.total_ingresos_6m|floatformat:"0g" }}</span>
+      <h2>{% translate "Ingresos cobrados por mes (últimos 6 meses)" %}</h2>
+      <span class="badge exito">{% blocktranslate with total_ingresos_6m=metricas.total_ingresos_6m|floatformat:"0g" %}Total 6m: $ {{ total_ingresos_6m }}{% endblocktranslate %}</span>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; align-items: end; height: 150px; padding: 12px 4px 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.25);">
@@ -76,7 +77,7 @@
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px;">
           <small style="font-size: 11px; opacity: 0.85;">$ {{ mes.total|floatformat:"0g" }}</small>
           <div
-            title="{{ mes.etiqueta }}: $ {{ mes.total|floatformat:'0g' }} ({{ mes.cantidad }} cobro{{ mes.cantidad|pluralize }})"
+            title="{% blocktranslate with etiqueta=mes.etiqueta total=mes.total|floatformat:'0g' cantidad=mes.cantidad cantidad2=mes.cantidad|pluralize %}{{ etiqueta }}: $ {{ total }} ({{ cantidad }} cobro{{ cantidad2 }}){% endblocktranslate %}"
             style="width: 100%; max-width: 56px; height: {{ mes.porcentaje_altura }}%; min-height: {% if mes.total > 0 %}6px{% else %}2px{% endif %}; background: {% if mes.total > 0 %}#10b981{% else %}rgba(148, 163, 184, 0.25){% endif %}; border-radius: 6px 6px 0 0;"
           ></div>
           <small style="font-size: 11px; white-space: nowrap;">{{ mes.etiqueta }}</small>
@@ -87,9 +88,9 @@
     <table class="tabla">
       <thead>
         <tr>
-          <th>Mes</th>
-          <th class="num">Cobros aprobados</th>
-          <th class="num">Ingresos</th>
+          <th>{% translate "Mes" %}</th>
+          <th class="num">{% translate "Cobros aprobados" %}</th>
+          <th class="num">{% translate "Ingresos" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -106,16 +107,16 @@
 
   <article class="tarjeta" style="margin-bottom: 24px;">
     <div class="tarjeta-cabecera">
-      <h2>Vencimientos próximos (7 días)</h2>
-      <span class="badge neutro">{{ metricas.total_vencimientos_7d }} registro{{ metricas.total_vencimientos_7d|pluralize }}</span>
+      <h2>{% translate "Vencimientos próximos (7 días)" %}</h2>
+      <span class="badge neutro">{% blocktranslate with total_vencimientos_7d=metricas.total_vencimientos_7d total_vencimientos_7d2=metricas.total_vencimientos_7d|pluralize %}{{ total_vencimientos_7d }} registro{{ total_vencimientos_7d2 }}{% endblocktranslate %}</span>
     </div>
     <table class="tabla">
       <thead>
         <tr>
-          <th>Negocio</th>
-          <th>Plan</th>
-          <th>Estado</th>
-          <th>Vence</th>
+          <th>{% translate "Negocio" %}</th>
+          <th>{% translate "Plan" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th>{% translate "Vence" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -127,7 +128,7 @@
             <td>{{ s.vence_en|date:"d/m/Y H:i" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="4">No hay suscripciones ni pruebas por vencer en los próximos 7 días.</td></tr>
+          <tr><td colspan="4">{% translate "No hay suscripciones ni pruebas por vencer en los próximos 7 días." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -135,29 +136,29 @@
 
   <article class="tarjeta" style="margin-bottom: 24px;">
     <div class="tarjeta-cabecera">
-      <h2>Estado de tareas periódicas</h2>
-      <span class="badge neutro">{{ tareas|length }} tarea{{ tareas|length|pluralize }}</span>
+      <h2>{% translate "Estado de tareas periódicas" %}</h2>
+      <span class="badge neutro">{% blocktranslate with tareas=tareas|length tareas2=tareas|length|pluralize %}{{ tareas }} tarea{{ tareas2 }}{% endblocktranslate %}</span>
     </div>
     <table class="tabla">
       <thead>
         <tr>
-          <th>Tarea</th>
-          <th>Última ejecución</th>
-          <th class="num">Ejecuciones</th>
-          <th class="num">Fallos seguidos</th>
-          <th>Último resultado / error</th>
+          <th>{% translate "Tarea" %}</th>
+          <th>{% translate "Última ejecución" %}</th>
+          <th class="num">{% translate "Ejecuciones" %}</th>
+          <th class="num">{% translate "Fallos seguidos" %}</th>
+          <th>{% translate "Último resultado / error" %}</th>
         </tr>
       </thead>
       <tbody>
         {% for t in tareas %}
           <tr>
             <td><strong>{{ t.nombre }}</strong></td>
-            <td>{% if t.ultima_ejecucion %}{{ t.ultima_ejecucion|date:"d/m/Y H:i:s" }}{% else %}Nunca{% endif %}</td>
+            <td>{% if t.ultima_ejecucion %}{{ t.ultima_ejecucion|date:"d/m/Y H:i:s" }}{% else %}{% translate "Nunca" %}{% endif %}</td>
             <td class="num">{{ t.ejecuciones }}</td>
             <td class="num">
               {% if t.fallos_seguidos >= 3 %}
                 <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .6);">
-                  {{ t.fallos_seguidos }} fallo{{ t.fallos_seguidos|pluralize }}
+                  {% blocktranslate with fallos_seguidos=t.fallos_seguidos fallos_seguidos2=t.fallos_seguidos|pluralize %}{{ fallos_seguidos }} fallo{{ fallos_seguidos2 }}{% endblocktranslate %}
                 </span>
               {% elif t.fallos_seguidos > 0 %}
                 <span class="badge advertencia">{{ t.fallos_seguidos }}</span>
@@ -174,7 +175,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="5">Aún no hay ejecuciones de tareas periódicas registradas.</td></tr>
+          <tr><td colspan="5">{% translate "Aún no hay ejecuciones de tareas periódicas registradas." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -182,30 +183,30 @@
 
   <article class="tarjeta">
     <div class="tarjeta-cabecera">
-      <h2>Últimos eventos de auditoría</h2>
-      <span class="badge neutro">{{ auditorias_recientes|length }} reciente{{ auditorias_recientes|length|pluralize }}</span>
+      <h2>{% translate "Últimos eventos de auditoría" %}</h2>
+      <span class="badge neutro">{% blocktranslate with auditorias_recientes=auditorias_recientes|length auditorias_recientes2=auditorias_recientes|length|pluralize %}{{ auditorias_recientes }} reciente{{ auditorias_recientes2 }}{% endblocktranslate %}</span>
     </div>
     <table class="tabla">
       <thead>
         <tr>
-          <th>Fecha</th>
-          <th>Actor</th>
-          <th>Acción</th>
-          <th>Objeto</th>
-          <th>IP</th>
+          <th>{% translate "Fecha" %}</th>
+          <th>{% translate "Actor" %}</th>
+          <th>{% translate "Acción" %}</th>
+          <th>{% translate "Objeto" %}</th>
+          <th>{% translate "IP" %}</th>
         </tr>
       </thead>
       <tbody>
         {% for a in auditorias_recientes %}
           <tr>
             <td>{{ a.fecha|date:"d/m/Y H:i" }}</td>
-            <td>{{ a.actor.email|default:"Sistema" }}</td>
+            <td>{{ a.actor.email|default:_("Sistema") }}</td>
             <td><code>{{ a.accion }}</code></td>
             <td>{{ a.objeto_tipo }} {{ a.objeto_id|slice:":8" }}</td>
             <td>{{ a.ip|default:"—" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="5">Sin registros de auditoría todavía.</td></tr>
+          <tr><td colspan="5">{% translate "Sin registros de auditoría todavía." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

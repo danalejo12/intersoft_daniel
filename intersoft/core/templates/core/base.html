@@ -1,5 +1,5 @@
-{% load static %}<!doctype html>
-<html lang="es">
+{% load i18n idiomas %}{% load static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,7 @@
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
+  <script src="{% url 'javascript-catalog' %}"></script>
   <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=25">
   <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=1">
@@ -22,56 +23,56 @@
 <div class="escena">
 
   <!-- Dock: navegación principal en forma de píldora -->
-  <nav class="dock" aria-label="Menú principal">
-    <button type="button" class="dock-expandir" data-dock-expandir aria-expanded="true" aria-label="Contraer menú" title="Contraer menú">
+  <nav class="dock" aria-label="{% translate 'Menú principal' %}">
+    <button type="button" class="dock-expandir" data-dock-expandir aria-expanded="true" aria-label="{% translate 'Contraer menú' %}" title="{% translate 'Contraer menú' %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
     </button>
-    <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
+    <a href="{% url 'dashboard' %}" data-label="{% translate 'Inicio' %}" aria-label="{% translate 'Inicio' %}" class="{% if ruta == 'dashboard' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 21v-6.5h4V21"/></svg>
     </a>
     {% if nav_permisos.ver_clientes %}
-    <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
+    <a href="{% url 'clientes_lista' %}" data-label="{% translate 'Clientes' %}" aria-label="{% translate 'Clientes' %}" class="{% if 'clientes' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_productos %}
-    <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
+    <a href="{% url 'productos_lista' %}" data-label="{% translate 'Productos' %}" aria-label="{% translate 'Productos' %}" class="{% if 'productos' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg>
     </a>
-    <a href="{% url 'categorias_lista' %}" data-label="Categorías" aria-label="Categorías" class="{% if 'categorias' in ruta %}activo{% endif %}">
+    <a href="{% url 'categorias_lista' %}" data-label="{% translate 'Categorías' %}" aria-label="{% translate 'Categorías' %}" class="{% if 'categorias' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42L12 2Z"/><path d="M7 7h.01"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_facturas %}
-    <a href="{% url 'facturas_lista' %}" data-label="Facturas" aria-label="Facturas" class="{% if 'facturas' in ruta %}activo{% endif %}">
+    <a href="{% url 'facturas_lista' %}" data-label="{% translate 'Facturas' %}" aria-label="{% translate 'Facturas' %}" class="{% if 'facturas' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M15.5 8.5H10a1.75 1.75 0 0 0 0 3.5h4a1.75 1.75 0 0 1 0 3.5H8.5"/><path d="M12 7v10"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_pedidos %}
-    <a href="{% url 'pedidos_panel_lista' %}" data-label="Pedidos web" aria-label="Pedidos web" class="{% if 'pedidos_panel' in ruta %}activo{% endif %}">
+    <a href="{% url 'pedidos_panel_lista' %}" data-label="{% translate 'Pedidos web' %}" aria-label="{% translate 'Pedidos web' %}" class="{% if 'pedidos_panel' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_pos %}
-    <a href="{% url 'pos' %}" data-label="Punto de venta" aria-label="Punto de venta" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
+    <a href="{% url 'pos' %}" data-label="{% translate 'Punto de venta' %}" aria-label="{% translate 'Punto de venta' %}" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_erp %}
-    <a href="{% url 'erp_inicio' %}" data-label="Gestión ERP" aria-label="Gestión ERP" class="{% if ruta|slice:':3' == 'erp' %}activo{% endif %}">
+    <a href="{% url 'erp_inicio' %}" data-label="{% translate 'Gestión ERP' %}" aria-label="{% translate 'Gestión ERP' %}" class="{% if ruta|slice:':3' == 'erp' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.editar_negocio %}
-    <a href="{% url 'negocio_datos' %}" data-label="Perfil negocio" aria-label="Perfil negocio" class="{% if ruta == 'negocio_datos' %}activo{% endif %}">
+    <a href="{% url 'negocio_datos' %}" data-label="{% translate 'Perfil negocio' %}" aria-label="{% translate 'Perfil negocio' %}" class="{% if ruta == 'negocio_datos' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
     </a>
-    <a href="{% url 'suscripcion_panel' %}" data-label="Plan y suscripción" aria-label="Plan y suscripción" class="{% if ruta == 'suscripcion_panel' %}activo{% endif %}">
+    <a href="{% url 'suscripcion_panel' %}" data-label="{% translate 'Plan y suscripción' %}" aria-label="{% translate 'Plan y suscripción' %}" class="{% if ruta == 'suscripcion_panel' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.configurar_pagos %}
-    <a href="{% url 'negocio_pagos' %}" data-label="Pagos en línea" aria-label="Pagos en línea" class="{% if 'negocio_pagos' in ruta %}activo{% endif %}">
+    <a href="{% url 'negocio_pagos' %}" data-label="{% translate 'Pagos en línea' %}" aria-label="{% translate 'Pagos en línea' %}" class="{% if 'negocio_pagos' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
     </a>
     {% endif %}
@@ -81,16 +82,20 @@
     </a>
     {% endif %}
     {% if nav_permisos.ver_equipo %}
-    <a href="{% url 'equipo_lista' %}" data-label="Equipo y roles" aria-label="Equipo y roles" class="{% if 'equipo' in ruta %}activo{% endif %}">
+    <a href="{% url 'equipo_lista' %}" data-label="{% translate 'Equipo y roles' %}" aria-label="{% translate 'Equipo y roles' %}" class="{% if 'equipo' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </a>
     {% endif %}
+
+    <a href="{% url 'idiomas' %}?next={{ request.path|urlencode }}" data-label="{% translate 'Idiomas' %}" aria-label="{% translate 'Idiomas' %}" class="{% if ruta == 'idiomas' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    </a>
 
     <span class="dock-espacio"></span>
 
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
-      <button type="submit" class="dock-salir" data-label="Salir" aria-label="Salir">
+      <button type="submit" class="dock-salir" data-label="{% translate 'Salir' %}" aria-label="{% translate 'Salir' %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></svg>
       </button>
     </form>
@@ -113,51 +118,51 @@
       {% if request.membresias_activas|length > 1 %}
       <form class="selector-negocio" method="post" action="{% url 'negocio_cambiar' %}">
         {% csrf_token %}
-        <select name="empresa_id" aria-label="Cambiar negocio activo" data-auto-enviar>
+        <select name="empresa_id" aria-label="{% translate 'Cambiar negocio activo' %}" data-auto-enviar>
           {% for m in request.membresias_activas %}
             <option value="{{ m.empresa_id }}" {% if m.empresa_id == request.empresa.id %}selected{% endif %}>
-              {{ m.empresa.nombre }} · {{ m.rol.nombre }}
+              {{ m.empresa.nombre }} · {{ m.rol.nombre|traducir }}
             </option>
           {% endfor %}
         </select>
-        <noscript><button type="submit" class="boton secundario">Cambiar</button></noscript>
+        <noscript><button type="submit" class="boton secundario">{% translate "Cambiar" %}</button></noscript>
       </form>
       {% endif %}
 
       <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
-        <input type="search" name="q" placeholder="Buscar productos" aria-label="Buscar productos">
+        <input type="search" name="q" placeholder="{% translate 'Buscar productos' %}" aria-label="{% translate 'Buscar productos' %}">
       </form>
 
       <div class="cuenta">
         <a class="boton secundario ir-marketplace" href="{% url 'marketplace' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 3-5h14l3 5"/><path d="M2 8v1.5a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0 3.33 3.33 0 0 0 6.67 0V8Z"/><path d="M4 12.5V21h16v-8.5"/><path d="M10 21v-5h4v5"/></svg>
-          Ir al marketplace
+          {% translate "Ir al marketplace" %}
         </a>
         {% if request.empresa %}
           <details class="notificaciones-menu" data-desplegable>
-            <summary class="notificaciones-btn" aria-label="Notificaciones operativas ({{ notificaciones_panel.total }})">
+            <summary class="notificaciones-btn" aria-label="{% blocktranslate with total=notificaciones_panel.total %}Notificaciones operativas ({{ total }}){% endblocktranslate %}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
               {% if notificaciones_panel.total %}
                 <span class="notificaciones-badge">{{ notificaciones_panel.total }}</span>
               {% endif %}
             </summary>
             <div class="notificaciones-panel">
-              <p class="notificaciones-titulo">Avisos del negocio</p>
+              <p class="notificaciones-titulo">{% translate "Avisos del negocio" %}</p>
               {% for item in notificaciones_panel.items %}
                 <a class="notificaciones-item" href="{{ item.url }}">
                   <strong>{{ item.titulo }}</strong>
                   <small>{{ item.detalle }}</small>
                 </a>
               {% empty %}
-                <p class="nota">Sin pendientes por ahora.</p>
+                <p class="nota">{% translate "Sin pendientes por ahora." %}</p>
               {% endfor %}
             </div>
           </details>
         {% endif %}
-        <a class="cuenta-perfil" href="{% url 'perfil' %}" title="Ver y editar mi perfil">
+        <a class="cuenta-perfil" href="{% url 'perfil' %}" title="{% translate 'Ver y editar mi perfil' %}">
           <span class="cuenta-texto">
             <strong>{{ user.get_full_name|default:user.email }}</strong>
-            <small>{{ request.membresia.rol.nombre }}</small>
+            <small>{{ request.membresia.rol.nombre|traducir }}</small>
           </span>
           <span class="avatar" aria-hidden="true">
             {% if user.foto %}
@@ -176,13 +181,13 @@
       {% if request.modo_soporte %}
         <div role="alert" class="franja-soporte">
           <span>
-            <strong>MODO SOPORTE</strong> · Estás viendo el panel de <strong>{{ request.empresa.nombre }}</strong>
-            ({% if request.soporte_solo_lectura %}Solo lectura{% else %}Lectura y escritura{% endif %})
+            <strong>{% translate "MODO SOPORTE" %}</strong> {% translate "· Estás viendo el panel de" %} <strong>{{ request.empresa.nombre }}</strong>
+            ({% if request.soporte_solo_lectura %}{% translate "Solo lectura" %}{% else %}{% translate "Lectura y escritura" %}{% endif %})
           </span>
           <form method="post" action="{% url 'plataforma_salir_soporte' %}" class="form-sin-margen">
             {% csrf_token %}
             <button type="submit" class="boton secundario franja-soporte-salir">
-              Salir de soporte
+              {% translate "Salir de soporte" %}
             </button>
           </form>
         </div>
@@ -201,11 +206,11 @@
       {% if request.empresa and not request.empresa.datos_completos %}
         <div class="mensaje error" role="alert">
           <span>
-            Tus productos no se están mostrando en el marketplace: faltan la dirección de notificaciones y el teléfono de tu negocio.
+            {% translate "Tus productos no se están mostrando en el marketplace: faltan la dirección de notificaciones y el teléfono de tu negocio." %}
             {% if request.membresia.rol.es_admin %}
-              <a href="{% url 'negocio_datos' %}">Completar ahora</a>
+              <a href="{% url 'negocio_datos' %}">{% translate "Completar ahora" %}</a>
             {% else %}
-              Pídele al administrador del negocio que los complete.
+              {% translate "Pídele al administrador del negocio que los complete." %}
             {% endif %}
           </span>
         </div>
@@ -214,23 +219,23 @@
       {% block contenido %}{% endblock %}
 
       {% if user.is_authenticated and request.empresa %}
-        <section class="tarjeta soporte-pie" aria-label="Soporte y calificación de experiencia">
+        <section class="tarjeta soporte-pie" aria-label="{% translate 'Soporte y calificación de experiencia' %}">
           <div class="soporte-fila">
             <div class="soporte-acciones">
-              <a class="boton secundario" href="{% url 'soporte_reportar_problema' %}?url={{ request.get_full_path|urlencode }}">Reportar un problema</a>
-              <a class="boton secundario" href="{% url 'soporte_ideas' %}">Ideas y votos</a>
+              <a class="boton secundario" href="{% url 'soporte_reportar_problema' %}?url={{ request.get_full_path|urlencode }}">{% translate "Reportar un problema" %}</a>
+              <a class="boton secundario" href="{% url 'soporte_ideas' %}">{% translate "Ideas y votos" %}</a>
             </div>
 
             <form method="post" action="{% url 'soporte_comentario' %}" class="soporte-util-form">
               {% csrf_token %}
               <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
-              <span class="nota">¿Te resultó útil esta pantalla?</span>
-              <input type="text" name="comentario" placeholder="Comentario opcional..." aria-label="Comentario opcional sobre esta pantalla">
-              <button type="submit" name="util" value="1" class="boton secundario soporte-btn-voto positivo" aria-label="Sí, me resultó útil">
-                <span aria-hidden="true">👍</span> <span>Sí</span>
+              <span class="nota">{% translate "¿Te resultó útil esta pantalla?" %}</span>
+              <input type="text" name="comentario" placeholder="{% translate 'Comentario opcional...' %}" aria-label="{% translate 'Comentario opcional sobre esta pantalla' %}">
+              <button type="submit" name="util" value="1" class="boton secundario soporte-btn-voto positivo" aria-label="{% translate 'Sí, me resultó útil' %}">
+                <span aria-hidden="true">👍</span> <span>{% translate "Sí" %}</span>
               </button>
-              <button type="submit" name="util" value="0" class="boton secundario soporte-btn-voto negativo" aria-label="No me resultó útil">
-                <span aria-hidden="true">👎</span> <span>No</span>
+              <button type="submit" name="util" value="0" class="boton secundario soporte-btn-voto negativo" aria-label="{% translate 'No me resultó útil' %}">
+                <span aria-hidden="true">👎</span> <span>{% translate "No" %}</span>
               </button>
             </form>
           </div>
@@ -240,8 +245,8 @@
               {% csrf_token %}
               <input type="hidden" name="pantalla" value="{{ request.get_full_path }}">
               <div class="nps-cabecera">
-                <span class="nps-titulo" id="nps-pregunta">¿Qué tanto recomendarías InterSoft a otro negocio?</span>
-                <span class="nps-estado" id="nps-estado" aria-live="polite">Elige un puntaje de 0 a 10</span>
+                <span class="nps-titulo" id="nps-pregunta">{% translate "¿Qué tanto recomendarías InterSoft a otro negocio?" %}</span>
+                <span class="nps-estado" id="nps-estado" aria-live="polite">{% translate "Elige un puntaje de 0 a 10" %}</span>
               </div>
 
               <div class="nps-escala" role="radiogroup" aria-labelledby="nps-pregunta">
@@ -259,13 +264,13 @@
               </div>
 
               <div class="nps-leyenda" aria-hidden="true">
-                <span>0 · Nada probable</span>
-                <span>10 · Muy probable</span>
+                <span>{% translate "0 · Nada probable" %}</span>
+                <span>{% translate "10 · Muy probable" %}</span>
               </div>
 
               <div class="nps-pie-form">
-                <input type="text" name="comentario" id="nps-comentario" placeholder="¿Por qué elegiste ese puntaje? (opcional)" aria-label="Motivo de tu calificación NPS">
-                <button type="submit" class="boton">Enviar calificación</button>
+                <input type="text" name="comentario" id="nps-comentario" placeholder="{% translate '¿Por qué elegiste ese puntaje? (opcional)' %}" aria-label="{% translate 'Motivo de tu calificación NPS' %}">
+                <button type="submit" class="boton">{% translate "Enviar calificación" %}</button>
               </div>
             </form>
           {% endif %}
@@ -278,8 +283,8 @@
 </div>
 {% endif %}
 
-<script defer src="{% static 'core/js/app.js' %}?v=4"></script>
-<script defer src="{% static 'core/js/soporte-widget.js' %}?v=1"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=5"></script>
+<script defer src="{% static 'core/js/soporte-widget.js' %}?v=2"></script>
 <script defer src="{% static 'core/js/pwa-init.js' %}?v=1"></script>
 {% block scripts %}{% endblock %}
 </body>

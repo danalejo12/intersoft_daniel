@@ -1,3 +1,5 @@
+from django.utils.text import format_lazy
+from django.utils.translation import gettext, gettext_lazy
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
@@ -14,11 +16,11 @@ class ClienteForm(forms.ModelForm):
         # "empresa" NO está en la lista: la asigna el servidor (TenantMixin.form_valid)
         fields = ["tipo_documento", "numero_documento", "nombre", "email", "telefono", "direccion"]
         labels = {
-            "tipo_documento": "Tipo de documento",
-            "numero_documento": "Número de documento",
-            "email": "Correo electrónico",
-            "telefono": "Teléfono",
-            "direccion": "Dirección",
+            "tipo_documento": gettext_lazy("Tipo de documento"),
+            "numero_documento": gettext_lazy("Número de documento"),
+            "email": gettext_lazy("Correo electrónico"),
+            "telefono": gettext_lazy("Teléfono"),
+            "direccion": gettext_lazy("Dirección"),
         }
 
     def __init__(self, *args, empresa=None, **kwargs):
@@ -26,7 +28,7 @@ class ClienteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.empresa = empresa
         # Opción vacía en español
-        self.fields["tipo_documento"].choices = [("", "Selecciona el tipo")] + list(
+        self.fields["tipo_documento"].choices = [("", gettext("Selecciona el tipo"))] + list(
             Cliente.TipoDocumento.choices
         )
 
@@ -49,7 +51,7 @@ class ClienteForm(forms.ModelForm):
                 .exists()
             )
             if existe:
-                self.add_error("numero_documento", "Ya existe un cliente con este documento en tu empresa.")
+                self.add_error("numero_documento", gettext("Ya existe un cliente con este documento en tu empresa."))
         return datos
 
 
@@ -61,8 +63,8 @@ class FacturaForm(forms.Form):
 
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.none(),   # vacío aquí; se llena en __init__ con la empresa
-        label="Cliente",
-        empty_label="Selecciona el cliente",
+        label=gettext_lazy("Cliente"),
+        empty_label=gettext_lazy("Selecciona el cliente"),
     )
 
     def __init__(self, *args, empresa, **kwargs):
@@ -76,8 +78,8 @@ class FacturaForm(forms.Form):
 class LineaFacturaForm(forms.Form):
     """Una fila de la factura: producto + cantidad."""
 
-    producto = forms.ModelChoiceField(queryset=Producto.objects.none(), label="Producto", empty_label="—")
-    cantidad = forms.IntegerField(min_value=1, label="Cantidad")
+    producto = forms.ModelChoiceField(queryset=Producto.objects.none(), label=gettext_lazy("Producto"), empty_label="—")
+    cantidad = forms.IntegerField(min_value=1, label=gettext_lazy("Cantidad"))
 
     def __init__(self, *args, empresa, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,7 +88,7 @@ class LineaFacturaForm(forms.Form):
         )
         # Cómo se ve cada opción del <select>
         self.fields["producto"].label_from_instance = (
-            lambda p: f"{p.codigo} · {p.nombre} (stock: {p.stock})"
+            lambda p: gettext("{codigo} · {nombre} (stock: {stock})").format(codigo=p.codigo, nombre=p.nombre, stock=p.stock)
         )
 
 
@@ -104,7 +106,7 @@ class BaseLineasFormSet(forms.BaseFormSet):
                 continue
             if producto.pk in vistos:
                 raise forms.ValidationError(
-                    "Cada producto solo puede aparecer una vez. Suma las cantidades en una sola línea."
+                    gettext("Cada producto solo puede aparecer una vez. Suma las cantidades en una sola línea.")
                 )
             vistos.add(producto.pk)
 
@@ -126,7 +128,7 @@ class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria
         fields = ["nombre"]
-        labels = {"nombre": "Nombre de la categoría"}
+        labels = {"nombre": gettext_lazy("Nombre de la categoría")}
 
     def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -135,7 +137,7 @@ class CategoriaForm(forms.ModelForm):
     def clean_nombre(self):
         nombre = self.cleaned_data["nombre"].strip()
         if not nombre:
-            raise forms.ValidationError("El nombre de la categoría no puede estar vacío.")
+            raise forms.ValidationError(gettext("El nombre de la categoría no puede estar vacío."))
         if self.empresa is not None:
             existe = (
                 Categoria.objects.filter(empresa=self.empresa, nombre__iexact=nombre)
@@ -143,7 +145,7 @@ class CategoriaForm(forms.ModelForm):
                 .exists()
             )
             if existe:
-                raise forms.ValidationError("Ya existe una categoría con este nombre en tu empresa.")
+                raise forms.ValidationError(gettext("Ya existe una categoría con este nombre en tu empresa."))
         return nombre
 
 
@@ -162,7 +164,7 @@ class CampoVariasFotos(forms.ImageField):
         for archivo in archivos:
             limpio = super().clean(archivo, initial)
             if limpio.size > IMAGEN_TAMANO_MAXIMO:
-                raise forms.ValidationError(f"«{limpio.name}» pesa más de 5 MB.")
+                raise forms.ValidationError(gettext("«{name}» pesa más de 5 MB.").format(name=limpio.name))
             limpios.append(limpio)
         return limpios
 
@@ -181,41 +183,41 @@ class ProductoForm(forms.ModelForm):
             "stock_minimo", "peso_gramos", "descripcion", "imagen", "publicado",
         ]
         labels = {
-            "codigo": "Código",
-            "categoria": "Categoría",
-            "iva_porcentaje": "IVA (%)",
-            "stock_minimo": "Stock mínimo",
-            "peso_gramos": "Peso por unidad (gramos)",
-            "descripcion": "Descripción",
-            "publicado": "Publicar en el marketplace",
+            "codigo": gettext_lazy("Código"),
+            "categoria": gettext_lazy("Categoría"),
+            "iva_porcentaje": gettext_lazy("IVA (%)"),
+            "stock_minimo": gettext_lazy("Stock mínimo"),
+            "peso_gramos": gettext_lazy("Peso por unidad (gramos)"),
+            "descripcion": gettext_lazy("Descripción"),
+            "publicado": gettext_lazy("Publicar en el marketplace"),
         }
         help_texts = {
-            "peso_gramos": "Opcional. Se usa para calcular el envío por peso (0 si no aplica).",
-            "publicado": "Si lo marcas, cualquier persona podrá ver este producto en el catálogo.",
-            "imagen": "JPG, PNG o WEBP, máximo 5 MB.",
+            "peso_gramos": gettext_lazy("Opcional. Se usa para calcular el envío por peso (0 si no aplica)."),
+            "publicado": gettext_lazy("Si lo marcas, cualquier persona podrá ver este producto en el catálogo."),
+            "imagen": gettext_lazy("JPG, PNG o WEBP, máximo 5 MB."),
         }
         widgets = {"descripcion": forms.Textarea(attrs={"rows": 3})}
 
     # Campo EXTRA: no existe en el modelo. Solo se usa al crear.
     stock_inicial = forms.IntegerField(
-        label="Stock inicial",
+        label=gettext_lazy("Stock inicial"),
         min_value=0,
         initial=0,
         required=False,
-        help_text="Unidades que tienes hoy. Se registra como una entrada en el kardex.",
+        help_text=gettext_lazy("Unidades que tienes hoy. Se registra como una entrada en el kardex."),
     )
 
     fotos_extra = CampoVariasFotos(
-        label="Más fotos (galería)",
+        label=gettext_lazy("Más fotos (galería)"),
         required=False,
-        help_text=f"Hasta {FOTOS_EXTRA_MAXIMO} fotos más: otros ángulos, el corte, el empaque. JPG, PNG o WEBP de hasta 5 MB.",
+        help_text=format_lazy(gettext_lazy("Hasta {maximo} fotos más: otros ángulos, el corte, el empaque. JPG, PNG o WEBP de hasta 5 MB."), maximo=FOTOS_EXTRA_MAXIMO),
     )
     quitar_fotos = FotoParaQuitar(
-        label="Fotos de la galería",
+        label=gettext_lazy("Fotos de la galería"),
         queryset=FotoProducto.objects.none(),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        help_text="Marca las que quieras quitar.",
+        help_text=gettext_lazy("Marca las que quieras quitar."),
     )
 
     # Orden en que se muestran los campos
@@ -237,7 +239,7 @@ class ProductoForm(forms.ModelForm):
         self.fields["categoria"].queryset = (
             Categoria.objects.de_empresa(empresa).filter(activa=True).order_by("nombre")
         )
-        self.fields["categoria"].empty_label = "Sin categoría"
+        self.fields["categoria"].empty_label = gettext("Sin categoría")
         if self.instance._state.adding or not self.instance.fotos.exists():
             del self.fields["quitar_fotos"]
         else:
@@ -249,7 +251,7 @@ class ProductoForm(forms.ModelForm):
         quitadas = len(datos.get("quitar_fotos") or [])
         nuevas = len(datos.get("fotos_extra") or [])
         if actuales - quitadas + nuevas > FOTOS_EXTRA_MAXIMO:
-            self.add_error("fotos_extra", f"La galería admite hasta {FOTOS_EXTRA_MAXIMO} fotos además de la principal.")
+            self.add_error("fotos_extra", gettext("La galería admite hasta {fotos_extra_maximo} fotos además de la principal.").format(fotos_extra_maximo=FOTOS_EXTRA_MAXIMO))
         return datos
 
     def clean_peso_gramos(self):
@@ -258,7 +260,7 @@ class ProductoForm(forms.ModelForm):
     def clean_imagen(self):
         imagen = self.cleaned_data.get("imagen")
         if isinstance(imagen, UploadedFile) and imagen.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("La imagen no puede pesar más de 5 MB.")
+            raise forms.ValidationError(gettext("La imagen no puede pesar más de 5 MB."))
         # False = el usuario marcó "limpiar". Si la foto cambia, el crédito de la anterior ya no aplica
         if imagen is False or isinstance(imagen, UploadedFile):
             self.instance.imagen_credito = ""
@@ -275,14 +277,14 @@ class ProductoForm(forms.ModelForm):
             .exists()
         )
         if existe:
-            raise forms.ValidationError("Ya existe un producto con este código en tu empresa.")
+            raise forms.ValidationError(gettext("Ya existe un producto con este código en tu empresa."))
         return codigo
 
 
 class DatosNegocioForm(forms.ModelForm):
     """Datos legales, identidad pública y logística que ve el comprador. El nombre y el NIT no se cambian desde aquí."""
 
-    quitar_logo = forms.BooleanField(required=False, label="Quitar logo actual")
+    quitar_logo = forms.BooleanField(required=False, label=gettext_lazy("Quitar logo actual"))
 
     class Meta:
         model = Empresa
@@ -298,33 +300,33 @@ class DatosNegocioForm(forms.ModelForm):
             "envio_gratis_desde",
         ]
         labels = {
-            "logo": "Logo del negocio",
-            "direccion": "Dirección de notificaciones",
-            "telefono": "Teléfono",
-            "email": "Correo del negocio",
-            "sitio_web": "Sitio web o red social",
-            "descripcion": "Descripción pública del negocio",
-            "tarifa_envio_base": "Tarifa base de envío ($)",
-            "tarifa_envio_por_kg": "Recargo por kilogramo ($)",
-            "envio_gratis_desde": "Envío gratis desde ($)",
+            "logo": gettext_lazy("Logo del negocio"),
+            "direccion": gettext_lazy("Dirección de notificaciones"),
+            "telefono": gettext_lazy("Teléfono"),
+            "email": gettext_lazy("Correo del negocio"),
+            "sitio_web": gettext_lazy("Sitio web o red social"),
+            "descripcion": gettext_lazy("Descripción pública del negocio"),
+            "tarifa_envio_base": gettext_lazy("Tarifa base de envío ($)"),
+            "tarifa_envio_por_kg": gettext_lazy("Recargo por kilogramo ($)"),
+            "envio_gratis_desde": gettext_lazy("Envío gratis desde ($)"),
         }
         widgets = {
             "logo": forms.FileInput(
                 attrs={"accept": "image/jpeg,image/png,image/webp", "class": "perfil-input-archivo"}
             ),
-            "sitio_web": forms.URLInput(attrs={"placeholder": "https://tu-tienda.com o Instagram"}),
+            "sitio_web": forms.URLInput(attrs={"placeholder": gettext_lazy("https://tu-tienda.com o Instagram")}),
             "descripcion": forms.Textarea(
                 attrs={
                     "rows": 3,
-                    "placeholder": "Describe qué vende tu negocio, horarios de atención o tiempos de despacho...",
+                    "placeholder": gettext_lazy("Describe qué vende tu negocio, horarios de atención o tiempos de despacho..."),
                 }
             ),
         }
         help_texts = {
-            "logo": "Formatos JPG, PNG o WebP · Tamaño máximo 5 MB.",
-            "tarifa_envio_base": "Deja 0 si coordinas el envío directamente o no cobras tarifa base.",
-            "tarifa_envio_por_kg": "Valor adicional por cada kg (o fracción) según el peso de los productos.",
-            "envio_gratis_desde": "Si los productos del pedido alcanzan este monto, el envío cuesta $0.",
+            "logo": gettext_lazy("Formatos JPG, PNG o WebP · Tamaño máximo 5 MB."),
+            "tarifa_envio_base": gettext_lazy("Deja 0 si coordinas el envío directamente o no cobras tarifa base."),
+            "tarifa_envio_por_kg": gettext_lazy("Valor adicional por cada kg (o fracción) según el peso de los productos."),
+            "envio_gratis_desde": gettext_lazy("Si los productos del pedido alcanzan este monto, el envío cuesta $0."),
         }
 
     def __init__(self, *args, **kwargs):
@@ -338,7 +340,7 @@ class DatosNegocioForm(forms.ModelForm):
     def clean_logo(self):
         archivo = self.cleaned_data.get("logo")
         if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("El logo no puede superar los 5 MB.")
+            raise forms.ValidationError(gettext("El logo no puede superar los 5 MB."))
         return archivo
 
     def save(self, commit=True):
@@ -370,24 +372,24 @@ class MovimientoForm(forms.Form):
         activas = Bodega.objects.filter(empresa=empresa, activa=True) if empresa else Bodega.objects.none()
         if activas.count() > 1:
             self.fields["bodega"] = forms.ModelChoiceField(
-                label="Bodega", queryset=activas, initial=activas.filter(es_principal=True).first(),
+                label=gettext("Bodega"), queryset=activas, initial=activas.filter(es_principal=True).first(),
                 empty_label=None,
             )
 
     tipo = forms.ChoiceField(
-        label="Tipo de movimiento",
+        label=gettext_lazy("Tipo de movimiento"),
         choices=[
-            (MovimientoInventario.Tipo.ENTRADA, "Entrada (compra a proveedor, devolución)"),
-            (MovimientoInventario.Tipo.AJUSTE, "Ajuste (conteo físico, daño, pérdida)"),
+            (MovimientoInventario.Tipo.ENTRADA, gettext_lazy("Entrada (compra a proveedor, devolución)")),
+            (MovimientoInventario.Tipo.AJUSTE, gettext_lazy("Ajuste (conteo físico, daño, pérdida)")),
         ],
     )
     cantidad = forms.IntegerField(
-        label="Cantidad",
-        help_text="En un ajuste usa un número negativo para restar. Ejemplo: -2.",
+        label=gettext_lazy("Cantidad"),
+        help_text=gettext_lazy("En un ajuste usa un número negativo para restar. Ejemplo: -2."),
     )
     referencia = forms.CharField(
-        label="Referencia", max_length=60, required=False,
-        help_text="Ejemplo: Factura proveedor 4521, Conteo de fin de mes.",
+        label=gettext_lazy("Referencia"), max_length=60, required=False,
+        help_text=gettext_lazy("Ejemplo: Factura proveedor 4521, Conteo de fin de mes."),
     )
 
     def clean(self):
@@ -396,44 +398,44 @@ class MovimientoForm(forms.Form):
         cantidad = datos.get("cantidad")
         if cantidad is not None:
             if tipo == MovimientoInventario.Tipo.ENTRADA and cantidad <= 0:
-                self.add_error("cantidad", "Una entrada debe ser mayor que cero.")
+                self.add_error("cantidad", gettext("Una entrada debe ser mayor que cero."))
             if tipo == MovimientoInventario.Tipo.AJUSTE and cantidad == 0:
-                self.add_error("cantidad", "Un ajuste no puede ser cero.")
+                self.add_error("cantidad", gettext("Un ajuste no puede ser cero."))
         return datos
 
 
 class PerfilUsuarioForm(forms.ModelForm):
-    quitar_foto = forms.BooleanField(required=False, label="Quitar foto actual")
+    quitar_foto = forms.BooleanField(required=False, label=gettext_lazy("Quitar foto actual"))
 
     class Meta:
         model = Usuario
         fields = ["foto", "first_name", "last_name", "cargo", "telefono", "descripcion"]
         labels = {
-            "foto": "Foto de perfil",
-            "first_name": "Nombres",
-            "last_name": "Apellidos",
-            "cargo": "Cargo o especialidad",
-            "telefono": "Teléfono de contacto",
-            "descripcion": "Sobre mí / descripción",
+            "foto": gettext_lazy("Foto de perfil"),
+            "first_name": gettext_lazy("Nombres"),
+            "last_name": gettext_lazy("Apellidos"),
+            "cargo": gettext_lazy("Cargo o especialidad"),
+            "telefono": gettext_lazy("Teléfono de contacto"),
+            "descripcion": gettext_lazy("Sobre mí / descripción"),
         }
         widgets = {
             "foto": forms.FileInput(
                 attrs={"accept": "image/jpeg,image/png,image/webp", "class": "perfil-input-archivo"}
             ),
             "descripcion": forms.Textarea(
-                attrs={"rows": 4, "placeholder": "Cuéntanos brevemente sobre ti, tu rol o tu experiencia..."}
+                attrs={"rows": 4, "placeholder": gettext_lazy("Cuéntanos brevemente sobre ti, tu rol o tu experiencia...")}
             ),
-            "cargo": forms.TextInput(attrs={"placeholder": "Ej. Administrador, Asesor comercial, Contador..."}),
-            "telefono": forms.TextInput(attrs={"placeholder": "Ej. 300 123 4567"}),
+            "cargo": forms.TextInput(attrs={"placeholder": gettext_lazy("Ej. Administrador, Asesor comercial, Contador...")}),
+            "telefono": forms.TextInput(attrs={"placeholder": gettext_lazy("Ej. 300 123 4567")}),
         }
         help_texts = {
-            "foto": "Formatos JPG, PNG o WebP · Tamaño máximo 5 MB.",
+            "foto": gettext_lazy("Formatos JPG, PNG o WebP · Tamaño máximo 5 MB."),
         }
 
     def clean_first_name(self):
         valor = (self.cleaned_data.get("first_name") or "").strip()
         if not valor:
-            raise forms.ValidationError("Ingresa tu nombre.")
+            raise forms.ValidationError(gettext("Ingresa tu nombre."))
         return valor
 
     def clean_last_name(self):
@@ -442,7 +444,7 @@ class PerfilUsuarioForm(forms.ModelForm):
     def clean_foto(self):
         archivo = self.cleaned_data.get("foto")
         if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("La foto no puede superar los 5 MB.")
+            raise forms.ValidationError(gettext("La foto no puede superar los 5 MB."))
         return archivo
 
     def save(self, commit=True):
@@ -454,22 +456,22 @@ class PerfilUsuarioForm(forms.ModelForm):
         return usuario
 
 class BodegaForm(forms.Form):
-    nombre = forms.CharField(label="Nombre", max_length=80, help_text="Ejemplo: Bodega norte, Local centro.")
-    direccion = forms.CharField(label="Dirección", max_length=200, required=False)
+    nombre = forms.CharField(label=gettext_lazy("Nombre"), max_length=80, help_text=gettext_lazy("Ejemplo: Bodega norte, Local centro."))
+    direccion = forms.CharField(label=gettext_lazy("Dirección"), max_length=200, required=False)
     es_principal = forms.BooleanField(
-        label="Bodega principal", required=False,
-        help_text="Recibe las compras y la producción, y es la bodega por defecto en el panel.",
+        label=gettext_lazy("Bodega principal"), required=False,
+        help_text=gettext_lazy("Recibe las compras y la producción, y es la bodega por defecto en el panel."),
     )
     vende_en_linea = forms.BooleanField(
-        label="Vende en línea", required=False,
-        help_text="El marketplace reserva el stock de esta bodega.",
+        label=gettext_lazy("Vende en línea"), required=False,
+        help_text=gettext_lazy("El marketplace reserva el stock de esta bodega."),
     )
 
 
 class TrasladoForm(forms.Form):
-    origen = forms.ModelChoiceField(label="Desde", queryset=Bodega.objects.none(), empty_label=None)
-    destino = forms.ModelChoiceField(label="Hacia", queryset=Bodega.objects.none(), empty_label=None)
-    cantidad = forms.IntegerField(label="Cantidad", min_value=1, max_value=999999)
+    origen = forms.ModelChoiceField(label=gettext_lazy("Desde"), queryset=Bodega.objects.none(), empty_label=None)
+    destino = forms.ModelChoiceField(label=gettext_lazy("Hacia"), queryset=Bodega.objects.none(), empty_label=None)
+    cantidad = forms.IntegerField(label=gettext_lazy("Cantidad"), min_value=1, max_value=999999)
 
     def __init__(self, *args, empresa, **kwargs):
         super().__init__(*args, **kwargs)
@@ -480,5 +482,5 @@ class TrasladoForm(forms.Form):
     def clean(self):
         datos = super().clean()
         if datos.get("origen") and datos.get("origen") == datos.get("destino"):
-            self.add_error("destino", "Elige una bodega distinta a la de origen.")
+            self.add_error("destino", gettext("Elige una bodega distinta a la de origen."))
         return datos

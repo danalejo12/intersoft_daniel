@@ -1,12 +1,13 @@
 {% extends "core/base.html" %}
-{% block titulo %}Trasladar · {{ producto.nombre }} · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with nombre=producto.nombre %}Trasladar · {{ nombre }} · Intersoft{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
-  <h1>Trasladar entre bodegas</h1>
-  <p class="nota">{{ producto.codigo }} · {{ producto.nombre }} · Total: <strong>{{ producto.stock }}</strong></p>
+  <h1>{% translate "Trasladar entre bodegas" %}</h1>
+  <p class="nota">{% blocktranslate with codigo=producto.codigo nombre=producto.nombre %}{{ codigo }} · {{ nombre }} · Total:{% endblocktranslate %} <strong>{{ producto.stock }}</strong></p>
 
   <table class="tabla" style="max-width: 520px; margin-bottom: 18px;">
-    <thead><tr><th>Bodega</th><th class="num">Unidades</th></tr></thead>
+    <thead><tr><th>{% translate "Bodega" %}</th><th class="num">{% translate "Unidades" %}</th></tr></thead>
     <tbody>
       {% for bodega, cantidad in existencias %}<tr><td>{{ bodega.nombre }}</td><td class="num">{{ cantidad }}</td></tr>{% endfor %}
     </tbody>
@@ -22,8 +23,8 @@
       </div>
     {% endfor %}
     <div class="acciones">
-      <a class="boton secundario" href="{% url 'productos_kardex' producto.pk %}">Cancelar</a>
-      <button type="submit" class="boton exito">Trasladar</button>
+      <a class="boton secundario" href="{% url 'productos_kardex' producto.pk %}">{% translate "Cancelar" %}</a>
+      <button type="submit" class="boton exito">{% translate "Trasladar" %}</button>
     </div>
   </form>
 {% endblock %}

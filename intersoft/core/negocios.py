@@ -1,4 +1,5 @@
 """Alta de un negocio nuevo a partir de una cuenta que ya existe."""
+from django.utils.translation import gettext_noop
 from django.db import transaction
 from django.utils.text import slugify
 
@@ -23,8 +24,8 @@ def registrar_negocio(*, usuario, datos):
     empresa = Empresa.objects.create(slug=_slug_disponible(datos["nombre"]), **datos)
     rol = Rol.objects.create(
         empresa=empresa,
-        nombre="Administrador",
-        descripcion="Acceso total al negocio, configuración, equipo y roles.",
+        nombre=gettext_noop("Administrador"),
+        descripcion=gettext_noop("Acceso total al negocio, configuración, equipo y roles."),
         es_admin=True,
     )
     crear_roles_base(empresa)

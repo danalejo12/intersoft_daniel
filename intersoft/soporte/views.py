@@ -1,4 +1,5 @@
 """Vistas de soporte, errores automáticos, reportes, comentarios, NPS e ideas."""
+from django.utils.translation import gettext
 from datetime import timedelta
 
 from django.contrib import messages
@@ -64,7 +65,7 @@ class ReportarProblemaView(LoginRequiredMixin, View):
             reporte.navegador = navegador
             reporte.fecha_reporte = timezone.now()
             reporte.save()
-            messages.success(request, "Gracias por reportar el problema. Nuestro equipo lo revisará.")
+            messages.success(request, gettext("Gracias por reportar el problema. Nuestro equipo lo revisará."))
             return _redirigir_seguro(request, reporte.url, fallback="dashboard")
 
         return render(
@@ -91,9 +92,9 @@ class EnviarComentarioWidgetView(LoginRequiredMixin, View):
             comentario.usuario = request.user
             comentario.pantalla = (form.cleaned_data.get("pantalla") or pantalla)[:500]
             comentario.save()
-            messages.success(request, "¡Gracias por tu opinión!")
+            messages.success(request, gettext("¡Gracias por tu opinión!"))
         else:
-            messages.error(request, "No se pudo guardar tu comentario.")
+            messages.error(request, gettext("No se pudo guardar tu comentario."))
         return _redirigir_seguro(request, pantalla, fallback="dashboard")
 
 
@@ -102,7 +103,7 @@ class EnviarNPSView(LoginRequiredMixin, View):
 
     def post(self, request):
         if not usuario_puede_responder_nps(request.user):
-            return HttpResponseBadRequest("Ya respondiste la encuesta NPS en los últimos 90 días.")
+            return HttpResponseBadRequest(gettext("Ya respondiste la encuesta NPS en los últimos 90 días."))
 
         form = EncuestaNPSForm(request.POST)
         pantalla = (request.POST.get("pantalla") or request.META.get("HTTP_REFERER") or "")[:500]
@@ -112,9 +113,9 @@ class EnviarNPSView(LoginRequiredMixin, View):
             nps.usuario = request.user
             nps.pantalla = (form.cleaned_data.get("pantalla") or pantalla)[:500]
             nps.save()
-            messages.success(request, "¡Gracias por calificar tu experiencia en Intersoft!")
+            messages.success(request, gettext("¡Gracias por calificar tu experiencia en Intersoft!"))
         else:
-            messages.error(request, "El puntaje NPS debe estar entre 0 y 10.")
+            messages.error(request, gettext("El puntaje NPS debe estar entre 0 y 10."))
         return _redirigir_seguro(request, pantalla, fallback="dashboard")
 
 
@@ -145,7 +146,7 @@ class IdeasListaView(LoginRequiredMixin, View):
             idea.autor = request.user
             idea.save()
             VotoIdea.objects.get_or_create(idea=idea, usuario=request.user)
-            messages.success(request, "Idea publicada y votada.")
+            messages.success(request, gettext("Idea publicada y votada."))
             return redirect("soporte_ideas")
         return render(request, self.template_name, self._contexto(request, form=form))
 
@@ -157,9 +158,9 @@ class VotarIdeaView(LoginRequiredMixin, View):
         idea = get_object_or_404(Idea, pk=pk)
         _, creado = VotoIdea.objects.get_or_create(idea=idea, usuario=request.user)
         if creado:
-            messages.success(request, f"Votaste por «{idea.titulo}».")
+            messages.success(request, gettext("Votaste por «{titulo}».").format(titulo=idea.titulo))
         else:
-            messages.info(request, "Tu voto por esta idea ya estaba registrado.")
+            messages.info(request, gettext("Tu voto por esta idea ya estaba registrado."))
         return redirect("soporte_ideas")
 
 
@@ -232,7 +233,7 @@ class PlataformaErrorDetalleView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.success(request, "Estado del error actualizado.")
+            messages.success(request, gettext("Estado del error actualizado."))
             return redirect("plataforma_error_detalle", pk=actualizado.pk)
         return render(request, self.template_name, {"error_obj": error_obj, "form": form})
 
@@ -319,5 +320,5 @@ class PlataformaIdeasListView(PlataformaMixin, View):
                 },
                 request=request,
             )
-            messages.success(request, f"Idea «{actualizada.titulo}» actualizada a {actualizada.get_estado_display()}.")
+            messages.success(request, gettext("Idea «{titulo}» actualizada a {get_estado_display}.").format(titulo=actualizada.titulo, get_estado_display=actualizada.get_estado_display()))
         return redirect("plataforma_ideas")

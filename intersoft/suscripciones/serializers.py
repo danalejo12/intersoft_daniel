@@ -1,4 +1,5 @@
 """Serializers de Django REST Framework para planes y suscripciones."""
+from django.utils.translation import gettext_lazy
 import math
 
 from django.utils import timezone
@@ -79,7 +80,7 @@ class CambiarPlanSerializer(serializers.Serializer):
 
     plan = serializers.SlugField(
         max_length=40,
-        help_text="Código del plan destino (ej. gratis, emprendedor, negocio, pro).",
+        help_text=gettext_lazy("Código del plan destino (ej. gratis, emprendedor, negocio, pro)."),
     )
     ciclo = serializers.ChoiceField(
         choices=Suscripcion.Ciclo.choices,

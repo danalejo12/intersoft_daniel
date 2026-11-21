@@ -1,26 +1,27 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Mis PQRS · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Mis PQRS · Intersoft" %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado" style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
     <div>
-      <h1>Mis PQRS</h1>
-      <p class="nota">Consulta el estado de tus peticiones, quejas, reclamos y sugerencias.</p>
+      <h1>{% translate "Mis PQRS" %}</h1>
+      <p class="nota">{% translate "Consulta el estado de tus peticiones, quejas, reclamos y sugerencias." %}</p>
     </div>
-    <a class="boton" href="{% url 'pqrs_radicar' %}">Radicar PQRS</a>
+    <a class="boton" href="{% url 'pqrs_radicar' %}">{% translate "Radicar PQRS" %}</a>
   </div>
 
   <article class="tarjeta">
     <table class="tabla">
       <thead>
         <tr>
-          <th>Radicado</th>
-          <th>Tipo</th>
-          <th>Negocio</th>
-          <th>Asunto</th>
-          <th>Estado</th>
-          <th>Semáforo</th>
-          <th>Límite</th>
+          <th>{% translate "Radicado" %}</th>
+          <th>{% translate "Tipo" %}</th>
+          <th>{% translate "Negocio" %}</th>
+          <th>{% translate "Asunto" %}</th>
+          <th>{% translate "Estado" %}</th>
+          <th>{% translate "Semáforo" %}</th>
+          <th>{% translate "Límite" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -35,7 +36,7 @@
             <td>{{ p.fecha_limite|date:"d/m/Y" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="7">Aún no has radicado ninguna PQRS.</td></tr>
+          <tr><td colspan="7">{% translate "Aún no has radicado ninguna PQRS." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

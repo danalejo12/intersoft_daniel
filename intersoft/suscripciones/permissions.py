@@ -1,4 +1,5 @@
 """Permisos de Django REST Framework basados en el plan y aislamiento multi-tenant."""
+from django.utils.translation import gettext, gettext_lazy
 from rest_framework.permissions import BasePermission
 
 from core.models import Membresia
@@ -37,7 +38,7 @@ def obtener_empresa_de_request(request):
 class TieneEmpresaActiva(BasePermission):
     """Exige que el usuario esté autenticado y pertenezca a una empresa activa."""
 
-    message = "Debes estar autenticado y pertenecer a una empresa activa."
+    message = gettext_lazy("Debes estar autenticado y pertenecer a una empresa activa.")
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
@@ -56,7 +57,7 @@ class RequiereFeature(BasePermission):
         self.feature = feature
         self.message = {
             "code": "feature_not_available",
-            "detail": f"Tu plan actual no incluye la funcionalidad '{feature}'.",
+            "detail": gettext("Tu plan actual no incluye la funcionalidad '{feature}'.").format(feature=feature),
             "feature": feature,
         }
 

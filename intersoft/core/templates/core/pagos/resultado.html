@@ -1,14 +1,15 @@
 {% extends "core/base.html" %}
-{% block titulo %}Resultado del pago · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Resultado del pago · Intersoft" %}{% endblock %}
 
 {% block contenido %}
-  <h1>{% if pago.factura %}Pago de la factura {{ pago.factura.numero }}{% else %}Pago del pedido {{ pago.pedido.numero }}{% endif %}</h1>
-  <p>Estado: <strong>{{ pago.get_estado_display }}</strong></p>
+  <h1>{% if pago.factura %}{% blocktranslate with numero=pago.factura.numero %}Pago de la factura {{ numero }}{% endblocktranslate %}{% else %}{% blocktranslate with numero=pago.pedido.numero %}Pago del pedido {{ numero }}{% endblocktranslate %}{% endif %}</h1>
+  <p>{% translate "Estado:" %} <strong>{{ pago.get_estado_display }}</strong></p>
 
   {% if pago.estado == "pendiente" %}
-    <p class="nota">Estamos esperando la confirmación de Wompi.</p>
-    <a href="?{% if transaccion_id %}id={{ transaccion_id|urlencode }}{% endif %}">Consultar de nuevo</a>
+    <p class="nota">{% translate "Estamos esperando la confirmación de Wompi." %}</p>
+    <a href="?{% if transaccion_id %}id={{ transaccion_id|urlencode }}{% endif %}">{% translate "Consultar de nuevo" %}</a>
   {% endif %}
 
-  <a class="boton" href="{% url 'facturas_lista' %}">Volver a facturas</a>
+  <a class="boton" href="{% url 'facturas_lista' %}">{% translate "Volver a facturas" %}</a>
 {% endblock %}

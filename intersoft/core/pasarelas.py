@@ -1,4 +1,5 @@
 """Credenciales de cobro por negocio e instantáneas de los intentos existentes."""
+from django.utils.translation import gettext
 import json
 from dataclasses import dataclass, field
 
@@ -35,18 +36,18 @@ def configuracion_activa(empresa_id):
 def credenciales_negocio(empresa_id):
     config = configuracion_activa(empresa_id)
     if config is None:
-        raise PasarelaNoDisponible("Compra en línea no disponible. El negocio debe activar su pasarela.")
+        raise PasarelaNoDisponible(gettext("Compra en línea no disponible. El negocio debe activar su pasarela."))
     try:
         return CredencialesWompi(config.llave_publica, config.modo, config.llave_privada,
                                 config.secreto_integridad, config.secreto_eventos)
     except SecretoIlegible:
-        raise PasarelaNoDisponible("Compra en línea no disponible. El negocio debe revisar sus llaves.") from None
+        raise PasarelaNoDisponible(gettext("Compra en línea no disponible. El negocio debe revisar sus llaves.")) from None
 
 
 def credenciales_pago(pago):
     if not pago.credenciales_cifradas:
-        raise PasarelaNoDisponible("Este intento pertenece al sistema de cobro anterior; requiere conciliación manual.")
+        raise PasarelaNoDisponible(gettext("Este intento pertenece al sistema de cobro anterior; requiere conciliación manual."))
     try:
         return CredencialesWompi(**json.loads(descifrar(pago.credenciales_cifradas)))
     except (SecretoIlegible, ValueError, TypeError):
-        raise PasarelaNoDisponible("No se pudieron leer las llaves de este pago.") from None
+        raise PasarelaNoDisponible(gettext("No se pudieron leer las llaves de este pago.")) from None

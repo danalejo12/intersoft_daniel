@@ -1,5 +1,6 @@
 {% extends "core/tienda/base.html" %}
-{% block titulo %}Tu pedido · Intersoft{% endblock %}
+{% load i18n %}
+{% block titulo %}{% translate "Tu pedido · Intersoft" %}{% endblock %}
 
 {% block contenido %}
 {% with estado=pedido.estado_compra %}
@@ -15,143 +16,143 @@
 
     {% if estado == "pagado" %}
       <div class="sello sello-ok" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="trazo" d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
-      <h1 class="titulo-compra">¡Gracias por tu compra, {{ pedido.primer_nombre }}!</h1>
-      <p>Recibimos tu pago. {{ pedido.empresa.nombre }} ya tiene tu pedido y preparará el envío.</p>
+      <h1 class="titulo-compra">{% blocktranslate with primer_nombre=pedido.primer_nombre %}¡Gracias por tu compra, {{ primer_nombre }}!{% endblocktranslate %}</h1>
+      <p>{% blocktranslate with nombre=pedido.empresa.nombre %}Recibimos tu pago. {{ nombre }} ya tiene tu pedido y preparará el envío.{% endblocktranslate %}</p>
       <div class="estado-acciones">
-        <a class="boton boton-grande" href="{% url 'marketplace' %}">Seguir comprando</a>
-        <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Seguir comprando" %}</a>
+        <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">{% translate "Ver mis pedidos" %}</a>
       </div>
       {% with ev=pedido.estado_envio %}
-        <ol aria-label="Seguimiento de envío" style="list-style:none; padding:0; margin:18px 0 0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; text-align:center;">
+        <ol aria-label="{% translate 'Seguimiento de envío' %}" style="list-style:none; padding:0; margin:18px 0 0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; text-align:center;">
           <li style="padding:8px; border-radius:8px; border:1px solid #10b981; background:rgba(16,185,129,.12);">
-            <strong>1. Pendiente</strong>
+            <strong>{% translate "1. Pendiente" %}</strong>
           </li>
           <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
-            <strong>2. Preparando</strong>
+            <strong>{% translate "2. Preparando" %}</strong>
           </li>
           <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
-            <strong>3. Enviado</strong>
-            {% if pedido.numero_guia %}<br><small>{{ pedido.transportadora }} · Guía {{ pedido.numero_guia }}</small>{% endif %}
+            <strong>{% translate "3. Enviado" %}</strong>
+            {% if pedido.numero_guia %}<br><small>{% blocktranslate with transportadora=pedido.transportadora numero_guia=pedido.numero_guia %}{{ transportadora }} · Guía {{ numero_guia }}{% endblocktranslate %}</small>{% endif %}
           </li>
           <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
-            <strong>4. Entregado</strong>
+            <strong>{% translate "4. Entregado" %}</strong>
           </li>
         </ol>
       {% endwith %}
 
     {% elif estado == "cancelado" %}
       <div class="sello" aria-hidden="true">×</div>
-      <h1 class="titulo-compra">Este pedido fue cancelado</h1>
-      <p>No se hizo ningún cobro y los productos volvieron a estar disponibles.</p>
+      <h1 class="titulo-compra">{% translate "Este pedido fue cancelado" %}</h1>
+      <p>{% translate "No se hizo ningún cobro y los productos volvieron a estar disponibles." %}</p>
       <div class="estado-acciones">
-        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
       </div>
 
     {% elif estado == "requiere_reembolso" %}
       <div class="sello sello-alerta" aria-hidden="true">!</div>
-      <h1 class="titulo-compra">Estamos revisando tu pago</h1>
-      <p>Recibimos un pago que no pudimos asociar a este pedido. No te preocupes: lo revisaremos para devolverte el dinero. No hace falta que pagues de nuevo.</p>
+      <h1 class="titulo-compra">{% translate "Estamos revisando tu pago" %}</h1>
+      <p>{% translate "Recibimos un pago que no pudimos asociar a este pedido. No te preocupes: lo revisaremos para devolverte el dinero. No hace falta que pagues de nuevo." %}</p>
       <div class="estado-acciones">
-        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
       </div>
 
     {% elif estado == "reembolsado" %}
       <div class="sello sello-ok" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="trazo" d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
-      <h1 class="titulo-compra">Tu reembolso fue procesado</h1>
-      <p>Devolvimos el dinero de este pedido{% if pedido.reembolso_referencia %} (comprobante <strong>{{ pedido.reembolso_referencia }}</strong>){% endif %}.{% if pedido.reembolso_nota %} {{ pedido.reembolso_nota }}{% endif %}</p>
+      <h1 class="titulo-compra">{% translate "Tu reembolso fue procesado" %}</h1>
+      <p>{% translate "Devolvimos el dinero de este pedido" %}{% if pedido.reembolso_referencia %} {% translate "(comprobante" %} <strong>{{ pedido.reembolso_referencia }}</strong>){% endif %}.{% if pedido.reembolso_nota %} {{ pedido.reembolso_nota }}{% endif %}</p>
       <div class="estado-acciones">
-        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
-        <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
+        <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">{% translate "Ver mis pedidos" %}</a>
       </div>
 
     {% elif estado == "vencido" %}
       <div class="sello" aria-hidden="true">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       </div>
-      <h1 class="titulo-compra">Tu reserva venció</h1>
-      <p>Pasó el tiempo para pagar y los productos volvieron a estar disponibles. {% if pedido.puede_renovar %}Si aún los quieres, revisamos si siguen disponibles.{% endif %}</p>
+      <h1 class="titulo-compra">{% translate "Tu reserva venció" %}</h1>
+      <p>{% translate "Pasó el tiempo para pagar y los productos volvieron a estar disponibles." %} {% if pedido.puede_renovar %}{% translate "Si aún los quieres, revisamos si siguen disponibles." %}{% endif %}</p>
       <div class="estado-acciones">
         {% if pedido.puede_renovar %}
           <form method="post" action="{% url 'pedido_renovar' pedido.pk %}">
             {% csrf_token %}
-            <button type="submit" class="boton boton-grande">Renovar reserva</button>
+            <button type="submit" class="boton boton-grande">{% translate "Renovar reserva" %}</button>
           </form>
         {% endif %}
-        <a class="boton boton-claro boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+        <a class="boton boton-claro boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
       </div>
 
     {% elif not pedido.pago_directo %}
-      <h1 class="titulo-compra">Este pedido usa el cobro anterior</h1>
-      <p>Si ya pagaste, esperamos la confirmación. Para una compra nueva, vuelve al catálogo y crea otro pedido.</p>
-      <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+      <h1 class="titulo-compra">{% translate "Este pedido usa el cobro anterior" %}</h1>
+      <p>{% translate "Si ya pagaste, esperamos la confirmación. Para una compra nueva, vuelve al catálogo y crea otro pedido." %}</p>
+      <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
     {% elif pedido.necesita_renovar %}
       <div class="sello sello-alerta" aria-hidden="true">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       </div>
-      <h1 class="titulo-compra">Tu reserva está por vencer</h1>
+      <h1 class="titulo-compra">{% translate "Tu reserva está por vencer" %}</h1>
       {% if pedido.puede_renovar %}
-        <p>Te quedan muy pocos minutos y no queremos que te quedes a mitad del pago. Renuévala y sigue con calma.</p>
+        <p>{% translate "Te quedan muy pocos minutos y no queremos que te quedes a mitad del pago. Renuévala y sigue con calma." %}</p>
         <form method="post" action="{% url 'pedido_renovar' pedido.pk %}">
           {% csrf_token %}
-          <button type="submit" class="boton boton-grande">Renovar reserva</button>
+          <button type="submit" class="boton boton-grande">{% translate "Renovar reserva" %}</button>
         </form>
       {% else %}
-        <p>Ya usaste las renovaciones de este pedido. Cuando venza, puedes volver a hacer tu compra.</p>
-        <a class="boton boton-grande" href="{% url 'marketplace' %}">Volver al catálogo</a>
+        <p>{% translate "Ya usaste las renovaciones de este pedido. Cuando venza, puedes volver a hacer tu compra." %}</p>
+        <a class="boton boton-grande" href="{% url 'marketplace' %}">{% translate "Volver al catálogo" %}</a>
       {% endif %}
 
     {% else %}
       {% if estado == "rechazado" %}
         <div class="sello sello-alerta" aria-hidden="true">!</div>
-        <h1 class="titulo-compra">Tu pago no se aprobó</h1>
-        <p>No te preocupes: tu pedido sigue guardado. Puedes intentarlo otra vez con la misma tarjeta o con otro medio de pago.</p>
+        <h1 class="titulo-compra">{% translate "Tu pago no se aprobó" %}</h1>
+        <p>{% translate "No te preocupes: tu pedido sigue guardado. Puedes intentarlo otra vez con la misma tarjeta o con otro medio de pago." %}</p>
       {% elif estado == "procesando" %}
         <div class="sello sello-espera" aria-hidden="true"><span class="girando"></span></div>
-        <h1 class="titulo-compra">Estamos confirmando tu pago</h1>
-        <p>Termina el pago en la pestaña de Wompi. Cuando lo hagas, esta página se actualiza sola.</p>
+        <h1 class="titulo-compra">{% translate "Estamos confirmando tu pago" %}</h1>
+        <p>{% translate "Termina el pago en la pestaña de Wompi. Cuando lo hagas, esta página se actualiza sola." %}</p>
       {% else %}
         <div class="sello" aria-hidden="true">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
         </div>
-        <h1 class="titulo-compra">¡Ya casi! Solo falta el pago</h1>
-        <p>Tus productos están reservados hasta las {{ pedido.expira_en|date:"g:i a" }}. Se abrirá una pestaña con la página segura de Wompi.</p>
+        <h1 class="titulo-compra">{% translate "¡Ya casi! Solo falta el pago" %}</h1>
+        <p>{% blocktranslate with expira_en=pedido.expira_en|date:"g:i a" %}Tus productos están reservados hasta las {{ expira_en }}. Se abrirá una pestaña con la página segura de Wompi.{% endblocktranslate %}</p>
       {% endif %}
 
       {% if pedido.empresa.compra_en_linea %}
       <form method="post" action="{% url 'pedido_pagar' pedido.pk %}" target="_blank" rel="noopener" data-pagar>
         {% csrf_token %}
         <button type="submit" class="boton boton-grande">
-          {% if estado == "rechazado" %}Intentar de nuevo{% elif estado == "procesando" %}Abrir Wompi otra vez{% else %}Pagar con Wompi{% endif %}
+          {% if estado == "rechazado" %}{% translate "Intentar de nuevo" %}{% elif estado == "procesando" %}{% translate "Abrir Wompi otra vez" %}{% else %}{% translate "Pagar con Wompi" %}{% endif %}
         </button>
       </form>
       {% else %}
-        <p class="nota">Compra en línea no disponible</p>
+        <p class="nota">{% translate "Compra en línea no disponible" %}</p>
       {% endif %}
-      <p class="confianza" data-espera-texto hidden>Te esperamos aquí. Cuando Wompi confirme el pago verás el resultado.</p>
-      <p class="confianza"><a href="{% url 'pedido_detalle' pedido.pk %}">Ya pagué, actualizar esta página</a></p>
+      <p class="confianza" data-espera-texto hidden>{% translate "Te esperamos aquí. Cuando Wompi confirme el pago verás el resultado." %}</p>
+      <p class="confianza"><a href="{% url 'pedido_detalle' pedido.pk %}">{% translate "Ya pagué, actualizar esta página" %}</a></p>
     {% endif %}
   </section>
 
   {% if pedido.orden_id and pedido.orden.pedidos.count > 1 %}
-    <p class="nota"><a href="{% url 'orden_detalle' pedido.orden_id %}">← Este pedido es parte de una compra en {{ pedido.orden.pedidos.count }} negocios. Ver toda la compra</a></p>
+    <p class="nota"><a href="{% url 'orden_detalle' pedido.orden_id %}">{% blocktranslate with v_count=pedido.orden.pedidos.count %}← Este pedido es parte de una compra en {{ v_count }} negocios. Ver toda la compra{% endblocktranslate %}</a></p>
   {% endif %}
 
   {% if user.is_authenticated and pedido.comprador_id == user.id %}
     <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top: 12px;">
       <form method="post" action="{% url 'pedido_volver_a_comprar' pedido.pk %}" style="margin:0;">
         {% csrf_token %}
-        <button type="submit" class="boton secundario">Volver a comprar</button>
+        <button type="submit" class="boton secundario">{% translate "Volver a comprar" %}</button>
       </form>
       <p class="nota" style="margin:0;">
-        ¿Tienes alguna petición, queja, reclamo o sugerencia sobre este pedido?
-        <a href="{% url 'pqrs_radicar' %}?pedido={{ pedido.pk }}">Radicar PQRS sobre este pedido</a>
+        {% translate "¿Tienes alguna petición, queja, reclamo o sugerencia sobre este pedido?" %}
+        <a href="{% url 'pqrs_radicar' %}?pedido={{ pedido.pk }}">{% translate "Radicar PQRS sobre este pedido" %}</a>
       </p>
     </div>
   {% endif %}
 
   <div class="compra-rejilla">
     <section class="panel-compra" aria-labelledby="titulo-detalle">
-      <h2 class="seccion-form" id="titulo-detalle">Pedido N.º {{ pedido.numero }} · {{ pedido.empresa.nombre }}</h2>
+      <h2 class="seccion-form" id="titulo-detalle">{% blocktranslate with numero=pedido.numero nombre=pedido.empresa.nombre %}Pedido N.º {{ numero }} · {{ nombre }}{% endblocktranslate %}</h2>
       {% for linea in pedido.lineas.all %}
         <div class="linea linea-compacta">
           <span class="linea-foto" aria-hidden="true">
@@ -163,14 +164,14 @@
           </span>
           <div class="linea-datos">
             <span class="linea-nombre">{{ linea.producto.nombre }}</span>
-            <small class="nota">{{ linea.cantidad }} unidad{{ linea.cantidad|pluralize:"es" }}</small>
+            <small class="nota">{% blocktranslate with cantidad=linea.cantidad cantidad2=linea.cantidad|pluralize:"es" %}{{ cantidad }} unidad{{ cantidad2 }}{% endblocktranslate %}</small>
           </div>
         </div>
       {% endfor %}
     </section>
 
     <aside class="resumen">
-      <h3>Se enviará a</h3>
+      <h3>{% translate "Se enviará a" %}</h3>
       <p class="direccion">
         <strong>{{ pedido.nombre }}</strong><br>
         {{ pedido.direccion }}{% if pedido.indicaciones %}<br>{{ pedido.indicaciones }}{% endif %}<br>
@@ -178,36 +179,36 @@
         {{ pedido.telefono }}
       </p>
       <dl>
-        <div><dt>Productos</dt><dd>${{ pedido.subtotal|floatformat:"-2g" }}</dd></div>
-        <div><dt>IVA</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
+        <div><dt>{% translate "Productos" %}</dt><dd>${{ pedido.subtotal|floatformat:"-2g" }}</dd></div>
+        <div><dt>{% translate "IVA" %}</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
         {% if pedido.costo_envio %}
-          <div><dt>Envío</dt><dd>${{ pedido.costo_envio|floatformat:"-2g" }}</dd></div>
+          <div><dt>{% translate "Envío" %}</dt><dd>${{ pedido.costo_envio|floatformat:"-2g" }}</dd></div>
         {% endif %}
-        {% if pedido.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ pedido.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
-        <div class="resumen-total"><dt>Total</dt><dd>${{ pedido.total|floatformat:"-2g" }}</dd></div>
+        {% if pedido.cargo_pasarela %}<div><dt>{% translate "Cargo pasarela de pagos (Wompi)" %}</dt><dd>${{ pedido.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
+        <div class="resumen-total"><dt>{% translate "Total" %}</dt><dd>${{ pedido.total|floatformat:"-2g" }}</dd></div>
       </dl>
 
       {% if pedido.estado == "pagado" %}
-        <h3 class="titulo-vendedor">Estado del envío</h3>
+        <h3 class="titulo-vendedor">{% translate "Estado del envío" %}</h3>
         <p class="direccion">
           <strong>{{ pedido.get_estado_envio_display }}</strong>
-          {% if pedido.transportadora %}<br>Transportadora: {{ pedido.transportadora }}{% endif %}
-          {% if pedido.numero_guia %}<br>Guía: <strong>{{ pedido.numero_guia }}</strong>{% endif %}
+          {% if pedido.transportadora %}<br>{% blocktranslate with transportadora=pedido.transportadora %}Transportadora: {{ transportadora }}{% endblocktranslate %}{% endif %}
+          {% if pedido.numero_guia %}<br>{% translate "Guía:" %} <strong>{{ pedido.numero_guia }}</strong>{% endif %}
         </p>
       {% endif %}
 
-      <h3 class="titulo-vendedor">Datos del vendedor</h3>
+      <h3 class="titulo-vendedor">{% translate "Datos del vendedor" %}</h3>
       <p class="direccion">
         <strong>{{ pedido.empresa.nombre }}</strong><br>
-        NIT {{ pedido.empresa.nit }}<br>
-        {{ pedido.empresa.direccion|default:"Dirección no registrada" }}<br>
-        {{ pedido.empresa.telefono|default:"Teléfono no registrado" }}
+        {% blocktranslate with nit=pedido.empresa.nit %}NIT {{ nit }}{% endblocktranslate %}<br>
+        {{ pedido.empresa.direccion|default:_("Dirección no registrada") }}<br>
+        {{ pedido.empresa.telefono|default:_("Teléfono no registrado") }}
         {% if pedido.empresa.email %}<br><a href="mailto:{{ pedido.empresa.email }}">{{ pedido.empresa.email }}</a>{% endif %}
       </p>
       {% if pedido.estado == "pendiente" %}
-        <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" data-confirmar="¿Seguro que quieres cancelar este pedido?">
+        <form method="post" action="{% url 'pedido_cancelar' pedido.pk %}" data-confirmar="{% translate '¿Seguro que quieres cancelar este pedido?' %}">
           {% csrf_token %}
-          <button type="submit" class="enlace">Cancelar pedido</button>
+          <button type="submit" class="enlace">{% translate "Cancelar pedido" %}</button>
         </form>
       {% endif %}
     </aside>

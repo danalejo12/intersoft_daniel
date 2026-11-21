@@ -1,31 +1,32 @@
 {% extends "plataforma/base.html" %}
-{% block titulo %}{{ error_obj.tipo_excepcion }} · Errores · Consola de Plataforma{% endblock %}
+{% load i18n %}
+{% block titulo %}{% blocktranslate with tipo_excepcion=error_obj.tipo_excepcion %}{{ tipo_excepcion }} · Errores · Consola de Plataforma{% endblocktranslate %}{% endblock %}
 
 {% block contenido %}
   <div class="encabezado">
     <div>
       <h1>{{ error_obj.tipo_excepcion }}</h1>
-      <p class="nota"><code>{{ error_obj.archivo }}:{{ error_obj.linea }}</code> · Huella <code>{{ error_obj.huella|slice:":12" }}</code></p>
+      <p class="nota"><code>{{ error_obj.archivo }}:{{ error_obj.linea }}</code> {% translate "· Huella" %} <code>{{ error_obj.huella|slice:":12" }}</code></p>
     </div>
-    <a class="boton secundario" href="{% url 'plataforma_errores' %}">Volver</a>
+    <a class="boton secundario" href="{% url 'plataforma_errores' %}">{% translate "Volver" %}</a>
   </div>
 
   <article class="tarjeta" style="margin-bottom: 20px;">
     <dl class="perfil-detalles" style="margin-bottom: 16px;">
-      <div class="perfil-dato"><dt>Ocurrencias</dt><dd>{{ error_obj.contador }}</dd></div>
-      <div class="perfil-dato"><dt>Primera vez</dt><dd>{{ error_obj.primera_vez|date:"d/m/Y H:i" }}</dd></div>
-      <div class="perfil-dato"><dt>Última vez</dt><dd>{{ error_obj.ultima_vez|date:"d/m/Y H:i" }}</dd></div>
-      <div class="perfil-dato"><dt>URL / Método</dt><dd>{{ error_obj.metodo }} {{ error_obj.url }}</dd></div>
-      <div class="perfil-dato"><dt>Empresa</dt><dd>{{ error_obj.empresa.nombre|default:"—" }}</dd></div>
-      <div class="perfil-dato"><dt>Usuario</dt><dd>{{ error_obj.usuario.email|default:"—" }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "Ocurrencias" %}</dt><dd>{{ error_obj.contador }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "Primera vez" %}</dt><dd>{{ error_obj.primera_vez|date:"d/m/Y H:i" }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "Última vez" %}</dt><dd>{{ error_obj.ultima_vez|date:"d/m/Y H:i" }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "URL / Método" %}</dt><dd>{{ error_obj.metodo }} {{ error_obj.url }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "Empresa" %}</dt><dd>{{ error_obj.empresa.nombre|default:"—" }}</dd></div>
+      <div class="perfil-dato"><dt>{% translate "Usuario" %}</dt><dd>{{ error_obj.usuario.email|default:"—" }}</dd></div>
     </dl>
 
-    <p><strong>Mensaje:</strong> {{ error_obj.mensaje|default:"—" }}</p>
+    <p><strong>{% translate "Mensaje:" %}</strong> {{ error_obj.mensaje|default:"—" }}</p>
     <pre style="white-space: pre-wrap; padding: 12px; border-radius: 8px; background: rgba(15, 23, 42, .65); overflow-x: auto;">{{ error_obj.traza }}</pre>
   </article>
 
   <article class="tarjeta">
-    <h2>Gestión del error</h2>
+    <h2>{% translate "Gestión del error" %}</h2>
     <form method="post" class="formulario" novalidate>
       {% csrf_token %}
       {% for campo in form %}
@@ -35,7 +36,7 @@
           {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
         </div>
       {% endfor %}
-      <button type="submit" class="boton">Guardar estado</button>
+      <button type="submit" class="boton">{% translate "Guardar estado" %}</button>
     </form>
   </article>
 {% endblock %}

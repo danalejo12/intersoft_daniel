@@ -1,0 +1,22 @@
+/* Sección Idiomas: tarjetas para elegir el idioma de la interfaz */
+.idiomas { padding-block: 8px 32px; }
+.idiomas-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.idioma-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(127, 127, 127, .28);
+  background: rgba(127, 127, 127, .08);
+}
+.idioma-tarjeta.activo { border-color: rgba(63, 208, 125, .6); }
+.idioma-bandera { font-size: 2rem; line-height: 1; }
+.idioma-textos { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.idioma-textos small { opacity: .75; }
+.idioma-estado { white-space: nowrap; }
