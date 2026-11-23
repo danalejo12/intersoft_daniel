@@ -2,113 +2,136 @@
 {% block titulo %}Negocios y Anuncios · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Negocios y Anuncios globales</h1>
-      <p class="nota">Directorio de comercios con acceso de soporte («Entrar como») y avisos globales para todo /panel/.</p>
+      <p class="nota">Directorio de comercios con acceso de soporte («Entrar como») y avisos globales visibles en todo /panel/.</p>
     </div>
-  </div>
+  </header>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Negocios registrados</h2>
-      <span class="badge neutro">{{ empresas|length }} negocio{{ empresas|length|pluralize }}</span>
+      <span class="plat-badge neutro">{{ empresas|length }} negocio{{ empresas|length|pluralize }}</span>
     </div>
 
-    <form method="get" style="display:flex; gap:10px; align-items:end; margin-bottom:16px;">
-      <div class="campo" style="margin:0;">
+    <form method="get" class="plat-filtros" role="search">
+      <div class="campo">
         <label for="n-q">Buscar negocio</label>
-        <input id="n-q" type="text" name="q" value="{{ q }}" placeholder="Nombre, NIT o slug">
+        <input id="n-q" type="search" name="q" value="{{ q }}" placeholder="Nombre, NIT o slug">
       </div>
       <button type="submit" class="boton">Buscar</button>
+      {% if q %}
+        <a href="{% url 'plataforma_negocios' %}" class="boton secundario">Limpiar</a>
+      {% endif %}
     </form>
 
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Negocio</th>
-          <th>NIT</th>
-          <th>Plan</th>
-          <th>Estado suscripción</th>
-          <th>Modo soporte</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in empresas %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><strong>{{ e.nombre }}</strong><br><small><code>{{ e.slug }}</code></small></td>
-            <td>{{ e.nit|default:"—" }}</td>
-            <td>{% if e.suscripcion %}{{ e.suscripcion.plan.nombre }}{% else %}—{% endif %}</td>
-            <td>{% if e.suscripcion %}{{ e.suscripcion.get_estado_display }}{% else %}Sin suscripción{% endif %}</td>
-            <td>
-              <form method="post" style="display:flex; gap:6px; align-items:center; margin:0;">
-                {% csrf_token %}
-                <input type="hidden" name="accion" value="entrar_como">
-                <input type="hidden" name="empresa_id" value="{{ e.pk }}">
-                <select name="modo" aria-label="Modo soporte">
-                  <option value="lectura" selected>Solo lectura</option>
-                  <option value="escritura">Lectura y escritura</option>
-                </select>
-                <button type="submit" class="boton secundario">Entrar como</button>
-              </form>
-            </td>
+            <th>Negocio</th>
+            <th>NIT</th>
+            <th>Plan</th>
+            <th>Estado suscripción</th>
+            <th>Modo soporte</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="5">No se encontraron negocios.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for e in empresas %}
+            <tr>
+              <td><strong>{{ e.nombre }}</strong><br><small><code>{{ e.slug }}</code></small></td>
+              <td>{{ e.nit|default:"—" }}</td>
+              <td>{% if e.suscripcion %}{{ e.suscripcion.plan.nombre }}{% else %}—{% endif %}</td>
+              <td>
+                {% if e.suscripcion %}
+                  <span class="plat-badge {% if e.suscripcion.estado == 'activa' %}exito{% elif e.suscripcion.estado == 'trial' %}info{% else %}advertencia{% endif %}">
+                    {{ e.suscripcion.get_estado_display }}
+                  </span>
+                {% else %}
+                  <span class="plat-badge neutro">Sin suscripción</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="plat-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="entrar_como">
+                  <input type="hidden" name="empresa_id" value="{{ e.pk }}">
+                  <select name="modo" aria-label="Modo soporte para {{ e.nombre }}">
+                    <option value="lectura" selected>Solo lectura</option>
+                    <option value="escritura">Lectura y escritura</option>
+                  </select>
+                  <button type="submit" class="boton secundario">Entrar como</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No se encontraron negocios.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 
-  <article class="tarjeta">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Anuncios globales para /panel/</h2>
-      <span class="badge neutro">{{ anuncios|length }} anuncio{{ anuncios|length|pluralize }}</span>
+      <span class="plat-badge neutro">{{ anuncios|length }} anuncio{{ anuncios|length|pluralize }}</span>
     </div>
 
-    <form method="post" class="formulario" style="margin-bottom: 20px;" novalidate>
+    <form method="post" class="formulario plat-form-bloque" novalidate>
       {% csrf_token %}
       <input type="hidden" name="accion" value="crear_anuncio">
-      {% for campo in anuncio_form %}
-        <div class="campo{% if campo.errors %} con-error{% endif %}">
-          {{ campo.label_tag }}
-          {{ campo }}
-          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-        </div>
-      {% endfor %}
+      <div class="plat-form-grid">
+        {% for campo in anuncio_form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
       <button type="submit" class="boton">Publicar anuncio</button>
     </form>
 
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Título</th>
-          <th>Tipo</th>
-          <th>Vigencia</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in anuncios %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><strong>{{ a.titulo }}</strong><br><small>{{ a.mensaje }}</small></td>
-            <td>{{ a.get_tipo_display }}</td>
-            <td><small>{{ a.inicia_en|date:"d/m/Y H:i" }} → {% if a.vence_en %}{{ a.vence_en|date:"d/m/Y H:i" }}{% else %}Sin fin{% endif %}</small></td>
-            <td>{% if a.activo %}<span class="badge exito">Activo</span>{% else %}<span class="badge neutro">Inactivo</span>{% endif %}</td>
-            <td>
-              <form method="post" style="margin:0;">
-                {% csrf_token %}
-                <input type="hidden" name="accion" value="toggle_anuncio">
-                <input type="hidden" name="anuncio_id" value="{{ a.pk }}">
-                <button type="submit" class="boton secundario">{% if a.activo %}Desactivar{% else %}Activar{% endif %}</button>
-              </form>
-            </td>
+            <th>Título</th>
+            <th>Tipo</th>
+            <th>Vigencia</th>
+            <th>Estado</th>
+            <th></th>
           </tr>
-        {% empty %}
-          <tr><td colspan="5">Sin anuncios globales registrados.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for a in anuncios %}
+            <tr>
+              <td><strong>{{ a.titulo }}</strong><br><small>{{ a.mensaje }}</small></td>
+              <td><span class="plat-badge info">{{ a.get_tipo_display }}</span></td>
+              <td><small>{{ a.inicia_en|date:"d/m/Y H:i" }} → {% if a.vence_en %}{{ a.vence_en|date:"d/m/Y H:i" }}{% else %}Sin fin{% endif %}</small></td>
+              <td>
+                {% if a.activo %}
+                  <span class="plat-badge exito">Activo</span>
+                {% else %}
+                  <span class="plat-badge neutro">Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="form-sin-margen">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="toggle_anuncio">
+                  <input type="hidden" name="anuncio_id" value="{{ a.pk }}">
+                  <button type="submit" class="boton secundario">{% if a.activo %}Desactivar{% else %}Activar{% endif %}</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">Sin anuncios globales registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 {% endblock %}

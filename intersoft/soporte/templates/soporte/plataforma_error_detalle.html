@@ -2,16 +2,25 @@
 {% block titulo %}{{ error_obj.tipo_excepcion }} · Errores · Consola de Plataforma{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>{{ error_obj.tipo_excepcion }}</h1>
       <p class="nota"><code>{{ error_obj.archivo }}:{{ error_obj.linea }}</code> · Huella <code>{{ error_obj.huella|slice:":12" }}</code></p>
     </div>
-    <a class="boton secundario" href="{% url 'plataforma_errores' %}">Volver</a>
-  </div>
+    <div class="plat-acciones-cabecera">
+      <a class="boton secundario" href="{% url 'plataforma_errores' %}">← Volver</a>
+    </div>
+  </header>
 
-  <article class="tarjeta" style="margin-bottom: 20px;">
-    <dl class="perfil-detalles" style="margin-bottom: 16px;">
+  <article class="tarjeta plat-card">
+    <div class="tarjeta-cabecera">
+      <h2>Contexto y traza sanitizada</h2>
+      <span class="plat-badge {% if error_obj.estado == 'nuevo' %}peligro{% elif error_obj.estado == 'resuelto' %}exito{% else %}advertencia{% endif %}">
+        {{ error_obj.get_estado_display }}
+      </span>
+    </div>
+
+    <dl class="perfil-detalles mb-18">
       <div class="perfil-dato"><dt>Ocurrencias</dt><dd>{{ error_obj.contador }}</dd></div>
       <div class="perfil-dato"><dt>Primera vez</dt><dd>{{ error_obj.primera_vez|date:"d/m/Y H:i" }}</dd></div>
       <div class="perfil-dato"><dt>Última vez</dt><dd>{{ error_obj.ultima_vez|date:"d/m/Y H:i" }}</dd></div>
@@ -21,11 +30,13 @@
     </dl>
 
     <p><strong>Mensaje:</strong> {{ error_obj.mensaje|default:"—" }}</p>
-    <pre style="white-space: pre-wrap; padding: 12px; border-radius: 8px; background: rgba(15, 23, 42, .65); overflow-x: auto;">{{ error_obj.traza }}</pre>
+    <pre class="plat-traza">{{ error_obj.traza }}</pre>
   </article>
 
-  <article class="tarjeta">
-    <h2>Gestión del error</h2>
+  <article class="tarjeta plat-card plat-tarjeta-estrecha">
+    <div class="tarjeta-cabecera">
+      <h2>Gestión del error</h2>
+    </div>
     <form method="post" class="formulario" novalidate>
       {% csrf_token %}
       {% for campo in form %}

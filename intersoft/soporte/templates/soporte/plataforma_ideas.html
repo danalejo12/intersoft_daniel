@@ -2,16 +2,17 @@
 {% block titulo %}Ideas · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Ideas más votadas</h1>
       <p class="nota">Propuestas enviadas por los negocios ordenadas por número de votos.</p>
     </div>
-  </div>
+    <span class="plat-badge neutro">{{ ideas|length }} idea{{ ideas|length|pluralize }}</span>
+  </header>
 
-  <article class="tarjeta">
-    <form method="get" style="display:flex; gap:10px; align-items:end; margin-bottom:16px;">
-      <div class="campo" style="margin:0;">
+  <article class="tarjeta plat-card">
+    <form method="get" class="plat-filtros" role="search">
+      <div class="campo">
         <label for="i-estado">Estado</label>
         <select id="i-estado" name="estado">
           <option value="">Todos</option>
@@ -21,42 +22,51 @@
         </select>
       </div>
       <button type="submit" class="boton">Filtrar</button>
+      {% if filtro_estado %}
+        <a href="{% url 'plataforma_ideas' %}" class="boton secundario">Limpiar</a>
+      {% endif %}
     </form>
 
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Idea</th>
-          <th>Negocio / Autor</th>
-          <th class="num">Votos</th>
-          <th>Estado</th>
-          <th>Cambiar estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for idea in ideas %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><strong>{{ idea.titulo }}</strong><br><small>{{ idea.descripcion }}</small></td>
-            <td>{{ idea.empresa.nombre|default:"—" }}<br><small>{{ idea.autor.email }}</small></td>
-            <td class="num"><strong>{{ idea.total_votos }}</strong></td>
-            <td>{{ idea.get_estado_display }}</td>
-            <td>
-              <form method="post" style="display:flex; gap:6px; align-items:center; margin:0;">
-                {% csrf_token %}
-                <input type="hidden" name="idea_id" value="{{ idea.pk }}">
-                <select name="estado">
-                  {% for val, etq in estados %}
-                    <option value="{{ val }}" {% if idea.estado == val %}selected{% endif %}>{{ etq }}</option>
-                  {% endfor %}
-                </select>
-                <button type="submit" class="boton secundario">Guardar</button>
-              </form>
-            </td>
+            <th>Idea</th>
+            <th>Negocio / Autor</th>
+            <th class="num">Votos</th>
+            <th>Estado</th>
+            <th>Cambiar estado</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="5">No hay ideas registradas.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for idea in ideas %}
+            <tr>
+              <td><strong>{{ idea.titulo }}</strong><br><small>{{ idea.descripcion }}</small></td>
+              <td>{{ idea.empresa.nombre|default:"—" }}<br><small>{{ idea.autor.email }}</small></td>
+              <td class="num"><strong>{{ idea.total_votos }}</strong></td>
+              <td>
+                <span class="plat-badge {% if idea.estado == 'lanzada' %}exito{% elif idea.estado == 'planeada' %}info{% elif idea.estado == 'descartada' %}neutro{% else %}advertencia{% endif %}">
+                  {{ idea.get_estado_display }}
+                </span>
+              </td>
+              <td>
+                <form method="post" class="plat-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="idea_id" value="{{ idea.pk }}">
+                  <select name="estado" aria-label="Estado para {{ idea.titulo }}">
+                    {% for val, etq in estados %}
+                      <option value="{{ val }}" {% if idea.estado == val %}selected{% endif %}>{{ etq }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="boton secundario">Guardar</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No hay ideas registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 {% endblock %}

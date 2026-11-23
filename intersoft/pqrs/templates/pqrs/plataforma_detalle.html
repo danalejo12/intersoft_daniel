@@ -2,51 +2,67 @@
 {% block titulo %}{{ pqrs.radicado }} · PQRS · Consola de Plataforma{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1><code>{{ pqrs.radicado }}</code> · {{ pqrs.asunto }}</h1>
       <p class="nota">{{ pqrs.get_flujo_display }} · {{ pqrs.empresa.nombre|default:"Sin negocio" }} · Autor: {{ pqrs.autor.email }}</p>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
+    <div class="plat-acciones-cabecera">
       {% include "pqrs/_semaforo.html" with pqrs=pqrs %}
-      <a class="boton secundario" href="{% url 'plataforma_pqrs' %}">Volver</a>
+      <a class="boton secundario" href="{% url 'plataforma_pqrs' %}">← Volver</a>
     </div>
-  </div>
+  </header>
 
-  <article class="tarjeta" style="margin-bottom: 20px;">
+  <article class="tarjeta plat-card">
+    <div class="tarjeta-cabecera">
+      <h2>Detalle y gestión</h2>
+      <span class="plat-badge info">Límite: {{ pqrs.fecha_limite|date:"d/m/Y H:i" }}</span>
+    </div>
+
     <p>{{ pqrs.descripcion|linebreaksbr }}</p>
-    {% if pqrs.adjunto %}<p><a href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>{% endif %}
-    <small class="nota">Límite: {{ pqrs.fecha_limite|date:"d/m/Y H:i" }}</small>
+    {% if pqrs.adjunto %}
+      <p><a class="boton secundario" href="{{ pqrs.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>
+    {% endif %}
 
-    <form method="post" class="formulario" style="margin-top: 16px;" novalidate>
+    <form method="post" class="formulario" novalidate>
       {% csrf_token %}
       <input type="hidden" name="accion" value="gestionar">
-      {% for campo in gestion_form %}
-        <div class="campo{% if campo.errors %} con-error{% endif %}">
-          {{ campo.label_tag }}
-          {{ campo }}
-          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-        </div>
-      {% endfor %}
+      <div class="plat-form-grid">
+        {% for campo in gestion_form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
       <button type="submit" class="boton">Guardar estado y asignación</button>
     </form>
   </article>
 
-  <article class="tarjeta">
-    <h2>Conversación y notas internas</h2>
-    {% for m in mensajes %}
-      <div style="padding: 10px 0; border-bottom: 1px solid rgba(148,163,184,.2);">
-        <strong>{{ m.autor.get_full_name|default:m.autor.email }}</strong>
-        {% if m.interno %}<span class="badge advertencia">Nota interna (oculta al ciudadano)</span>{% endif %}
-        <small class="nota">· {{ m.creado_en|date:"d/m/Y H:i" }}</small>
-        <p style="margin: 6px 0 0;">{{ m.texto|linebreaksbr }}</p>
-        {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">Adjunto</a></p>{% endif %}
-      </div>
-    {% empty %}
-      <p class="nota">Aún no hay mensajes.</p>
-    {% endfor %}
+  <article class="tarjeta plat-card">
+    <div class="tarjeta-cabecera">
+      <h2>Conversación y notas internas</h2>
+      <span class="plat-badge neutro">{{ mensajes|length }} mensaje{{ mensajes|length|pluralize }}</span>
+    </div>
 
-    <form method="post" enctype="multipart/form-data" class="formulario" style="margin-top: 16px;" novalidate>
+    <div class="plat-hilo">
+      {% for m in mensajes %}
+        <div class="plat-mensaje{% if m.interno %} interno{% endif %}">
+          <div class="plat-mensaje-cabecera">
+            <strong>{{ m.autor.get_full_name|default:m.autor.email }}</strong>
+            {% if m.interno %}<span class="plat-badge advertencia">Nota interna (oculta al ciudadano)</span>{% endif %}
+            <small class="nota">{{ m.creado_en|date:"d/m/Y H:i" }}</small>
+          </div>
+          <p class="plat-mensaje-texto">{{ m.texto|linebreaksbr }}</p>
+          {% if m.adjunto %}<p><a href="{{ m.adjunto.url }}" target="_blank" rel="noopener">Ver adjunto</a></p>{% endif %}
+        </div>
+      {% empty %}
+        <p class="nota">Aún no hay mensajes.</p>
+      {% endfor %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="formulario" novalidate>
       {% csrf_token %}
       <input type="hidden" name="accion" value="mensaje">
       {% for campo in msg_form %}

@@ -2,70 +2,72 @@
 {% block titulo %}Planes y cobros · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Planes y cobros de InterSoft</h1>
-      <p class="nota">Editor de planes, cupos de fundador, cortesías, conciliación de cobros y llaves de Wompi.</p>
+      <p class="nota">Editor de planes, cupos de fundador, cortesías, conciliación de cobros, llaves de Wompi, cupones y FeatureFlags.</p>
     </div>
-  </div>
+  </header>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Planes comerciales</h2>
-      <span class="badge neutro">{{ planes|length }} plan{{ planes|length|pluralize:"es" }}</span>
+      <span class="plat-badge neutro">{{ planes|length }} plan{{ planes|length|pluralize:"es" }}</span>
     </div>
-    <div class="tabla-wrap"><table class="tabla">
-      <thead>
-        <tr>
-          <th>Plan</th>
-          <th class="num">Mensual</th>
-          <th class="num">Anual</th>
-          <th class="num">Comisión</th>
-          <th>Límites</th>
-          <th>Features</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in planes %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><strong>{{ p.nombre }}</strong><br><small><code>{{ p.codigo }}</code></small></td>
-            <td class="num">$ {{ p.precio_mensual|floatformat:"0g" }}</td>
-            <td class="num">$ {{ p.precio_anual|floatformat:"0g" }}</td>
-            <td class="num">{{ p.comision_porcentaje }}%</td>
-            <td>
-              <small>
-                Prod: {{ p.limites.productos|default_if_none:"Ilimitado" }} ·
-                Usu: {{ p.limites.usuarios|default_if_none:"Ilimitado" }}
-              </small>
-            </td>
-            <td><small>{{ p.features|join:", "|default:"—" }}</small></td>
-            <td>
-              {% if p.activo %}
-                <span class="badge exito">Activo</span>
-              {% else %}
-                <span class="badge neutro">Inactivo</span>
-              {% endif %}
-            </td>
-            <td>
-              <a href="{% url 'plataforma_editar_plan' p.pk %}" class="boton secundario">Editar</a>
-            </td>
+            <th>Plan</th>
+            <th class="num">Mensual</th>
+            <th class="num">Anual</th>
+            <th class="num">Comisión</th>
+            <th>Límites</th>
+            <th>Features</th>
+            <th>Estado</th>
+            <th></th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table></div>
+        </thead>
+        <tbody>
+          {% for p in planes %}
+            <tr>
+              <td><strong>{{ p.nombre }}</strong><br><small><code>{{ p.codigo }}</code></small></td>
+              <td class="num">$ {{ p.precio_mensual|floatformat:"0g" }}</td>
+              <td class="num">$ {{ p.precio_anual|floatformat:"0g" }}</td>
+              <td class="num">{{ p.comision_porcentaje }}%</td>
+              <td>
+                <small>
+                  Prod: {{ p.limites.productos|default_if_none:"Ilimitado" }} ·
+                  Usu: {{ p.limites.usuarios|default_if_none:"Ilimitado" }}
+                </small>
+              </td>
+              <td><small>{{ p.features|join:", "|default:"—" }}</small></td>
+              <td>
+                {% if p.activo %}
+                  <span class="plat-badge exito">Activo</span>
+                {% else %}
+                  <span class="plat-badge neutro">Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'plataforma_editar_plan' p.pk %}" class="boton secundario">Editar</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 
-  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
-    <article class="tarjeta">
+  <section class="plat-grid-2">
+    <article class="tarjeta plat-card">
       <div class="tarjeta-cabecera">
         <h2>Cupos de fundador (50% dto.)</h2>
-        <span class="badge {% if cupos_disponibles > 0 %}exito{% else %}advertencia{% endif %}">
+        <span class="plat-badge {% if cupos_disponibles > 0 %}exito{% else %}advertencia{% endif %}">
           {{ fundadores_ocupados }} / {{ cupos_fundador }} usados
         </span>
       </div>
-      <p class="nota" style="margin-bottom: 14px;">
+      <p class="nota">
         Quedan <strong>{{ cupos_disponibles }}</strong> cupo{{ cupos_disponibles|pluralize }} disponible{{ cupos_disponibles|pluralize }} para nuevos negocios pagos.
       </p>
       <form method="post" class="formulario" novalidate>
@@ -86,10 +88,10 @@
       </form>
     </article>
 
-    <article class="tarjeta">
+    <article class="tarjeta plat-card">
       <div class="tarjeta-cabecera">
         <h2>Otorgar cortesía</h2>
-        <span class="badge neutro">Días gratis o plan</span>
+        <span class="plat-badge neutro">Días gratis o plan</span>
       </div>
       <form method="post" class="formulario" novalidate>
         {% csrf_token %}
@@ -114,65 +116,67 @@
     </article>
   </section>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Bandeja «Requiere revisión»</h2>
-      <span class="badge {% if cobros_revision %}peligro{% else %}exito{% endif %}">
+      <span class="plat-badge {% if cobros_revision %}peligro{% else %}exito{% endif %}">
         {{ cobros_revision|length }} pendiente{{ cobros_revision|length|pluralize }}
       </span>
     </div>
-    <div class="tabla-wrap"><table class="tabla">
-      <thead>
-        <tr>
-          <th>Referencia</th>
-          <th>Empresa</th>
-          <th>Plan / Ciclo</th>
-          <th class="num">Monto</th>
-          <th>Detalle</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in cobros_revision %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><code>{{ c.referencia }}</code></td>
-            <td>{{ c.empresa.nombre }}</td>
-            <td>{{ c.plan.nombre }} ({{ c.get_ciclo_display }})</td>
-            <td class="num">$ {{ c.monto|floatformat:"0g" }}</td>
-            <td>{{ c.detalle|default:"—" }}</td>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <form method="post" style="margin: 0;">
-                  {% csrf_token %}
-                  <input type="hidden" name="accion" value="reconsultar_cobro">
-                  <input type="hidden" name="cobro_id" value="{{ c.pk }}">
-                  <button type="submit" class="boton secundario">Reconsultar en Wompi</button>
-                </form>
-                <form method="post" style="display: flex; gap: 6px; align-items: center; margin: 0;">
-                  {% csrf_token %}
-                  <input type="hidden" name="accion" value="aplicar_cobro_manual">
-                  <input type="hidden" name="cobro_id" value="{{ c.pk }}">
-                  <input type="text" name="motivo" placeholder="Motivo obligatorio" required style="min-width: 170px;">
-                  <button type="submit" class="boton">Aplicar manualmente</button>
-                </form>
-              </div>
-            </td>
+            <th>Referencia</th>
+            <th>Empresa</th>
+            <th>Plan / Ciclo</th>
+            <th class="num">Monto</th>
+            <th>Detalle</th>
+            <th>Acciones</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="6">No hay cobros que requieran revisión manual.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table></div>
+        </thead>
+        <tbody>
+          {% for c in cobros_revision %}
+            <tr>
+              <td><code>{{ c.referencia }}</code></td>
+              <td>{{ c.empresa.nombre }}</td>
+              <td>{{ c.plan.nombre }} ({{ c.get_ciclo_display }})</td>
+              <td class="num">$ {{ c.monto|floatformat:"0g" }}</td>
+              <td>{{ c.detalle|default:"—" }}</td>
+              <td>
+                <div class="plat-acciones-apiladas">
+                  <form method="post" class="form-sin-margen">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="reconsultar_cobro">
+                    <input type="hidden" name="cobro_id" value="{{ c.pk }}">
+                    <button type="submit" class="boton secundario">Reconsultar en Wompi</button>
+                  </form>
+                  <form method="post" class="plat-inline-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="aplicar_cobro_manual">
+                    <input type="hidden" name="cobro_id" value="{{ c.pk }}">
+                    <input type="text" name="motivo" placeholder="Motivo obligatorio" required>
+                    <button type="submit" class="boton">Aplicar manualmente</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">No hay cobros que requieran revisión manual.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Cobros de suscripciones</h2>
-      <span class="badge neutro">{{ cobros_recientes|length }} registro{{ cobros_recientes|length|pluralize }}</span>
+      <span class="plat-badge neutro">{{ cobros_recientes|length }} registro{{ cobros_recientes|length|pluralize }}</span>
     </div>
 
-    <form method="get" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 16px;">
-      <div class="campo" style="margin: 0;">
+    <form method="get" class="plat-filtros" role="search">
+      <div class="campo">
         <label for="filtro-estado">Estado</label>
         <select id="filtro-estado" name="estado">
           <option value="">Todos</option>
@@ -181,7 +185,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="campo" style="margin: 0;">
+      <div class="campo">
         <label for="filtro-plan">Plan</label>
         <select id="filtro-plan" name="plan">
           <option value="">Todos</option>
@@ -190,9 +194,9 @@
           {% endfor %}
         </select>
       </div>
-      <div class="campo" style="margin: 0;">
+      <div class="campo">
         <label for="filtro-negocio">Negocio o referencia</label>
-        <input id="filtro-negocio" type="text" name="negocio" value="{{ filtros.negocio }}" placeholder="Nombre, slug o referencia">
+        <input id="filtro-negocio" type="search" name="negocio" value="{{ filtros.negocio }}" placeholder="Nombre, slug o referencia">
       </div>
       <button type="submit" class="boton">Filtrar</button>
       {% if filtros.estado or filtros.plan or filtros.negocio %}
@@ -200,49 +204,55 @@
       {% endif %}
     </form>
 
-    <div class="tabla-wrap"><table class="tabla">
-      <thead>
-        <tr>
-          <th>Referencia</th>
-          <th>Empresa</th>
-          <th>Plan</th>
-          <th>Ciclo</th>
-          <th class="num">Monto</th>
-          <th>Estado</th>
-          <th>Detalle</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in cobros_recientes %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><code>{{ c.referencia }}</code></td>
-            <td>{{ c.empresa.nombre }}</td>
-            <td>{{ c.plan.nombre }}</td>
-            <td>{{ c.get_ciclo_display }}</td>
-            <td class="num">$ {{ c.monto|floatformat:"0g" }}</td>
-            <td>{{ c.get_estado_display }}</td>
-            <td><small>{{ c.detalle|default:"—" }}</small></td>
+            <th>Referencia</th>
+            <th>Empresa</th>
+            <th>Plan</th>
+            <th>Ciclo</th>
+            <th class="num">Monto</th>
+            <th>Estado</th>
+            <th>Detalle</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="7">No hay cobros de suscripciones que coincidan con el filtro.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table></div>
+        </thead>
+        <tbody>
+          {% for c in cobros_recientes %}
+            <tr>
+              <td><code>{{ c.referencia }}</code></td>
+              <td>{{ c.empresa.nombre }}</td>
+              <td>{{ c.plan.nombre }}</td>
+              <td>{{ c.get_ciclo_display }}</td>
+              <td class="num">$ {{ c.monto|floatformat:"0g" }}</td>
+              <td>
+                <span class="plat-badge {% if c.estado == 'aprobado' %}exito{% elif c.estado == 'requiere_revision' or c.estado == 'rechazado' %}peligro{% else %}advertencia{% endif %}">
+                  {{ c.get_estado_display }}
+                </span>
+              </td>
+              <td><small>{{ c.detalle|default:"—" }}</small></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7">No hay cobros de suscripciones que coincidan con el filtro.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 
-  <article class="tarjeta">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Llaves de Wompi de InterSoft</h2>
       {% if config.verificada_en %}
-        <span class="badge exito">Verificada ({{ config.comercio_verificado|default:config.get_modo_display }})</span>
+        <span class="plat-badge exito">Verificada ({{ config.comercio_verificado|default:config.get_modo_display }})</span>
       {% elif config.activa %}
-        <span class="badge advertencia">Activa sin verificar</span>
+        <span class="plat-badge advertencia">Activa sin verificar</span>
       {% else %}
-        <span class="badge neutro">Usando respaldo de settings</span>
+        <span class="plat-badge neutro">Usando respaldo de settings</span>
       {% endif %}
     </div>
 
-    <dl class="perfil-detalles" style="margin-bottom: 18px;">
+    <dl class="perfil-detalles mb-18">
       <div class="perfil-dato">
         <dt>Llave privada guardada</dt>
         <dd>{% if config.llave_privada_final %}••••{{ config.llave_privada_final }}{% else %}No configurada{% endif %}</dd>
@@ -258,7 +268,7 @@
     </dl>
 
     {% if puede_editar_llaves %}
-      <form method="post" class="formulario" novalidate style="margin-bottom: 16px;">
+      <form method="post" class="formulario plat-form-bloque" novalidate>
         {% csrf_token %}
         <input type="hidden" name="accion" value="guardar">
 
@@ -266,23 +276,25 @@
           <p class="error aviso">Revisa los campos marcados antes de guardar.</p>
         {% endif %}
 
-        {% for campo in form %}
-          <div class="campo{% if campo.errors %} con-error{% endif %}">
-            {{ campo.label_tag }}
-            {{ campo }}
-            {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
-            {% for error in campo.errors %}
-              <p class="error">{{ error }}</p>
-            {% endfor %}
-          </div>
-        {% endfor %}
+        <div class="plat-form-grid">
+          {% for campo in form %}
+            <div class="campo{% if campo.errors %} con-error{% endif %}">
+              {{ campo.label_tag }}
+              {{ campo }}
+              {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+              {% for error in campo.errors %}
+                <p class="error">{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
 
         <div class="acciones">
           <button type="submit" class="boton">Guardar llaves</button>
         </div>
       </form>
 
-      <form method="post" style="margin: 0;">
+      <form method="post" class="form-sin-margen">
         {% csrf_token %}
         <input type="hidden" name="accion" value="verificar">
         <button type="submit" class="boton secundario">Verificar llaves en Wompi</button>
@@ -292,84 +304,92 @@
     {% endif %}
   </article>
 
-  <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-top: 24px;">
-    <article class="tarjeta">
+  <section class="plat-grid-2">
+    <article class="tarjeta plat-card">
       <div class="tarjeta-cabecera">
         <h2>Cupones de descuento</h2>
-        <span class="badge neutro">{{ cupones|length }} cupón{{ cupones|length|pluralize:"es" }}</span>
+        <span class="plat-badge neutro">{{ cupones|length }} cupón{{ cupones|length|pluralize:"es" }}</span>
       </div>
-      <form method="post" class="formulario" style="margin-bottom: 16px;" novalidate>
+      <form method="post" class="formulario plat-form-bloque" novalidate>
         {% csrf_token %}
         <input type="hidden" name="accion" value="crear_cupon">
-        {% for campo in cupon_form %}
-          <div class="campo{% if campo.errors %} con-error{% endif %}">
-            {{ campo.label_tag }}
-            {{ campo }}
-            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-          </div>
-        {% endfor %}
+        <div class="plat-form-grid">
+          {% for campo in cupon_form %}
+            <div class="campo{% if campo.errors %} con-error{% endif %}">
+              {{ campo.label_tag }}
+              {{ campo }}
+              {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
         <button type="submit" class="boton">Crear cupón</button>
       </form>
-      <div class="tabla-wrap"><table class="tabla">
-        <thead>
-          <tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Estado</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for c in cupones %}
-            <tr>
-              <td><code>{{ c.codigo }}</code></td>
-              <td>{{ c.get_tipo_display }}: {{ c.valor }}</td>
-              <td>{{ c.usos_actuales }}{% if c.usos_maximos %} / {{ c.usos_maximos }}{% endif %}</td>
-              <td>{% if c.activo %}<span class="badge exito">Activo</span>{% else %}<span class="badge neutro">Inactivo</span>{% endif %}</td>
-              <td>
-                <form method="post" style="margin:0;">
-                  {% csrf_token %}
-                  <input type="hidden" name="accion" value="toggle_cupon">
-                  <input type="hidden" name="cupon_id" value="{{ c.pk }}">
-                  <button type="submit" class="boton secundario">{% if c.activo %}Desactivar{% else %}Activar{% endif %}</button>
-                </form>
-              </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="5">No hay cupones registrados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table></div>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for c in cupones %}
+              <tr>
+                <td><code>{{ c.codigo }}</code></td>
+                <td>{{ c.get_tipo_display }}: {{ c.valor }}</td>
+                <td>{{ c.usos_actuales }}{% if c.usos_maximos %} / {{ c.usos_maximos }}{% endif %}</td>
+                <td>{% if c.activo %}<span class="plat-badge exito">Activo</span>{% else %}<span class="plat-badge neutro">Inactivo</span>{% endif %}</td>
+                <td>
+                  <form method="post" class="form-sin-margen">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="toggle_cupon">
+                    <input type="hidden" name="cupon_id" value="{{ c.pk }}">
+                    <button type="submit" class="boton secundario">{% if c.activo %}Desactivar{% else %}Activar{% endif %}</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">No hay cupones registrados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </article>
 
-    <article class="tarjeta">
+    <article class="tarjeta plat-card">
       <div class="tarjeta-cabecera">
         <h2>Interruptores de funciones (FeatureFlags)</h2>
-        <span class="badge neutro">{{ feature_flags|length }} ajuste{{ feature_flags|length|pluralize }}</span>
+        <span class="plat-badge neutro">{{ feature_flags|length }} ajuste{{ feature_flags|length|pluralize }}</span>
       </div>
-      <form method="post" class="formulario" style="margin-bottom: 16px;" novalidate>
+      <form method="post" class="formulario plat-form-bloque" novalidate>
         {% csrf_token %}
         <input type="hidden" name="accion" value="guardar_feature_flag">
-        {% for campo in feature_flag_form %}
-          <div class="campo{% if campo.errors %} con-error{% endif %}">
-            {{ campo.label_tag }}
-            {{ campo }}
-            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
-          </div>
-        {% endfor %}
+        <div class="plat-form-grid">
+          {% for campo in feature_flag_form %}
+            <div class="campo{% if campo.errors %} con-error{% endif %}">
+              {{ campo.label_tag }}
+              {{ campo }}
+              {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
         <button type="submit" class="boton">Guardar FeatureFlag</button>
       </form>
-      <div class="tabla-wrap"><table class="tabla">
-        <thead>
-          <tr><th>Negocio</th><th>Función</th><th>Estado</th></tr>
-        </thead>
-        <tbody>
-          {% for ff in feature_flags %}
-            <tr>
-              <td>{{ ff.empresa.nombre }}</td>
-              <td><code>{{ ff.codigo }}</code></td>
-              <td>{% if ff.habilitado %}<span class="badge exito">Habilitado</span>{% else %}<span class="badge peligro">Deshabilitado</span>{% endif %}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="3">Sin interruptores personalizados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table></div>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr><th>Negocio</th><th>Función</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            {% for ff in feature_flags %}
+              <tr>
+                <td>{{ ff.empresa.nombre }}</td>
+                <td><code>{{ ff.codigo }}</code></td>
+                <td>{% if ff.habilitado %}<span class="plat-badge exito">Habilitado</span>{% else %}<span class="plat-badge peligro">Deshabilitado</span>{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">Sin interruptores personalizados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </article>
   </section>
 {% endblock %}

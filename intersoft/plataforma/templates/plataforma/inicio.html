@@ -2,14 +2,18 @@
 {% block titulo %}Inicio · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Consola de Plataforma</h1>
       <p class="nota">Resumen operativo global de negocios, suscripciones, cobros y tareas periódicas de InterSoft.</p>
     </div>
-  </div>
+    <div class="plat-acciones-cabecera">
+      <a class="boton secundario" href="{% url 'plataforma_negocios' %}">Ver negocios</a>
+      <a class="boton" href="{% url 'plataforma_planes_cobros' %}">Planes y cobros</a>
+    </div>
+  </header>
 
-  <section class="kpis" style="margin-bottom: 24px;">
+  <section class="plat-kpis" aria-label="Métricas clave de la plataforma">
     <article class="kpi">
       <div class="kpi-cabecera"><span>Negocios activos</span></div>
       <strong>{{ negocios_activos }}</strong>
@@ -58,156 +62,169 @@
       <small>{{ metricas.convertidos_30d }} de {{ metricas.base_trial_30d }} en prueba</small>
     </article>
 
-    <article class="kpi {% if metricas.total_vencimientos_7d > 0 %}advertencia{% endif %}">
+    <article class="kpi {% if metricas.total_vencimientos_7d > 0 %}ambar{% endif %}">
       <div class="kpi-cabecera"><span>Vencen en 7 días</span></div>
       <strong>{{ metricas.total_vencimientos_7d }}</strong>
       <small>Pruebas y suscripciones próximas a vencer</small>
     </article>
   </section>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Ingresos cobrados por mes (últimos 6 meses)</h2>
-      <span class="badge exito">Total 6m: $ {{ metricas.total_ingresos_6m|floatformat:"0g" }}</span>
+      <span class="plat-badge exito">Total 6m: $ {{ metricas.total_ingresos_6m|floatformat:"0g" }}</span>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; align-items: end; height: 150px; padding: 12px 4px 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.25);">
+    <div class="plat-barras" role="img" aria-label="Gráfica de ingresos cobrados en los últimos 6 meses">
       {% for mes in metricas.ingresos_por_mes %}
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px;">
-          <small style="font-size: 11px; opacity: 0.85;">$ {{ mes.total|floatformat:"0g" }}</small>
-          <div
-            title="{{ mes.etiqueta }}: $ {{ mes.total|floatformat:'0g' }} ({{ mes.cantidad }} cobro{{ mes.cantidad|pluralize }})"
-            style="width: 100%; max-width: 56px; height: {{ mes.porcentaje_altura }}%; min-height: {% if mes.total > 0 %}6px{% else %}2px{% endif %}; background: {% if mes.total > 0 %}#10b981{% else %}rgba(148, 163, 184, 0.25){% endif %}; border-radius: 6px 6px 0 0;"
-          ></div>
-          <small style="font-size: 11px; white-space: nowrap;">{{ mes.etiqueta }}</small>
+        <div class="plat-barra-col">
+          <small class="plat-barra-valor">$ {{ mes.total|floatformat:"0g" }}</small>
+          <div class="plat-barra-pista">
+            <div
+              class="plat-barra-relleno{% if mes.total > 0 %} con-ingreso{% endif %}"
+              title="{{ mes.etiqueta }}: $ {{ mes.total|floatformat:'0g' }} ({{ mes.cantidad }} cobro{{ mes.cantidad|pluralize }})"
+              style="height: {{ mes.porcentaje_altura }}%;"
+            ></div>
+          </div>
+          <small class="plat-barra-mes">{{ mes.etiqueta }}</small>
         </div>
       {% endfor %}
     </div>
 
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Mes</th>
-          <th class="num">Cobros aprobados</th>
-          <th class="num">Ingresos</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for mes in metricas.ingresos_por_mes %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td>{{ mes.etiqueta }}</td>
-            <td class="num">{{ mes.cantidad }}</td>
-            <td class="num">$ {{ mes.total|floatformat:"0g" }}</td>
+            <th>Mes</th>
+            <th class="num">Cobros aprobados</th>
+            <th class="num">Ingresos</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </article>
-
-  <article class="tarjeta" style="margin-bottom: 24px;">
-    <div class="tarjeta-cabecera">
-      <h2>Vencimientos próximos (7 días)</h2>
-      <span class="badge neutro">{{ metricas.total_vencimientos_7d }} registro{{ metricas.total_vencimientos_7d|pluralize }}</span>
+        </thead>
+        <tbody>
+          {% for mes in metricas.ingresos_por_mes %}
+            <tr>
+              <td>{{ mes.etiqueta }}</td>
+              <td class="num">{{ mes.cantidad }}</td>
+              <td class="num">$ {{ mes.total|floatformat:"0g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Negocio</th>
-          <th>Plan</th>
-          <th>Estado</th>
-          <th>Vence</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in metricas.vencimientos_7d %}
-          <tr>
-            <td>{{ s.empresa.nombre }}</td>
-            <td>{{ s.plan.nombre }}</td>
-            <td>{{ s.get_estado_display }}</td>
-            <td>{{ s.vence_en|date:"d/m/Y H:i" }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="4">No hay suscripciones ni pruebas por vencer en los próximos 7 días.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </article>
 
-  <article class="tarjeta" style="margin-bottom: 24px;">
+  <section class="plat-grid-2">
+    <article class="tarjeta plat-card">
+      <div class="tarjeta-cabecera">
+        <h2>Vencimientos próximos (7 días)</h2>
+        <span class="plat-badge {% if metricas.total_vencimientos_7d > 0 %}advertencia{% else %}neutro{% endif %}">
+          {{ metricas.total_vencimientos_7d }} registro{{ metricas.total_vencimientos_7d|pluralize }}
+        </span>
+      </div>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Negocio</th>
+              <th>Plan</th>
+              <th>Estado</th>
+              <th>Vence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in metricas.vencimientos_7d %}
+              <tr>
+                <td><strong>{{ s.empresa.nombre }}</strong></td>
+                <td>{{ s.plan.nombre }}</td>
+                <td><span class="plat-badge info">{{ s.get_estado_display }}</span></td>
+                <td>{{ s.vence_en|date:"d/m/Y H:i" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">No hay suscripciones ni pruebas por vencer en los próximos 7 días.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tarjeta plat-card">
+      <div class="tarjeta-cabecera">
+        <h2>Últimos eventos de auditoría</h2>
+        <span class="plat-badge neutro">{{ auditorias_recientes|length }} reciente{{ auditorias_recientes|length|pluralize }}</span>
+      </div>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Actor</th>
+              <th>Acción</th>
+              <th>Objeto</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in auditorias_recientes %}
+              <tr>
+                <td>{{ a.fecha|date:"d/m/Y H:i" }}</td>
+                <td>{{ a.actor.email|default:"Sistema" }}</td>
+                <td><code>{{ a.accion }}</code></td>
+                <td>{{ a.objeto_tipo }} {{ a.objeto_id|slice:":8" }}</td>
+                <td>{{ a.ip|default:"—" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">Sin registros de auditoría todavía.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <article class="tarjeta plat-card">
     <div class="tarjeta-cabecera">
       <h2>Estado de tareas periódicas</h2>
-      <span class="badge neutro">{{ tareas|length }} tarea{{ tareas|length|pluralize }}</span>
+      <span class="plat-badge neutro">{{ tareas|length }} tarea{{ tareas|length|pluralize }}</span>
     </div>
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Tarea</th>
-          <th>Última ejecución</th>
-          <th class="num">Ejecuciones</th>
-          <th class="num">Fallos seguidos</th>
-          <th>Último resultado / error</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in tareas %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><strong>{{ t.nombre }}</strong></td>
-            <td>{% if t.ultima_ejecucion %}{{ t.ultima_ejecucion|date:"d/m/Y H:i:s" }}{% else %}Nunca{% endif %}</td>
-            <td class="num">{{ t.ejecuciones }}</td>
-            <td class="num">
-              {% if t.fallos_seguidos >= 3 %}
-                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .6);">
-                  {{ t.fallos_seguidos }} fallo{{ t.fallos_seguidos|pluralize }}
-                </span>
-              {% elif t.fallos_seguidos > 0 %}
-                <span class="badge advertencia">{{ t.fallos_seguidos }}</span>
-              {% else %}
-                <span class="badge exito">0</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if t.ultimo_error %}
-                <span style="color: #fca5a5;">{{ t.ultimo_error }}</span>
-              {% else %}
-                {{ t.ultimo_resultado|default:"—" }}
-              {% endif %}
-            </td>
+            <th>Tarea</th>
+            <th>Última ejecución</th>
+            <th class="num">Ejecuciones</th>
+            <th class="num">Fallos seguidos</th>
+            <th>Último resultado / error</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="5">Aún no hay ejecuciones de tareas periódicas registradas.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </article>
-
-  <article class="tarjeta">
-    <div class="tarjeta-cabecera">
-      <h2>Últimos eventos de auditoría</h2>
-      <span class="badge neutro">{{ auditorias_recientes|length }} reciente{{ auditorias_recientes|length|pluralize }}</span>
+        </thead>
+        <tbody>
+          {% for t in tareas %}
+            <tr>
+              <td><strong>{{ t.nombre }}</strong></td>
+              <td>{% if t.ultima_ejecucion %}{{ t.ultima_ejecucion|date:"d/m/Y H:i:s" }}{% else %}Nunca{% endif %}</td>
+              <td class="num">{{ t.ejecuciones }}</td>
+              <td class="num">
+                {% if t.fallos_seguidos >= 3 %}
+                  <span class="plat-badge peligro">{{ t.fallos_seguidos }} fallo{{ t.fallos_seguidos|pluralize }}</span>
+                {% elif t.fallos_seguidos > 0 %}
+                  <span class="plat-badge advertencia">{{ t.fallos_seguidos }}</span>
+                {% else %}
+                  <span class="plat-badge exito">0</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.ultimo_error %}
+                  <span class="plat-texto-error">{{ t.ultimo_error }}</span>
+                {% else %}
+                  {{ t.ultimo_resultado|default:"—" }}
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">Aún no hay ejecuciones de tareas periódicas registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Actor</th>
-          <th>Acción</th>
-          <th>Objeto</th>
-          <th>IP</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in auditorias_recientes %}
-          <tr>
-            <td>{{ a.fecha|date:"d/m/Y H:i" }}</td>
-            <td>{{ a.actor.email|default:"Sistema" }}</td>
-            <td><code>{{ a.accion }}</code></td>
-            <td>{{ a.objeto_tipo }} {{ a.objeto_id|slice:":8" }}</td>
-            <td>{{ a.ip|default:"—" }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5">Sin registros de auditoría todavía.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </article>
 {% endblock %}

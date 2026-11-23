@@ -1,4 +1,4 @@
-/* Marketplace público de Intersoft. Todos los colores viven en estas variables. */
+/* Marketplace público de Intersoft · Sistema de diseño Figma InterSoft */
 :root {
   color-scheme: light;
 
@@ -7,115 +7,123 @@
   --texto: #0F172A;
   --texto-suave: #475569;
   --borde: #E2E8F0;
-  --primario: #4338CA;
-  --primario-hover: #3730A3;
-  --primario-suave: #EEF2FF;
+  --primario: #2563EB;
+  --primario-hover: #1D4ED8;
+  --primario-suave: #EFF6FF;
   --sobre-primario: #FFFFFF;
-  --cta: #F97316;
-  --cta-hover: #EA580C;
-  --sobre-cta: #0F172A;
-  --cta-brillo: rgba(249, 115, 22, .32);
-  --vendedor: #047857;
-  --vendedor-hover: #065F46;
+  --cta: #2563EB;
+  --cta-hover: #1D4ED8;
+  --sobre-cta: #FFFFFF;
+  --cta-brillo: rgba(37, 99, 235, .28);
+  --vendedor: #059669;
+  --vendedor-hover: #047857;
   --sobre-vendedor: #FFFFFF;
-  --destacado-fondo: #FACC15;
-  --destacado-texto: #1E293B;
+  --destacado-fondo: #FEF3C7;
+  --destacado-texto: #92400E;
   --descuento-fondo: #DC2626;
   --descuento-texto: #FFFFFF;
-  --acento: #0F766E;
-  --exito: #10B981;
+  --acento: #0284C7;
+  --exito: #059669;
   --exito-texto: #065F46;
   --exito-fondo: #ECFDF5;
-  --peligro: #EF4444;
+  --peligro: #DC2626;
   --peligro-fondo: #FEF2F2;
-  --barra-fondo: rgba(255, 255, 255, .88);
-  --anillo: rgba(249, 115, 22, .22);
-  --foco: #2747D9;
+  --barra-fondo: rgba(255, 255, 255, .92);
+  --anillo: rgba(37, 99, 235, .20);
+  --foco: #2563EB;
 
   --sombra-s: 0 1px 2px rgba(15, 23, 42, .05), 0 2px 6px rgba(15, 23, 42, .04);
   --sombra-m: 0 6px 16px rgba(15, 23, 42, .08), 0 2px 4px rgba(15, 23, 42, .04);
   --sombra-l: 0 16px 32px rgba(15, 23, 42, .12), 0 4px 8px rgba(15, 23, 42, .06);
 
-  --hero-inicio: #0F2A6B;
-  --hero-fin: #0F766E;
-  /* El velo crece hacia el verde, que es donde el texto claro no alcanza AA por sí solo */
-  --hero-velo-inicio: rgba(15, 23, 42, .12);
-  --hero-velo-fin: rgba(15, 23, 42, .38);
-  --hero-mancha: rgba(255, 255, 255, .18);
+  --hero-inicio: #0F172A;
+  --hero-fin: #1E40AF;
+  --hero-velo-inicio: rgba(15, 23, 42, .08);
+  --hero-velo-fin: rgba(15, 23, 42, .24);
+  --hero-mancha: rgba(147, 197, 253, .16);
   --hero-texto: #FFFFFF;
-  --hero-boton-fondo: var(--cta);
-  --hero-boton-texto: var(--sobre-cta);
-  --hero-boton-hover: var(--cta-hover);
-  --hero-secundario-hover: rgba(255, 255, 255, .16);
+  --hero-boton-fondo: #FFFFFF;
+  --hero-boton-texto: #0F172A;
+  --hero-boton-hover: #F1F5F9;
+  --hero-secundario-hover: rgba(255, 255, 255, .14);
 
-  --tono-texto: #1C2550;
-  --tono-1-a: #DCE3FF; --tono-1-b: #B9C7FF;
-  --tono-2-a: #D5F5EF; --tono-2-b: #A5E8DA;
-  --tono-3-a: #FFE6CC; --tono-3-b: #FFCF9E;
-  --tono-4-a: #FBDDE8; --tono-4-b: #F6B8CF;
-  --tono-5-a: #E9DFFF; --tono-5-b: #CDB9FF;
-  --tono-6-a: #FFF3C4; --tono-6-b: #FFE28A;
+  --tono-texto: #1E3A8A;
+  --tono-1-a: #EFF6FF; --tono-1-b: #DBEAFE;
+  --tono-2-a: #ECFDF5; --tono-2-b: #D1FAE5;
+  --tono-3-a: #FFFBEB; --tono-3-b: #FEF3C7;
+  --tono-4-a: #FDF2F8; --tono-4-b: #FCE7F3;
+  --tono-5-a: #F5F3FF; --tono-5-b: #EDE9FE;
+  --tono-6-a: #F0F9FF; --tono-6-b: #E0F2FE;
 
-  --estrella: #B06A00;
+  --estrella: #D97706;
 
   --margen: 16px;
-  --radio: 18px;
-  --radio-s: 12px;
+  --radio: 14px;
+  --radio-s: 10px;
   --pildora: 999px;
-  --transicion: 200ms ease-out;
-  --fuente: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --transicion: 180ms ease-out;
+  --fuente: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  accent-color: var(--primario);
 }
 
 :root[data-tema="oscuro"] {
-    color-scheme: dark;
-    --fondo: #0D111D;
-    --superficie: #151B2C;
-    --texto: #F8FAFC;
-    --texto-suave: #A9B3CC;
-    --borde: rgba(255, 255, 255, .08);
-    --cta: #FF7A00;
-    --cta-hover: #FF9433;
-    --sobre-cta: #0D111D;
-    --cta-brillo: rgba(255, 122, 0, .45);
-    --vendedor: #00E676;
-    --vendedor-hover: #33EB91;
-    --sobre-vendedor: #04140B;
-    --primario: #8EA2FF;
-    --primario-hover: #AAB9FF;
-    --primario-suave: #1F2A4D;
-    --sobre-primario: #0B1020;
-    --acento: #2DD4BF;
-    --exito: #00E676;
-    --exito-texto: #00E676;
-    --exito-fondo: #10322A;
-    --peligro: #FFA79E;
-    --peligro-fondo: #3D1D20;
-    --barra-fondo: rgba(13, 17, 29, .82);
-    --anillo: rgba(255, 122, 0, .30);
-    --foco: #AAB9FF;
+  color-scheme: dark;
+  --fondo: #0B0F19;
+  --superficie: #111827;
+  --texto: #F8FAFC;
+  --texto-suave: #94A3B8;
+  --borde: #1F2937;
+  --cta: #3B82F6;
+  --cta-hover: #60A5FA;
+  --sobre-cta: #FFFFFF;
+  --cta-brillo: rgba(59, 130, 246, .35);
+  --vendedor: #34D399;
+  --vendedor-hover: #6EE7B7;
+  --sobre-vendedor: #04140B;
+  --primario: #3B82F6;
+  --primario-hover: #60A5FA;
+  --primario-suave: #172554;
+  --sobre-primario: #FFFFFF;
+  --acento: #38BDF8;
+  --exito: #34D399;
+  --exito-texto: #34D399;
+  --exito-fondo: #064E3B;
+  --peligro: #F87171;
+  --peligro-fondo: #450A0A;
+  --barra-fondo: rgba(11, 15, 25, .88);
+  --anillo: rgba(59, 130, 246, .28);
+  --foco: #60A5FA;
 
-    --sombra-s: 0 1px 2px rgba(2, 6, 24, .50), 0 2px 6px rgba(2, 6, 24, .35);
-    --sombra-m: 0 4px 12px rgba(2, 6, 24, .55), 0 2px 4px rgba(2, 6, 24, .35);
-    --sombra-l: 0 16px 32px rgba(2, 6, 24, .70), 0 4px 8px rgba(2, 6, 24, .40);
+  --sombra-s: 0 1px 2px rgba(2, 6, 24, .50), 0 2px 6px rgba(2, 6, 24, .35);
+  --sombra-m: 0 4px 12px rgba(2, 6, 24, .55), 0 2px 4px rgba(2, 6, 24, .35);
+  --sombra-l: 0 16px 32px rgba(2, 6, 24, .70), 0 4px 8px rgba(2, 6, 24, .40);
 
-    --hero-inicio: #0F2A6B;
-    --hero-fin: #0F766E;
-    --hero-velo-inicio: rgba(11, 16, 32, .25);
-    --hero-velo-fin: rgba(11, 16, 32, .45);
-    --hero-mancha: rgba(255, 255, 255, .14);
-    --hero-boton-fondo: var(--cta);
-    --hero-boton-texto: var(--sobre-cta);
-    --hero-boton-hover: var(--cta-hover);
+  --hero-inicio: #0F172A;
+  --hero-fin: #1E3A8A;
+  --hero-velo-inicio: rgba(11, 15, 25, .20);
+  --hero-velo-fin: rgba(11, 15, 25, .40);
+  --hero-mancha: rgba(147, 197, 253, .14);
+  --hero-boton-fondo: #3B82F6;
+  --hero-boton-texto: #FFFFFF;
+  --hero-boton-hover: #60A5FA;
 
-    --estrella: #FFC24D;
+  --estrella: #FBBF24;
 
-    --tono-texto: #EEF1FF;
-    --tono-1-a: #25346F; --tono-1-b: #32458C;
-    --tono-2-a: #12504A; --tono-2-b: #176359;
-    --tono-3-a: #5A3A17; --tono-3-b: #6E4A1F;
-    --tono-4-a: #5C2440; --tono-4-b: #70304F;
-    --tono-5-a: #3F2C78; --tono-5-b: #4F3A91;
-    --tono-6-a: #544311; --tono-6-b: #655218;
+  --tono-texto: #E2E8F0;
+  --tono-1-a: #1E293B; --tono-1-b: #1E3A8A;
+  --tono-2-a: #064E3B; --tono-2-b: #065F46;
+  --tono-3-a: #451A03; --tono-3-b: #78350F;
+  --tono-4-a: #500724; --tono-4-b: #831843;
+  --tono-5-a: #2E1065; --tono-5-b: #4C1D95;
+  --tono-6-a: #0C4A6E; --tono-6-b: #075985;
+}
+
+.auth-logo {
+  max-width: 210px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 14px;
 }
 
 /* ---------- Base ---------- */

@@ -1,0 +1,634 @@
+/* =====================================================================
+   INTERSOFT · Sistema de diseño Figma para Panel de Negocio (/panel/)
+   Transforma el panel ERP y POS a una consola SaaS moderna (Claro/Oscuro)
+   totalmente alineada con Figma, Marketplace y Consola de Plataforma.
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --fondo: #f8fafc;
+  --superficie: #ffffff;
+  --sutil: #f1f5f9;
+  --borde: #e2e8f0;
+  --borde-fuerte: #cbd5e1;
+
+  /* Mapeo de variables heredadas de app.css al sistema Figma Claro */
+  --foto: none;
+  --ambiente: #f8fafc;
+  --vidrio: #ffffff;
+  --vidrio-borde: #e2e8f0;
+  --tarjeta: #ffffff;
+  --tarjeta-borde: #e2e8f0;
+  --hundido: #f1f5f9;
+  --linea: #e2e8f0;
+
+  --texto: #0f172a;
+  --suave: #475569;
+  --tenue: #64748b;
+
+  --azul: #2563eb;
+  --azul-hover: #1d4ed8;
+  --azul-suave: #eff6ff;
+  --verde: #059669;
+  --verde-fondo: #ecfdf5;
+  --rojo: #dc2626;
+  --rojo-fondo: #fef2f2;
+  --violeta: #7c3aed;
+  --ambar: #d97706;
+  --ambar-fondo: #fffbeb;
+
+  --sombra-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --sombra-sm: 0 2px 8px rgba(15, 23, 42, 0.07);
+  --radio-ventana: 0px;
+  --radio-tarjeta: 12px;
+  --radio-campo: 8px;
+
+  --fuente: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  accent-color: var(--azul);
+  scrollbar-color: var(--borde-fuerte) transparent;
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  --fondo: #0b0f19;
+  --superficie: #111827;
+  --sutil: #1e293b;
+  --borde: #1f2937;
+  --borde-fuerte: #334155;
+
+  --ambiente: #0b0f19;
+  --vidrio: #111827;
+  --vidrio-borde: #1f2937;
+  --tarjeta: #111827;
+  --tarjeta-borde: #1f2937;
+  --hundido: #0f172a;
+  --linea: #1f2937;
+
+  --texto: #f8fafc;
+  --suave: #94a3b8;
+  --tenue: #94a3b8;
+
+  --azul: #3b82f6;
+  --azul-hover: #60a5fa;
+  --azul-suave: #172554;
+  --verde: #34d399;
+  --verde-fondo: #064e3b;
+  --rojo: #f87171;
+  --rojo-fondo: #450a0a;
+  --violeta: #a78bfa;
+  --ambar: #fbbf24;
+  --ambar-fondo: #451a03;
+
+  --sombra-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --sombra-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+html, body {
+  background: var(--fondo) !important;
+  color: var(--texto);
+  font-family: var(--fuente);
+  font-size: 14.5px;
+}
+
+a {
+  color: var(--azul);
+}
+
+a:hover {
+  color: var(--azul-hover);
+}
+
+:where(a:any-link, button, input, select, textarea, summary, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--azul);
+  outline-offset: 2px;
+}
+
+/* ---------- Shell SaaS: Sidebar fijo + Columna principal ---------- */
+.escena {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+html.dock-abierto .escena {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+
+.dock {
+  position: sticky;
+  top: 0;
+  margin-top: 0;
+  height: 100vh;
+  min-height: 100vh;
+  border-radius: 0;
+  padding: 16px 12px;
+  gap: 4px;
+  background: var(--superficie);
+  border: 0;
+  border-right: 1px solid var(--borde);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+html.dock-abierto .dock {
+  align-items: stretch;
+  padding: 16px 14px;
+}
+
+.dock a,
+.dock-salir,
+.dock-expandir {
+  color: var(--suave);
+  border-radius: 8px;
+  min-height: 38px;
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+.dock a:hover,
+.dock-expandir:hover {
+  background: var(--sutil);
+  color: var(--texto);
+  transform: none;
+}
+
+.dock a.activo {
+  background: var(--azul-suave);
+  color: var(--azul);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.dock a.activo::before,
+.dock a.activo::after {
+  box-shadow: none;
+}
+
+.dock-salir:hover {
+  background: var(--rojo-fondo);
+  color: var(--rojo);
+  transform: none;
+}
+
+/* Ventana y barra superior */
+.ventana {
+  border-radius: 0;
+  background: var(--fondo);
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  margin: 0;
+  padding: 12px 28px;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+  border-radius: 0;
+  gap: 14px;
+}
+
+.marca {
+  color: var(--texto);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.marca-icono {
+  background: var(--azul-suave);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+}
+
+.busqueda input {
+  background: var(--sutil);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 8px;
+  min-height: 36px;
+}
+
+.busqueda input:focus {
+  background: var(--superficie);
+  border-color: var(--azul);
+}
+
+.selector-negocio select {
+  background: var(--sutil);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 8px;
+  min-height: 36px;
+}
+
+.panel-tema-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--suave);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.panel-tema-btn:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+.panel-tema-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.cuenta-perfil {
+  background: var(--sutil);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 999px;
+  padding: 4px 10px 4px 12px;
+}
+
+.cuenta-perfil:hover {
+  border-color: var(--borde-fuerte);
+}
+
+.cuenta-texto strong {
+  color: var(--texto);
+}
+
+.cuenta-texto small {
+  color: var(--tenue);
+}
+
+.avatar {
+  background: var(--azul);
+  color: #ffffff;
+}
+
+.notificaciones-btn {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  color: var(--suave);
+  border-radius: 8px;
+}
+
+.notificaciones-btn:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+.notificaciones-panel {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-sm);
+  border-radius: 12px;
+  color: var(--texto);
+}
+
+.notificaciones-item {
+  border-bottom: 1px solid var(--borde);
+  color: var(--texto);
+}
+
+.notificaciones-item:hover {
+  background: var(--sutil);
+}
+
+/* Contenido principal */
+main#contenido-principal {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 26px 28px 40px;
+}
+
+/* ---------- Tarjetas, KPIs y Módulos ERP ---------- */
+.tarjeta,
+.kpi,
+.erp-modulo-card,
+.rol-card,
+.pos-panel {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: var(--sombra-xs);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.kpi:hover,
+.erp-modulo-card:hover,
+.rol-card:hover {
+  border-color: var(--borde-fuerte);
+  box-shadow: var(--sombra-sm);
+}
+
+.kpi::before,
+.kpi::after,
+.erp-modulo-card::before,
+.rol-card::before {
+  opacity: 0;
+}
+
+.kpi strong {
+  color: var(--texto);
+}
+
+.kpi.verde strong { color: var(--verde); }
+.kpi.rojo strong { color: var(--rojo); }
+.kpi.ambar strong { color: var(--ambar); }
+.kpi.azul strong { color: var(--azul); }
+
+.kpi small,
+.nota {
+  color: var(--suave);
+}
+
+/* ---------- Botones ---------- */
+.boton {
+  background: var(--azul);
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  box-shadow: none;
+}
+
+.boton:hover {
+  background: var(--azul-hover);
+  color: #ffffff;
+  transform: none;
+  box-shadow: none;
+}
+
+.boton.secundario {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borde-fuerte);
+  box-shadow: var(--sombra-xs);
+}
+
+.boton.secundario:hover {
+  background: var(--sutil);
+  color: var(--texto);
+  border-color: var(--tenue);
+}
+
+.boton.peligro {
+  background: var(--rojo);
+  color: #ffffff;
+}
+
+.boton.peligro:hover {
+  filter: brightness(0.92);
+}
+
+/* ---------- Formularios e inputs ---------- */
+.formulario {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: var(--sombra-xs);
+}
+
+.tarjeta .formulario {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+select,
+textarea {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 8px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+label {
+  color: var(--texto);
+}
+
+/* ---------- Tablas ---------- */
+.tabla-wrap {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--superficie);
+  overflow-x: auto;
+  container-type: inline-size;
+}
+
+.tabla {
+  background: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tabla thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+
+.tabla th {
+  background: var(--sutil);
+  color: var(--tenue);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla td {
+  color: var(--suave);
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla td strong {
+  color: var(--texto);
+}
+
+.tabla tbody tr:hover td {
+  background: var(--fondo);
+}
+
+/* ---------- Mensajes, badges, NPS y pedidos ---------- */
+.mensaje {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 10px;
+  box-shadow: var(--sombra-xs);
+}
+
+.mensaje.success {
+  background: var(--verde-fondo);
+  border-color: var(--verde);
+  color: var(--verde);
+}
+
+.mensaje.error {
+  background: var(--rojo-fondo);
+  border-color: var(--rojo);
+  color: var(--rojo);
+}
+
+.mensaje.info {
+  background: var(--azul-suave);
+  border-color: var(--azul);
+  color: var(--azul);
+}
+
+.franja-soporte {
+  background: var(--ambar-fondo);
+  border: 1px solid var(--ambar);
+  color: var(--texto);
+  border-radius: 10px;
+}
+
+.nps-opcion {
+  background: var(--sutil);
+  border-color: var(--borde);
+  color: var(--texto);
+}
+
+.nps-opcion:hover {
+  background: var(--azul-suave);
+  border-color: var(--azul);
+}
+
+.pedido-tab-panel {
+  background: var(--superficie);
+  border-color: var(--borde);
+  color: var(--suave);
+}
+
+.pedido-tab-panel:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+.pedido-tab-panel.activo {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: #ffffff;
+}
+
+.pedido-badge.pagado {
+  background: var(--verde-fondo);
+  color: var(--verde);
+}
+
+.pedido-badge.pendiente {
+  background: var(--ambar-fondo);
+  color: var(--ambar);
+}
+
+.pedido-badge.vencido {
+  background: var(--sutil);
+  color: var(--suave);
+}
+
+.pedido-badge.envio {
+  background: var(--azul-suave);
+  color: var(--azul);
+}
+
+/* POS tarjetas de producto */
+.pos-producto {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  color: var(--texto);
+}
+
+.pos-producto:hover {
+  border-color: var(--azul);
+  background: var(--azul-suave);
+}
+
+/* Responsive móvil */
+@media (max-width: 900px) {
+  .escena,
+  html.dock-abierto .escena {
+    grid-template-columns: 1fr;
+  }
+
+  .dock {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: auto;
+    min-height: 0;
+    flex-direction: row;
+    border-right: 0;
+    border-top: 1px solid var(--borde);
+    padding: 8px 10px;
+    overflow-x: auto;
+  }
+
+  .barra {
+    padding: 10px 16px;
+  }
+
+  main#contenido-principal {
+    padding: 18px 16px 86px;
+  }
+}
+
+@media (pointer: coarse) {
+  .boton,
+  .panel-tema-btn,
+  .dock a {
+    min-height: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .tarjeta,
+  .kpi,
+  .boton,
+  .tabla-wrap,
+  .pos-producto {
+    border: 1px solid CanvasText;
+  }
+}

@@ -200,6 +200,27 @@
   pintar();
 })();
 
+// Toggle de tema Claro / Oscuro sincronizado con el Marketplace (intersoft-tema)
+(() => {
+  const btn = document.querySelector("[data-panel-tema]");
+  if (!btn) return;
+  const root = document.documentElement;
+  const lbl = btn.querySelector("[data-panel-tema-label]");
+  const pintar = () => {
+    const oscuro = root.getAttribute("data-tema") === "oscuro";
+    btn.setAttribute("aria-pressed", String(oscuro));
+    btn.setAttribute("aria-label", oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
+    if (lbl) lbl.textContent = oscuro ? "Oscuro" : "Claro";
+  };
+  btn.addEventListener("click", () => {
+    const siguiente = root.getAttribute("data-tema") === "oscuro" ? "claro" : "oscuro";
+    root.setAttribute("data-tema", siguiente);
+    try { localStorage.setItem("intersoft-tema", siguiente); } catch (e) {}
+    pintar();
+  });
+  pintar();
+})();
+
 // Utilidades declarativas (sin manejadores inline en HTML): auto-envío, imprimir, confirmar y deducciones ERP
 (() => {
   document.addEventListener("change", (ev) => {

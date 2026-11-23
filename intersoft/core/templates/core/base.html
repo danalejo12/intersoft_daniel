@@ -3,18 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block titulo %}Intersoft{% endblock %}</title>
-  <meta name="theme-color" content="#0b1020">
+  <meta name="theme-color" content="#2563eb">
   <link rel="manifest" href="{% static 'core/manifest.webmanifest' %}">
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
+  <script src="{% static 'core/js/tema-init.js' %}"></script>
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
   <script src="{% static 'core/js/dock-init.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=25">
-  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=26">
+  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=1">
 </head>
 <body>
+<a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
 {% include "core/includes/bienvenida.html" %}
 
 {% if user.is_authenticated %}
@@ -129,6 +133,10 @@
       </form>
 
       <div class="cuenta">
+        <button type="button" class="panel-tema-btn" data-panel-tema aria-pressed="false" aria-label="Cambiar tema">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <span data-panel-tema-label>Claro</span>
+        </button>
         <a class="boton secundario ir-marketplace" href="{% url 'marketplace' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 3-5h14l3 5"/><path d="M2 8v1.5a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0 3.33 3.33 0 0 0 6.67 0V8Z"/><path d="M4 12.5V21h16v-8.5"/><path d="M10 21v-5h4v5"/></svg>
           Ir al marketplace
@@ -278,7 +286,7 @@
 </div>
 {% endif %}
 
-<script defer src="{% static 'core/js/app.js' %}?v=4"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=5"></script>
 <script defer src="{% static 'core/js/soporte-widget.js' %}?v=1"></script>
 <script defer src="{% static 'core/js/pwa-init.js' %}?v=1"></script>
 {% block scripts %}{% endblock %}

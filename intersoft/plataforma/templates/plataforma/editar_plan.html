@@ -2,17 +2,17 @@
 {% block titulo %}Editar plan {{ plan.nombre }} · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Editar plan: {{ plan.nombre }} (<code>{{ plan.codigo }}</code>)</h1>
       <p class="nota">Los cambios aplican a nuevas suscripciones y evaluaciones de límites. El plan <code>gratis</code> debe permanecer activo y en $ 0.</p>
     </div>
-    <div>
-      <a href="{% url 'plataforma_planes_cobros' %}" class="boton secundario">Volver a Planes y cobros</a>
+    <div class="plat-acciones-cabecera">
+      <a href="{% url 'plataforma_planes_cobros' %}" class="boton secundario">← Volver a Planes y cobros</a>
     </div>
-  </div>
+  </header>
 
-  <article class="tarjeta">
+  <article class="tarjeta plat-card plat-tarjeta-estrecha">
     <form method="post" class="formulario" novalidate>
       {% csrf_token %}
 
@@ -20,20 +20,22 @@
         <p class="error aviso">Revisa los campos marcados antes de guardar.</p>
       {% endif %}
 
-      {% for campo in form %}
-        <div class="campo{% if campo.errors %} con-error{% endif %}">
-          {{ campo.label_tag }}
-          {{ campo }}
-          {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
-          {% for error in campo.errors %}
-            <p class="error">{{ error }}</p>
-          {% endfor %}
-        </div>
-      {% endfor %}
+      <div class="plat-form-grid">
+        {% for campo in form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% if campo.help_text %}<small class="ayuda">{{ campo.help_text }}</small>{% endif %}
+            {% for error in campo.errors %}
+              <p class="error">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
 
       <div class="acciones">
-        <button type="submit" class="boton">Guardar cambios del plan</button>
         <a href="{% url 'plataforma_planes_cobros' %}" class="boton secundario">Cancelar</a>
+        <button type="submit" class="boton">Guardar cambios del plan</button>
       </div>
     </form>
   </article>

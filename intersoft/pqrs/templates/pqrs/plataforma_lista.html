@@ -2,16 +2,17 @@
 {% block titulo %}PQRS · Consola de Plataforma · Intersoft{% endblock %}
 
 {% block contenido %}
-  <div class="encabezado">
+  <header class="plat-encabezado">
     <div>
       <h1>Bandeja global de PQRS</h1>
       <p class="nota">Todas las PQRS de negocios y compradores. Las solicitudes escaladas aparecen primero.</p>
     </div>
-  </div>
+    <span class="plat-badge neutro">{{ pqrs_lista|length }} solicitud{{ pqrs_lista|length|pluralize:"es" }}</span>
+  </header>
 
-  <article class="tarjeta">
-    <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:16px;">
-      <div class="campo" style="margin:0;">
+  <article class="tarjeta plat-card">
+    <form method="get" class="plat-filtros" role="search">
+      <div class="campo">
         <label for="f-estado">Estado</label>
         <select id="f-estado" name="estado">
           <option value="">Todos</option>
@@ -20,7 +21,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="campo" style="margin:0;">
+      <div class="campo">
         <label for="f-flujo">Flujo</label>
         <select id="f-flujo" name="flujo">
           <option value="">Todos</option>
@@ -30,45 +31,52 @@
         </select>
       </div>
       <button type="submit" class="boton">Filtrar</button>
+      {% if filtros.estado or filtros.flujo %}
+        <a href="{% url 'plataforma_pqrs' %}" class="boton secundario">Limpiar</a>
+      {% endif %}
     </form>
 
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Radicado</th>
-          <th>Flujo</th>
-          <th>Negocio</th>
-          <th>Autor</th>
-          <th>Asunto</th>
-          <th>Estado</th>
-          <th>Prioridad</th>
-          <th>Semáforo</th>
-          <th>Límite</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in pqrs_lista %}
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td><a href="{% url 'plataforma_pqrs_detalle' p.pk %}"><code>{{ p.radicado }}</code></a></td>
-            <td>{{ p.get_flujo_display }}</td>
-            <td>{{ p.empresa.nombre|default:"—" }}</td>
-            <td>{{ p.autor.email }}</td>
-            <td><a href="{% url 'plataforma_pqrs_detalle' p.pk %}">{{ p.asunto }}</a></td>
-            <td>
-              {% if p.estado == "escalada" %}
-                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5;">{{ p.get_estado_display }}</span>
-              {% else %}
-                {{ p.get_estado_display }}
-              {% endif %}
-            </td>
-            <td>{{ p.get_prioridad_display }}</td>
-            <td>{% include "pqrs/_semaforo.html" with pqrs=p %}</td>
-            <td>{{ p.fecha_limite|date:"d/m/Y" }}</td>
+            <th>Radicado</th>
+            <th>Flujo</th>
+            <th>Negocio</th>
+            <th>Autor</th>
+            <th>Asunto</th>
+            <th>Estado</th>
+            <th>Prioridad</th>
+            <th>Semáforo</th>
+            <th>Límite</th>
           </tr>
-        {% empty %}
-          <tr><td colspan="9">No hay PQRS registradas.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for p in pqrs_lista %}
+            <tr>
+              <td><a href="{% url 'plataforma_pqrs_detalle' p.pk %}"><code>{{ p.radicado }}</code></a></td>
+              <td>{{ p.get_flujo_display }}</td>
+              <td>{{ p.empresa.nombre|default:"—" }}</td>
+              <td>{{ p.autor.email }}</td>
+              <td><a href="{% url 'plataforma_pqrs_detalle' p.pk %}"><strong>{{ p.asunto }}</strong></a></td>
+              <td>
+                {% if p.estado == "escalada" %}
+                  <span class="plat-badge peligro">{{ p.get_estado_display }}</span>
+                {% elif p.estado == "respondida" or p.estado == "cerrada" %}
+                  <span class="plat-badge exito">{{ p.get_estado_display }}</span>
+                {% else %}
+                  <span class="plat-badge info">{{ p.get_estado_display }}</span>
+                {% endif %}
+              </td>
+              <td>{{ p.get_prioridad_display }}</td>
+              <td>{% include "pqrs/_semaforo.html" with pqrs=p %}</td>
+              <td>{{ p.fecha_limite|date:"d/m/Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="9">No hay PQRS registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </article>
 {% endblock %}
