@@ -857,3 +857,249 @@ dialog.pos-dialogo::backdrop {
     transform: none;
   }
 }
+
+
+/* =====================================================================
+   DETALLES PEQUEÑOS Y GENERALES DEL PANEL (Overrides precisos sobre app.css)
+   ===================================================================== */
+
+/* 1. Inputs al enfocar: evita fondo oscuro heredado de app.css en modo claro */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):focus,
+select:focus,
+textarea:focus,
+.busqueda input:focus {
+  background: var(--superficie);
+  color: var(--texto);
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+/* 2. Botones: limpia brillo glass heredado y unifica todas las variantes */
+.boton::before,
+button.boton::before {
+  display: none;
+}
+
+.boton.exito,
+button.exito {
+  background: var(--verde);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.boton.exito:hover,
+button.exito:hover {
+  filter: brightness(0.92);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.boton.advertencia,
+button.advertencia {
+  background: var(--ambar);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.boton.fantasma,
+button.fantasma {
+  background: transparent;
+  color: var(--suave);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+.boton.fantasma:hover,
+button.fantasma:hover {
+  background: var(--sutil);
+  color: var(--texto);
+  border-color: var(--borde);
+}
+
+.acciones a {
+  border-radius: 8px;
+  color: var(--suave);
+}
+
+.acciones a:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+/* 3. Sidebar / Dock: tooltips nítidos, hover limpio y tamaños de ícono */
+.dock svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dock-expandir:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+html:not(.dock-abierto) .dock [data-label]::after {
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.35);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 7px;
+  backdrop-filter: none;
+}
+
+/* 4. Dashboard: Guía de primeros pasos */
+.guia {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-top: 3px solid var(--azul);
+  border-radius: 12px;
+  box-shadow: var(--sombra-xs);
+  padding: 20px 22px;
+}
+
+.guia-barra {
+  background: var(--sutil);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.guia-barra span {
+  background: linear-gradient(90deg, var(--azul) 0%, var(--verde) 100%);
+}
+
+.guia-pasos li {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.guia-pasos li.hecho {
+  background: var(--verde-fondo);
+  border-color: transparent;
+}
+
+.guia-marca {
+  background: var(--azul-suave);
+  color: var(--azul);
+  border: 1px solid var(--borde);
+}
+
+.guia-pasos li.hecho .guia-marca {
+  background: var(--verde);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+/* 5. Dashboard: KPIs, íconos y medidor de salud de inventario */
+.kpi.violeta {
+  border-top-color: var(--violeta);
+}
+
+.kpi.violeta strong {
+  color: var(--violeta);
+}
+
+.kpi-icono {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--azul-suave);
+  color: var(--azul);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi.verde .kpi-icono { background: var(--verde-fondo); color: var(--verde); }
+.kpi.ambar .kpi-icono { background: var(--ambar-fondo); color: var(--ambar); }
+.kpi.rojo .kpi-icono { background: var(--rojo-fondo); color: var(--rojo); }
+.kpi.violeta .kpi-icono { background: rgba(124, 58, 237, 0.12); color: var(--violeta); }
+
+.medidor-pista {
+  stroke: var(--borde);
+}
+
+.medidor text {
+  fill: var(--tenue);
+}
+
+.medidor-cifra {
+  color: var(--texto);
+}
+
+.medidor-pie > div {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--suave);
+}
+
+.medidor-pie strong {
+  color: var(--texto);
+}
+
+/* 6. Tablas: pie de tabla, alertas y estados */
+.tabla tfoot td {
+  background: var(--sutil);
+  color: var(--texto);
+  font-weight: 600;
+  border-top: 1px solid var(--borde);
+}
+
+.alerta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rojo-fondo);
+  color: var(--rojo);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.badge.alerta {
+  background: var(--ambar-fondo);
+  color: var(--ambar);
+  border-color: transparent;
+}
+
+.badge.neutro {
+  background: var(--sutil);
+  color: var(--suave);
+  border-color: var(--borde);
+}
+
+/* 7. Equipo, roles y permisos */
+.equipo-permiso-grupo {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.equipo-permiso-item {
+  border-radius: 8px;
+  transition: background-color 0.14s ease;
+}
+
+.equipo-permiso-item:hover {
+  background: var(--sutil);
+}
+
+.equipo-permiso-item:has(input:checked) {
+  background: var(--azul-suave);
+  border-color: var(--azul);
+}
+
+/* 8. Encabezados y tipografía equilibrada */
+h1, h2 {
+  text-wrap: balance;
+}
+
+.nota, p {
+  text-wrap: pretty;
+}
