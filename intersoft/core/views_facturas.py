@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Exists, F, OuterRef
+from django.db.models import Exists, F, OuterRef, Q
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -52,7 +52,7 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
         pagos = Pago.objects.filter(factura=OuterRef("pk"))
         # Un intento de los últimos 30 min puede estar pagado en Wompi: primero hay que verificarlo
         recientes = timezone.now() - timedelta(minutes=30)
-        return (
+        queryset = (
             super().get_queryset()
             .select_related("cliente")
             .annotate(
@@ -69,10 +69,18 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
             )
             .order_by("-numero")
         )
+        self.q = self.request.GET.get("q", "").strip()
+        if self.q:
+            filtro = Q(cliente__nombre__icontains=self.q) | Q(cliente__numero_documento__icontains=self.q)
+            if self.q.isdigit():
+                filtro |= Q(numero=int(self.q))
+            queryset = queryset.filter(filtro)
+        return queryset
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["puede_cobrar"] = self.request.membresia.tiene_permiso("ventas.cobrar")
+        contexto["q"] = getattr(self, "q", "")
         return contexto
 
 

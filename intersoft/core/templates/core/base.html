@@ -15,7 +15,7 @@
   <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=26">
   <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=5">
 </head>
 <body>
 <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
@@ -128,10 +128,12 @@
       </form>
       {% endif %}
 
-      <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
+      <form class="busqueda" method="get" role="search" action="{% if 'clientes' in ruta %}{% url 'clientes_lista' %}{% elif 'categorias' in ruta %}{% url 'categorias_lista' %}{% elif 'facturas' in ruta %}{% url 'facturas_lista' %}{% elif 'pedidos_panel' in ruta %}{% url 'pedidos_panel_lista' %}{% elif 'panel_pqrs' in ruta %}{% url 'panel_pqrs_lista' %}{% else %}{% url 'productos_lista' %}{% endif %}">
         <svg class="busqueda-icono" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input type="search" name="q" placeholder="Buscar productos…" aria-label="Buscar productos" autocomplete="off">
-        <button type="submit" class="busqueda-enviar" aria-label="Buscar productos">Buscar</button>
+        <input type="search" name="q" value="{{ request.GET.q|default:'' }}" autocomplete="off"
+               placeholder="{% if 'clientes' in ruta %}Buscar clientes…{% elif 'categorias' in ruta %}Buscar categorías…{% elif 'facturas' in ruta %}Buscar facturas o clientes…{% elif 'pedidos_panel' in ruta %}Buscar pedidos…{% elif 'panel_pqrs' in ruta %}Buscar PQRS…{% else %}Buscar productos…{% endif %}"
+               aria-label="{% if 'clientes' in ruta %}Buscar clientes{% elif 'categorias' in ruta %}Buscar categorías{% elif 'facturas' in ruta %}Buscar facturas{% elif 'pedidos_panel' in ruta %}Buscar pedidos{% elif 'panel_pqrs' in ruta %}Buscar PQRS{% else %}Buscar productos{% endif %}">
+        <button type="submit" class="busqueda-enviar" aria-label="Buscar">Buscar</button>
       </form>
 
       <div class="cuenta">

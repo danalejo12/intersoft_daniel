@@ -1420,3 +1420,67 @@ input[type="checkbox"] {
     transform: none;
   }
 }
+
+
+/* =====================================================================
+   BOTONES PRO Y RESPALDO EXPLÍCITO MODO OSCURO EN /plataforma/
+   ===================================================================== */
+html[data-tema="dark"] {
+  --plat-canvas: var(--plat-canvas-dark);
+  --plat-surface: var(--plat-surface-dark);
+  --plat-subtle: var(--plat-subtle-dark);
+  --plat-border: var(--plat-border-dark);
+  --plat-border-strong: var(--plat-border-strong-dark);
+  --plat-ink: var(--plat-ink-dark);
+  --plat-ink-sec: var(--plat-ink-sec-dark);
+  --plat-ink-muted: var(--plat-ink-muted-dark);
+  --plat-brand: var(--plat-brand-dark);
+  --plat-brand-hover: var(--plat-brand-hover-dark);
+  --plat-brand-soft: var(--plat-brand-soft-dark);
+  --plat-success: var(--plat-success-dark);
+  --plat-success-bg: var(--plat-success-bg-dark);
+  --plat-warning: var(--plat-warning-dark);
+  --plat-warning-bg: var(--plat-warning-bg-dark);
+  --plat-danger: var(--plat-danger-dark);
+  --plat-danger-bg: var(--plat-danger-bg-dark);
+  --plat-info: var(--plat-info-dark);
+  --plat-info-bg: var(--plat-info-bg-dark);
+  --plat-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --plat-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+select option {
+  background-color: var(--plat-surface);
+  color: var(--plat-ink);
+}
+
+.boton {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border: 1px solid rgba(29, 78, 216, 0.35);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+}
+
+.boton:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.boton.secundario {
+  background: var(--plat-surface);
+  color: var(--plat-ink);
+  border: 1px solid var(--plat-border-strong);
+  box-shadow: var(--plat-shadow-xs);
+}
+
+.boton.secundario:hover {
+  background: var(--plat-subtle);
+  box-shadow: var(--plat-shadow-sm);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .boton:active,
+  .plat-tema-btn:active {
+    transform: scale(0.985);
+  }
+}
