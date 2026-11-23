@@ -56,3 +56,31 @@ def uri_otpauth(secreto: str, email: str, emisor: str = "InterSoft Plataforma") 
     etiqueta = quote(f"{emisor}:{email}")
     emisor_q = quote(emisor)
     return f"otpauth://totp/{etiqueta}?secret={secreto}&issuer={emisor_q}&digits=6&period=30"
+
+
+def qr_data_uri(uri: str, tamano: int = 210) -> str:
+    """Genera un código QR en SVG (data URI base64) localmente sin enviar el secreto a terceros."""
+    from reportlab.graphics import renderSVG
+    from reportlab.graphics.barcode import qr
+    from reportlab.graphics.shapes import Drawing, Rect
+    from reportlab.lib import colors
+
+    widget = qr.QrCodeWidget(uri)
+    x0, y0, x1, y1 = widget.getBounds()
+    ancho = max(x1 - x0, 1)
+    alto = max(y1 - y0, 1)
+    margen = 12
+    interior = tamano - (margen * 2)
+
+    dibujo = Drawing(tamano, tamano)
+    dibujo.add(Rect(0, 0, tamano, tamano, fillColor=colors.white, strokeColor=None))
+    contenedor = Drawing(
+        tamano,
+        tamano,
+        transform=[interior / ancho, 0, 0, interior / alto, margen - (x0 * interior / ancho), margen - (y0 * interior / alto)],
+    )
+    contenedor.add(widget)
+    dibujo.add(contenedor)
+
+    svg_bytes = renderSVG.drawToString(dibujo).encode("utf-8")
+    return "data:image/svg+xml;base64," + base64.b64encode(svg_bytes).decode("ascii")

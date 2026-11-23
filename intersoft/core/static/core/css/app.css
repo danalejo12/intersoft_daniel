@@ -1762,3 +1762,16 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
 }
 .notificaciones-item strong { display: block; font-size: .9rem; }
 .notificaciones-item small { color: var(--suave); font-size: .8rem; }
+
+/* Tarjeta 2FA / TOTP en /plataforma/2fa/ */
+.totp-tarjeta { max-width: 520px; margin: 0 auto; }
+.totp-qr-caja {
+  display: inline-flex;
+  padding: 12px;
+  margin: 12px 0 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
+}
+.totp-qr-caja img { display: block; width: 210px; height: 210px; }
+.totp-secreto { font-size: .95rem; letter-spacing: .08em; word-break: break-all; }

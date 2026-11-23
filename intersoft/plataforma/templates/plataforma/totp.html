@@ -9,12 +9,19 @@
     </div>
   </div>
 
-  <article class="tarjeta" style="max-width: 520px;">
+  <article class="tarjeta totp-tarjeta">
     {% if configurando %}
       <h2>Activar 2FA en tu cuenta</h2>
-      <p>Agrega esta clave en Google Authenticator, Authy o tu gestor de contraseñas:</p>
-      <p><code>{{ secreto_nuevo }}</code></p>
-      <p><small class="nota">URI otpauth: <code>{{ uri_totp }}</code></small></p>
+      <p>Escanea este código QR con <strong>Google Authenticator</strong>, <strong>Authy</strong> o tu gestor de contraseñas:</p>
+
+      {% if qr_totp %}
+        <div class="totp-qr-caja">
+          <img src="{{ qr_totp }}" alt="Código QR para configurar 2FA en tu aplicación de autenticación" width="210" height="210">
+        </div>
+      {% endif %}
+
+      <p class="nota">Si prefieres ingresarlo manualmente, usa esta clave (basada en tiempo):</p>
+      <p><code class="totp-secreto">{{ secreto_nuevo }}</code></p>
     {% else %}
       <h2>Ingresa tu código de verificación</h2>
       <p class="nota">Escribe el código de 6 dígitos generado por tu aplicación de autenticación.</p>

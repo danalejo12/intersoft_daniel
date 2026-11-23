@@ -754,6 +754,7 @@ class PlataformaCuponesPreciosRecordatoriosFlagsYTotpTests(TestCase):
         # GET /plataforma/2fa/ genera secreto de enrolamiento en sesión
         resp_get = self.client.get(reverse("plataforma_totp"))
         self.assertEqual(resp_get.status_code, 200)
+        self.assertContains(resp_get, "data:image/svg+xml;base64,")
         secreto = self.client.session["plataforma_totp_setup"]
 
         # Código inválido es rechazado

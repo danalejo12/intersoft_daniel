@@ -38,7 +38,7 @@ from .models import (
     FeatureFlag,
     RolPlataforma,
 )
-from .totp import generar_secreto_totp, uri_otpauth, verificar_codigo_totp
+from .totp import generar_secreto_totp, qr_data_uri, uri_otpauth, verificar_codigo_totp
 
 
 class InicioPlataformaView(PlataformaMixin, View):
@@ -748,13 +748,15 @@ class PlataformaTOTPView(PlataformaMixin, View):
         if not rol.totp_activo:
             secreto = request.session.get("plataforma_totp_setup") or generar_secreto_totp()
             request.session["plataforma_totp_setup"] = secreto
+            uri = uri_otpauth(secreto, request.user.email)
             return render(
                 request,
                 self.template_name,
                 {
                     "configurando": True,
                     "secreto_nuevo": secreto,
-                    "uri_totp": uri_otpauth(secreto, request.user.email),
+                    "uri_totp": uri,
+                    "qr_totp": qr_data_uri(uri),
                 },
             )
         return render(request, self.template_name, {"configurando": False})
@@ -767,13 +769,15 @@ class PlataformaTOTPView(PlataformaMixin, View):
             secreto = request.session.get("plataforma_totp_setup") or ""
             if not verificar_codigo_totp(secreto, codigo):
                 messages.error(request, "Código TOTP inválido. Verifica la hora de tu dispositivo e inténtalo de nuevo.")
+                uri = uri_otpauth(secreto, request.user.email)
                 return render(
                     request,
                     self.template_name,
                     {
                         "configurando": True,
                         "secreto_nuevo": secreto,
-                        "uri_totp": uri_otpauth(secreto, request.user.email),
+                        "uri_totp": uri,
+                        "qr_totp": qr_data_uri(uri),
                     },
                 )
             rol.establecer_totp_secreto(secreto)
