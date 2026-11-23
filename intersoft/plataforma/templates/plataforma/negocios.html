@@ -23,7 +23,7 @@
       <button type="submit" class="boton">Buscar</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Negocio</th>
@@ -41,11 +41,11 @@
             <td>{% if e.suscripcion %}{{ e.suscripcion.plan.nombre }}{% else %}—{% endif %}</td>
             <td>{% if e.suscripcion %}{{ e.suscripcion.get_estado_display }}{% else %}Sin suscripción{% endif %}</td>
             <td>
-              <form method="post" style="display:flex; gap:6px; align-items:center; margin:0;">
+              <form method="post" style="display:flex; gap:6px; align-items:center; margin:0;" data-confirmar="¿Entrar al panel de «{{ e.nombre }}» como soporte? Quedará registrado en la auditoría.">
                 {% csrf_token %}
                 <input type="hidden" name="accion" value="entrar_como">
                 <input type="hidden" name="empresa_id" value="{{ e.pk }}">
-                <select name="modo" aria-label="Modo soporte">
+                <select name="modo" aria-label="Modo soporte para {{ e.nombre }}">
                   <option value="lectura" selected>Solo lectura</option>
                   <option value="escritura">Lectura y escritura</option>
                 </select>
@@ -57,7 +57,7 @@
           <tr><td colspan="5">No se encontraron negocios.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta">
@@ -79,7 +79,7 @@
       <button type="submit" class="boton">Publicar anuncio</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Título</th>
@@ -97,7 +97,7 @@
             <td><small>{{ a.inicia_en|date:"d/m/Y H:i" }} → {% if a.vence_en %}{{ a.vence_en|date:"d/m/Y H:i" }}{% else %}Sin fin{% endif %}</small></td>
             <td>{% if a.activo %}<span class="badge exito">Activo</span>{% else %}<span class="badge neutro">Inactivo</span>{% endif %}</td>
             <td>
-              <form method="post" style="margin:0;">
+              <form method="post" style="margin:0;"{% if a.activo %} data-confirmar="¿Desactivar el anuncio «{{ a.titulo }}»? Los negocios dejarán de verlo."{% endif %}>
                 {% csrf_token %}
                 <input type="hidden" name="accion" value="toggle_anuncio">
                 <input type="hidden" name="anuncio_id" value="{{ a.pk }}">
@@ -109,6 +109,6 @@
           <tr><td colspan="5">Sin anuncios globales registrados.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

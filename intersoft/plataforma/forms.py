@@ -10,6 +10,19 @@ from suscripciones.models import CuponPlan, Plan
 
 from .models import AnuncioGlobal, ConfiguracionCobroPlataforma, FeatureFlag
 
+
+class IdsPropiosMixin:
+    """Varios formularios comparten la página de Planes y cobros (y la de Negocios) y algunos campos se
+    llaman igual (empresa, codigo, activo…). Cada formulario usa su propio prefijo en los id del HTML para
+    que no se repitan ni una etiqueta active el campo de otro formulario. Los nombres enviados no cambian."""
+
+    prefijo_ids = ""
+
+    def __init__(self, *args, **kwargs):
+        if self.prefijo_ids:
+            kwargs.setdefault("auto_id", f"{self.prefijo_ids}_%s")
+        super().__init__(*args, **kwargs)
+
 FEATURES_DISPONIBLES = [
     ("marketplace", "Marketplace"),
     ("marketplace_destacado", "Marketplace destacado"),
@@ -26,7 +39,8 @@ FEATURES_DISPONIBLES = [
 ]
 
 
-class ConfiguracionCobroPlataformaForm(forms.ModelForm):
+class ConfiguracionCobroPlataformaForm(IdsPropiosMixin, forms.ModelForm):
+    prefijo_ids = "llaves"
     """Formulario seguro para las llaves de Wompi de Intersoft: nunca expone secretos existentes."""
 
     llave_privada = forms.CharField(
@@ -121,7 +135,8 @@ class ConfiguracionCobroPlataformaForm(forms.ModelForm):
         return config, campos_cambiados
 
 
-class PlanPlataformaForm(forms.ModelForm):
+class PlanPlataformaForm(IdsPropiosMixin, forms.ModelForm):
+    prefijo_ids = "plan"
     """Editor de precios, límites, funcionalidades, comisión y estado de un plan."""
 
     limite_productos = forms.IntegerField(
@@ -213,7 +228,8 @@ class PlanPlataformaForm(forms.ModelForm):
         return plan, cambios
 
 
-class CortesiaPlataformaForm(forms.Form):
+class CortesiaPlataformaForm(IdsPropiosMixin, forms.Form):
+    prefijo_ids = "cortesia"
     """Formulario para otorgar días gratis o un plan de cortesía a un negocio."""
 
     empresa = forms.ModelChoiceField(
@@ -249,7 +265,8 @@ class CortesiaPlataformaForm(forms.Form):
         return datos
 
 
-class CuposFundadorForm(forms.Form):
+class CuposFundadorForm(IdsPropiosMixin, forms.Form):
+    prefijo_ids = "cupos"
     """Formulario para ajustar el máximo de cupos de fundador en la base de datos."""
 
     cupos_fundador = forms.IntegerField(
@@ -258,7 +275,8 @@ class CuposFundadorForm(forms.Form):
     )
 
 
-class AnuncioGlobalForm(forms.ModelForm):
+class AnuncioGlobalForm(IdsPropiosMixin, forms.ModelForm):
+    prefijo_ids = "anuncio"
     """Formulario para publicar anuncios globales visibles en /panel/."""
 
     class Meta:
@@ -281,7 +299,8 @@ class AnuncioGlobalForm(forms.ModelForm):
         return self.cleaned_data.get("inicia_en") or timezone.now()
 
 
-class CuponPlanForm(forms.ModelForm):
+class CuponPlanForm(IdsPropiosMixin, forms.ModelForm):
+    prefijo_ids = "cupon"
     """Formulario para crear cupones de descuento de planes desde /plataforma/planes-cobros/."""
 
     class Meta:
@@ -303,7 +322,8 @@ class CuponPlanForm(forms.ModelForm):
         return self.cleaned_data.get("inicia_en") or timezone.now()
 
 
-class FeatureFlagForm(forms.ModelForm):
+class FeatureFlagForm(IdsPropiosMixin, forms.ModelForm):
+    prefijo_ids = "flag"
     """Formulario para activar/desactivar una función específica por negocio."""
 
     codigo = forms.ChoiceField(label="Funcionalidad", choices=FEATURES_DISPONIBLES)

@@ -10,9 +10,10 @@
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="192x192" href="{% static 'core/img/icono-app.png' %}">
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
+  <script src="{% static 'core/js/tema-init.js' %}"></script>
   <script src="{% static 'core/js/dock-init.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=25">
-  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=32">
+  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=2">
 </head>
 <body>
 {% include "core/includes/bienvenida.html" %}
@@ -29,17 +30,12 @@
     <a href="{% url 'dashboard' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'dashboard' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 21v-6.5h4V21"/></svg>
     </a>
-    {% if nav_permisos.ver_clientes %}
-    <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg>
-    </a>
+    {% if nav_permisos.ver_pos or nav_permisos.ver_facturas or nav_permisos.ver_pedidos or nav_permisos.ver_clientes %}
+    <span class="dock-grupo" role="presentation">Vender</span>
     {% endif %}
-    {% if nav_permisos.ver_productos %}
-    <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg>
-    </a>
-    <a href="{% url 'categorias_lista' %}" data-label="Categorías" aria-label="Categorías" class="{% if 'categorias' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42L12 2Z"/><path d="M7 7h.01"/></svg>
+    {% if nav_permisos.ver_pos %}
+    <a href="{% url 'pos' %}" data-label="Punto de venta" aria-label="Punto de venta" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.ver_facturas %}
@@ -52,22 +48,42 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     </a>
     {% endif %}
-    {% if nav_permisos.ver_pos %}
-    <a href="{% url 'pos' %}" data-label="Punto de venta" aria-label="Punto de venta" class="{% if ruta|slice:':3' == 'pos' %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/><path d="M7 15h.01M11 15h.01M15 15h.01M7 18h10"/></svg>
+    {% if nav_permisos.ver_clientes %}
+    <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="9" cy="10.5" r="2.2"/><path d="M5.5 16.5a3.5 3.5 0 0 1 7 0"/><path d="M15.5 10h3M15.5 14h3"/></svg>
     </a>
+    {% endif %}
+    {% if nav_permisos.ver_productos %}
+    <span class="dock-grupo" role="presentation">Catálogo</span>
+    <a href="{% url 'productos_lista' %}" data-label="Productos" aria-label="Productos" class="{% if 'productos' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.3 9 5.1"/></svg>
+    </a>
+    <a href="{% url 'categorias_lista' %}" data-label="Categorías" aria-label="Categorías" class="{% if 'categorias' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42L12 2Z"/><path d="M7 7h.01"/></svg>
+    </a>
+    <a href="{% url 'bodegas_lista' %}" data-label="Bodegas" aria-label="Bodegas" class="{% if 'bodegas' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M7 21v-8h10v8"/><path d="M7 17h10"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.ver_erp or nav_permisos.ver_equipo %}
+    <span class="dock-grupo" role="presentation">Administrar</span>
     {% endif %}
     {% if nav_permisos.ver_erp %}
     <a href="{% url 'erp_inicio' %}" data-label="Gestión ERP" aria-label="Gestión ERP" class="{% if ruta|slice:':3' == 'erp' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
     </a>
     {% endif %}
+    {% if nav_permisos.ver_equipo %}
+    <a href="{% url 'equipo_lista' %}" data-label="Equipo y roles" aria-label="Equipo y roles" class="{% if 'equipo' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </a>
+    {% endif %}
+    {% if nav_permisos.editar_negocio or nav_permisos.configurar_pagos %}
+    <span class="dock-grupo" role="presentation">Mi negocio</span>
+    {% endif %}
     {% if nav_permisos.editar_negocio %}
     <a href="{% url 'negocio_datos' %}" data-label="Perfil negocio" aria-label="Perfil negocio" class="{% if ruta == 'negocio_datos' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
-    </a>
-    <a href="{% url 'suscripcion_panel' %}" data-label="Plan y suscripción" aria-label="Plan y suscripción" class="{% if ruta == 'suscripcion_panel' %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </a>
     {% endif %}
     {% if nav_permisos.configurar_pagos %}
@@ -75,14 +91,15 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
     </a>
     {% endif %}
-    {% if nav_permisos.gestionar_pqrs %}
-    <a href="{% url 'panel_pqrs_lista' %}" data-label="PQRS" aria-label="PQRS" class="{% if 'panel_pqrs' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    {% if nav_permisos.editar_negocio %}
+    <a href="{% url 'suscripcion_panel' %}" data-label="Plan y suscripción" aria-label="Plan y suscripción" class="{% if ruta == 'suscripcion_panel' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </a>
     {% endif %}
-    {% if nav_permisos.ver_equipo %}
-    <a href="{% url 'equipo_lista' %}" data-label="Equipo y roles" aria-label="Equipo y roles" class="{% if 'equipo' in ruta %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    {% if nav_permisos.gestionar_pqrs %}
+    <span class="dock-grupo" role="presentation">Ayuda</span>
+    <a href="{% url 'panel_pqrs_lista' %}" data-label="PQRS" aria-label="PQRS" class="{% if 'panel_pqrs' in ruta %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </a>
     {% endif %}
 
@@ -124,11 +141,20 @@
       </form>
       {% endif %}
 
+      {# Sin JavaScript busca productos; con JavaScript abre el buscador global (Ctrl + K) #}
       <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
-        <input type="search" name="q" placeholder="Buscar productos" aria-label="Buscar productos">
+        <input type="search" name="q" placeholder="Buscar o ir a…" aria-label="Buscar o ir a una sección (Ctrl + K)" aria-keyshortcuts="Control+K" data-paleta-abrir>
+        <kbd class="busqueda-atajo" aria-hidden="true">Ctrl K</kbd>
       </form>
 
       <div class="cuenta">
+        <button type="button" class="tema" role="switch" aria-checked="true" aria-label="Modo noche" data-tema-boton>
+          <span class="tema-pista" aria-hidden="true">
+            <svg class="tema-sol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tema-luna" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
+            <span class="tema-perilla"></span>
+          </span>
+        </button>
         <a class="boton secundario ir-marketplace" href="{% url 'marketplace' %}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 3-5h14l3 5"/><path d="M2 8v1.5a3.33 3.33 0 0 0 6.67 0 3.33 3.33 0 0 0 6.66 0 3.33 3.33 0 0 0 6.67 0V8Z"/><path d="M4 12.5V21h16v-8.5"/><path d="M10 21v-5h4v5"/></svg>
           Ir al marketplace
@@ -279,6 +305,11 @@
 {% endif %}
 
 <script defer src="{% static 'core/js/app.js' %}?v=4"></script>
+<script defer src="{% static 'core/js/tema.js' %}?v=1"></script>
+{% if user.is_authenticated and request.empresa %}
+  {% include "core/includes/paleta_panel.html" %}
+  <script defer src="{% static 'core/js/paleta.js' %}?v=2"></script>
+{% endif %}
 <script defer src="{% static 'core/js/soporte-widget.js' %}?v=1"></script>
 <script defer src="{% static 'core/js/pwa-init.js' %}?v=1"></script>
 {% block scripts %}{% endblock %}

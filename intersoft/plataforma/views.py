@@ -1,13 +1,19 @@
 """Vistas de la consola interna de plataforma (/plataforma/)."""
+from urllib.parse import urlencode
+
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views import View
 
 from core.models import EjecucionTarea, Empresa
+from core.tareas import TAREAS, ejecutar_pendientes
 from core.pasarela_negocio import verificar_llaves
 from suscripciones import cobros as cobros_suscripcion
 from suscripciones.models import (
@@ -20,6 +26,7 @@ from suscripciones.models import (
 from suscripciones.services import cambiar_plan, cupos_fundador_actuales, otorgar_cortesia
 
 from . import auditoria
+from . import operacion
 from .forms import (
     AnuncioGlobalForm,
     ConfiguracionCobroPlataformaForm,
@@ -71,6 +78,7 @@ class InicioPlataformaView(PlataformaMixin, View):
         tareas = EjecucionTarea.objects.all().order_by("nombre")
         auditorias_recientes = AuditoriaPlataforma.objects.select_related("actor")[:8]
         metricas = calcular_metricas_saas()
+        atencion = self.requiere_atencion(request.rol_plataforma.permisos, cobros_revision)
 
         return render(
             request,
@@ -84,8 +92,44 @@ class InicioPlataformaView(PlataformaMixin, View):
                 "tareas": tareas,
                 "auditorias_recientes": auditorias_recientes,
                 "metricas": metricas,
+                "atencion": atencion,
             },
         )
+
+    @staticmethod
+    def requiere_atencion(permisos, cobros_revision):
+        """Lo urgente para el rol de quien entra, cada cosa con su enlace."""
+        from pqrs.models import PQRS
+        from soporte.models import ErrorRegistrado
+
+        items = []
+        if "finanzas" in permisos and cobros_revision:
+            items.append({"tipo": "peligro", "texto": f"{cobros_revision} cobro(s) de plan requieren revisión",
+                          "detalle": "Pagos recibidos que no se pudieron activar o con monto distinto.",
+                          "url": reverse("plataforma_planes_cobros")})
+        if "pqrs" in permisos:
+            abiertas = PQRS.objects.exclude(estado__in=[PQRS.Estado.CERRADA, PQRS.Estado.RESPONDIDA])
+            escaladas = abiertas.filter(estado=PQRS.Estado.ESCALADA).count()
+            vencidas = abiertas.filter(fecha_limite__lt=timezone.now()).count()
+            if escaladas or vencidas:
+                items.append({"tipo": "alerta", "texto": f"{escaladas} PQRS escalada(s) · {vencidas} vencida(s)",
+                              "detalle": "Clientes esperando respuesta.", "url": reverse("plataforma_pqrs")})
+        if "errores" in permisos:
+            nuevos = ErrorRegistrado.objects.filter(estado=ErrorRegistrado.Estado.NUEVO).count()
+            if nuevos:
+                items.append({"tipo": "peligro", "texto": f"{nuevos} error(es) nuevo(s) sin revisar",
+                              "detalle": "Fallos reales que vieron los usuarios.", "url": reverse("plataforma_errores")})
+        if "operacion" in permisos:
+            tareas = operacion.estado_tareas()
+            con_fallos = [t.nombre for t in tareas if t.fallos_seguidos]
+            atrasadas = [t.nombre for t in tareas if t.atrasada and not t.fallos_seguidos]
+            if con_fallos:
+                items.append({"tipo": "peligro", "texto": f"{len(con_fallos)} tarea(s) periódica(s) fallando",
+                              "detalle": ", ".join(con_fallos), "url": reverse("plataforma_operacion")})
+            elif atrasadas:
+                items.append({"tipo": "alerta", "texto": f"{len(atrasadas)} tarea(s) periódica(s) atrasada(s)",
+                              "detalle": "¿Está corriendo el programador de tareas?", "url": reverse("plataforma_operacion")})
+        return items
 
 
 class PlanesCobrosPlataformaView(PlataformaMixin, View):
@@ -589,152 +633,6 @@ class SalirModoSoporteView(PlataformaMixin, View):
             messages.info(request, "Saliste del modo soporte.")
         return redirect("plataforma_negocios")
 
-    def post(self, request, pk):
-        plan = get_object_or_404(Plan, pk=pk)
-        form = PlanPlataformaForm(request.POST, instance=plan)
-        if form.is_valid():
-            plan_actualizado, cambios = form.guardar()
-            auditoria.registrar(
-                actor=request.user,
-                accion="editar_plan",
-                objeto_tipo="Plan",
-                objeto_id=str(plan_actualizado.pk),
-                detalle={"codigo": plan_actualizado.codigo, "cambios": cambios},
-                request=request,
-            )
-            messages.success(request, f"Plan {plan_actualizado.nombre} actualizado correctamente.")
-            return redirect("plataforma_planes_cobros")
-        return render(request, self.template_name, {"plan": plan, "form": form})
-
-
-class PlataformaNegociosView(PlataformaMixin, View):
-    """Directorio de negocios con «Entrar como» (modo soporte) y gestión de anuncios globales."""
-
-    permiso = "negocios"
-    template_name = "plataforma/negocios.html"
-
-    def _contexto(self, request, anuncio_form=None):
-        q = (request.GET.get("q") or "").strip()
-        empresas = Empresa.objects.select_related("suscripcion__plan").order_by("nombre")
-        if q:
-            empresas = empresas.filter(
-                Q(nombre__icontains=q) | Q(nit__icontains=q) | Q(slug__icontains=q)
-            )
-        anuncios = AnuncioGlobal.objects.select_related("creado_por").all()[:20]
-        return {
-            "empresas": empresas[:100],
-            "q": q,
-            "anuncios": anuncios,
-            "anuncio_form": anuncio_form or AnuncioGlobalForm(),
-        }
-
-    def get(self, request):
-        return render(request, self.template_name, self._contexto(request))
-
-    def post(self, request):
-        accion = (request.POST.get("accion") or "").strip()
-
-        if accion == "entrar_como":
-            if request.rol_plataforma.rol not in (RolPlataforma.Rol.DUENO, RolPlataforma.Rol.SOPORTE):
-                raise PermissionDenied("Solo Dueño o Soporte pueden entrar como un negocio.")
-            empresa = get_object_or_404(Empresa, pk=request.POST.get("empresa_id"))
-            modo = (request.POST.get("modo") or "lectura").strip().lower()
-            solo_lectura = modo != "escritura"
-            request.session["plataforma_soporte"] = {
-                "empresa_id": str(empresa.pk),
-                "solo_lectura": solo_lectura,
-                "actor_id": str(request.user.pk),
-            }
-            auditoria.registrar(
-                actor=request.user,
-                accion="entrar_modo_soporte",
-                objeto_tipo="Empresa",
-                objeto_id=str(empresa.pk),
-                detalle={
-                    "empresa": empresa.nombre,
-                    "modo": "lectura" if solo_lectura else "escritura",
-                },
-                request=request,
-            )
-            return redirect("dashboard")
-
-        if accion == "toggle_anuncio":
-            anuncio = get_object_or_404(AnuncioGlobal, pk=request.POST.get("anuncio_id"))
-            anuncio.activo = not anuncio.activo
-            anuncio.save(update_fields=["activo", "actualizado_en"])
-            auditoria.registrar(
-                actor=request.user,
-                accion="toggle_anuncio_global",
-                objeto_tipo="AnuncioGlobal",
-                objeto_id=str(anuncio.pk),
-                detalle={"titulo": anuncio.titulo, "activo": anuncio.activo},
-                request=request,
-            )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» actualizado.")
-            return redirect("plataforma_negocios")
-
-        anuncio_form = AnuncioGlobalForm(request.POST)
-        if anuncio_form.is_valid():
-            anuncio = anuncio_form.save(commit=False)
-            anuncio.creado_por = request.user
-            anuncio.save()
-            auditoria.registrar(
-                actor=request.user,
-                accion="crear_anuncio_global",
-                objeto_tipo="AnuncioGlobal",
-                objeto_id=str(anuncio.pk),
-                detalle={"titulo": anuncio.titulo, "tipo": anuncio.tipo, "activo": anuncio.activo},
-                request=request,
-            )
-            messages.success(request, f"Anuncio «{anuncio.titulo}» publicado.")
-            return redirect("plataforma_negocios")
-
-        return render(request, self.template_name, self._contexto(request, anuncio_form=anuncio_form))
-
-
-class SalirModoSoporteView(PlataformaMixin, View):
-    """Sale del modo soporte («Entrar como») y deja constancia en AuditoriaPlataforma."""
-
-    permiso = "negocios"
-
-    def post(self, request):
-        soporte_ctx = request.session.pop("plataforma_soporte", None)
-        if soporte_ctx:
-            empresa_id = str(soporte_ctx.get("empresa_id") or "")
-            empresa = Empresa.objects.filter(pk=empresa_id).first() if empresa_id else None
-            modo_str = "lectura" if soporte_ctx.get("solo_lectura", True) else "escritura"
-            auditoria.registrar(
-                actor=request.user,
-                accion="salir_modo_soporte",
-                objeto_tipo="Empresa",
-                objeto_id=empresa_id,
-                detalle={
-                    "empresa": empresa.nombre if empresa else "",
-                    "modo": modo_str,
-                },
-                request=request,
-            )
-            messages.info(request, "Saliste del modo soporte.")
-        return redirect("plataforma_negocios")
-
-
-class SeccionProximamenteView(PlataformaMixin, View):
-    """Vista marcador para secciones de la consola aún en construcción."""
-
-    titulo_seccion = ""
-    descripcion_seccion = ""
-    template_name = "plataforma/proximamente.html"
-
-    def get(self, request):
-        return render(
-            request,
-            self.template_name,
-            {
-                "titulo_seccion": self.titulo_seccion,
-                "descripcion_seccion": self.descripcion_seccion,
-            },
-        )
-
 
 class PlataformaTOTPView(PlataformaMixin, View):
     """Enrolamiento y verificación obligatoria 2FA/TOTP para personal de /plataforma/."""
@@ -810,3 +708,70 @@ class PlataformaTOTPView(PlataformaMixin, View):
             request=request,
         )
         return redirect("plataforma_inicio")
+
+
+class OperacionPlataformaView(PlataformaMixin, View):
+    """Operación: estado del sistema, tareas periódicas (con ejecución manual), revisión de despliegue y entorno."""
+
+    permiso = "operacion"
+    template_name = "plataforma/operacion.html"
+
+    def get(self, request):
+        datos = operacion.diagnostico()
+        datos["despliegue"] = operacion.revision_despliegue()
+        datos["entorno"] = operacion.entorno()
+        datos["auditoria_tareas"] = (
+            AuditoriaPlataforma.objects.filter(accion="ejecutar_tarea_manual").select_related("actor")[:5]
+        )
+        return render(request, self.template_name, datos)
+
+    def post(self, request):
+        nombre = (request.POST.get("tarea") or "").strip()
+        if request.POST.get("accion") != "ejecutar_tarea" or nombre not in {t.nombre for t in TAREAS}:
+            messages.error(request, "Tarea no válida.")
+            return redirect("plataforma_operacion")
+        resultado = ejecutar_pendientes(forzar=True, solo=[nombre]).get(nombre, "error")
+        fila = EjecucionTarea.objects.filter(nombre=nombre).first()
+        auditoria.registrar(
+            actor=request.user,
+            accion="ejecutar_tarea_manual",
+            objeto_tipo="EjecucionTarea",
+            objeto_id=nombre,
+            detalle={"resultado": resultado},
+            request=request,
+        )
+        if resultado == "ok":
+            messages.success(request, f"«{nombre}» terminó: {(fila.ultimo_resultado if fila else '') or 'sin novedades'}")
+        else:
+            messages.error(request, f"«{nombre}» falló: {fila.ultimo_error if fila else 'sin detalle'}")
+        return redirect("plataforma_operacion")
+
+
+class AuditoriaPlataformaView(PlataformaMixin, View):
+    """Bitácora completa de auditoría con filtros por texto, persona y fechas."""
+
+    permiso = "operacion"
+    template_name = "plataforma/auditoria.html"
+    por_pagina = 50
+
+    def get(self, request):
+        registros = AuditoriaPlataforma.objects.select_related("actor")
+        q = (request.GET.get("q") or "").strip()[:80]
+        desde = parse_date(request.GET.get("desde") or "")
+        hasta = parse_date(request.GET.get("hasta") or "")
+        if q:
+            registros = registros.filter(
+                Q(accion__icontains=q) | Q(objeto_tipo__icontains=q) | Q(objeto_id__icontains=q)
+                | Q(actor__email__icontains=q)
+            )
+        if desde:
+            registros = registros.filter(fecha__date__gte=desde)
+        if hasta:
+            registros = registros.filter(fecha__date__lte=hasta)
+        pagina = Paginator(registros.order_by("-fecha"), self.por_pagina).get_page(request.GET.get("pagina"))
+        filtros = {"q": q, "desde": request.GET.get("desde") or "", "hasta": request.GET.get("hasta") or ""}
+        return render(request, self.template_name, {
+            "pagina": pagina,
+            "filtros": filtros,
+            "filtros_url": urlencode({k: v for k, v in filtros.items() if v}),
+        })

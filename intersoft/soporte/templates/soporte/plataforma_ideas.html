@@ -23,7 +23,7 @@
       <button type="submit" class="boton">Filtrar</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Idea</th>
@@ -44,7 +44,7 @@
               <form method="post" style="display:flex; gap:6px; align-items:center; margin:0;">
                 {% csrf_token %}
                 <input type="hidden" name="idea_id" value="{{ idea.pk }}">
-                <select name="estado">
+                <select name="estado" aria-label="Nuevo estado de la idea «{{ idea.titulo }}»">
                   {% for val, etq in estados %}
                     <option value="{{ val }}" {% if idea.estado == val %}selected{% endif %}>{{ etq }}</option>
                   {% endfor %}
@@ -57,6 +57,6 @@
           <tr><td colspan="5">No hay ideas registradas.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

@@ -30,7 +30,7 @@
       <button type="submit" class="boton">Filtrar</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Excepción</th>
@@ -55,12 +55,12 @@
           <tr><td colspan="6">Sin errores registrados.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta">
     <h2>Reportes manuales recientes</h2>
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Fecha</th>
@@ -83,6 +83,6 @@
           <tr><td colspan="5">No hay reportes manuales todavía.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

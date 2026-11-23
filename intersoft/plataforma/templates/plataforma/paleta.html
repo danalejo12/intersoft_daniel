@@ -1,0 +1,20 @@
+{# Comandos del buscador global (Ctrl + K) de la consola. Solo lo que el rol interno puede ver. #}
+<ul id="paleta-comandos" hidden>
+  <li data-grupo="Ir a" data-url="{% url 'plataforma_inicio' %}" data-claves="inicio resumen metricas mrr">Inicio de la consola</li>
+  {% if 'negocios' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_negocios' %}" data-claves="empresas clientes soporte entrar como anuncios">Negocios</li>{% endif %}
+  {% if 'finanzas' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_planes_cobros' %}" data-claves="planes precios cobros cupones wompi cortesias fundadores">Planes y cobros</li>{% endif %}
+  {% if 'pqrs' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_pqrs' %}" data-claves="quejas reclamos escaladas">PQRS</li>{% endif %}
+  {% if 'comentarios' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_comentarios' %}" data-claves="nps opiniones satisfaccion">Comentarios y NPS</li>{% endif %}
+  {% if 'ideas' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_ideas' %}" data-claves="sugerencias votos hoja de ruta">Ideas</li>{% endif %}
+  {% if 'errores' in rol.permisos %}<li data-grupo="Ir a" data-url="{% url 'plataforma_errores' %}" data-claves="fallos excepciones bugs 500">Errores</li>{% endif %}
+  {% if 'operacion' in rol.permisos %}
+    <li data-grupo="Ir a" data-url="{% url 'plataforma_operacion' %}" data-claves="salud tareas despliegue respaldos servidor diagnostico">Operación</li>
+    <li data-grupo="Ir a" data-url="{% url 'plataforma_auditoria' %}" data-claves="bitacora registro historial quien">Bitácora de auditoría</li>
+  {% endif %}
+
+  {% if 'negocios' in rol.permisos %}<li data-grupo="Buscar" data-buscar="{% url 'plataforma_negocios' %}">Negocios</li>{% endif %}
+  {% if 'errores' in rol.permisos %}<li data-grupo="Buscar" data-buscar="{% url 'plataforma_errores' %}">Errores</li>{% endif %}
+  {% if 'operacion' in rol.permisos %}<li data-grupo="Buscar" data-buscar="{% url 'plataforma_auditoria' %}">Bitácora de auditoría</li>{% endif %}
+
+  <li data-grupo="Preferencias" data-accion="tema" data-claves="oscuro claro noche dia tema modo">Cambiar modo día / noche</li>
+</ul>

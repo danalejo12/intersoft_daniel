@@ -140,7 +140,38 @@ class DashboardView(TenantMixin, TemplateView):
             contexto["ultimas_facturas"] = []
             contexto["serie_meses"] = {"etiquetas": [], "valores": []}
             contexto["serie_dias"] = {"etiquetas": [], "valores": []}
+        contexto.update(self.contexto_bienvenida(empresa))
         return contexto
+
+    def contexto_bienvenida(self, empresa):
+        """Saludo y pendientes propios de esta persona para la parte de arriba del inicio."""
+        from suscripciones.models import Suscripcion
+
+        from .caja import turno_abierto
+
+        usuario = self.request.user
+        hora = timezone.localtime().hour
+        saludo = "Buenos días" if hora < 12 else "Buenas tardes" if hora < 19 else "Buenas noches"
+        extra = {
+            "saludo": saludo,
+            "nombre_saludo": (usuario.first_name or "").split(" ")[0],
+            "hoy": timezone.localdate(),
+            "caja_abierta": None,
+            "aviso_plan": None,
+        }
+        if self.request.membresia.tiene_permiso("ventas.crear"):
+            extra["caja_abierta"] = turno_abierto(empresa, usuario)
+        if self.request.membresia.tiene_permiso("negocio.editar"):
+            sub = Suscripcion.objects.filter(empresa=empresa).select_related("plan").first()
+            if sub and sub.vence_en:
+                dias = (timezone.localdate(sub.vence_en) - timezone.localdate()).days
+                if 0 <= dias <= 7:
+                    extra["aviso_plan"] = {
+                        "dias": dias,
+                        "es_prueba": sub.estado == Suscripcion.Estado.TRIAL,
+                        "plan": sub.plan.nombre,
+                    }
+        return extra
 
     @staticmethod
     def serie_meses(ventas, inicio_mes, cantidad=6):

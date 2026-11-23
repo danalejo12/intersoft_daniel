@@ -96,6 +96,13 @@ def carrito(request):
             "configurar_pagos": membresia.tiene_permiso("pagos.configurar"),
             "editar_negocio": membresia.tiene_permiso("negocio.editar"),
             "gestionar_pqrs": membresia.tiene_permiso("pqrs.gestionar"),
+            # Acciones de "crear" para el buscador global (Ctrl + K)
+            "crear_productos": membresia.tiene_permiso("inventario.crear"),
+            "editar_inventario": membresia.tiene_permiso("inventario.editar"),
+            "crear_clientes": membresia.tiene_permiso("clientes.crear"),
+            "crear_ventas": membresia.tiene_permiso("ventas.crear"),
+            "gestionar_equipo": membresia.tiene_permiso("equipo.gestionar"),
+            "ver_reportes": membresia.tiene_permiso("reportes.ver"),
             "ver_equipo": any(
                 membresia.tiene_permiso(p)
                 for p in ("equipo.ver", "equipo.gestionar", "negocio.editar")

@@ -32,7 +32,7 @@
       <button type="submit" class="boton">Filtrar</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Radicado</th>
@@ -56,7 +56,7 @@
             <td><a href="{% url 'plataforma_pqrs_detalle' p.pk %}">{{ p.asunto }}</a></td>
             <td>
               {% if p.estado == "escalada" %}
-                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5;">{{ p.get_estado_display }}</span>
+                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: var(--rojo-texto, #fca5a5);">{{ p.get_estado_display }}</span>
               {% else %}
                 {{ p.get_estado_display }}
               {% endif %}
@@ -69,6 +69,6 @@
           <tr><td colspan="9">No hay PQRS registradas.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

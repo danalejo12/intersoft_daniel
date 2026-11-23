@@ -29,7 +29,7 @@
       <button type="submit" class="boton">Filtrar</button>
     </form>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Fecha</th>
@@ -52,12 +52,12 @@
           <tr><td colspan="5">No hay comentarios registrados.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta">
     <h2>Respuestas NPS recientes</h2>
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Fecha</th>
@@ -78,6 +78,6 @@
           <tr><td colspan="4">Sin respuestas NPS todavía.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

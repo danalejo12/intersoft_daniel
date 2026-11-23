@@ -5,9 +5,25 @@
   <div class="encabezado">
     <div>
       <h1>Consola de Plataforma</h1>
-      <p class="nota">Resumen operativo global de negocios, suscripciones, cobros y tareas periódicas de InterSoft.</p>
+      <p class="nota">Hola{% if user.first_name %}, {{ user.first_name }}{% endif %}. Entras como <strong>{{ request.rol_plataforma.get_rol_display }}</strong> · <kbd class="inicio-kbd">Ctrl</kbd> + <kbd class="inicio-kbd">K</kbd> para ir a cualquier sección.</p>
     </div>
   </div>
+
+  <section class="tarjeta para-hoy" aria-labelledby="titulo-atencion">
+    <h2 id="titulo-atencion">Requiere tu atención</h2>
+    {% if atencion %}
+      <ul class="pendientes">
+        {% for item in atencion %}
+          <li class="pendiente {{ item.tipo }}">
+            <span><strong>{{ item.texto }}</strong> · {{ item.detalle }}</span>
+            <a class="boton secundario pequeno" href="{{ item.url }}">Revisar</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="pendientes-vacio"><span aria-hidden="true">✓</span> Nada urgente en tus secciones. Todo en orden.</p>
+    {% endif %}
+  </section>
 
   <section class="kpis" style="margin-bottom: 24px;">
     <article class="kpi">
@@ -84,7 +100,7 @@
       {% endfor %}
     </div>
 
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Mes</th>
@@ -101,7 +117,7 @@
           </tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta" style="margin-bottom: 24px;">
@@ -109,7 +125,7 @@
       <h2>Vencimientos próximos (7 días)</h2>
       <span class="badge neutro">{{ metricas.total_vencimientos_7d }} registro{{ metricas.total_vencimientos_7d|pluralize }}</span>
     </div>
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Negocio</th>
@@ -130,7 +146,7 @@
           <tr><td colspan="4">No hay suscripciones ni pruebas por vencer en los próximos 7 días.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta" style="margin-bottom: 24px;">
@@ -138,7 +154,7 @@
       <h2>Estado de tareas periódicas</h2>
       <span class="badge neutro">{{ tareas|length }} tarea{{ tareas|length|pluralize }}</span>
     </div>
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Tarea</th>
@@ -156,7 +172,7 @@
             <td class="num">{{ t.ejecuciones }}</td>
             <td class="num">
               {% if t.fallos_seguidos >= 3 %}
-                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .6);">
+                <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: var(--rojo-texto, #fca5a5); border: 1px solid rgba(239, 68, 68, .6);">
                   {{ t.fallos_seguidos }} fallo{{ t.fallos_seguidos|pluralize }}
                 </span>
               {% elif t.fallos_seguidos > 0 %}
@@ -167,7 +183,7 @@
             </td>
             <td>
               {% if t.ultimo_error %}
-                <span style="color: #fca5a5;">{{ t.ultimo_error }}</span>
+                <span style="color: var(--rojo-texto, #fca5a5);">{{ t.ultimo_error }}</span>
               {% else %}
                 {{ t.ultimo_resultado|default:"—" }}
               {% endif %}
@@ -177,15 +193,15 @@
           <tr><td colspan="5">Aún no hay ejecuciones de tareas periódicas registradas.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 
   <article class="tarjeta">
     <div class="tarjeta-cabecera">
       <h2>Últimos eventos de auditoría</h2>
-      <span class="badge neutro">{{ auditorias_recientes|length }} reciente{{ auditorias_recientes|length|pluralize }}</span>
+      {% if request.rol_plataforma.rol == "dueno" or request.rol_plataforma.rol == "desarrollador" %}<a class="boton secundario pequeno" href="{% url 'plataforma_auditoria' %}">Ver toda la bitácora</a>{% else %}<span class="badge neutro">{{ auditorias_recientes|length }} reciente{{ auditorias_recientes|length|pluralize }}</span>{% endif %}
     </div>
-    <table class="tabla">
+    <div class="tabla-desplazable"><table class="tabla">
       <thead>
         <tr>
           <th>Fecha</th>
@@ -208,6 +224,6 @@
           <tr><td colspan="5">Sin registros de auditoría todavía.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </article>
 {% endblock %}

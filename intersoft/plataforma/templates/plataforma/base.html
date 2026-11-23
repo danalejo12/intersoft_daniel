@@ -6,8 +6,9 @@
   <title>{% block titulo %}Consola de Plataforma · Intersoft{% endblock %}</title>
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
+  <script src="{% static 'core/js/tema-init.js' %}"></script>
   <script src="{% static 'core/js/dock-init.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=26">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=32">
 </head>
 <body>
 {% with ruta=request.resolver_match.url_name rol=request.rol_plataforma %}
@@ -17,37 +18,56 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
     </button>
 
-    <a href="{% url 'plataforma_inicio' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'plataforma_inicio' %}activo{% endif %}">
+    <a href="{% url 'plataforma_inicio' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'plataforma_inicio' or ruta|slice:'0:18' == 'plataforma_inicio_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_negocios' %}" data-label="Negocios" aria-label="Negocios" class="{% if ruta == 'plataforma_negocios' %}activo{% endif %}">
+    {% if 'negocios' in rol.permisos or 'finanzas' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Clientes SaaS</span>
+    {% endif %}
+    {% if 'negocios' in rol.permisos %}
+    <a href="{% url 'plataforma_negocios' %}" data-label="Negocios" aria-label="Negocios" class="{% if ruta == 'plataforma_negocios' or ruta|slice:'0:20' == 'plataforma_negocios_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M10 6h4M10 10h4M10 14h4"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_planes_cobros' %}" data-label="Planes y cobros" aria-label="Planes y cobros" class="{% if ruta == 'plataforma_planes_cobros' %}activo{% endif %}">
+    {% endif %}
+    {% if 'finanzas' in rol.permisos %}
+    <a href="{% url 'plataforma_planes_cobros' %}" data-label="Planes y cobros" aria-label="Planes y cobros" class="{% if ruta == 'plataforma_planes_cobros' or ruta|slice:'0:25' == 'plataforma_planes_cobros_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_pqrs' %}" data-label="PQRS" aria-label="PQRS" class="{% if ruta == 'plataforma_pqrs' %}activo{% endif %}">
+    {% endif %}
+    {% if 'pqrs' in rol.permisos or 'comentarios' in rol.permisos or 'ideas' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Atención</span>
+    {% endif %}
+    {% if 'pqrs' in rol.permisos %}
+    <a href="{% url 'plataforma_pqrs' %}" data-label="PQRS" aria-label="PQRS" class="{% if ruta == 'plataforma_pqrs' or ruta|slice:'0:16' == 'plataforma_pqrs_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_errores' %}" data-label="Errores" aria-label="Errores" class="{% if ruta == 'plataforma_errores' %}activo{% endif %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    </a>
-
-    <a href="{% url 'plataforma_comentarios' %}" data-label="Comentarios" aria-label="Comentarios" class="{% if ruta == 'plataforma_comentarios' %}activo{% endif %}">
+    {% endif %}
+    {% if 'comentarios' in rol.permisos %}
+    <a href="{% url 'plataforma_comentarios' %}" data-label="Comentarios" aria-label="Comentarios" class="{% if ruta == 'plataforma_comentarios' or ruta|slice:'0:23' == 'plataforma_comentarios_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_ideas' %}" data-label="Ideas" aria-label="Ideas" class="{% if ruta == 'plataforma_ideas' %}activo{% endif %}">
+    {% endif %}
+    {% if 'ideas' in rol.permisos %}
+    <a href="{% url 'plataforma_ideas' %}" data-label="Ideas" aria-label="Ideas" class="{% if ruta == 'plataforma_ideas' or ruta|slice:'0:17' == 'plataforma_ideas_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
     </a>
-
-    <a href="{% url 'plataforma_operacion' %}" data-label="Operación" aria-label="Operación" class="{% if ruta == 'plataforma_operacion' %}activo{% endif %}">
+    {% endif %}
+    {% if 'errores' in rol.permisos or 'operacion' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Técnico</span>
+    {% endif %}
+    {% if 'errores' in rol.permisos %}
+    <a href="{% url 'plataforma_errores' %}" data-label="Errores" aria-label="Errores" class="{% if ruta == 'plataforma_errores' or ruta|slice:'0:19' == 'plataforma_errores_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </a>
+    {% endif %}
+    {% if 'operacion' in rol.permisos %}
+    <a href="{% url 'plataforma_operacion' %}" data-label="Operación" aria-label="Operación" class="{% if ruta == 'plataforma_operacion' or ruta|slice:'0:21' == 'plataforma_operacion_' %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </a>
+    <a href="{% url 'plataforma_auditoria' %}" data-label="Auditoría" aria-label="Auditoría" class="{% if ruta == 'plataforma_auditoria' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
+    </a>
+    {% endif %}
 
     <span class="dock-espacio"></span>
 
@@ -68,7 +88,19 @@
         Consola de Plataforma · InterSoft
       </a>
 
+      <form class="busqueda" role="search">
+        <input type="search" placeholder="Buscar o ir a…" aria-label="Buscar o ir a una sección (Ctrl + K)" aria-keyshortcuts="Control+K" data-paleta-abrir>
+        <kbd class="busqueda-atajo" aria-hidden="true">Ctrl K</kbd>
+      </form>
+
       <div class="cuenta">
+        <button type="button" class="tema" role="switch" aria-checked="true" aria-label="Modo noche" data-tema-boton>
+          <span class="tema-pista" aria-hidden="true">
+            <svg class="tema-sol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tema-luna" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
+            <span class="tema-perilla"></span>
+          </span>
+        </button>
         <a class="boton secundario" href="{% url 'marketplace' %}">Marketplace</a>
         <a class="cuenta-perfil" href="{% url 'perfil' %}">
           <span class="cuenta-texto">
@@ -90,5 +122,8 @@
 </div>
 {% endwith %}
 <script defer src="{% static 'core/js/app.js' %}?v=4"></script>
+<script defer src="{% static 'core/js/tema.js' %}?v=1"></script>
+{% include "plataforma/paleta.html" with rol=request.rol_plataforma %}
+<script defer src="{% static 'core/js/paleta.js' %}?v=2"></script>
 </body>
 </html>
