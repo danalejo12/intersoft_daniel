@@ -1136,3 +1136,139 @@ details[open] > summary .cuenta-flecha { transform: rotate(180deg); }
   color: var(--cta);
   font-weight: 700;
 }
+
+
+/* =====================================================================
+   CAPA DE PULIDO FIGMA · Marketplace, Tiendas y Autenticación
+   ===================================================================== */
+.barra {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--borde);
+}
+
+.buscador {
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+
+.buscador:focus-within {
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px var(--anillo);
+}
+
+.portada {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 44px -18px rgba(15, 23, 42, 0.42);
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(135deg, var(--hero-inicio) 0%, var(--hero-fin) 100%) !important;
+  background-size: 24px 24px, 100% 100% !important;
+  color: #ffffff;
+}
+
+.portada .mancha {
+  opacity: 0.22;
+}
+
+.portada-texto h1,
+.portada h1 {
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.portada-texto p,
+.portada p {
+  color: rgba(241, 245, 249, 0.92);
+  text-wrap: pretty;
+}
+
+.boton-hero {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid transparent;
+  font-weight: 700;
+  box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.35);
+}
+
+.boton-hero:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.boton-hero-sec {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  font-weight: 600;
+}
+
+.boton-hero-sec:hover {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.cuenta-avatar {
+  background: var(--primario);
+  color: #ffffff;
+}
+
+.tarjeta,
+.tienda,
+.caja-formulario {
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-s);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.tarjeta:hover,
+.tienda:hover {
+  border-color: var(--primario);
+  box-shadow: var(--sombra-m);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta,
+  .tienda {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .tarjeta:hover,
+  .tienda:hover {
+    transform: translateY(-2px);
+  }
+  .tarjeta img {
+    transition: transform 0.28s ease;
+  }
+  .tarjeta:hover img {
+    transform: scale(1.03);
+  }
+}
+
+.pildora {
+  border: 1px solid var(--borde);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pildora.activa {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--sobre-primario);
+  box-shadow: 0 4px 12px -4px var(--cta-brillo);
+}
+
+.caja-formulario {
+  border-top: 3px solid var(--primario);
+  border-radius: 16px;
+}
+
+.caja-formulario .boton-ancho {
+  min-height: 44px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px -6px var(--cta-brillo);
+}
+
+h1, h2 {
+  text-wrap: balance;
+}

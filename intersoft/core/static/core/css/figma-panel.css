@@ -632,3 +632,228 @@ label {
     border: 1px solid CanvasText;
   }
 }
+
+
+/* =====================================================================
+   CAPA DE PULIDO PRO · KPIs, ERP Hub, POS, Diálogos y Microinteracciones
+   ===================================================================== */
+.dock a.activo {
+  position: relative;
+}
+
+.dock a.activo::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--azul);
+}
+
+/* KPIs con acento superior sutil */
+.kpi {
+  border-top: 3px solid var(--azul);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.kpi.verde { border-top-color: var(--verde); }
+.kpi.ambar { border-top-color: var(--ambar); }
+.kpi.rojo { border-top-color: var(--rojo); }
+
+.kpi:hover {
+  transform: translateY(-2px);
+}
+
+/* Iconos en encabezados */
+.icono-caja {
+  background: var(--azul-suave);
+  color: var(--azul);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.icono-caja.ambar {
+  background: var(--ambar-fondo);
+  color: var(--ambar);
+}
+
+.icono-caja.verde {
+  background: var(--verde-fondo);
+  color: var(--verde);
+}
+
+/* Badges y etiquetas en todo el panel */
+.badge,
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--sutil);
+  color: var(--suave);
+  border: 1px solid var(--borde);
+}
+
+.badge.exito {
+  background: var(--verde-fondo);
+  color: var(--verde);
+  border-color: transparent;
+}
+
+.badge.info {
+  background: var(--azul-suave);
+  color: var(--azul);
+  border-color: transparent;
+}
+
+.badge.advertencia {
+  background: var(--ambar-fondo);
+  color: var(--ambar);
+  border-color: transparent;
+}
+
+.badge.peligro {
+  background: var(--rojo-fondo);
+  color: var(--rojo);
+  border-color: transparent;
+}
+
+/* Gestión ERP: chips y tarjetas de módulo */
+.erp-chip {
+  background: var(--superficie);
+  color: var(--suave);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.erp-chip:hover {
+  background: var(--sutil);
+  color: var(--texto);
+}
+
+.erp-chip.activo {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: #ffffff;
+}
+
+.erp-modulo-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.erp-modulo-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--azul);
+  box-shadow: var(--sombra-sm);
+}
+
+.erp-modulo-icono {
+  background: var(--azul-suave);
+  color: var(--azul);
+  border-radius: 10px;
+}
+
+.erp-modulo-card.verde .erp-modulo-icono {
+  background: var(--verde-fondo);
+  color: var(--verde);
+}
+
+.erp-modulo-card.ambar .erp-modulo-icono {
+  background: var(--ambar-fondo);
+  color: var(--ambar);
+}
+
+.erp-modulo-card.rojo .erp-modulo-icono {
+  background: var(--rojo-fondo);
+  color: var(--rojo);
+}
+
+.erp-modulo-cta {
+  color: var(--azul);
+  font-weight: 600;
+}
+
+/* Punto de Venta (POS) */
+.pos-venta {
+  border-top: 3px solid var(--azul);
+}
+
+.pos-resultados {
+  background: var(--superficie);
+  border: 1px solid var(--borde-fuerte);
+  box-shadow: var(--sombra-sm);
+  border-radius: 10px;
+  color: var(--texto);
+}
+
+.pos-resultados li:hover,
+.pos-resultados button:hover {
+  background: var(--azul-suave);
+  color: var(--texto);
+}
+
+.pos-totales .pos-total {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--sutil);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+}
+
+.pos-cobrar {
+  min-height: 46px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pos-cobrar kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-left: 6px;
+  font-size: 11px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+dialog.pos-dialogo {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.35);
+}
+
+dialog.pos-dialogo::backdrop {
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(4px);
+}
+
+.pos-rapidos button {
+  background: var(--sutil);
+  color: var(--texto);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 8px;
+}
+
+.pos-rapidos button:hover {
+  background: var(--azul-suave);
+  border-color: var(--azul);
+  color: var(--azul);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi,
+  .erp-modulo-card {
+    transition: none;
+    transform: none;
+  }
+}

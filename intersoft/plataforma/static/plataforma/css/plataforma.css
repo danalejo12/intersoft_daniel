@@ -1364,3 +1364,59 @@ input[type="checkbox"] {
     outline: 2px solid Highlight;
   }
 }
+
+
+/* =====================================================================
+   CAPA DE PULIDO PRO · Consola de Plataforma
+   ===================================================================== */
+.plat-nav-link.activo,
+.plat-nav-link[aria-current="page"] {
+  position: relative;
+}
+
+.plat-nav-link.activo::before,
+.plat-nav-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--plat-brand);
+}
+
+.kpi {
+  border-top: 3px solid var(--plat-brand);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.kpi.verde { border-top-color: var(--plat-success); }
+.kpi.ambar { border-top-color: var(--plat-warning); }
+.kpi.rojo { border-top-color: var(--plat-danger); }
+
+.kpi:hover {
+  transform: translateY(-2px);
+}
+
+.plat-barras {
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent 34px,
+    var(--plat-border) 34px,
+    var(--plat-border) 35px
+  );
+}
+
+.plat-barra-relleno.con-ingreso {
+  background: linear-gradient(180deg, var(--plat-brand-hover) 0%, var(--plat-brand) 100%);
+  box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi {
+    transition: none;
+    transform: none;
+  }
+}
