@@ -1103,3 +1103,84 @@ h1, h2 {
 .nota, p {
   text-wrap: pretty;
 }
+
+
+/* =====================================================================
+   BUSCADOR DEL PANEL REDISEÑADO Y PULIDO EXTRA DE BARRA Y LISTADOS
+   ===================================================================== */
+.busqueda {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  max-width: 420px;
+  background: var(--sutil);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 3px 4px 3px 12px;
+  gap: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.busqueda:focus-within {
+  background: var(--superficie);
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.busqueda-icono {
+  color: var(--tenue);
+  flex-shrink: 0;
+}
+
+.busqueda:focus-within .busqueda-icono {
+  color: var(--azul);
+}
+
+.busqueda input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 2px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--texto);
+  font-size: 13.5px;
+}
+
+.busqueda input[type="search"]:focus {
+  outline: none;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.busqueda-enviar {
+  flex-shrink: 0;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 0;
+  background: var(--azul);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.busqueda-enviar:hover {
+  background: var(--azul-hover);
+}
+
+/* Encabezados de página y divisores nítidos */
+.encabezado h1 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--texto);
+}
+
+.barra {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}

@@ -15,7 +15,7 @@
   <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=26">
   <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=4">
 </head>
 <body>
 <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
@@ -129,7 +129,9 @@
       {% endif %}
 
       <form class="busqueda" method="get" action="{% url 'productos_lista' %}" role="search">
-        <input type="search" name="q" placeholder="Buscar productos" aria-label="Buscar productos">
+        <svg class="busqueda-icono" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" placeholder="Buscar productos…" aria-label="Buscar productos" autocomplete="off">
+        <button type="submit" class="busqueda-enviar" aria-label="Buscar productos">Buscar</button>
       </form>
 
       <div class="cuenta">

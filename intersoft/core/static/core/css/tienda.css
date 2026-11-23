@@ -1272,3 +1272,75 @@ details[open] > summary .cuenta-flecha { transform: rotate(180deg); }
 h1, h2 {
   text-wrap: balance;
 }
+
+
+/* =====================================================================
+   BUSCADOR REDISEÑADO (SIN LISTA AUTOMÁTICA) Y PULIDO EXTRA MARKETPLACE
+   ===================================================================== */
+.buscador {
+  border-radius: 12px;
+  background: var(--superficie);
+  border: 1.5px solid var(--borde);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 4px 4px 4px 6px;
+}
+
+.buscador-filtro {
+  border-radius: 8px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.buscador-filtro:hover {
+  border-color: var(--primario);
+}
+
+.buscador input[type="search"] {
+  font-size: 0.93rem;
+  padding-inline: 12px;
+}
+
+.buscador-boton {
+  border-radius: 9px;
+  background: var(--primario);
+  color: #ffffff;
+  min-width: 40px;
+  min-height: 38px;
+  transition: background-color 0.15s ease;
+}
+
+.buscador-boton:hover {
+  background: var(--primario-hover);
+}
+
+.subbarra {
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.subbarra-vende {
+  background: var(--exito-fondo);
+  color: var(--exito-texto);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-weight: 700;
+}
+
+.subbarra-vende:hover {
+  background: var(--vendedor);
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.precio-valor {
+  color: var(--texto);
+}
+
+.pie {
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+}
