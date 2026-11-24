@@ -12,7 +12,7 @@ from .services import autorizacion_vigente
 
 RUTAS_LIBRES = (
     "/privacidad/", "/mis-datos/", "/terminos/", "/devoluciones/", "/logout/", "/static/", "/media/",
-    "/admin/", "/webhooks/", "/api/", "/salud/", "/sw.js",
+    "/admin/", "/webhooks/", "/api/", "/salud/", "/sw.js", "/favicon.ico", "/robots.txt", "/manifest.json",
 )
 
 
