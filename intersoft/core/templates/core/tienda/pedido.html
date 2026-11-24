@@ -114,7 +114,7 @@
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg>
         </div>
         <h1 class="titulo-compra">¡Ya casi! Solo falta el pago</h1>
-        <p>Tus productos están reservados hasta las {{ pedido.expira_en|date:"g:i a" }}. Se abrirá una pestaña con la página segura de Wompi.</p>
+        <p>Tus productos están reservados hasta las {{ pedido.expira_en|date:"g:i a" }} Se abrirá una pestaña con la página segura de Wompi.</p>
       {% endif %}
 
       {% if pedido.empresa.compra_en_linea %}
