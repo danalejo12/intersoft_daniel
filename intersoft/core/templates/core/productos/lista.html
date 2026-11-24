@@ -34,6 +34,7 @@
     {% endif %}
   </form>
 
+  <div class="tabla-wrap" tabindex="0" role="region" aria-label="Listado de productos">
   <table class="tabla">
     <thead>
       <tr><th></th><th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th><th></th></tr>
@@ -82,6 +83,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if is_paginated %}
     <nav class="paginacion">

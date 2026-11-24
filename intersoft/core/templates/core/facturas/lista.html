@@ -7,6 +7,15 @@
     <a class="boton" href="{% url 'facturas_crear' %}">Nueva factura</a>
   </div>
 
+  <form method="get" class="buscador" role="search">
+    <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Buscar por número, cliente o documento" aria-label="Buscar facturas" autocomplete="off">
+    <button type="submit" class="boton">Buscar</button>
+    {% if q %}
+      <a class="boton secundario" href="{% url 'facturas_lista' %}">Limpiar</a>
+    {% endif %}
+  </form>
+
+  <div class="tabla-wrap" tabindex="0" role="region" aria-label="Listado de facturas">
   <table class="tabla">
     <thead>
       <tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th class="num">Total</th><th></th></tr>
@@ -14,32 +23,33 @@
     <tbody>
       {% for factura in facturas %}
         <tr>
-          <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
+          <td><a href="{% url 'facturas_detalle' factura.pk %}"><strong>{{ factura.numero }}</strong></a></td>
           <td>{{ factura.creado_en|date:"d/m/Y H:i" }}</td>
           <td>{{ factura.cliente.nombre }}</td>
-          <td>{% if factura.pagada %}Pagada{% else %}{{ factura.get_estado_display }}{% endif %}</td>
+          <td>{% if factura.pagada %}<span class="badge exito">Pagada</span>{% else %}<span class="badge neutro">{{ factura.get_estado_display }}</span>{% endif %}</td>
           <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
           <td class="acciones-fila">
-            <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Ver</a>
+            <a class="boton secundario pequeno" href="{% url 'facturas_detalle' factura.pk %}">Ver</a>
             {% if factura.pagada %}
               <span class="etiqueta-pagada">Pagada</span>
             {% elif factura.en_cartera %}
               <span class="etiqueta">En cartera</span>
             {% elif factura.pago_en_proceso %}
-              <a class="boton secundario" href="{% url 'facturas_detalle' factura.pk %}">Verificar pago</a>
+              <a class="boton secundario pequeno" href="{% url 'facturas_detalle' factura.pk %}">Verificar pago</a>
             {% elif puede_cobrar and factura.estado == "emitida" %}
               <form method="post" action="{% url 'facturas_cobrar' factura.pk %}">
                 {% csrf_token %}
-                <button type="submit">Pagar con Wompi</button>
+                <button type="submit" class="boton pequeno">Pagar con Wompi</button>
               </form>
             {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6">Aún no hay facturas.</td></tr>
+        <tr><td colspan="6">{% if q %}Ninguna factura coincide con «{{ q }}».{% else %}Aún no hay facturas.{% endif %}</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   {% if is_paginated %}
     <nav class="paginacion">
