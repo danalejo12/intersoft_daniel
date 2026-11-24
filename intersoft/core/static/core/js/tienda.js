@@ -451,3 +451,20 @@
     }
   });
 })();
+
+
+// Fase 2: feedback de carga en formularios de checkout (evita doble envío)
+(function () {
+  document.addEventListener("submit", function (ev) {
+    var form = ev.target;
+    if (!(form instanceof HTMLFormElement) || !form.hasAttribute("data-un-envio")) return;
+    var btn = ev.submitter || form.querySelector('button[type="submit"]');
+    if (!btn) return;
+    if (btn.classList.contains("cargando")) {
+      ev.preventDefault();
+      return;
+    }
+    btn.classList.add("cargando");
+    btn.setAttribute("aria-busy", "true");
+  });
+})();

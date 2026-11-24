@@ -1344,3 +1344,176 @@ h1, h2 {
   border-top: 1px solid var(--borde);
   background: var(--superficie);
 }
+
+
+/* =====================================================================
+   FASE 2 · Tarjetas, Detalle de Producto, Carrito, Checkout y Móvil
+   ===================================================================== */
+
+/* 1. Barra de secciones móvil fluida sin cortes bruscos */
+.subbarra-interior {
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.subbarra-interior::-webkit-scrollbar {
+  display: none;
+}
+
+.subbarra-interior > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* 2. Tarjetas de producto: relación uniforme, badges y acciones nítidas */
+.tarjeta-imagen {
+  aspect-ratio: 4 / 3;
+  background: var(--fondo);
+}
+
+.vidrio-ok {
+  background: var(--exito-fondo);
+  color: var(--exito-texto);
+  border: 1px solid rgba(5, 150, 105, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.vidrio-agotado {
+  background: var(--peligro-fondo);
+  color: var(--peligro);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+.boton-carrito {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: 1px solid rgba(29, 78, 216, 0.32);
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.boton-carrito:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+}
+
+.boton-rapido {
+  background: var(--primario-suave);
+  color: var(--primario);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.boton-rapido:hover {
+  background: var(--primario);
+  color: #ffffff;
+  border-color: var(--primario);
+}
+
+/* 3. Detalle de producto, galería y favoritos */
+.detalle {
+  border-radius: 16px;
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-s);
+}
+
+.galeria-mini {
+  border-radius: 10px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.galeria-mini[aria-current="true"],
+.galeria-mini:hover {
+  border-color: var(--primario);
+}
+
+.favorito-form {
+  margin: 12px 0;
+}
+
+.favorito-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.confianza {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+.confianza svg {
+  color: var(--exito);
+  flex-shrink: 0;
+}
+
+/* 4. Carrito y Checkout: resumen fijo y líneas limpias */
+.panel-compra,
+.resumen {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: var(--sombra-s);
+}
+
+.resumen {
+  border-top: 3px solid var(--primario);
+}
+
+@media (min-width: 900px) {
+  .resumen {
+    position: sticky;
+    top: 86px;
+    align-self: start;
+  }
+}
+
+.resumen-total {
+  padding: 12px 14px;
+  margin-top: 8px;
+  border-radius: 10px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  font-variant-numeric: tabular-nums;
+}
+
+.linea-total {
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+}
+
+/* Estado de carga en botones de compra/checkout */
+.boton.cargando,
+button.cargando {
+  opacity: 0.72;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.estado-vacio {
+  background: var(--superficie);
+  border: 1px dashed var(--borde);
+  border-radius: 16px;
+  padding: 48px 24px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .boton-carrito:active,
+  .boton-rapido:active,
+  .boton:active {
+    transform: scale(0.985);
+  }
+}

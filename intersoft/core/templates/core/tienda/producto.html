@@ -64,9 +64,9 @@
       {% endif %}
 
       {% if user.is_authenticated %}
-        <form method="post" action="{% url 'favorito_toggle' producto.pk %}" style="margin: 10px 0;">
+        <form method="post" action="{% url 'favorito_toggle' producto.pk %}" class="favorito-form">
           {% csrf_token %}
-          <button type="submit" class="boton secundario">♥ Guardar / quitar de favoritos</button>
+          <button type="submit" class="boton boton-claro favorito-btn">♥ Guardar / quitar de favoritos</button>
         </form>
       {% endif %}
 
