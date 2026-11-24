@@ -64,13 +64,6 @@ urlpatterns = [
         PlataformaIdeasListView.as_view(),
         name="plataforma_ideas",
     ),
-    path(
-        "operacion/",
-        views.SeccionProximamenteView.as_view(
-            permiso="operacion",
-            titulo_seccion="Operación",
-            descripcion_seccion="Herramientas de despliegue, ejecución manual de tareas y diagnóstico técnico.",
-        ),
-        name="plataforma_operacion",
-    ),
+    path("operacion/", views.OperacionPlataformaView.as_view(), name="plataforma_operacion"),
+    path("auditoria/", views.AuditoriaPlataformaView.as_view(), name="plataforma_auditoria"),
 ]

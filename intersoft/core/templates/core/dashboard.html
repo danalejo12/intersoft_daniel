@@ -3,6 +3,78 @@
 {% block titulo %}Inicio · Intersoft{% endblock %}
 
 {% block contenido %}
+  {# ---------- Bienvenida: saludo, accesos rápidos y lo que requiere atención hoy ---------- #}
+  <section class="inicio-cabeza" aria-labelledby="titulo-inicio">
+    <div>
+      <h1 id="titulo-inicio">{{ saludo }}{% if nombre_saludo %}, {{ nombre_saludo }}{% endif %}</h1>
+      <p class="nota">{{ hoy|date:"l j \d\e F" }} · {{ request.empresa.nombre }}</p>
+    </div>
+    <p class="nota inicio-pista">¿Buscas algo? Presiona <kbd>Ctrl</kbd> + <kbd>K</kbd></p>
+  </section>
+
+  <nav class="accesos" aria-label="Accesos rápidos">
+    {% if nav_permisos.ver_pos %}
+      <a class="acceso acceso-principal" href="{% url 'pos' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M6 11V7h12v4"/><path d="M9 3h6v4H9z"/></svg>
+        <span>{% if caja_abierta %}Seguir vendiendo{% else %}Vender{% endif %}</span>
+      </a>
+    {% endif %}
+    {% if nav_permisos.crear_ventas %}
+      <a class="acceso" href="{% url 'facturas_crear' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>Nueva factura</span>
+      </a>
+    {% endif %}
+    {% if nav_permisos.crear_productos %}
+      <a class="acceso" href="{% url 'productos_crear' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M12 9v6M9 12h6"/></svg>
+        <span>Nuevo producto</span>
+      </a>
+    {% endif %}
+    {% if nav_permisos.crear_clientes %}
+      <a class="acceso" href="{% url 'clientes_crear' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M19 8v6M16 11h6"/></svg>
+        <span>Nuevo cliente</span>
+      </a>
+    {% endif %}
+    {% if nav_permisos.ver_pedidos %}
+      <a class="acceso" href="{% url 'pedidos_panel_lista' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Pedidos web</span>
+      </a>
+    {% endif %}
+  </nav>
+
+  <section class="tarjeta para-hoy" aria-labelledby="titulo-para-hoy">
+    <h2 id="titulo-para-hoy">Para hoy</h2>
+    {% if caja_abierta or aviso_plan or notificaciones_panel.items %}
+      <ul class="pendientes">
+        {% if caja_abierta %}
+          <li class="pendiente info">
+            <span><strong>Tienes la caja abierta</strong> desde hace {{ caja_abierta.creado_en|timesince }}{% if caja_abierta.bodega %} · {{ caja_abierta.bodega.nombre }}{% endif %}.</span>
+            <a class="boton secundario pequeno" href="{% url 'pos_cerrar' %}">Cerrar caja</a>
+          </li>
+        {% endif %}
+        {% for item in notificaciones_panel.items %}
+          <li class="pendiente {{ item.tipo }}">
+            <span><strong>{{ item.titulo }}</strong> · {{ item.detalle }}</span>
+            <a class="boton secundario pequeno" href="{{ item.url }}">Revisar</a>
+          </li>
+        {% endfor %}
+        {% if aviso_plan %}
+          <li class="pendiente alerta">
+            <span><strong>{% if aviso_plan.es_prueba %}Tu prueba gratis{% else %}Tu plan {{ aviso_plan.plan }}{% endif %} vence {% if aviso_plan.dias == 0 %}hoy{% elif aviso_plan.dias == 1 %}mañana{% else %}en {{ aviso_plan.dias }} días{% endif %}.</strong> Renuévalo para no perder funciones.</span>
+            <a class="boton pequeno" href="{% url 'suscripcion_panel' %}">Ver mi plan</a>
+          </li>
+        {% endif %}
+      </ul>
+    {% else %}
+      <p class="pendientes-vacio">
+        <span aria-hidden="true">✓</span> Todo al día. No hay pedidos por despachar, PQRS ni productos por reponer.
+      </p>
+    {% endif %}
+  </section>
+
   {% if primeros_pasos %}
   <section class="guia" aria-labelledby="titulo-guia">
     <div class="guia-cabeza">

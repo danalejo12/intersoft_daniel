@@ -1,0 +1,41 @@
+{# Comandos del buscador global (Ctrl + K) del panel. Solo aparece lo que el rol puede hacer.
+   data-claves: sinónimos con los que también se encuentra. data-buscar: búsqueda de texto en esa lista. #}
+<ul id="paleta-comandos" hidden>
+  <li data-grupo="Ir a" data-url="{% url 'dashboard' %}" data-claves="inicio resumen tablero dashboard">Inicio</li>
+  {% if nav_permisos.ver_pos %}<li data-grupo="Ir a" data-url="{% url 'pos' %}" data-claves="caja vender pos mostrador">Punto de venta</li>{% endif %}
+  {% if nav_permisos.ver_facturas %}<li data-grupo="Ir a" data-url="{% url 'facturas_lista' %}" data-claves="ventas facturacion">Facturas</li>{% endif %}
+  {% if nav_permisos.ver_pedidos %}<li data-grupo="Ir a" data-url="{% url 'pedidos_panel_lista' %}" data-claves="pedidos marketplace envios despachos web">Pedidos web</li>{% endif %}
+  {% if nav_permisos.ver_clientes %}<li data-grupo="Ir a" data-url="{% url 'clientes_lista' %}" data-claves="compradores contactos">Clientes</li>{% endif %}
+  {% if nav_permisos.ver_productos %}
+    <li data-grupo="Ir a" data-url="{% url 'productos_lista' %}" data-claves="inventario catalogo stock articulos">Productos</li>
+    <li data-grupo="Ir a" data-url="{% url 'productos_lista' %}?bajo=1" data-claves="agotados reponer minimo alerta">Productos con stock bajo</li>
+    <li data-grupo="Ir a" data-url="{% url 'categorias_lista' %}" data-claves="familias grupos">Categorías</li>
+    <li data-grupo="Ir a" data-url="{% url 'bodegas_lista' %}" data-claves="sedes almacenes traslados existencias">Bodegas</li>
+  {% endif %}
+  {% if nav_permisos.ver_erp %}<li data-grupo="Ir a" data-url="{% url 'erp_inicio' %}" data-claves="compras cartera tesoreria contabilidad nomina produccion agenda">Gestión ERP</li>{% endif %}
+  {% if nav_permisos.ver_reportes %}<li data-grupo="Ir a" data-url="{% url 'erp_reportes' %}" data-claves="informes excel balance">Reportes</li>{% endif %}
+  {% if nav_permisos.ver_equipo %}<li data-grupo="Ir a" data-url="{% url 'equipo_lista' %}" data-claves="usuarios empleados roles permisos">Equipo y roles</li>{% endif %}
+  {% if nav_permisos.editar_negocio %}
+    <li data-grupo="Ir a" data-url="{% url 'negocio_datos' %}" data-claves="empresa logo nit direccion datos">Perfil del negocio</li>
+    <li data-grupo="Ir a" data-url="{% url 'suscripcion_panel' %}" data-claves="plan pagar renovar mejorar suscripcion">Plan y suscripción</li>
+  {% endif %}
+  {% if nav_permisos.configurar_pagos %}<li data-grupo="Ir a" data-url="{% url 'negocio_pagos' %}" data-claves="wompi llaves pasarela cobros">Pagos en línea</li>{% endif %}
+  {% if nav_permisos.gestionar_pqrs %}<li data-grupo="Ir a" data-url="{% url 'panel_pqrs_lista' %}" data-claves="quejas reclamos peticiones sugerencias soporte">PQRS</li>{% endif %}
+  <li data-grupo="Ir a" data-url="{% url 'perfil' %}" data-claves="cuenta contraseña foto usuario">Mi perfil</li>
+  <li data-grupo="Ir a" data-url="{% url 'marketplace' %}" data-claves="tienda vitrina publica">Ver el marketplace</li>
+
+  {% if nav_permisos.ver_pos %}<li data-grupo="Crear" data-url="{% url 'pos' %}" data-claves="venta cobrar vender caja">Nueva venta en caja</li>{% endif %}
+  {% if nav_permisos.crear_ventas %}<li data-grupo="Crear" data-url="{% url 'facturas_crear' %}" data-claves="factura venta">Nueva factura</li>{% endif %}
+  {% if nav_permisos.crear_productos %}<li data-grupo="Crear" data-url="{% url 'productos_crear' %}" data-claves="producto articulo item">Nuevo producto</li>{% endif %}
+  {% if nav_permisos.crear_clientes %}<li data-grupo="Crear" data-url="{% url 'clientes_crear' %}" data-claves="cliente comprador">Nuevo cliente</li>{% endif %}
+  {% if nav_permisos.crear_productos %}<li data-grupo="Crear" data-url="{% url 'categorias_crear' %}" data-claves="categoria familia">Nueva categoría</li>{% endif %}
+  {% if nav_permisos.editar_inventario %}<li data-grupo="Crear" data-url="{% url 'bodegas_crear' %}" data-claves="bodega sede almacen">Nueva bodega</li>{% endif %}
+  {% if nav_permisos.gestionar_equipo %}<li data-grupo="Crear" data-url="{% url 'equipo_miembro_crear' %}" data-claves="usuario empleado invitar miembro">Agregar miembro al equipo</li>{% endif %}
+  {% if nav_permisos.gestionar_pqrs %}<li data-grupo="Crear" data-url="{% url 'panel_pqrs_nueva' %}" data-claves="ayuda soporte problema solicitud">Escribirle a Intersoft (PQRS)</li>{% endif %}
+
+  {% if nav_permisos.ver_productos %}<li data-grupo="Buscar" data-buscar="{% url 'productos_lista' %}">Productos</li>{% endif %}
+  {% if nav_permisos.ver_clientes %}<li data-grupo="Buscar" data-buscar="{% url 'clientes_lista' %}">Clientes</li>{% endif %}
+  {% if nav_permisos.ver_pedidos %}<li data-grupo="Buscar" data-buscar="{% url 'pedidos_panel_lista' %}">Pedidos web</li>{% endif %}
+
+  <li data-grupo="Preferencias" data-accion="tema" data-claves="oscuro claro noche dia tema modo">Cambiar modo día / noche</li>
+</ul>

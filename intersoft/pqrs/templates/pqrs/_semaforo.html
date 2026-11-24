@@ -1,5 +1,5 @@
 {% if pqrs.semaforo == "rojo" %}
-  <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .55);">Vencida</span>
+  <span class="badge peligro" style="background: rgba(239, 68, 68, .22); color: var(--rojo-texto, #fca5a5); border: 1px solid rgba(239, 68, 68, .55);">Vencida</span>
 {% elif pqrs.semaforo == "amarillo" %}
   <span class="badge advertencia">Por vencer</span>
 {% else %}

@@ -1369,3 +1369,53 @@ select option {
 :root[data-tema="oscuro"] .barra {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
+
+
+/* =====================================================================
+   INTEGRACIÓN FIGMA CON NUEVAS FUNCIONES DE MAIN (Grupos, Ctrl+K, Operación)
+   ===================================================================== */
+.dock-grupo {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  padding: 10px 10px 3px;
+}
+
+.busqueda-atajo {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--is-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--superficie);
+  color: var(--tenue);
+  border: 1px solid var(--borde);
+}
+
+/* Paleta de comandos Ctrl+K */
+.paleta-caja,
+dialog.paleta {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  box-shadow: var(--is-shadow-lg);
+}
+
+/* Operación y Auditoría en Consola de Plataforma */
+.op-revision {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: var(--sombra-xs);
+}
+
+.op-filtros {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 12px 14px;
+}

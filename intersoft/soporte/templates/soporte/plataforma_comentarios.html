@@ -2,24 +2,19 @@
 {% block titulo %}Comentarios y NPS · Consola de Plataforma{% endblock %}
 
 {% block contenido %}
-  <header class="plat-encabezado">
+  <div class="encabezado">
     <div>
       <h1>Comentarios y NPS</h1>
       <p class="nota">Retroalimentación 👍/👎 por pantalla y Net Promoter Score (0 a 10).</p>
     </div>
-    <span class="plat-badge {% if nps_actual is not None and nps_actual >= 30 %}exito{% else %}info{% endif %}">
+    <span class="badge {% if nps_actual is not None and nps_actual >= 30 %}exito{% else %}neutro{% endif %}">
       NPS actual: {% if nps_actual is not None %}{{ nps_actual }}{% else %}Sin datos{% endif %} ({{ total_nps }} resp.)
     </span>
-  </header>
+  </div>
 
-  <article class="tarjeta plat-card">
-    <div class="tarjeta-cabecera">
-      <h2>Comentarios por pantalla</h2>
-      <span class="plat-badge neutro">{{ comentarios|length }} registro{{ comentarios|length|pluralize }}</span>
-    </div>
-
-    <form method="get" class="plat-filtros" role="search">
-      <div class="campo">
+  <article class="tarjeta" style="margin-bottom: 24px;">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:16px;">
+      <div class="campo" style="margin:0;">
         <label for="c-util">Valoración</label>
         <select id="c-util" name="util">
           <option value="">Todas</option>
@@ -27,82 +22,62 @@
           <option value="0" {% if filtros.util == "0" %}selected{% endif %}>👎 No útil</option>
         </select>
       </div>
-      <div class="campo">
+      <div class="campo" style="margin:0;">
         <label for="c-pant">Pantalla</label>
-        <input id="c-pant" type="search" name="pantalla" value="{{ filtros.pantalla }}" placeholder="/panel/...">
+        <input id="c-pant" type="text" name="pantalla" value="{{ filtros.pantalla }}" placeholder="/panel/...">
       </div>
       <button type="submit" class="boton">Filtrar</button>
-      {% if filtros.util or filtros.pantalla %}
-        <a href="{% url 'plataforma_comentarios' %}" class="boton secundario">Limpiar</a>
-      {% endif %}
     </form>
 
-    <div class="tabla-wrap">
-      <table class="tabla">
-        <thead>
+    <div class="tabla-desplazable"><table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Valoración</th>
+          <th>Pantalla</th>
+          <th>Negocio / Usuario</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in comentarios %}
           <tr>
-            <th>Fecha</th>
-            <th>Valoración</th>
-            <th>Pantalla</th>
-            <th>Negocio / Usuario</th>
-            <th>Comentario</th>
+            <td>{{ c.creado_en|date:"d/m/Y H:i" }}</td>
+            <td>{% if c.util %}👍{% else %}👎{% endif %}</td>
+            <td><code>{{ c.pantalla|default:"—" }}</code></td>
+            <td>{{ c.empresa.nombre|default:"—" }}<br><small>{{ c.usuario.email|default:"—" }}</small></td>
+            <td>{{ c.comentario|default:"—" }}</td>
           </tr>
-        </thead>
-        <tbody>
-          {% for c in comentarios %}
-            <tr>
-              <td>{{ c.creado_en|date:"d/m/Y H:i" }}</td>
-              <td>
-                {% if c.util %}
-                  <span class="plat-badge exito">👍 Útil</span>
-                {% else %}
-                  <span class="plat-badge peligro">👎 No útil</span>
-                {% endif %}
-              </td>
-              <td><code>{{ c.pantalla|default:"—" }}</code></td>
-              <td>{{ c.empresa.nombre|default:"—" }}<br><small>{{ c.usuario.email|default:"—" }}</small></td>
-              <td>{{ c.comentario|default:"—" }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="5">No hay comentarios registrados.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+        {% empty %}
+          <tr><td colspan="5">No hay comentarios registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
   </article>
 
-  <article class="tarjeta plat-card">
-    <div class="tarjeta-cabecera">
-      <h2>Respuestas NPS recientes</h2>
-      <span class="plat-badge neutro">{{ encuestas_recientes|length }} respuesta{{ encuestas_recientes|length|pluralize }}</span>
-    </div>
-    <div class="tabla-wrap">
-      <table class="tabla">
-        <thead>
+  <article class="tarjeta">
+    <h2>Respuestas NPS recientes</h2>
+    <div class="tabla-desplazable"><table class="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th class="num">Puntaje</th>
+          <th>Usuario</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in encuestas_recientes %}
           <tr>
-            <th>Fecha</th>
-            <th class="num">Puntaje</th>
-            <th>Usuario</th>
-            <th>Comentario</th>
+            <td>{{ n.creado_en|date:"d/m/Y" }}</td>
+            <td class="num"><strong>{{ n.puntaje }}</strong></td>
+            <td>{{ n.usuario.email }}</td>
+            <td>{{ n.comentario|default:"—" }}</td>
           </tr>
-        </thead>
-        <tbody>
-          {% for n in encuestas_recientes %}
-            <tr>
-              <td>{{ n.creado_en|date:"d/m/Y" }}</td>
-              <td class="num">
-                <span class="plat-badge {% if n.puntaje >= 9 %}exito{% elif n.puntaje >= 7 %}advertencia{% else %}peligro{% endif %}">
-                  {{ n.puntaje }} / 10
-                </span>
-              </td>
-              <td>{{ n.usuario.email }}</td>
-              <td>{{ n.comentario|default:"—" }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4">Sin respuestas NPS todavía.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+        {% empty %}
+          <tr><td colspan="4">Sin respuestas NPS todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
   </article>
 {% endblock %}

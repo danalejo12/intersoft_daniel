@@ -4,151 +4,133 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{% block titulo %}Consola de Plataforma · InterSoft{% endblock %}</title>
+  <title>{% block titulo %}Consola de Plataforma · Intersoft{% endblock %}</title>
   <link rel="icon" type="image/png" sizes="64x64" href="{% static 'core/img/favicon.png' %}">
   <link rel="shortcut icon" href="{% static 'core/img/favicon.ico' %}">
-  <script src="{% static 'plataforma/js/plataforma-init.js' %}?v=2"></script>
+  <script src="{% static 'core/js/tema-init.js' %}"></script>
+  <script src="{% static 'core/js/dock-init.js' %}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
   <link rel="stylesheet" href="{% static 'core/css/tokens.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'plataforma/css/plataforma.css' %}?v=6">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=32">
+  <link rel="stylesheet" href="{% static 'core/css/figma-panel.css' %}?v=7">
 </head>
 <body>
-<a href="#contenido-principal" class="plat-skip-link">Saltar al contenido principal</a>
-
+<a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
 {% with ruta=request.resolver_match.url_name rol=request.rol_plataforma %}
-<div class="plat-shell">
-  <aside id="plat-sidebar" class="plat-sidebar" aria-label="Navegación lateral">
-    <div class="plat-sidebar-top">
-      <a class="plat-brand" href="{% url 'plataforma_inicio' %}">
-        <span class="plat-brand-mark">
-          <img src="{% static 'core/img/isotipo.png' %}" alt="" width="24" height="24">
-        </span>
-        <span class="plat-brand-text">
-          <strong>InterSoft</strong>
-          <small>Platform Console</small>
-        </span>
-      </a>
-      <button type="button" class="plat-sidebar-cerrar" data-plat-cerrar aria-label="Cerrar menú">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+<div class="escena">
+  <nav class="dock" aria-label="Menú de plataforma">
+    <button type="button" class="dock-expandir" data-dock-expandir aria-expanded="true" aria-label="Contraer menú" title="Contraer menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+
+    <a href="{% url 'plataforma_inicio' %}" data-label="Inicio" aria-label="Inicio" class="{% if ruta == 'plataforma_inicio' or ruta|slice:'0:18' == 'plataforma_inicio_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/></svg>
+    </a>
+    {% if 'negocios' in rol.permisos or 'finanzas' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Clientes SaaS</span>
+    {% endif %}
+    {% if 'negocios' in rol.permisos %}
+    <a href="{% url 'plataforma_negocios' %}" data-label="Negocios" aria-label="Negocios" class="{% if ruta == 'plataforma_negocios' or ruta|slice:'0:20' == 'plataforma_negocios_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M10 6h4M10 10h4M10 14h4"/></svg>
+    </a>
+    {% endif %}
+    {% if 'finanzas' in rol.permisos %}
+    <a href="{% url 'plataforma_planes_cobros' %}" data-label="Planes y cobros" aria-label="Planes y cobros" class="{% if ruta == 'plataforma_planes_cobros' or ruta|slice:'0:25' == 'plataforma_planes_cobros_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+    </a>
+    {% endif %}
+    {% if 'pqrs' in rol.permisos or 'comentarios' in rol.permisos or 'ideas' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Atención</span>
+    {% endif %}
+    {% if 'pqrs' in rol.permisos %}
+    <a href="{% url 'plataforma_pqrs' %}" data-label="PQRS" aria-label="PQRS" class="{% if ruta == 'plataforma_pqrs' or ruta|slice:'0:16' == 'plataforma_pqrs_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </a>
+    {% endif %}
+    {% if 'comentarios' in rol.permisos %}
+    <a href="{% url 'plataforma_comentarios' %}" data-label="Comentarios" aria-label="Comentarios" class="{% if ruta == 'plataforma_comentarios' or ruta|slice:'0:23' == 'plataforma_comentarios_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+    </a>
+    {% endif %}
+    {% if 'ideas' in rol.permisos %}
+    <a href="{% url 'plataforma_ideas' %}" data-label="Ideas" aria-label="Ideas" class="{% if ruta == 'plataforma_ideas' or ruta|slice:'0:17' == 'plataforma_ideas_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
+    </a>
+    {% endif %}
+    {% if 'errores' in rol.permisos or 'operacion' in rol.permisos %}
+    <span class="dock-grupo" role="presentation">Técnico</span>
+    {% endif %}
+    {% if 'errores' in rol.permisos %}
+    <a href="{% url 'plataforma_errores' %}" data-label="Errores" aria-label="Errores" class="{% if ruta == 'plataforma_errores' or ruta|slice:'0:19' == 'plataforma_errores_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </a>
+    {% endif %}
+    {% if 'operacion' in rol.permisos %}
+    <a href="{% url 'plataforma_operacion' %}" data-label="Operación" aria-label="Operación" class="{% if ruta == 'plataforma_operacion' or ruta|slice:'0:21' == 'plataforma_operacion_' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </a>
+    <a href="{% url 'plataforma_auditoria' %}" data-label="Auditoría" aria-label="Auditoría" class="{% if ruta == 'plataforma_auditoria' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
+    </a>
+    {% endif %}
+
+    <span class="dock-espacio"></span>
+
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="dock-salir" data-label="Salir" aria-label="Salir">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></svg>
       </button>
-    </div>
+    </form>
+  </nav>
 
-    <nav class="plat-nav" aria-label="Menú de plataforma">
-      <div class="plat-nav-grupo">
-        <p class="plat-nav-titulo">General</p>
-        <a href="{% url 'plataforma_inicio' %}" class="plat-nav-link {% if ruta == 'plataforma_inicio' %}activo{% endif %}" {% if ruta == 'plataforma_inicio' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V9"/></svg>
-          <span>Inicio</span>
-        </a>
-        <a href="{% url 'plataforma_negocios' %}" class="plat-nav-link {% if ruta == 'plataforma_negocios' %}activo{% endif %}" {% if ruta == 'plataforma_negocios' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M10 6h4M10 10h4M10 14h4"/></svg>
-          <span>Negocios</span>
-        </a>
-        <a href="{% url 'plataforma_planes_cobros' %}" class="plat-nav-link {% if ruta == 'plataforma_planes_cobros' or ruta == 'plataforma_editar_plan' %}activo{% endif %}" {% if ruta == 'plataforma_planes_cobros' or ruta == 'plataforma_editar_plan' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
-          <span>Planes y cobros</span>
-        </a>
-      </div>
+  <div class="ventana">
+    <header class="barra">
+      <a class="marca" href="{% url 'plataforma_inicio' %}">
+        <span class="marca-icono">
+          <img src="{% static 'core/img/isotipo.png' %}" alt="" width="30" height="30">
+        </span>
+        Consola de Plataforma · InterSoft
+      </a>
 
-      <div class="plat-nav-grupo">
-        <p class="plat-nav-titulo">Soporte y producto</p>
-        <a href="{% url 'plataforma_pqrs' %}" class="plat-nav-link {% if ruta == 'plataforma_pqrs' or ruta == 'plataforma_pqrs_detalle' %}activo{% endif %}" {% if ruta == 'plataforma_pqrs' or ruta == 'plataforma_pqrs_detalle' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>PQRS</span>
-        </a>
-        <a href="{% url 'plataforma_errores' %}" class="plat-nav-link {% if ruta == 'plataforma_errores' or ruta == 'plataforma_error_detalle' %}activo{% endif %}" {% if ruta == 'plataforma_errores' or ruta == 'plataforma_error_detalle' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>Errores</span>
-        </a>
-        <a href="{% url 'plataforma_comentarios' %}" class="plat-nav-link {% if ruta == 'plataforma_comentarios' %}activo{% endif %}" {% if ruta == 'plataforma_comentarios' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-          <span>Comentarios</span>
-        </a>
-        <a href="{% url 'plataforma_ideas' %}" class="plat-nav-link {% if ruta == 'plataforma_ideas' %}activo{% endif %}" {% if ruta == 'plataforma_ideas' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>
-          <span>Ideas</span>
-        </a>
-      </div>
-
-      <div class="plat-nav-grupo">
-        <p class="plat-nav-titulo">Sistema</p>
-        <a href="{% url 'plataforma_operacion' %}" class="plat-nav-link {% if ruta == 'plataforma_operacion' %}activo{% endif %}" {% if ruta == 'plataforma_operacion' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>Operación</span>
-        </a>
-        <a href="{% url 'plataforma_totp' %}" class="plat-nav-link {% if ruta == 'plataforma_totp' %}activo{% endif %}" {% if ruta == 'plataforma_totp' %}aria-current="page"{% endif %}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>Seguridad 2FA</span>
-        </a>
-      </div>
-    </nav>
-
-    <div class="plat-sidebar-footer">
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="plat-salir-btn">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="m10 16-4-4 4-4"/><path d="M6 12h10"/></svg>
-          <span>Cerrar sesión</span>
-        </button>
+      <form class="busqueda" role="search">
+        <input type="search" placeholder="Buscar o ir a…" aria-label="Buscar o ir a una sección (Ctrl + K)" aria-keyshortcuts="Control+K" data-paleta-abrir>
+        <kbd class="busqueda-atajo" aria-hidden="true">Ctrl K</kbd>
       </form>
-    </div>
-  </aside>
 
-  <div class="plat-backdrop" data-plat-backdrop hidden></div>
-
-  <div class="plat-main-col">
-    <header class="plat-topbar">
-      <div class="plat-topbar-izq">
-        <button type="button" class="plat-menu-btn" data-plat-menu aria-controls="plat-sidebar" aria-expanded="false" aria-label="Abrir menú de plataforma">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
-        <div class="plat-breadcrumb" aria-label="Ubicación actual">
-          <span>Plataforma</span>
-          <span aria-hidden="true">/</span>
-          <strong>
-            {% if ruta == 'plataforma_inicio' %}Inicio
-            {% elif ruta == 'plataforma_negocios' %}Negocios
-            {% elif ruta == 'plataforma_planes_cobros' or ruta == 'plataforma_editar_plan' %}Planes y cobros
-            {% elif ruta == 'plataforma_pqrs' or ruta == 'plataforma_pqrs_detalle' %}PQRS
-            {% elif ruta == 'plataforma_errores' or ruta == 'plataforma_error_detalle' %}Errores
-            {% elif ruta == 'plataforma_comentarios' %}Comentarios
-            {% elif ruta == 'plataforma_ideas' %}Ideas
-            {% elif ruta == 'plataforma_operacion' %}Operación
-            {% elif ruta == 'plataforma_totp' %}Seguridad 2FA
-            {% else %}Consola{% endif %}
-          </strong>
-        </div>
-      </div>
-
-      <div class="plat-topbar-der">
-        <button type="button" class="plat-tema-btn" data-plat-tema aria-pressed="false" aria-label="Cambiar tema">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-          <span data-plat-tema-label>Claro</span>
+      <div class="cuenta">
+        <button type="button" class="tema" role="switch" aria-checked="true" aria-label="Modo noche" data-tema-boton>
+          <span class="tema-pista" aria-hidden="true">
+            <svg class="tema-sol" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tema-luna" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
+            <span class="tema-perilla"></span>
+          </span>
         </button>
         <a class="boton secundario" href="{% url 'marketplace' %}">Marketplace</a>
-        <a class="plat-perfil-pill" href="{% url 'perfil' %}">
-          <span class="plat-avatar" aria-hidden="true">{{ user.first_name|default:user.email|first|upper }}</span>
-          <span class="plat-perfil-texto">
+        <a class="cuenta-perfil" href="{% url 'perfil' %}">
+          <span class="cuenta-texto">
             <strong>{{ user.get_full_name|default:user.email }}</strong>
-            <small>{{ rol.get_rol_display|default:"Equipo Plataforma" }}</small>
+            <small>{{ rol.get_rol_display }}</small>
           </span>
+          <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.email|first|upper }}</span>
         </a>
       </div>
     </header>
 
     <main id="contenido-principal" tabindex="-1">
-      <div class="plat-contenedor">
-        {% for mensaje in messages %}
-          <div class="mensaje {{ mensaje.tags }}" role="status">{{ mensaje }}</div>
-        {% endfor %}
-        {% block contenido %}{% endblock %}
-      </div>
+      {% for mensaje in messages %}
+        <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+      {% endfor %}
+      {% block contenido %}{% endblock %}
     </main>
   </div>
 </div>
 {% endwith %}
-<script defer src="{% static 'plataforma/js/plataforma.js' %}?v=1"></script>
+<script defer src="{% static 'core/js/app.js' %}?v=4"></script>
+<script defer src="{% static 'core/js/tema.js' %}?v=1"></script>
+{% include "plataforma/paleta.html" with rol=request.rol_plataforma %}
+<script defer src="{% static 'core/js/paleta.js' %}?v=2"></script>
 </body>
 </html>

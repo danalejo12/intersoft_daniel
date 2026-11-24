@@ -1,0 +1,50 @@
+{% extends "plataforma/base.html" %}
+{% block titulo %}Auditoría · Consola de Plataforma · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Bitácora de auditoría</h1>
+      <p class="nota">Todo lo que el equipo cambia desde la consola: quién, qué y cuándo. No guarda secretos.</p>
+    </div>
+    <a class="boton secundario" href="{% url 'plataforma_operacion' %}">← Operación</a>
+  </div>
+
+  <form method="get" class="op-filtros" role="search">
+    <input type="search" name="q" value="{{ filtros.q }}" placeholder="Buscar acción, objeto o correo" aria-label="Buscar en la bitácora">
+    <label>Desde <input type="date" name="desde" value="{{ filtros.desde }}"></label>
+    <label>Hasta <input type="date" name="hasta" value="{{ filtros.hasta }}"></label>
+    <button type="submit" class="boton">Filtrar</button>
+    {% if filtros_url %}<a class="boton secundario" href="{% url 'plataforma_auditoria' %}">Limpiar</a>{% endif %}
+  </form>
+
+  <div class="tabla-desplazable">
+    <table class="tabla">
+      <thead>
+        <tr><th>Fecha</th><th>Persona</th><th>Acción</th><th>Objeto</th><th>Detalle</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for r in pagina %}
+          <tr>
+            <td>{{ r.fecha|date:"d/m/Y H:i" }}</td>
+            <td>{{ r.actor.email|default:"Sistema" }}</td>
+            <td><code>{{ r.accion }}</code></td>
+            <td>{{ r.objeto_tipo }}{% if r.objeto_id %} <small class="nota">{{ r.objeto_id|truncatechars:18 }}</small>{% endif %}</td>
+            <td><small>{% for clave, valor in r.detalle.items %}{{ clave }}: {{ valor|truncatechars:60 }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</small></td>
+            <td><small>{{ r.ip|default:"—" }}</small></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No hay registros{% if filtros_url %} con esos filtros{% endif %}.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagina.has_other_pages %}
+    <nav class="paginacion" aria-label="Páginas de la bitácora">
+      {% if pagina.has_previous %}<a href="?{% if filtros_url %}{{ filtros_url }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}">← Anterior</a>{% endif %}
+      <span class="nota" style="margin: 0;">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} · {{ pagina.paginator.count }} registros</span>
+      {% if pagina.has_next %}<a href="?{% if filtros_url %}{{ filtros_url }}&amp;{% endif %}pagina={{ pagina.next_page_number }}">Siguiente →</a>{% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

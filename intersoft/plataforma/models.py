@@ -63,6 +63,11 @@ class RolPlataforma(ModeloBase):
     def __str__(self):
         return f"{self.usuario} · {self.get_rol_display()}"
 
+    @property
+    def permisos(self) -> set:
+        """Secciones a las que entra este rol (para mostrar en el menú solo lo permitido)."""
+        return set(PERMISOS_POR_ROL.get(self.rol, set())) if self.activo else set()
+
     def tiene_permiso(self, permiso: str) -> bool:
         if not self.activo:
             return False

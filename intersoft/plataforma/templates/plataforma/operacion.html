@@ -1,0 +1,120 @@
+{% extends "plataforma/base.html" %}
+{% block titulo %}Operación · Consola de Plataforma · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Operación</h1>
+      <p class="nota">
+        {% if fallas %}<strong>{{ fallas }} problema{{ fallas|pluralize }}</strong> que atender{% if avisos %} y {{ avisos }} aviso{{ avisos|pluralize }}{% endif %}.
+        {% elif avisos %}Todo funciona, con {{ avisos }} aviso{{ avisos|pluralize }} para revisar.
+        {% else %}Todo en orden.{% endif %}
+      </p>
+    </div>
+    <a class="boton secundario" href="{% url 'plataforma_auditoria' %}">Bitácora de auditoría</a>
+  </div>
+
+  {# ---------- Estado del sistema ---------- #}
+  <section class="op-revisiones" aria-label="Estado del sistema">
+    {% for r in revisiones %}
+      <article class="op-revision op-{{ r.estado }}">
+        <span class="op-punto" aria-hidden="true"></span>
+        <div>
+          <h2>{{ r.nombre }}</h2>
+          <p class="op-resumen">
+            <span class="visualmente-oculto">{% if r.estado == "ok" %}Correcto:{% elif r.estado == "aviso" %}Aviso:{% else %}Problema:{% endif %}</span>
+            {{ r.resumen }}
+          </p>
+          {% if r.detalle %}<p class="op-detalle">{{ r.detalle }}</p>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+
+  {# ---------- Tareas periódicas ---------- #}
+  <article class="tarjeta" style="margin-bottom: 22px;">
+    <div class="tarjeta-cabecera">
+      <h2>Tareas periódicas</h2>
+      <span class="nota" style="margin: 0;">Las ejecuta «tareas_periodicas» (contenedor scheduler o cron)</span>
+    </div>
+    <div class="tabla-desplazable">
+      <table class="tabla">
+        <thead>
+          <tr><th>Tarea</th><th>Frecuencia</th><th>Última vez</th><th>Resultado</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for t in tareas %}
+            <tr>
+              <td>
+                <span class="op-punto op-{{ t.estado }}" aria-hidden="true"></span>
+                <strong>{{ t.nombre }}</strong>
+                <br><small class="nota" style="margin: 0;">{{ t.descripcion }}</small>
+              </td>
+              <td>{{ t.cada_texto }}</td>
+              <td>
+                {% if t.ultima_ejecucion %}
+                  {{ t.ultima_ejecucion|timesince }}
+                  {% if t.atrasada %}<br><span class="badge alerta">Atrasada</span>{% endif %}
+                {% else %}
+                  <span class="badge alerta">Nunca</span>
+                {% endif %}
+              </td>
+              <td class="op-resultado">
+                {% if t.fallos_seguidos %}
+                  <span class="badge peligro">{{ t.fallos_seguidos }} fallo{{ t.fallos_seguidos|pluralize }} seguido{{ t.fallos_seguidos|pluralize }}</span>
+                  <br><small>{{ t.ultimo_error|truncatechars:140 }}</small>
+                {% elif t.ultimo_resultado %}
+                  <small>{{ t.ultimo_resultado|truncatechars:140 }}</small>
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="ejecutar_tarea">
+                  <input type="hidden" name="tarea" value="{{ t.nombre }}">
+                  <button type="submit" class="boton secundario pequeno" aria-label="Ejecutar ahora {{ t.nombre }}">Ejecutar ahora</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if auditoria_tareas %}
+      <p class="nota" style="margin: 14px 0 0;">
+        Últimas ejecuciones manuales:
+        {% for a in auditoria_tareas %}{{ a.objeto_id }} ({{ a.actor.email|default:"sistema" }}, hace {{ a.fecha|timesince }}){% if not forloop.last %} · {% endif %}{% endfor %}
+      </p>
+    {% endif %}
+  </article>
+
+  {# ---------- Revisión de despliegue ---------- #}
+  <article class="tarjeta" style="margin-bottom: 22px;">
+    <div class="tarjeta-cabecera">
+      <h2>Revisión de despliegue</h2>
+      {% if despliegue %}<span class="badge alerta">{{ despliegue|length }} punto{{ despliegue|length|pluralize }}</span>{% else %}<span class="badge exito">Lista para producción</span>{% endif %}
+    </div>
+    <p class="nota">Lo mismo que <code>python manage.py check --deploy</code>. En desarrollo es normal ver avisos.</p>
+    {% if despliegue %}
+      <ul class="op-lista">
+        {% for d in despliegue %}
+          <li>
+            <span class="badge {% if d.nivel == 'error' %}peligro{% else %}alerta{% endif %}">{{ d.id }}</span>
+            {{ d.mensaje }}
+            {% if d.ayuda %}<br><small class="nota" style="margin: 0;">{{ d.ayuda }}</small>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </article>
+
+  {# ---------- Entorno ---------- #}
+  <article class="tarjeta">
+    <h2>Entorno</h2>
+    <dl class="op-entorno">
+      {% for etiqueta, valor in entorno %}
+        <div><dt>{{ etiqueta }}</dt><dd>{{ valor|default:"—" }}</dd></div>
+      {% endfor %}
+    </dl>
+  </article>
+{% endblock %}
