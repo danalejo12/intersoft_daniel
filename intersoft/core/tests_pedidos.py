@@ -1084,6 +1084,62 @@ class MarketplaceFase6Tests(PedidoBase):
         call_command("procesar_reservas_y_alertas", "--sin-correo", stdout=salida_2)
         self.assertIn("Reservas vencidas: 0", salida_2.getvalue())
 
+    def test_enlace_rastreo_automatico_personalizado_correo_html_y_whatsapp(self):
+        from django.core import mail
+
+        marcar_pagado(self.pedido)
+        mail.outbox.clear()
+
+        # 1. Enlace automático para transportadora colombiana con tilde (Inter Rapidísimo)
+        actualizar_envio_pedido(
+            pedido=self.pedido,
+            estado_envio=Pedido.EstadoEnvio.ENVIADO,
+            transportadora="Inter Rapidísimo",
+            numero_guia="IR-884422",
+        )
+        self.recargar()
+        self.assertIn("interrapidisimo.com", self.pedido.enlace_rastreo)
+        self.assertIn("IR-884422", self.pedido.enlace_rastreo)
+        self.assertIn("https://wa.me/57", self.pedido.enlace_whatsapp_envio)
+        self.assertIn("IR-884422", self.pedido.enlace_whatsapp_envio)
+
+        # Correo enviado en texto plano + HTML con el enlace de rastreo
+        self.assertEqual(len(mail.outbox), 1)
+        correo = mail.outbox[0]
+        self.assertIn("interrapidisimo.com", correo.body)
+        self.assertEqual(len(correo.alternatives), 1)
+        html_cuerpo, mime = correo.alternatives[0]
+        self.assertEqual(mime, "text/html")
+        self.assertIn("Rastrear envío", html_cuerpo)
+        self.assertIn("interrapidisimo.com", html_cuerpo)
+
+        # El comprador ve el botón de rastreo en /pedidos/<uuid>/
+        self.client.force_login(self.comprador)
+        vista = self.client.get(reverse("pedido_detalle", args=[self.pedido.pk]))
+        self.assertContains(vista, "Rastrear envío")
+        self.assertContains(vista, self.pedido.enlace_rastreo)
+
+        # 2. Rechaza esquemas inseguros en url_rastreo (XSS)
+        with self.assertRaises(ValueError):
+            actualizar_envio_pedido(
+                pedido=self.pedido,
+                estado_envio=Pedido.EstadoEnvio.ENVIADO,
+                transportadora="Mensajería propia",
+                numero_guia="MP-1",
+                url_rastreo="javascript:alert(1)",
+            )
+
+        # 3. Enlace personalizado válido sobrescribe el automático
+        actualizar_envio_pedido(
+            pedido=self.pedido,
+            estado_envio=Pedido.EstadoEnvio.ENTREGADO,
+            transportadora="Mensajería propia",
+            numero_guia="MP-1",
+            url_rastreo="https://rastreo.miempresa.co/MP-1",
+        )
+        self.recargar()
+        self.assertEqual(self.pedido.enlace_rastreo, "https://rastreo.miempresa.co/MP-1")
+
 
 
 

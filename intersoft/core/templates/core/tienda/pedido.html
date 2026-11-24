@@ -22,21 +22,37 @@
         <a class="boton boton-claro boton-grande" href="{% url 'mis_pedidos' %}">Ver mis pedidos</a>
       </div>
       {% with ev=pedido.estado_envio %}
-        <ol aria-label="Seguimiento de envío" style="list-style:none; padding:0; margin:18px 0 0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; text-align:center;">
-          <li style="padding:8px; border-radius:8px; border:1px solid #10b981; background:rgba(16,185,129,.12);">
-            <strong>1. Pendiente</strong>
+        <ol class="envio-pasos" aria-label="Seguimiento de envío">
+          <li class="envio-paso activo">
+            <strong>1. Confirmado</strong>
+            <small>{{ pedido.creado_en|date:"d/m/Y H:i" }}</small>
           </li>
-          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+          <li class="envio-paso {% if ev == 'preparando' or ev == 'enviado' or ev == 'entregado' %}activo{% endif %}">
             <strong>2. Preparando</strong>
+            <small>{% if ev == 'preparando' %}En alistamiento{% elif ev == 'enviado' or ev == 'entregado' %}Listo{% else %}Pendiente{% endif %}</small>
           </li>
-          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'enviado' or ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'enviado' or ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+          <li class="envio-paso {% if ev == 'enviado' or ev == 'entregado' %}activo{% endif %}">
             <strong>3. Enviado</strong>
-            {% if pedido.numero_guia %}<br><small>{{ pedido.transportadora }} · Guía {{ pedido.numero_guia }}</small>{% endif %}
+            {% if pedido.numero_guia %}
+              <small>{{ pedido.transportadora }} · Guía {{ pedido.numero_guia }}</small>
+            {% elif pedido.enviado_en %}
+              <small>{{ pedido.enviado_en|date:"d/m/Y H:i" }}</small>
+            {% else %}
+              <small>Por despachar</small>
+            {% endif %}
           </li>
-          <li style="padding:8px; border-radius:8px; border:1px solid {% if ev == 'entregado' %}#10b981{% else %}rgba(148,163,184,.3){% endif %}; background:{% if ev == 'entregado' %}rgba(16,185,129,.12){% else %}transparent{% endif %};">
+          <li class="envio-paso {% if ev == 'entregado' %}activo{% endif %}">
             <strong>4. Entregado</strong>
+            <small>{% if pedido.entregado_en %}{{ pedido.entregado_en|date:"d/m/Y H:i" }}{% else %}En camino{% endif %}</small>
           </li>
         </ol>
+        {% if pedido.enlace_rastreo %}
+          <p class="envio-rastreo-cta">
+            <a class="boton secundario" href="{{ pedido.enlace_rastreo }}" target="_blank" rel="noopener noreferrer">
+              Rastrear envío{% if pedido.transportadora %} en {{ pedido.transportadora }}{% endif %} ↗
+            </a>
+          </p>
+        {% endif %}
       {% endwith %}
 
     {% elif estado == "cancelado" %}
@@ -193,6 +209,11 @@
           <strong>{{ pedido.get_estado_envio_display }}</strong>
           {% if pedido.transportadora %}<br>Transportadora: {{ pedido.transportadora }}{% endif %}
           {% if pedido.numero_guia %}<br>Guía: <strong>{{ pedido.numero_guia }}</strong>{% endif %}
+          {% if pedido.enviado_en %}<br><small class="nota">Despachado: {{ pedido.enviado_en|date:"d/m/Y H:i" }}</small>{% endif %}
+          {% if pedido.entregado_en %}<br><small class="nota">Entregado: {{ pedido.entregado_en|date:"d/m/Y H:i" }}</small>{% endif %}
+          {% if pedido.enlace_rastreo %}
+            <br><a class="enlace-rastreo" href="{{ pedido.enlace_rastreo }}" target="_blank" rel="noopener noreferrer">Rastrear envío ↗</a>
+          {% endif %}
         </p>
       {% endif %}
 

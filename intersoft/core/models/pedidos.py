@@ -1,6 +1,8 @@
 """Compras del marketplace: pedidos con datos de envío y opiniones de productos."""
+import unicodedata
 from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -10,6 +12,28 @@ from django.utils import timezone
 
 from .base import ModeloBase, ModeloTenant
 from .ventas import Factura
+
+# Enlaces oficiales de rastreo para transportadoras frecuentes en Colombia y envíos internacionales.
+TRANSPORTADORAS_RASTREO = {
+    "servientrega": "https://www.servientrega.com/wps/portal/rastreo-envio?guia={guia}",
+    "coordinadora": "https://coordinadora.com/rastreo/rastreo-de-guia/detalle-de-rastreo-de-guia/?guia={guia}",
+    "interrapidisimo": "https://www.interrapidisimo.com/sigue-tu-envio/?guia={guia}",
+    "inter rapidisimo": "https://www.interrapidisimo.com/sigue-tu-envio/?guia={guia}",
+    "envia": "https://envia.co/rastreo/?guia={guia}",
+    "tcc": "https://tcc.com.co/logistica/servicios-on-line/rastrear-envios/?remesa={guia}",
+    "deprisa": "https://www.deprisa.com/Tracking/?track={guia}",
+    "4-72": "https://www.4-72.com.co/Publicaciones/informacion_de_interes/rastreo_de_envios?guia={guia}",
+    "472": "https://www.4-72.com.co/Publicaciones/informacion_de_interes/rastreo_de_envios?guia={guia}",
+    "fedex": "https://www.fedex.com/fedextrack/?trknbr={guia}",
+    "dhl": "https://www.dhl.com/co-es/home/rastreo.html?tracking-id={guia}",
+}
+
+
+def _normalizar_transportadora(nombre: str) -> str:
+    """Minúsculas sin tildes ni espacios repetidos para empatar nombres de transportadora."""
+    sin_tildes = unicodedata.normalize("NFKD", (nombre or "").strip().lower())
+    limpio = "".join(c for c in sin_tildes if not unicodedata.combining(c))
+    return " ".join(limpio.split())
 
 
 class Orden(ModeloBase):
@@ -97,6 +121,7 @@ class Pedido(ModeloTenant):
     )
     transportadora = models.CharField(max_length=80, blank=True)
     numero_guia = models.CharField(max_length=80, blank=True)
+    url_rastreo = models.URLField(max_length=300, blank=True)
     enviado_en = models.DateTimeField(null=True, blank=True)
     entregado_en = models.DateTimeField(null=True, blank=True)
     reembolsado_en = models.DateTimeField(null=True, blank=True)
@@ -167,6 +192,44 @@ class Pedido(ModeloTenant):
         """Texto del estado que ve el comprador (incluye el del último intento de pago)."""
         estado = self.estado_compra
         return self.ETIQUETAS_DEL_INTENTO.get(estado) or self.Estado(estado).label
+
+    @property
+    def enlace_rastreo(self) -> str:
+        """Enlace seguro (http/https) para rastrear el envío: personalizado o automático por transportadora."""
+        personalizado = (self.url_rastreo or "").strip()
+        if personalizado.startswith(("http://", "https://")):
+            return personalizado
+        guia = (self.numero_guia or "").strip()
+        if not guia or not self.transportadora:
+            return ""
+        clave = _normalizar_transportadora(self.transportadora)
+        plantilla = TRANSPORTADORAS_RASTREO.get(clave)
+        if not plantilla:
+            for nombre, url in TRANSPORTADORAS_RASTREO.items():
+                if nombre in clave:
+                    plantilla = url
+                    break
+        return plantilla.format(guia=quote(guia, safe="")) if plantilla else ""
+
+    @property
+    def enlace_whatsapp_envio(self) -> str:
+        """Enlace wa.me prellenado para avisar al comprador por WhatsApp el estado y guía de su pedido."""
+        from core.notificaciones import telefono_whatsapp
+
+        destino = telefono_whatsapp(self.telefono)
+        if not destino:
+            return ""
+        partes = [
+            f"Hola {self.primer_nombre}, te escribimos de {self.empresa.nombre}.",
+            f"Tu pedido #{self.numero} está en estado: {self.get_estado_envio_display()}.",
+        ]
+        if self.transportadora:
+            partes.append(f"Transportadora: {self.transportadora}.")
+        if self.numero_guia:
+            partes.append(f"Número de guía: {self.numero_guia}.")
+        if self.enlace_rastreo:
+            partes.append(f"Rastrea tu envío aquí: {self.enlace_rastreo}")
+        return f"https://wa.me/{destino}?text={quote(' '.join(partes))}"
 
 
 class DetallePedido(ModeloTenant):

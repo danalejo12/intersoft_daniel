@@ -128,18 +128,29 @@ def registrar_reembolso(*, pedido, usuario, referencia, nota=""):
 
 
 @transaction.atomic
-def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_guia=""):
+def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_guia="", url_rastreo=""):
     """Actualiza el estado logístico y datos de guía de un pedido pagado."""
+    from django.core.exceptions import ValidationError
+    from django.core.validators import URLValidator
+
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.PAGADO:
         raise ValueError("Solo se puede gestionar el envío de pedidos pagados.")
     if estado_envio not in Pedido.EstadoEnvio.values:
         raise ValueError("Estado de envío no válido.")
 
+    url_limpia = (url_rastreo or "").strip()[:300]
+    if url_limpia:
+        try:
+            URLValidator(schemes=["http", "https"])(url_limpia)
+        except ValidationError as exc:
+            raise ValueError("La URL de rastreo debe ser un enlace válido (http:// o https://).") from exc
+
     ahora = timezone.now()
     bloqueado.estado_envio = estado_envio
     bloqueado.transportadora = (transportadora or "").strip()[:80]
     bloqueado.numero_guia = (numero_guia or "").strip()[:80]
+    bloqueado.url_rastreo = url_limpia
     if estado_envio in (Pedido.EstadoEnvio.ENVIADO, Pedido.EstadoEnvio.ENTREGADO) and bloqueado.enviado_en is None:
         bloqueado.enviado_en = ahora
     if estado_envio == Pedido.EstadoEnvio.ENTREGADO and bloqueado.entregado_en is None:
@@ -150,6 +161,7 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
             "estado_envio",
             "transportadora",
             "numero_guia",
+            "url_rastreo",
             "enviado_en",
             "entregado_en",
             "actualizado_en",

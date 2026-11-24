@@ -1826,3 +1826,63 @@ button svg,
   clip-path: inset(50%);
   border: 0;
 }
+
+/* 6. Barra de seguimiento de envío y rastreo en /pedidos/<uuid>/ */
+.envio-pasos {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  text-align: left;
+}
+
+.envio-paso {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--borde);
+  background: var(--superficie);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.envio-paso strong {
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+
+.envio-paso small {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.envio-paso.activo {
+  border-color: #10b981;
+  background: color-mix(in srgb, #10b981 12%, var(--superficie));
+}
+
+.envio-paso.activo strong {
+  color: var(--exito-texto, #047857);
+}
+
+.envio-rastreo-cta {
+  margin: 16px 0 0;
+}
+
+.enlace-rastreo {
+  display: inline-block;
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--primario);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .envio-pasos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

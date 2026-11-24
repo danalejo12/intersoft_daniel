@@ -195,6 +195,7 @@ class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
                     estado_envio=request.POST.get("estado_envio", ""),
                     transportadora=request.POST.get("transportadora", ""),
                     numero_guia=request.POST.get("numero_guia", ""),
+                    url_rastreo=request.POST.get("url_rastreo", ""),
                 )
             except ValueError as error:
                 messages.error(request, str(error))

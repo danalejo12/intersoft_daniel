@@ -122,20 +122,44 @@
           </div>
           <div class="campo">
             <label for="id_transportadora">Transportadora</label>
-            <input id="id_transportadora" type="text" name="transportadora" maxlength="80" value="{{ pedido.transportadora }}" placeholder="Ej.: Servientrega, Coordinadora, Mensajería propia">
+            <input id="id_transportadora" type="text" name="transportadora" maxlength="80" list="transportadoras-co" value="{{ pedido.transportadora }}" placeholder="Ej.: Servientrega, Coordinadora, Inter Rapidísimo">
+            <datalist id="transportadoras-co">
+              <option value="Servientrega">
+              <option value="Coordinadora">
+              <option value="Inter Rapidísimo">
+              <option value="Envía">
+              <option value="TCC">
+              <option value="Deprisa">
+              <option value="4-72">
+              <option value="Mensajería propia">
+            </datalist>
           </div>
           <div class="campo">
             <label for="id_numero_guia">Número de guía</label>
             <input id="id_numero_guia" type="text" name="numero_guia" maxlength="80" value="{{ pedido.numero_guia }}" placeholder="Ej.: GUIA-992831">
           </div>
+          <div class="campo">
+            <label for="id_url_rastreo">Enlace de rastreo (opcional)</label>
+            <input id="id_url_rastreo" type="url" name="url_rastreo" maxlength="300" value="{{ pedido.url_rastreo }}" placeholder="https://...">
+            <small class="ayuda">Si lo dejas vacío, se genera automáticamente para Servientrega, Coordinadora, Inter Rapidísimo, Envía, TCC, Deprisa o 4-72.</small>
+          </div>
           <div class="acciones">
-            <button type="submit">Actualizar envío</button>
+            <button type="submit" class="boton">Actualizar envío</button>
+            {% if pedido.enlace_rastreo %}
+              <a class="boton secundario" href="{{ pedido.enlace_rastreo }}" target="_blank" rel="noopener noreferrer">Rastrear guía ↗</a>
+            {% endif %}
+            {% if pedido.enlace_whatsapp_envio %}
+              <a class="boton secundario" href="{{ pedido.enlace_whatsapp_envio }}" target="_blank" rel="noopener noreferrer">Avisar por WhatsApp</a>
+            {% endif %}
           </div>
         </form>
       {% else %}
         <p>
           <strong>Transportadora:</strong> {{ pedido.transportadora|default:"Sin asignar" }} ·
           <strong>Guía:</strong> {{ pedido.numero_guia|default:"Sin guía" }}
+          {% if pedido.enlace_rastreo %}
+            · <a href="{{ pedido.enlace_rastreo }}" target="_blank" rel="noopener noreferrer">Rastrear guía ↗</a>
+          {% endif %}
         </p>
       {% endif %}
     </section>
