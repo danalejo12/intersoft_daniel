@@ -1,0 +1,263 @@
+/* =====================================================================
+   INTERSOFT · Hoja central de tokens y microcomponentes (Figma System)
+   Fuente única de verdad compartida entre Marketplace, Panel y Plataforma.
+   Soporta Claro/Oscuro (data-tema="claro"|"light" y "oscuro"|"dark"),
+   diálogos nativos <dialog>, controles de formulario y alto contraste.
+   ===================================================================== */
+
+:root {
+  /* Paleta Light (Figma InterSoft Tokens) */
+  --is-canvas-light: #f8fafc;
+  --is-surface-light: #ffffff;
+  --is-subtle-light: #f1f5f9;
+  --is-border-light: #e2e8f0;
+  --is-border-strong-light: #cbd5e1;
+
+  --is-ink-light: #0f172a;
+  --is-ink-sec-light: #475569;
+  --is-ink-muted-light: #64748b;
+
+  --is-brand-light: #2563eb;
+  --is-brand-hover-light: #1d4ed8;
+  --is-brand-soft-light: #eff6ff;
+
+  --is-success-light: #059669;
+  --is-success-bg-light: #ecfdf5;
+  --is-warning-light: #b45309;
+  --is-warning-bg-light: #fffbeb;
+  --is-danger-light: #dc2626;
+  --is-danger-bg-light: #fef2f2;
+  --is-info-light: #1d4ed8;
+  --is-info-bg-light: #eff6ff;
+  --is-violet-light: #7c3aed;
+  --is-violet-bg-light: #f5f3ff;
+
+  /* Paleta Dark (Obsidian Slate) */
+  --is-canvas-dark: #0b0f19;
+  --is-surface-dark: #111827;
+  --is-subtle-dark: #1e293b;
+  --is-border-dark: #1f2937;
+  --is-border-strong-dark: #334155;
+
+  --is-ink-dark: #f8fafc;
+  --is-ink-sec-dark: #94a3b8;
+  --is-ink-muted-dark: #94a3b8;
+
+  --is-brand-dark: #3b82f6;
+  --is-brand-hover-dark: #60a5fa;
+  --is-brand-soft-dark: #172554;
+
+  --is-success-dark: #34d399;
+  --is-success-bg-dark: #064e3b;
+  --is-warning-dark: #fbbf24;
+  --is-warning-bg-dark: #451a03;
+  --is-danger-dark: #f87171;
+  --is-danger-bg-dark: #450a0a;
+  --is-info-dark: #60a5fa;
+  --is-info-bg-dark: #172554;
+  --is-violet-dark: #a78bfa;
+  --is-violet-bg-dark: #2e1065;
+
+  /* Tokens semánticos activos (Light por defecto) */
+  --is-canvas: var(--is-canvas-light);
+  --is-surface: var(--is-surface-light);
+  --is-subtle: var(--is-subtle-light);
+  --is-border: var(--is-border-light);
+  --is-border-strong: var(--is-border-strong-light);
+  --is-ink: var(--is-ink-light);
+  --is-ink-sec: var(--is-ink-sec-light);
+  --is-ink-muted: var(--is-ink-muted-light);
+  --is-brand: var(--is-brand-light);
+  --is-brand-hover: var(--is-brand-hover-light);
+  --is-brand-soft: var(--is-brand-soft-light);
+  --is-success: var(--is-success-light);
+  --is-success-bg: var(--is-success-bg-light);
+  --is-warning: var(--is-warning-light);
+  --is-warning-bg: var(--is-warning-bg-light);
+  --is-danger: var(--is-danger-light);
+  --is-danger-bg: var(--is-danger-bg-light);
+  --is-info: var(--is-info-light);
+  --is-info-bg: var(--is-info-bg-light);
+  --is-violet: var(--is-violet-light);
+  --is-violet-bg: var(--is-violet-bg-light);
+
+  /* Elevaciones, radios y tipografía */
+  --is-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --is-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.07);
+  --is-shadow-md: 0 10px 24px -6px rgba(15, 23, 42, 0.12);
+  --is-shadow-lg: 0 24px 48px -12px rgba(15, 23, 42, 0.24);
+
+  --is-radius-xs: 6px;
+  --is-radius-sm: 8px;
+  --is-radius-md: 12px;
+  --is-radius-lg: 16px;
+  --is-radius-pill: 999px;
+
+  --is-font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --is-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  color-scheme: light dark;
+  accent-color: var(--is-brand);
+  scrollbar-color: var(--is-border-strong) transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]):not([data-tema="light"]) {
+    --is-canvas: var(--is-canvas-dark);
+    --is-surface: var(--is-surface-dark);
+    --is-subtle: var(--is-subtle-dark);
+    --is-border: var(--is-border-dark);
+    --is-border-strong: var(--is-border-strong-dark);
+    --is-ink: var(--is-ink-dark);
+    --is-ink-sec: var(--is-ink-sec-dark);
+    --is-ink-muted: var(--is-ink-muted-dark);
+    --is-brand: var(--is-brand-dark);
+    --is-brand-hover: var(--is-brand-hover-dark);
+    --is-brand-soft: var(--is-brand-soft-dark);
+    --is-success: var(--is-success-dark);
+    --is-success-bg: var(--is-success-bg-dark);
+    --is-warning: var(--is-warning-dark);
+    --is-warning-bg: var(--is-warning-bg-dark);
+    --is-danger: var(--is-danger-dark);
+    --is-danger-bg: var(--is-danger-bg-dark);
+    --is-info: var(--is-info-dark);
+    --is-info-bg: var(--is-info-bg-dark);
+    --is-violet: var(--is-violet-dark);
+    --is-violet-bg: var(--is-violet-bg-dark);
+    --is-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --is-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.42);
+    --is-shadow-md: 0 12px 28px -6px rgba(0, 0, 0, 0.52);
+    --is-shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
+  }
+}
+
+:root[data-tema="claro"],
+:root[data-tema="light"] {
+  color-scheme: light;
+}
+
+:root[data-tema="oscuro"],
+:root[data-tema="dark"] {
+  color-scheme: dark;
+  --is-canvas: var(--is-canvas-dark);
+  --is-surface: var(--is-surface-dark);
+  --is-subtle: var(--is-subtle-dark);
+  --is-border: var(--is-border-dark);
+  --is-border-strong: var(--is-border-strong-dark);
+  --is-ink: var(--is-ink-dark);
+  --is-ink-sec: var(--is-ink-sec-dark);
+  --is-ink-muted: var(--is-ink-muted-dark);
+  --is-brand: var(--is-brand-dark);
+  --is-brand-hover: var(--is-brand-hover-dark);
+  --is-brand-soft: var(--is-brand-soft-dark);
+  --is-success: var(--is-success-dark);
+  --is-success-bg: var(--is-success-bg-dark);
+  --is-warning: var(--is-warning-dark);
+  --is-warning-bg: var(--is-warning-bg-dark);
+  --is-danger: var(--is-danger-dark);
+  --is-danger-bg: var(--is-danger-bg-dark);
+  --is-info: var(--is-info-dark);
+  --is-info-bg: var(--is-info-bg-dark);
+  --is-violet: var(--is-violet-dark);
+  --is-violet-bg: var(--is-violet-bg-dark);
+  --is-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --is-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.42);
+  --is-shadow-md: 0 12px 28px -6px rgba(0, 0, 0, 0.52);
+  --is-shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
+}
+
+/* =====================================================================
+   MICROCOMPONENTES COMPARTIDOS (Modern Web Guidance)
+   ===================================================================== */
+
+::selection {
+  background: var(--is-brand-soft);
+  color: var(--is-brand);
+}
+
+::placeholder {
+  color: var(--is-ink-muted);
+  opacity: 0.9;
+}
+
+/* Botón nativo de selector de archivos */
+::file-selector-button {
+  margin-inline-end: 10px;
+  padding: 6px 12px;
+  border-radius: var(--is-radius-xs);
+  border: 1px solid var(--is-border-strong);
+  background: var(--is-subtle);
+  color: var(--is-ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+::file-selector-button:hover {
+  background: var(--is-brand-soft);
+  border-color: var(--is-brand);
+  color: var(--is-brand);
+}
+
+/* Diálogos modales nativos <dialog> con contención de scroll sin tocar html/body */
+dialog {
+  max-inline-size: min(560px, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border-radius: var(--is-radius-lg);
+  border: 1px solid var(--is-border);
+  background: var(--is-surface);
+  color: var(--is-ink);
+  box-shadow: var(--is-shadow-lg);
+}
+
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background: rgba(15, 23, 42, 0.54);
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Estados vacíos consistentes */
+.is-vacio,
+.vacio {
+  padding: 2rem 1.25rem;
+  border-radius: var(--is-radius-md);
+  border: 1px dashed var(--is-border-strong);
+  background: var(--is-surface);
+  color: var(--is-ink-sec);
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+/* Avisos / Toasts globales */
+.avisos .aviso,
+.is-toast {
+  padding: 0.75rem 1rem;
+  border-radius: var(--is-radius-sm);
+  border: 1px solid var(--is-border);
+  background: var(--is-surface);
+  color: var(--is-ink);
+  box-shadow: var(--is-shadow-md);
+  font-weight: 500;
+}
+
+/* Tipografía fluida y lectura cómoda */
+body {
+  overflow-wrap: break-word;
+}
+
+/* Controles táctiles y alto contraste */
+@media (forced-colors: active) {
+  dialog,
+  .is-vacio,
+  .vacio,
+  .is-toast {
+    border: 1px solid CanvasText;
+  }
+}

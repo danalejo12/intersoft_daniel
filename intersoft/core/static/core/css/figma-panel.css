@@ -7,82 +7,51 @@
 :root {
   color-scheme: light;
 
-  --fondo: #f8fafc;
-  --superficie: #ffffff;
-  --sutil: #f1f5f9;
-  --borde: #e2e8f0;
-  --borde-fuerte: #cbd5e1;
+  --fondo: var(--is-canvas);
+  --superficie: var(--is-surface);
+  --sutil: var(--is-subtle);
+  --borde: var(--is-border);
+  --borde-fuerte: var(--is-border-strong);
 
-  /* Mapeo de variables heredadas de app.css al sistema Figma Claro */
+  /* Mapeo de variables heredadas de app.css al sistema central tokens.css */
   --foto: none;
-  --ambiente: #f8fafc;
-  --vidrio: #ffffff;
-  --vidrio-borde: #e2e8f0;
-  --tarjeta: #ffffff;
-  --tarjeta-borde: #e2e8f0;
-  --hundido: #f1f5f9;
-  --linea: #e2e8f0;
+  --ambiente: var(--is-canvas);
+  --vidrio: var(--is-surface);
+  --vidrio-borde: var(--is-border);
+  --tarjeta: var(--is-surface);
+  --tarjeta-borde: var(--is-border);
+  --hundido: var(--is-subtle);
+  --linea: var(--is-border);
 
-  --texto: #0f172a;
-  --suave: #475569;
-  --tenue: #64748b;
+  --texto: var(--is-ink);
+  --suave: var(--is-ink-sec);
+  --tenue: var(--is-ink-muted);
 
-  --azul: #2563eb;
-  --azul-hover: #1d4ed8;
-  --azul-suave: #eff6ff;
-  --verde: #059669;
-  --verde-fondo: #ecfdf5;
-  --rojo: #dc2626;
-  --rojo-fondo: #fef2f2;
-  --violeta: #7c3aed;
-  --ambar: #d97706;
-  --ambar-fondo: #fffbeb;
+  --azul: var(--is-brand);
+  --azul-hover: var(--is-brand-hover);
+  --azul-suave: var(--is-brand-soft);
+  --verde: var(--is-success);
+  --verde-fondo: var(--is-success-bg);
+  --rojo: var(--is-danger);
+  --rojo-fondo: var(--is-danger-bg);
+  --violeta: var(--is-violet);
+  --ambar: var(--is-warning);
+  --ambar-fondo: var(--is-warning-bg);
 
-  --sombra-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --sombra-sm: 0 2px 8px rgba(15, 23, 42, 0.07);
+  --sombra-xs: var(--is-shadow-xs);
+  --sombra-sm: var(--is-shadow-sm);
   --radio-ventana: 0px;
-  --radio-tarjeta: 12px;
-  --radio-campo: 8px;
+  --radio-tarjeta: var(--is-radius-md);
+  --radio-campo: var(--is-radius-sm);
 
-  --fuente: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  accent-color: var(--azul);
-  scrollbar-color: var(--borde-fuerte) transparent;
+  --fuente: var(--is-font-sans);
+  accent-color: var(--is-brand);
+  scrollbar-color: var(--is-border-strong) transparent;
 }
 
 :root[data-tema="oscuro"] {
   color-scheme: dark;
-
-  --fondo: #0b0f19;
-  --superficie: #111827;
-  --sutil: #1e293b;
-  --borde: #1f2937;
-  --borde-fuerte: #334155;
-
-  --ambiente: #0b0f19;
-  --vidrio: #111827;
-  --vidrio-borde: #1f2937;
-  --tarjeta: #111827;
-  --tarjeta-borde: #1f2937;
   --hundido: #0f172a;
-  --linea: #1f2937;
-
-  --texto: #f8fafc;
-  --suave: #94a3b8;
-  --tenue: #94a3b8;
-
-  --azul: #3b82f6;
-  --azul-hover: #60a5fa;
-  --azul-suave: #172554;
-  --verde: #34d399;
-  --verde-fondo: #064e3b;
-  --rojo: #f87171;
-  --rojo-fondo: #450a0a;
-  --violeta: #a78bfa;
-  --ambar: #fbbf24;
-  --ambar-fondo: #451a03;
-
-  --sombra-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --sombra-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 html, body {
