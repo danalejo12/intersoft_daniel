@@ -284,13 +284,13 @@
 
         <div class="acciones">
           <button type="submit" class="boton">Guardar llaves</button>
+          <button type="submit" form="form-verificar-llaves" class="boton secundario">Verificar llaves en Wompi</button>
         </div>
       </form>
 
-      <form method="post" style="margin: 0;">
+      <form id="form-verificar-llaves" method="post" hidden>
         {% csrf_token %}
         <input type="hidden" name="accion" value="verificar">
-        <button type="submit" class="boton secundario">Verificar llaves en Wompi</button>
       </form>
     {% else %}
       <p class="nota">Solo el rol <strong>Dueño</strong> puede modificar o verificar las llaves de Wompi.</p>
@@ -301,7 +301,7 @@
     <article class="tarjeta">
       <div class="tarjeta-cabecera">
         <h2>Cupones de descuento</h2>
-        <span class="badge neutro">{{ cupones|length }} cupón{{ cupones|length|pluralize:"es" }}</span>
+        <span class="badge neutro">{% if cupones|length == 1 %}1 cupón{% else %}{{ cupones|length }} cupones{% endif %}</span>
       </div>
       <form method="post" class="form-compacto" novalidate>
         {% csrf_token %}

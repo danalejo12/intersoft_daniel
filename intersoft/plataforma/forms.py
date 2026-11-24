@@ -246,6 +246,7 @@ class CortesiaPlataformaForm(IdsPropiosMixin, forms.Form):
     empresa = forms.ModelChoiceField(
         label="Negocio",
         queryset=Empresa.objects.filter(activa=True).order_by("nombre"),
+        empty_label="Selecciona un negocio",
     )
     plan = forms.ModelChoiceField(
         label="Plan de cortesía (opcional)",
@@ -262,7 +263,7 @@ class CortesiaPlataformaForm(IdsPropiosMixin, forms.Form):
     motivo = forms.CharField(
         label="Motivo",
         max_length=255,
-        widget=forms.TextInput(attrs={"placeholder": "Ej. Compensación de soporte o alianza"}),
+        widget=forms.TextInput(attrs={"placeholder": "Ej. Compensación o alianza"}),
     )
 
     def clean(self):
@@ -346,6 +347,10 @@ class FeatureFlagForm(IdsPropiosMixin, forms.ModelForm):
     class Meta:
         model = FeatureFlag
         fields = ["empresa", "codigo", "habilitado"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["empresa"].empty_label = "Selecciona un negocio"
 
 
 

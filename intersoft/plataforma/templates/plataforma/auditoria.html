@@ -11,7 +11,7 @@
   </div>
 
   <form method="get" class="op-filtros" role="search">
-    <input type="search" name="q" value="{{ filtros.q }}" placeholder="Buscar acción, objeto o correo" aria-label="Buscar en la bitácora">
+    <label class="op-filtro-buscar">Buscar <input type="search" name="q" value="{{ filtros.q }}" placeholder="Acción, objeto o correo" aria-label="Buscar en la bitácora"></label>
     <label>Desde <input type="date" name="desde" value="{{ filtros.desde }}"></label>
     <label>Hasta <input type="date" name="hasta" value="{{ filtros.hasta }}"></label>
     <button type="submit" class="boton">Filtrar</button>

@@ -2004,3 +2004,117 @@ button.boton.peligro svg {
   width: 100%;
   margin: 0;
 }
+
+/* =====================================================================
+   CORRECCIONES DE AUDITORÍA VISUAL DE /plataforma/
+   ===================================================================== */
+
+/* 1. KPIs sin ícono (.kpi-icono): alinear cifra y subtítulo al borde izquierdo */
+.kpi:not(:has(.kpi-icono)) > strong,
+.kpi:not(:has(.kpi-icono)) > small {
+  margin-left: 0;
+}
+
+.kpi.advertencia {
+  --color: var(--ambar);
+  border-top-color: var(--ambar);
+}
+
+.kpi.advertencia strong {
+  color: var(--ambar);
+}
+
+/* 2. "Requiere tu atención": evitar herencia del punto rojo/margen de .alerta global */
+.pendientes .pendiente.alerta {
+  margin: 0;
+}
+
+.pendientes .pendiente.alerta::before {
+  content: none;
+  display: none;
+}
+
+/* 3. /plataforma/negocios/: selector y botón "Entrar como" siempre en una sola línea */
+.soporte-inline {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.soporte-inline select {
+  width: auto;
+  min-width: 155px;
+  flex: 0 1 auto;
+  padding: 8px 12px;
+}
+
+.soporte-inline .boton {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 4. Formularios embebidos dentro de .tarjeta: ancho completo y checkboxes en línea */
+.tarjeta .formulario {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tarjeta .formulario .acciones {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+
+.tarjeta .formulario .campo:has(input[type="checkbox"]),
+.form-compacto .campo:has(input[type="checkbox"]) {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  align-self: end;
+}
+
+.tarjeta .formulario .campo:has(input[type="checkbox"]) label,
+.form-compacto .campo:has(input[type="checkbox"]) label {
+  margin: 0;
+  cursor: pointer;
+}
+
+.tarjeta .formulario .campo input[type="checkbox"],
+.form-compacto .campo input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* 5. .form-compacto: alinear filas por la parte superior para que help_text no desfase campos */
+.form-compacto {
+  align-items: start;
+}
+
+.form-compacto .form-compacto-acciones {
+  align-self: end;
+}
+
+/* 6. /plataforma/auditoria/: buscador alineado con Desde/Hasta sin padding izquierdo fantasma */
+.op-filtros .op-filtro-buscar {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.op-filtros input[type="search"] {
+  flex: 0 0 auto;
+  width: 100%;
+  padding-left: 14px;
+  background-image: none;
+}
