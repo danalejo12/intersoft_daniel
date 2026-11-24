@@ -1137,7 +1137,6 @@ details[open] > summary .cuenta-flecha { transform: rotate(180deg); }
   font-weight: 700;
 }
 
-
 /* =====================================================================
    CAPA DE PULIDO FIGMA · Marketplace, Tiendas y Autenticación
    ===================================================================== */
@@ -1523,3 +1522,11 @@ button.cargando {
   padding: 0 14px 14px;
   font-size: 0.85rem;
 }
+
+/* Casillas de autorización (Ley 1581): la casilla a la izquierda y el texto a su lado */
+.campo.casilla { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.campo.casilla input[type="checkbox"] { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+.campo.casilla label { flex: 1 1 0; font-weight: 500; line-height: 1.5; }
+.campo.casilla .error, .campo.casilla .ayuda { flex-basis: 100%; }
+/* Aviso de privacidad corto en formularios que recogen datos personales */
+.aviso-privacidad { font-size: .85rem; line-height: 1.5; color: var(--texto-suave); margin: 10px 0 14px; }

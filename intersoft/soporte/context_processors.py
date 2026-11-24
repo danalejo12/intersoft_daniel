@@ -10,6 +10,7 @@ DIAS_VENTANA_NPS = 90
 
 
 def usuario_puede_responder_nps(usuario, ahora=None) -> bool:
+    """Indica si el usuario puede responder la encuesta NPS (una vez cada DIAS_VENTANA_NPS días)."""
     if not usuario or not getattr(usuario, "is_authenticated", False):
         return False
     ahora = ahora or timezone.now()

@@ -49,17 +49,20 @@ def actualizar(request, producto, cantidad):
 
 
 def quitar(request, producto_id):
+    """Quita un producto del carrito de la sesión."""
     if _datos(request).pop(str(producto_id), None) is not None:
         request.session.modified = True
 
 
 def quitar_lineas(request, lineas):
+    """Quita del carrito todos los productos de las líneas dadas (tras crear el pedido)."""
     for linea in lineas:
         quitar(request, linea["producto"].pk)
 
 
 def _linea(producto, cantidad):
     # Misma fórmula de services.crear_factura: lo que se muestra es exactamente lo que se cobra
+    """Calcula subtotal, IVA, total y peso de una línea con la misma fórmula de la factura."""
     subtotal = producto.precio * cantidad
     iva = calcular_iva(subtotal, producto.iva_porcentaje)
     peso_gramos = (producto.peso_gramos or 0) * cantidad
@@ -125,6 +128,7 @@ def grupos(request):
 
 
 def grupo_de(request, negocio):
+    """Devuelve (grupo del carrito de ese negocio o None, avisos de cambios de stock)."""
     grupos_actuales, avisos = grupos(request)
     grupo = next((g for g in grupos_actuales if g["negocio"].pk == negocio.pk), None)
     return grupo, avisos

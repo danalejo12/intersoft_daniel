@@ -34,9 +34,8 @@ def radicar_pqrs(
             empresa = pedido.empresa
         if empresa is None:
             raise ValidationError("Debes seleccionar el negocio o pedido para la PQRS.")
-    elif flujo == PQRS.Flujo.NEGOCIO_INTERSOFT:
-        if empresa is None:
-            raise ValidationError("Toda PQRS del flujo Negocio → Intersoft requiere empresa.")
+    elif flujo == PQRS.Flujo.NEGOCIO_INTERSOFT and empresa is None:
+        raise ValidationError("Toda PQRS del flujo Negocio → Intersoft requiere empresa.")
 
     dias_respuesta = getattr(settings, "PQRS_DIAS_RESPUESTA", 15)
     pqrs = PQRS(

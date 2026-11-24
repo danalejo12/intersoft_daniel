@@ -5,6 +5,7 @@ CLAVES_SENSIBLES = ("secreto", "llave_privada", "password", "clave", "token")
 
 
 def _sanitizar_detalle(detalle) -> dict:
+    """Quita del detalle las claves con nombres sensibles (llaves, secretos, contraseñas)."""
     if not isinstance(detalle, dict):
         return {}
     limpio = {}
@@ -17,12 +18,13 @@ def _sanitizar_detalle(detalle) -> dict:
 
 
 def _obtener_ip(request) -> str | None:
+    """IP del actor con la misma regla segura del límite de peticiones (no se confía en X-Forwarded-For)."""
     if request is None:
         return None
-    reenviada = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if reenviada:
-        return reenviada.split(",")[0].strip() or None
-    return request.META.get("REMOTE_ADDR") or None
+    from core.ratelimit import obtener_ip_cliente
+
+    ip = obtener_ip_cliente(request)
+    return None if ip in ("", "0.0.0.0") else ip
 
 
 def registrar(

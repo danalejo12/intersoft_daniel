@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'plataforma',
     'pqrs',
     'soporte',
+    'datos_personales',
 ]
 AUTH_USER_MODEL = 'core.Usuario'
 AUTHENTICATION_BACKENDS = [
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContentSecurityPolicyMiddleware',
     'core.middleware.TenantMiddleware',
+    'datos_personales.middleware.ExigirAutorizacionDatosMiddleware',  # Ley 1581: autorización vigente
     'axes.middleware.AxesMiddleware',  # al final, como pide django-axes
 ]
 
@@ -165,6 +167,7 @@ def _construir_mailers(
     use_tls=True,
     use_ssl=False,
 ):
+    """Configuración del correo: SMTP si hay EMAIL_HOST; si no, la consola (desarrollo)."""
     if host:
         return {
             "default": {
@@ -370,6 +373,14 @@ REDIS_URL = config("REDIS_URL", default="")
 CACHES = construir_caches(REDIS_URL)
 
 RATELIMIT_ACTIVO = config("RATELIMIT_ACTIVO", default=("test" not in sys.argv), cast=bool)
+# Cuántos proxies de confianza hay delante de Django (nginx = 1). Con 0 se usa REMOTE_ADDR y se ignora
+# X-Forwarded-For, que el cliente puede inventar. Nunca pongas más proxies de los que realmente hay.
+RATELIMIT_PROXIES_DE_CONFIANZA = config("RATELIMIT_PROXIES_DE_CONFIANZA", default=0, cast=int)
+if RATELIMIT_PROXIES_DE_CONFIANZA > 0:
+    # django-axes (bloqueo por intentos) usa la misma regla: detrás de nginx toma la IP real del cliente
+    # contando proxies desde la derecha, nunca el primer valor que el cliente puede inventar.
+    AXES_IPWARE_PROXY_COUNT = RATELIMIT_PROXIES_DE_CONFIANZA
+    AXES_IPWARE_META_PRECEDENCE_ORDER = ("HTTP_X_FORWARDED_FOR", "REMOTE_ADDR")
 
 CSP_ACTIVA = config("CSP_ACTIVA", default=True, cast=bool)
 CSP_POLITICA = config(
@@ -403,3 +414,20 @@ SPECTACULAR_SETTINGS = {
 # Plazo de respuesta en días hábiles (sin sábados, domingos ni festivos de Colombia).
 # IMPORTANTE: validar este plazo con un abogado antes de salir a producción.
 PQRS_DIAS_RESPUESTA = config("PQRS_DIAS_RESPUESTA", default=15, cast=int)
+
+
+# ---------------------------------------------------------------
+# Protección de datos personales (Ley 1581 de 2012 y Decreto 1377 de 2013)
+# ---------------------------------------------------------------
+# Identificación del responsable del tratamiento que se publica en la política (/privacidad/).
+# Mientras falte alguno, la política lo muestra en rojo: no se inventan datos de la empresa.
+DATOS_RESPONSABLE_RAZON_SOCIAL = config("DATOS_RESPONSABLE_RAZON_SOCIAL", default="")
+DATOS_RESPONSABLE_NIT = config("DATOS_RESPONSABLE_NIT", default="")
+DATOS_RESPONSABLE_DIRECCION = config("DATOS_RESPONSABLE_DIRECCION", default="")
+DATOS_RESPONSABLE_CORREO = config("DATOS_RESPONSABLE_CORREO", default="")
+DATOS_RESPONSABLE_TELEFONO = config("DATOS_RESPONSABLE_TELEFONO", default="")
+# Pide la autorización vigente a quien inicia sesión. Se apaga en la suite de pruebas general
+# (las pruebas de datos_personales la encienden) para no tener que aceptar en cada prueba.
+PROTECCION_DATOS_EXIGIR_AUTORIZACION = config(
+    "PROTECCION_DATOS_EXIGIR_AUTORIZACION", default="test" not in sys.argv, cast=bool
+)

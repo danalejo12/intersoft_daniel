@@ -8,7 +8,9 @@ from .base import ModeloBase
 
 
 class Empresa(ModeloBase):
+    """Negocio registrado en Intersoft: datos legales, logo, envíos y su pasarela de pagos."""
     class Plan(models.TextChoices):
+        """Valores posibles de plan de empresa: «Gratis», «Pro», «Empresarial»."""
         GRATIS = "gratis", "Gratis"
         PRO = "pro", "Pro"
         EMPRESARIAL = "empresarial", "Empresarial"
@@ -52,12 +54,12 @@ class Empresa(ModeloBase):
         default=Decimal("0"),
         validators=[MinValueValidator(Decimal("0"))],
     )
- 
+
     class Meta:
         verbose_name = "empresa"
         verbose_name_plural = "empresas"
         ordering = ["nombre"]
- 
+
     def __str__(self):
         return self.nombre
 
@@ -72,6 +74,7 @@ class Empresa(ModeloBase):
 
     @property
     def compra_en_linea(self):
+        """Indica si el negocio tiene la pasarela activa y verificada para vender en línea."""
         config = self.configuracion_pagos
         return bool(config and config.lista_para_cobrar)
 

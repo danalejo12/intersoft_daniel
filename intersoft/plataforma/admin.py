@@ -6,6 +6,7 @@ from .models import AnuncioGlobal, AuditoriaPlataforma, ConfiguracionCobroPlataf
 
 @admin.register(RolPlataforma)
 class RolPlataformaAdmin(admin.ModelAdmin):
+    """Administración de roles de plataforma en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = ("usuario", "rol", "activo", "creado_en")
     list_filter = ("rol", "activo")
     search_fields = ("usuario__email", "usuario__first_name", "usuario__last_name")
@@ -13,6 +14,7 @@ class RolPlataformaAdmin(admin.ModelAdmin):
 
 @admin.register(AuditoriaPlataforma)
 class AuditoriaPlataformaAdmin(admin.ModelAdmin):
+    """Administración de auditorías de plataforma en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = ("fecha", "accion", "actor", "objeto_tipo", "objeto_id", "ip")
     list_filter = ("accion", "objeto_tipo")
     search_fields = ("accion", "actor__email", "objeto_id")
@@ -27,6 +29,9 @@ class AuditoriaPlataformaAdmin(admin.ModelAdmin):
 
 @admin.register(ConfiguracionCobroPlataforma)
 class ConfiguracionCobroPlataformaAdmin(admin.ModelAdmin):
+    """Administración de configuraciones de cobro de plataforma en /admin/ (columnas, filtros y campos de solo
+    lectura).
+    """
     list_display = ("modo", "llave_publica", "activa", "verificada_en", "actualizada_por")
     readonly_fields = (
         "id",
@@ -44,5 +49,6 @@ class ConfiguracionCobroPlataformaAdmin(admin.ModelAdmin):
 
 @admin.register(AnuncioGlobal)
 class AnuncioGlobalAdmin(admin.ModelAdmin):
+    """Administración de anuncios globales en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = ("titulo", "tipo", "activo", "inicia_en", "vence_en", "creado_por")
     list_filter = ("tipo", "activo")

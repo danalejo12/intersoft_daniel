@@ -18,6 +18,7 @@ from .services import crear_suscripcion_inicial
 
 @receiver(post_save, sender=Empresa)
 def asegurar_suscripcion_al_crear_empresa(sender, instance, created, raw=False, **kwargs):
+    """Al crear un negocio le crea su suscripción inicial (prueba gratis)."""
     if raw or not created:
         return
     crear_suscripcion_inicial(instance)

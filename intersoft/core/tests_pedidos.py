@@ -184,7 +184,7 @@ class MigracionDatosPedidosTests(TransactionTestCase):
         self.assertEqual(Factura.objects.get(pk=suelta.pk).estado, "emitida")
 
 
-LLAVES = dict(PASARELA_SIMULADA=False, WOMPI_PUBLIC_KEY="pub_test_x", WOMPI_INTEGRITY_SECRET="test_integrity_x", WOMPI_PRIVATE_KEY="prv_test_x")
+LLAVES = {"PASARELA_SIMULADA": False, "WOMPI_PUBLIC_KEY": "pub_test_x", "WOMPI_INTEGRITY_SECRET": "test_integrity_x", "WOMPI_PRIVATE_KEY": "prv_test_x"}
 
 
 @override_settings(**LLAVES)

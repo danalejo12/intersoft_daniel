@@ -1,7 +1,9 @@
+"""Configuración de la aplicación principal (core): registra señales y revisiones del sistema."""
 from django.apps import AppConfig
 
 
 class CoreConfig(AppConfig):
+    """Configuración de la app core: al iniciar conecta señales y registra la revisión de la clave de cifrado."""
     name = 'core'
 
     def ready(self):

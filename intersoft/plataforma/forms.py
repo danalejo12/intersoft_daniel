@@ -40,6 +40,9 @@ FEATURES_DISPONIBLES = [
 
 
 class ConfiguracionCobroPlataformaForm(IdsPropiosMixin, forms.ModelForm):
+    """Formulario de configuración de cobro de plataforma. Campos: modo, llave_publica, activa, llave_privada,
+    secreto_integridad, secreto_eventos.
+    """
     prefijo_ids = "llaves"
     """Formulario seguro para las llaves de Wompi de Intersoft: nunca expone secretos existentes."""
 
@@ -114,6 +117,9 @@ class ConfiguracionCobroPlataformaForm(IdsPropiosMixin, forms.ModelForm):
 
     @sensitive_variables()
     def guardar(self, usuario) -> tuple[ConfiguracionCobroPlataforma, list[str]]:
+        """Guarda la configuración, cifra los secretos nuevos e invalida la verificación si cambiaron las llaves.
+        Devuelve (configuración, campos cambiados sin valores).
+        """
         config = super().save(commit=False)
         campos_cambiados = list(self.changed_data)
         secreto_cambiado = False
@@ -136,6 +142,9 @@ class ConfiguracionCobroPlataformaForm(IdsPropiosMixin, forms.ModelForm):
 
 
 class PlanPlataformaForm(IdsPropiosMixin, forms.ModelForm):
+    """Formulario de plan. Campos: nombre, precio_mensual, precio_anual, comision_porcentaje, activo,
+    limite_productos, limite_usuarios, features.
+    """
     prefijo_ids = "plan"
     """Editor de precios, límites, funcionalidades, comisión y estado de un plan."""
 
@@ -190,6 +199,7 @@ class PlanPlataformaForm(IdsPropiosMixin, forms.ModelForm):
         return datos
 
     def guardar(self) -> tuple[Plan, dict]:
+        """Guarda precios, límites y funciones del plan. Devuelve (plan, cambios antes/después para la auditoría)."""
         plan_antes = Plan.objects.get(pk=self.instance.pk)
         plan = super().save(commit=False)
 
@@ -229,6 +239,7 @@ class PlanPlataformaForm(IdsPropiosMixin, forms.ModelForm):
 
 
 class CortesiaPlataformaForm(IdsPropiosMixin, forms.Form):
+    """Formulario. Campos: empresa, plan, dias, motivo."""
     prefijo_ids = "cortesia"
     """Formulario para otorgar días gratis o un plan de cortesía a un negocio."""
 
@@ -266,6 +277,7 @@ class CortesiaPlataformaForm(IdsPropiosMixin, forms.Form):
 
 
 class CuposFundadorForm(IdsPropiosMixin, forms.Form):
+    """Formulario. Campos: cupos_fundador."""
     prefijo_ids = "cupos"
     """Formulario para ajustar el máximo de cupos de fundador en la base de datos."""
 
@@ -276,6 +288,7 @@ class CuposFundadorForm(IdsPropiosMixin, forms.Form):
 
 
 class AnuncioGlobalForm(IdsPropiosMixin, forms.ModelForm):
+    """Formulario de anuncio global. Campos: titulo, mensaje, tipo, inicia_en, vence_en, activo."""
     prefijo_ids = "anuncio"
     """Formulario para publicar anuncios globales visibles en /panel/."""
 
@@ -300,6 +313,7 @@ class AnuncioGlobalForm(IdsPropiosMixin, forms.ModelForm):
 
 
 class CuponPlanForm(IdsPropiosMixin, forms.ModelForm):
+    """Formulario de cupón de plan. Campos: codigo, tipo, valor, inicia_en, vence_en, usos_maximos, activo."""
     prefijo_ids = "cupon"
     """Formulario para crear cupones de descuento de planes desde /plataforma/planes-cobros/."""
 
@@ -323,6 +337,7 @@ class CuponPlanForm(IdsPropiosMixin, forms.ModelForm):
 
 
 class FeatureFlagForm(IdsPropiosMixin, forms.ModelForm):
+    """Formulario de interruptor de función. Campos: empresa, codigo, habilitado."""
     prefijo_ids = "flag"
     """Formulario para activar/desactivar una función específica por negocio."""
 

@@ -145,7 +145,7 @@ class PasarelaDirectaTests(Base):
     def test_rotacion_incluye_las_instantaneas_de_pagos(self):
         vieja, nueva = Fernet.generate_key().decode(), Fernet.generate_key().decode()
         with override_settings(PAGOS_CLAVES_CIFRADO=vieja):
-            config = conectar(self.negocio)
+            conectar(self.negocio)
             pago = crear_pago_pedido(pedido=self.pedido())
             original = credenciales_pago(pago)
         with override_settings(PAGOS_CLAVES_CIFRADO=f"{nueva},{vieja}"):

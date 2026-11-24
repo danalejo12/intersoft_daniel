@@ -78,6 +78,7 @@ def abrir_turno(*, empresa, usuario, base, bodega=None):
 
 
 def consumidor_final(empresa):
+    """Cliente «Consumidor final» del negocio para ventas POS sin identificar (se crea si no existe)."""
     cliente, _ = Cliente.objects.get_or_create(
         empresa=empresa,
         tipo_documento=Cliente.TipoDocumento.CC,

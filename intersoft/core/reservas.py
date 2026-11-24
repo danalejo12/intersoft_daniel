@@ -22,6 +22,7 @@ Estado = Pedido.Estado
 
 def _mover_stock(pedido, tipo, referencia):
     # La reserva y su devolución usan la bodega del pedido (los antiguos, sin bodega, la Principal)
+    """Mueve el stock de las líneas del pedido en su bodega, en orden de producto para evitar bloqueos cruzados."""
     bodega = pedido.bodega if pedido.bodega_id else None
     # En orden de producto para evitar bloqueos cruzados entre dos pedidos simultáneos
     for linea in pedido.lineas.select_related("producto").order_by("producto_id"):
@@ -41,6 +42,7 @@ def hay_productos_inactivos(pedido):
 
 
 def reservar_stock(pedido):
+    """Reserva (descuenta) el stock del pedido; falla si algún producto ya no está activo."""
     if hay_productos_inactivos(pedido):
         raise StockInsuficiente("Un producto del pedido ya no está disponible.")
     _mover_stock(pedido, MovimientoInventario.Tipo.SALIDA, f"Reserva pedido {pedido.numero}")
@@ -56,6 +58,7 @@ def liberar_pedido(pedido, nuevo_estado):
 
 
 def marcar_pagado(pedido):
+    """Marca el pedido como pagado, crea su factura y avisa al comprador y al negocio."""
     pedido.factura = crear_factura_desde_pedido(pedido)
     pedido.estado = Estado.PAGADO
     pedido.save(update_fields=["factura", "estado", "actualizado_en"])
@@ -65,12 +68,14 @@ def marcar_pagado(pedido):
 
 
 def _pasar_a_reembolso(pedido, motivo):
+    """Deja el pedido en «requiere reembolso» y avisa con una alerta CRITICAL."""
     pedido.estado = Estado.REQUIERE_REEMBOLSO
     pedido.save(update_fields=["estado", "actualizado_en"])
     logger.critical("Pedido %s (empresa %s) requiere reembolso: %s", pedido.numero, pedido.empresa_id, motivo)
 
 
 def registrar_pago_aprobado(pedido):
+    """Aplica un pago aprobado según el estado del pedido (pendiente, vencido o cancelado)."""
     if pedido.estado == Estado.PENDIENTE:
         marcar_pagado(pedido)
     elif pedido.estado == Estado.VENCIDO:
@@ -156,9 +161,10 @@ def actualizar_envio_pedido(*, pedido, estado_envio, transportadora="", numero_g
 
 @transaction.atomic
 def registrar_dispersion_pedido(*, pedido, referencia, estado_dispersion=Pedido.EstadoDispersion.LIQUIDADA):
+    """Registra la dispersión o liquidación del neto del vendedor para un pedido pagado (solo pedidos
+    antiguos cobrados por Intersoft: los de pago directo ya le llegan al negocio)."""
     if pedido.pago_directo:
         raise ValueError("Los pagos directos no requieren dispersión de Intersoft.")
-    """Registra la dispersión o liquidación del neto del vendedor para un pedido pagado."""
     bloqueado = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if bloqueado.estado != Estado.PAGADO:
         raise ValueError("Solo se puede dispersar un pedido pagado.")

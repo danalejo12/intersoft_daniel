@@ -4,18 +4,18 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 
 from .impuestos import calcular_iva
 from .models import (
     Empresa, Factura, Compra, CuentaCartera, MovimientoTesoreria, CuentaTesoreria,
-    AsientoContable, LiquidacionNomina, Empleado, OrdenProduccion, Producto, Cita, TurnoCaja,
+    AsientoContable, LiquidacionNomina, Empleado, OrdenProduccion, Cita, TurnoCaja,
 )
 from .services import registrar_movimiento
 
 
 def guardar(objeto):
+    """Valida el objeto (full_clean) y lo guarda."""
     objeto.full_clean()
     objeto.save()
     return objeto
@@ -23,12 +23,14 @@ def guardar(objeto):
 
 def bloquear(modelo, empresa, pk):
     # La empresa serializa las transiciones que afectan varios documentos.
+    """Bloquea la empresa y el documento (select_for_update) para que dos operaciones no choquen."""
     Empresa.objects.select_for_update().get(pk=empresa.pk)
     return modelo.objects.select_for_update().get(empresa=empresa, pk=pk)
 
 
 @transaction.atomic
 def recibir_compra(*, empresa, pk, usuario):
+    """Recibe una compra: entra la mercancía a la bodega, calcula totales y crea la cuenta por pagar."""
     compra = bloquear(Compra, empresa, pk)
     if compra.recibida:
         return compra
@@ -61,6 +63,9 @@ def recibir_compra(*, empresa, pk, usuario):
 @transaction.atomic
 def registrar_tesoreria(*, empresa, usuario, cuenta, monto, tipo, concepto, fecha,
                        operacion, referencia="", cartera=None):
+    """Registra un ingreso o egreso en una cuenta; repetir la misma operación devuelve el movimiento
+    ya creado (idempotente) y falla si se reutiliza con otros datos.
+    """
     cuenta = bloquear(CuentaTesoreria, empresa, cuenta.pk)
     anterior = MovimientoTesoreria.objects.filter(operacion=operacion).first()
     if anterior:
@@ -90,6 +95,7 @@ def registrar_tesoreria(*, empresa, usuario, cuenta, monto, tipo, concepto, fech
 
 @transaction.atomic
 def llevar_factura_a_cartera(*, empresa, pk, vencimiento):
+    """Crea la cuenta por cobrar de una factura vigente, con saldo y sin pagos pendientes."""
     factura = bloquear(Factura, empresa, pk)
     existente = CuentaCartera.objects.filter(factura=factura).first()
     if existente:
@@ -105,6 +111,7 @@ def llevar_factura_a_cartera(*, empresa, pk, vencimiento):
 
 @transaction.atomic
 def confirmar_asiento(*, empresa, pk):
+    """Confirma un comprobante contable si tiene al menos dos líneas y débitos iguales a créditos."""
     asiento = bloquear(AsientoContable, empresa, pk)
     if asiento.confirmado:
         return asiento
@@ -113,8 +120,8 @@ def confirmar_asiento(*, empresa, pk):
         raise ValidationError("Un asiento necesita al menos dos líneas.")
     for linea in lineas:
         linea.full_clean()
-    debito = sum((l.debito for l in lineas), Decimal("0"))
-    credito = sum((l.credito for l in lineas), Decimal("0"))
+    debito = sum((linea.debito for linea in lineas), Decimal("0"))
+    credito = sum((linea.credito for linea in lineas), Decimal("0"))
     if debito <= 0 or debito != credito:
         raise ValidationError("El asiento debe tener débitos y créditos iguales y mayores que cero.")
     asiento.confirmado = True
@@ -123,6 +130,7 @@ def confirmar_asiento(*, empresa, pk):
 
 @transaction.atomic
 def aprobar_nomina(*, empresa, pk):
+    """Aprueba una nómina: valida el período y el neto, y genera la cuenta por pagar al empleado."""
     nomina = bloquear(LiquidacionNomina, empresa, pk)
     if nomina.aprobada:
         return nomina
@@ -131,7 +139,7 @@ def aprobar_nomina(*, empresa, pk):
     if LiquidacionNomina.objects.filter(empresa=empresa, empleado=nomina.empleado, aprobada=True,
                                        desde__lte=nomina.hasta, hasta__gte=nomina.desde).exclude(pk=pk).exists():
         raise ValidationError("El empleado ya tiene una liquidación aprobada que cruza este período.")
-    nomina.neto = nomina.base + nomina.adicionales - nomina.deducciones
+    nomina.neto = nomina.base + nomina.adicionales + nomina.auxilio_transporte - nomina.deducciones
     if nomina.neto <= 0:
         raise ValidationError("El neto a pagar debe ser mayor que cero.")
     nomina.cartera = guardar(CuentaCartera(empresa=empresa, tipo="pagar", tercero=nomina.empleado.nombre,
@@ -142,6 +150,7 @@ def aprobar_nomina(*, empresa, pk):
 
 @transaction.atomic
 def completar_produccion(*, empresa, pk, usuario):
+    """Completa una orden de producción: descuenta los insumos y da entrada al producto terminado."""
     orden = bloquear(OrdenProduccion, empresa, pk)
     if orden.completada:
         return orden
@@ -166,6 +175,7 @@ def completar_produccion(*, empresa, pk, usuario):
 
 @transaction.atomic
 def reservar_cita(cita):
+    """Agenda una cita: calcula su fin y total, y evita cruces de horario del profesional."""
     bloquear(Empleado, cita.empresa, cita.empleado_id)
     if not cita.empleado.activo or not cita.servicio.activo or not cita.cliente.activo:
         raise ValidationError("El cliente, profesional y servicio deben estar activos.")
@@ -179,6 +189,7 @@ def reservar_cita(cita):
 
 @transaction.atomic
 def cambiar_cita(*, empresa, pk, estado):
+    """Marca una cita como atendida (genera la cuenta por cobrar) o cancelada."""
     cita = bloquear(Cita, empresa, pk)
     if cita.estado != "pendiente":
         if cita.estado == estado:

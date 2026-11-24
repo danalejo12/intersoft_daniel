@@ -36,6 +36,7 @@ def bodega_en_linea(empresa):
 
 
 def validar_bodega(empresa, bodega):
+    """Devuelve la bodega a usar (la Principal si no se indica) y falla si es de otro negocio o está inactiva."""
     if bodega is None:
         return bodega_principal(empresa)
     if bodega.empresa_id != empresa.pk:
@@ -151,6 +152,7 @@ class OperacionBodega(Exception):
 
 
 def permite_varias_bodegas(empresa) -> bool:
+    """Indica si el plan del negocio permite tener más de una bodega (función multisede)."""
     from suscripciones.services import crear_suscripcion_inicial
 
     return crear_suscripcion_inicial(empresa).puede(FUNCION_MULTISEDE)
@@ -201,6 +203,7 @@ def guardar_bodega(*, empresa, bodega=None, nombre, direccion="", es_principal=F
 
 @transaction.atomic
 def desactivar_bodega(*, empresa, bodega):
+    """Desactiva una bodega si no es Principal ni de venta en línea, no tiene mercancía ni una caja abierta."""
     from .models import TurnoCaja
 
     bodega = Bodega.objects.select_for_update().get(pk=bodega.pk, empresa=empresa)

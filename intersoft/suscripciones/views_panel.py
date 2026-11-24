@@ -47,6 +47,7 @@ class SuscripcionPanelView(TenantMixin, View):
     template_name = "core/negocio/suscripcion.html"
 
     def _puede_cambiar(self, request) -> bool:
+        """Indica si la persona puede cambiar el plan (administrador o negocio.editar)."""
         membresia = getattr(request, "membresia", None)
         if membresia is None:
             return False
@@ -89,6 +90,7 @@ class SuscripcionPanelView(TenantMixin, View):
             )
 
         def _porcentaje(usado, tope):
+            """Porcentaje de uso para la barra (un valor decorativo si el límite es ilimitado)."""
             if tope is None or int(tope) <= 0:
                 return 18  # barra decorativa suave para planes ilimitados
             return min(100, round((int(usado) / int(tope)) * 100))

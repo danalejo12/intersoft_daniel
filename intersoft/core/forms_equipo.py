@@ -9,6 +9,7 @@ from .permisos import GRUPOS_PERMISOS, sincronizar_catalogo_permisos
 
 
 class RolForm(forms.ModelForm):
+    """Formulario de rol. Campos: nombre, descripcion, es_admin, permisos."""
     permisos = forms.ModelMultipleChoiceField(
         queryset=Permiso.objects.none(),
         required=False,
@@ -86,6 +87,7 @@ class RolForm(forms.ModelForm):
 
 
 class MiembroCrearForm(forms.Form):
+    """Formulario. Campos: email, first_name, last_name, rol, password."""
     email = forms.EmailField(label="Correo electrónico")
     first_name = forms.CharField(max_length=150, required=False, label="Nombres")
     last_name = forms.CharField(max_length=150, required=False, label="Apellidos")
@@ -139,6 +141,7 @@ class MiembroCrearForm(forms.Form):
 
     @transaction.atomic
     def guardar(self):
+        """Crea la cuenta (o usa la existente) y la vincula al negocio con el rol elegido."""
         correo = self.cleaned_data["email"]
         rol = self.cleaned_data["rol"]
         usuario = self.usuario_existente
@@ -159,6 +162,7 @@ class MiembroCrearForm(forms.Form):
 
 
 class MiembroEditarForm(forms.ModelForm):
+    """Formulario de membresía. Campos: rol, activa."""
     class Meta:
         model = Membresia
         fields = ["rol", "activa"]

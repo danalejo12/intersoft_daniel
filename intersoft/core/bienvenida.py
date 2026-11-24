@@ -19,6 +19,7 @@ def nombre_para_saludo(usuario) -> str:
 
 @receiver(user_logged_in)
 def marcar_bienvenida(sender, request, user, **kwargs):
+    """Al iniciar sesión guarda en la sesión el nombre para el saludo de bienvenida."""
     if request is not None and hasattr(request, "session"):
         request.session[CLAVE_SESION] = nombre_para_saludo(user)
 

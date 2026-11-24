@@ -35,7 +35,7 @@ from .pagos import (
 )
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
 from .testing_pagos import conectar_pruebas
-from .pasarelas import credenciales_negocio, credenciales_pago
+from .pasarelas import credenciales_pago
 from dataclasses import replace
 
 class FacturacionTests(TestCase):
@@ -173,7 +173,7 @@ class EliminacionTests(TestCase):
         self.assertEqual(respuesta.status_code, 404)
         ajeno.refresh_from_db()
         self.assertTrue(ajeno.activo)
-# pago -- pago 
+# pago -- pago
 class PagoTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Empresa Pago", nit="900000030", slug="empresa-pago")

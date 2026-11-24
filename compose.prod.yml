@@ -34,6 +34,8 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/1}
+      # nginx agrega la IP real al final de X-Forwarded-For: el límite de peticiones confía solo en esa
+      RATELIMIT_PROXIES_DE_CONFIANZA: ${RATELIMIT_PROXIES_DE_CONFIANZA:-1}
     depends_on:
       db:
         condition: service_healthy

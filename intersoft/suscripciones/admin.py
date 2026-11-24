@@ -6,6 +6,7 @@ from .models import CobroSuscripcion, HistorialSuscripcion, Plan, Suscripcion
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
+    """Administración de planes en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = (
         "orden",
         "codigo",
@@ -45,6 +46,7 @@ class HistorialSuscripcionInline(admin.TabularInline):
 
 @admin.register(Suscripcion)
 class SuscripcionAdmin(admin.ModelAdmin):
+    """Administración de suscripciones en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = (
         "empresa",
         "plan",
@@ -64,6 +66,7 @@ class SuscripcionAdmin(admin.ModelAdmin):
 
 @admin.register(HistorialSuscripcion)
 class HistorialSuscripcionAdmin(admin.ModelAdmin):
+    """Administración de historial de suscripciones en /admin/ (columnas, filtros y campos de solo lectura)."""
     list_display = (
         "suscripcion",
         "plan_anterior",

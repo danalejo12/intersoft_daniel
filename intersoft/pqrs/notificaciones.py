@@ -3,6 +3,7 @@ from core.notificaciones import _enviar, correos_del_negocio
 
 
 def _destinatarios_empresa(pqrs) -> list[str]:
+    """Correos del negocio de la PQRS (vacío si es una PQRS hacia Intersoft sin empresa)."""
     if pqrs.empresa_id is None:
         return []
     return correos_del_negocio(pqrs.empresa)

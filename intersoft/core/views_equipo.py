@@ -12,6 +12,7 @@ from .permisos import sincronizar_catalogo_permisos
 
 
 def _puede_ver_equipo(membresia):
+    """Indica si la membresía puede ver el equipo."""
     if not membresia:
         return False
     return any(
@@ -21,6 +22,7 @@ def _puede_ver_equipo(membresia):
 
 
 def _puede_gestionar_equipo(membresia):
+    """Indica si la membresía puede gestionar el equipo."""
     if not membresia:
         return False
     return any(
@@ -30,6 +32,7 @@ def _puede_gestionar_equipo(membresia):
 
 
 class EquipoVerMixin(TenantMixin):
+    """Exige poder ver el equipo (equipo.ver, equipo.gestionar o negocio.editar)."""
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.membresia and not _puede_ver_equipo(request.membresia):
             raise PermissionDenied("No tienes permiso para ver el equipo.")
@@ -37,6 +40,7 @@ class EquipoVerMixin(TenantMixin):
 
 
 class EquipoGestionarMixin(TenantMixin):
+    """Exige poder gestionar el equipo (equipo.gestionar o negocio.editar)."""
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.membresia and not _puede_gestionar_equipo(request.membresia):
             raise PermissionDenied("No tienes permiso para gestionar el equipo y los roles.")
@@ -44,6 +48,7 @@ class EquipoGestionarMixin(TenantMixin):
 
 
 class EquipoView(EquipoVerMixin, View):
+    """Lista los miembros del equipo y los roles del negocio. Ruta: `/panel/equipo/` («equipo_lista»)."""
     template_name = "core/equipo/lista.html"
 
     def get(self, request):
@@ -72,6 +77,9 @@ class EquipoView(EquipoVerMixin, View):
 
 
 class MiembroCreateView(EquipoGestionarMixin, View):
+    """Agrega un miembro al equipo (cuenta nueva o existente), respetando el límite de usuarios del plan. Ruta:
+    `/panel/equipo/miembros/nuevo/` («equipo_miembro_crear»).
+    """
     template_name = "core/equipo/miembro_form.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -111,6 +119,9 @@ class MiembroCreateView(EquipoGestionarMixin, View):
 
 
 class MiembroUpdateView(EquipoGestionarMixin, View):
+    """Cambia el rol o el estado de un miembro sin dejar al negocio sin administrador. Ruta:
+    `/panel/equipo/miembros/<uuid:pk>/editar/` («equipo_miembro_editar»).
+    """
     template_name = "core/equipo/miembro_form.html"
 
     def obtener(self, request, pk):
@@ -143,6 +154,7 @@ class MiembroUpdateView(EquipoGestionarMixin, View):
 
 
 class RolCreateView(EquipoGestionarMixin, View):
+    """Crea un rol con su conjunto de permisos. Ruta: `/panel/equipo/roles/nuevo/` («equipo_rol_crear»)."""
     template_name = "core/equipo/rol_form.html"
 
     def get(self, request):
@@ -159,6 +171,9 @@ class RolCreateView(EquipoGestionarMixin, View):
 
 
 class RolUpdateView(EquipoGestionarMixin, View):
+    """Edita el nombre y los permisos de un rol. Ruta: `/panel/equipo/roles/<uuid:pk>/editar/`
+    («equipo_rol_editar»).
+    """
     template_name = "core/equipo/rol_form.html"
 
     def obtener(self, request, pk):
@@ -188,6 +203,9 @@ class RolUpdateView(EquipoGestionarMixin, View):
 
 
 class RolDeleteView(EquipoGestionarMixin, View):
+    """Eliminación lógica: desactiva sin borrar. Ruta: `/panel/equipo/roles/<uuid:pk>/eliminar/`
+    («equipo_rol_eliminar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):

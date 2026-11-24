@@ -16,3 +16,7 @@
         {% include "core/tienda/campo.html" with campo=form.direccion ancho=True %}
         {% include "core/tienda/campo.html" with campo=form.indicaciones ancho=True %}
       </div>
+<p class="aviso-privacidad">
+  <strong>Aviso de privacidad.</strong> Tu nombre, documento, contacto y dirección se comparten con el negocio vendedor solo para despachar y facturar este pedido.
+  Conoce tus derechos en la <a href="{% url 'legal_privacidad' %}" target="_blank" rel="noopener">política de tratamiento de datos</a>.
+</p>

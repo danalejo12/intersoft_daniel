@@ -12,6 +12,9 @@ from core.models.pagos import CAMPOS_SECRETOS
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py rotar_secretos_pago`: Recifra las llaves de Wompi de cada negocio con la clave
+    principal de PAGOS_CLAVES_CIFRADO.
+    """
     help = "Recifra las llaves de Wompi de cada negocio con la clave principal de PAGOS_CLAVES_CIFRADO."
 
     def add_arguments(self, parser):

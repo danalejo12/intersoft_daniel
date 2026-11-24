@@ -43,7 +43,7 @@ def crear_usuario(correo="ana@correo.co"):
 def datos_registro(correo="nueva@correo.co", **extra):
     return {
         "first_name": "Nueva", "last_name": "Compradora", "email": correo,
-        "password1": CLAVE, "password2": CLAVE, **extra,
+        "password1": CLAVE, "password2": CLAVE, "acepta_datos": "on", "mayor_edad": "on", **extra,
     }
 
 

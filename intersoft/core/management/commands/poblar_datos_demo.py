@@ -1,6 +1,5 @@
 """Puebla una empresa (por defecto la de Miguel Angel Ortiz Castillo) con datos realistas e imágenes reales."""
 import io
-import random
 import urllib.request
 import uuid
 from datetime import timedelta
@@ -27,11 +26,9 @@ from core.models import (
     Cita,
     Cliente,
     Compra,
-    CuentaCartera,
     CuentaTesoreria,
     DetallePedido,
     Empleado,
-    Empresa,
     Factura,
     LineaCompra,
     LiquidacionNomina,
@@ -214,6 +211,9 @@ def descargar_o_generar_imagen(url, titulo):
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py poblar_datos_demo`: Puebla la cuenta de Miguel Angel Ortiz Castillo (o la empresa
+    indicada) con datos e imágenes reales.
+    """
     help = "Puebla la cuenta de Miguel Angel Ortiz Castillo (o la empresa indicada) con datos e imágenes reales."
 
     def add_arguments(self, parser):

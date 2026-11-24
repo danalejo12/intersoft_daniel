@@ -5,6 +5,9 @@ from suscripciones.services import enviar_recordatorios_vencimiento
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py enviar_recordatorios_vencimiento`: Envía recordatorios por correo 7, 3 y 1 día
+    antes del vencimiento de Trials y suscripciones.
+    """
     help = "Envía recordatorios por correo 7, 3 y 1 día antes del vencimiento de Trials y suscripciones."
 
     def handle(self, *args, **options):

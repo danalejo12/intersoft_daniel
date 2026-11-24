@@ -24,18 +24,21 @@ class ReporteProblemaForm(forms.ModelForm):
 
 
 class ComentarioWidgetForm(forms.ModelForm):
+    """Formulario de comentario rápido. Campos: util, comentario, pantalla."""
     class Meta:
         model = ComentarioWidget
         fields = ["util", "comentario", "pantalla"]
 
 
 class EncuestaNPSForm(forms.ModelForm):
+    """Formulario de encuesta NPS. Campos: puntaje, comentario, pantalla."""
     class Meta:
         model = EncuestaNPS
         fields = ["puntaje", "comentario", "pantalla"]
 
 
 class IdeaForm(forms.ModelForm):
+    """Formulario de idea. Campos: titulo, descripcion."""
     class Meta:
         model = Idea
         fields = ["titulo", "descripcion"]
@@ -49,6 +52,7 @@ class IdeaForm(forms.ModelForm):
 
 
 class ErrorEstadoForm(forms.ModelForm):
+    """Formulario de error registrado. Campos: estado, notas_internas."""
     class Meta:
         model = ErrorRegistrado
         fields = ["estado", "notas_internas"]
@@ -58,6 +62,7 @@ class ErrorEstadoForm(forms.ModelForm):
 
 
 class IdeaEstadoForm(forms.ModelForm):
+    """Formulario de idea. Campos: estado."""
     class Meta:
         model = Idea
         fields = ["estado"]

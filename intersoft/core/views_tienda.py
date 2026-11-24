@@ -24,6 +24,7 @@ from .redirecciones import destino_seguro
 
 
 class MarketplaceView(ListView):
+    """Listado. Ruta: `/` («marketplace»)."""
     template_name = "core/tienda/inicio.html"
     context_object_name = "productos"
     paginate_by = 24
@@ -64,6 +65,7 @@ class MarketplaceView(ListView):
 
 
 class TiendaNegocioView(ListView):
+    """Listado. Ruta: `/tienda/<slug:slug>/` («tienda_negocio»)."""
     template_name = "core/tienda/negocio.html"
     context_object_name = "productos"
     paginate_by = 24
@@ -79,6 +81,7 @@ class TiendaNegocioView(ListView):
 
 
 class ProductoPublicoView(DetailView):
+    """Detalle. Ruta: `/tienda/producto/<uuid:pk>/` («tienda_producto»)."""
     template_name = "core/tienda/producto.html"
     context_object_name = "producto"
 
@@ -96,6 +99,7 @@ class ProductoPublicoView(DetailView):
 
 
 class RegistroCompradorView(FormView):
+    """Registro de una cuenta de comprador; conserva el carrito al terminar. Ruta: `/registro/` («registro»)."""
     template_name = "core/tienda/registro.html"
     form_class = RegistroCompradorForm
 
@@ -110,7 +114,13 @@ class RegistroCompradorView(FormView):
 
     def form_valid(self, form):
         # Con django-axes hay dos backends: se indica el que de verdad autentica
-        login(self.request, form.save(), backend="core.backends.EmailBackend")
+        from datos_personales.services import registrar_autorizacion
+
+        usuario = form.save()
+        # Prueba de la autorización (Decreto 1377 art. 8): versión, fecha, IP y navegador
+        registrar_autorizacion(usuario, medio="registro", request=self.request,
+                               mayor_de_edad=form.cleaned_data["mayor_edad"])
+        login(self.request, usuario, backend="core.backends.EmailBackend")
         return self._ir_al_destino()
 
     def get_context_data(self, **kwargs):
@@ -120,6 +130,9 @@ class RegistroCompradorView(FormView):
 
 
 class RegistrarNegocioView(LoginRequiredMixin, FormView):
+    """Registra un negocio para la cuenta actual (datos legales obligatorios) con sus roles base. Ruta:
+    `/negocio/registrar/` («negocio_registrar»).
+    """
     login_url = "registro"
     template_name = "core/tienda/registrar_negocio.html"
     form_class = RegistroNegocioForm

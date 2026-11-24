@@ -5,6 +5,9 @@ from pqrs.services import escalar_pqrs_vencidas
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py escalar_pqrs_vencidas`: Escala a Intersoft las PQRS de compradores vencidas sin
+    respuesta del negocio.
+    """
     help = "Escala a Intersoft las PQRS de compradores vencidas sin respuesta del negocio."
 
     def handle(self, *args, **options):

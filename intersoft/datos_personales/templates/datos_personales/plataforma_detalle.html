@@ -1,0 +1,66 @@
+{% extends "plataforma/base.html" %}
+{% block titulo %}{{ solicitud.radicado }} · Datos personales · Consola de Plataforma{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1><code>{{ solicitud.radicado }}</code> · {{ solicitud.get_tipo_display }}</h1>
+      <p class="nota">Titular: {{ solicitud.titular.get_full_name|default:solicitud.titular.email }} · {{ solicitud.titular.email }}
+        · Radicada el {{ solicitud.creado_en|date:"d/m/Y H:i" }}</p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      {% if solicitud.vencida %}<span class="badge peligro">Vencida</span>{% endif %}
+      <a class="boton secundario" href="{% url 'plataforma_datos' %}">Volver</a>
+    </div>
+  </div>
+
+  <article class="tarjeta" style="margin-bottom: 20px;">
+    <p><strong>Estado:</strong> {{ solicitud.get_estado_display }} ·
+      <strong>Responder a más tardar:</strong> {{ solicitud.fecha_limite|date:"d/m/Y" }}
+      ({% if solicitud.es_consulta %}consulta, 10 días hábiles{% else %}reclamo, 15 días hábiles{% endif %})</p>
+    <p><strong>Detalle del titular:</strong><br>{{ solicitud.detalle|default:"(sin detalle)"|linebreaksbr }}</p>
+    {% if solicitud.respuesta %}
+      <p><strong>Respuesta enviada{% if solicitud.respondida_en %} el {{ solicitud.respondida_en|date:"d/m/Y H:i" }}{% endif %}:</strong><br>
+        {{ solicitud.respuesta|linebreaksbr }}</p>
+    {% endif %}
+    {% if solicitud.datos_suprimidos_en %}
+      <p class="badge exito">Datos suprimidos el {{ solicitud.datos_suprimidos_en|date:"d/m/Y H:i" }}</p>
+    {% endif %}
+  </article>
+
+  {% if abierta %}
+    <article class="tarjeta">
+      <h2>Atender la solicitud</h2>
+      <p class="nota">Para «Conocer» o «Prueba», el titular puede descargar sus datos y ver sus autorizaciones en «Mis datos personales»;
+        en la respuesta puedes indicárselo. Para «Actualizar» o «Corregir», haz el cambio en el panel y luego responde.</p>
+      {% if solicitud.estado == "radicada" %}
+        <form method="post" style="margin-bottom: 14px;">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="tomar">
+          <button type="submit" class="boton secundario">Marcar en trámite</button>
+        </form>
+      {% endif %}
+      <form method="post" class="formulario" novalidate>
+        {% csrf_token %}
+        {% for campo in form %}
+          <div class="campo{% if campo.errors %} con-error{% endif %}">
+            {{ campo.label_tag }}
+            {{ campo }}
+            {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+        <div class="acciones" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button type="submit" name="accion" value="responder" class="boton">Responder y cerrar</button>
+          <button type="submit" name="accion" value="rechazar" class="boton secundario"
+                  data-confirmar="¿Rechazar la solicitud? La respuesta debe explicar el motivo legal.">Rechazar con motivo</button>
+          {% if permite_supresion %}
+            <button type="submit" name="accion" value="suprimir" class="boton peligro"
+                    data-confirmar="Se cerrará la cuenta y se anonimizarán los datos del titular. Esta acción no se puede deshacer. ¿Continuar?">
+              Responder y suprimir datos
+            </button>
+          {% endif %}
+        </div>
+      </form>
+    </article>
+  {% endif %}
+{% endblock %}

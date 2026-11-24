@@ -12,7 +12,6 @@ from django.urls import reverse
 from core import bodegas, caja, erp_services
 from core.importaciones import importar_productos_excel
 from core.models import (
-    Bodega,
     Categoria,
     Cliente,
     Compra,
@@ -31,7 +30,6 @@ from core.models import (
     Proveedor,
     Rol,
     TrasladoBodega,
-    TurnoCaja,
     Usuario,
 )
 from core.services import registrar_movimiento

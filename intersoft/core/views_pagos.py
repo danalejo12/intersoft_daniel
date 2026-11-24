@@ -33,9 +33,11 @@ def bloquear_negocio(request):
 
 
 class PagosBaseView(PermisoRequeridoMixin, View):
+    """Base de las vistas de Pagos en línea del negocio. Permiso: `pagos.configurar`."""
     permiso_requerido = PERMISO
 
     def config_o_aviso(self) -> ConfiguracionPagos | None:
+        """Configuración de pagos del negocio, o None con un mensaje si aún no se guardaron llaves."""
         config = configuracion_de(self.request.empresa)
         if config is None:
             messages.error(self.request, "Primero guarda las llaves de Wompi.")
@@ -46,6 +48,9 @@ class PagosBaseView(PermisoRequeridoMixin, View):
     sensitive_post_parameters("llave_privada", "secreto_integridad", "secreto_eventos"), name="dispatch",
 )
 class PagosNegocioView(PagosBaseView):
+    """Muestra y guarda las llaves de Wompi del negocio (cifradas) y sus tarifas. Ruta: `/panel/negocio/pagos/`
+    («negocio_pagos»). Permiso: `pagos.configurar`.
+    """
     template_name = "core/negocio/pagos.html"
 
     def get(self, request, *args, **kwargs):
@@ -73,6 +78,7 @@ class PagosNegocioView(PagosBaseView):
         return redirect("negocio_pagos")
 
     def mostrar(self, config, form, status=200):
+        """Renderiza la página de pagos con la URL del webhook que se debe configurar en Wompi."""
         from django.urls import reverse
         contexto = {"config": config, "form": form, "webhook_url": self.request.build_absolute_uri(
             reverse("wompi_webhook_negocio", args=[self.request.empresa.pk]))}
@@ -80,6 +86,9 @@ class PagosNegocioView(PagosBaseView):
 
 
 class VerificarPagosView(PagosBaseView):
+    """Verifica en Wompi las llaves del negocio (máximo una vez cada pocos segundos). Ruta:
+    `/panel/negocio/pagos/verificar/` («negocio_pagos_verificar»). Permiso: `pagos.configurar`.
+    """
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
@@ -122,6 +131,9 @@ class VerificarPagosView(PagosBaseView):
 
 
 class ActivarPagosView(PagosBaseView):
+    """Activa o pausa los cobros en línea del negocio (solo con llaves verificadas). Ruta:
+    `/panel/negocio/pagos/activar/` («negocio_pagos_activar»). Permiso: `pagos.configurar`.
+    """
     http_method_names = ["post"]
 
     @transaction.atomic
@@ -144,6 +156,9 @@ class ActivarPagosView(PagosBaseView):
 
 
 class EliminarPagosView(PagosBaseView):
+    """Eliminación lógica: desactiva sin borrar. Ruta: `/panel/negocio/pagos/borrar/` («negocio_pagos_eliminar»).
+    Permiso: `pagos.configurar`.
+    """
     http_method_names = ["post"]
 
     @transaction.atomic

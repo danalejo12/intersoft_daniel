@@ -8,6 +8,7 @@ from .permisos import crear_roles_base
 
 
 def _slug_disponible(nombre):
+    """Slug libre para un negocio nuevo (agrega -2, -3… si ya existe)."""
     base = slugify(nombre)[:150] or "negocio"  # un nombre sin letras daría un slug vacío
     slug = base
     sufijo = 2

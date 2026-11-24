@@ -17,7 +17,7 @@ from core.models import Empresa, Membresia, Producto, Rol, Usuario
 
 from .exceptions import LimitePlanExcedido, verificar_limite
 from .cobros import aplicar_transaccion
-from .models import CobroSuscripcion, HistorialSuscripcion, Plan, Suscripcion
+from .models import CobroSuscripcion, Plan, Suscripcion
 from .permissions import RequiereFeature
 from .services import (
     CUPOS_FUNDADOR,
@@ -27,7 +27,6 @@ from .services import (
     cambiar_plan,
     crear_suscripcion_inicial,
     uso_actual,
-    verificar_vencimientos,
 )
 
 
@@ -414,7 +413,7 @@ class SuscripcionesAPITests(TestCase):
 
 
     def test_limites_y_features_de_suscripcion_aplicados_en_panel_core(self):
-        from core.models import Cliente, Factura
+        from core.models import Cliente
         from core.services import crear_factura
 
         self.client.force_login(self.usuario_a)

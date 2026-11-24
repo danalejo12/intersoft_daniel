@@ -1,3 +1,4 @@
+"""Comando que ejecuta las tareas periódicas a las que ya les toca (una pasada o en bucle)."""
 import time
 
 from django.core.management.base import BaseCommand
@@ -7,6 +8,10 @@ from core.tareas import TAREAS, ejecutar_pendientes
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py tareas_periodicas`: Ejecuta las tareas periódicas a las que ya les toca (reservas,
+    suscripciones, cobros de planes y alertas de stock). Sin --bucle hace una sola pasada: prográmalo cada 5
+    minutos en cron o en el Programador de tareas de Windows.
+    """
     help = (
         "Ejecuta las tareas periódicas a las que ya les toca (reservas, suscripciones, cobros de planes "
         "y alertas de stock). Sin --bucle hace una sola pasada: prográmalo cada 5 minutos en cron o en "

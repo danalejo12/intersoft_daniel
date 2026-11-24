@@ -27,6 +27,7 @@ MESES_ES = (
 
 
 def _ultimos_meses(ahora, cantidad: int = 6) -> list[tuple[int, int]]:
+    """Lista de (año, mes) de los últimos meses, del más antiguo al actual."""
     anio = ahora.year
     mes = ahora.month
     resultado = []

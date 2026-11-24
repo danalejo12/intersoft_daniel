@@ -40,6 +40,7 @@ class TieneEmpresaActiva(BasePermission):
     message = "Debes estar autenticado y pertenecer a una empresa activa."
 
     def has_permission(self, request, view):
+        """Permite el acceso solo a usuarios autenticados con un negocio activo."""
         if not request.user or not request.user.is_authenticated:
             return False
         return obtener_empresa_de_request(request) is not None
@@ -67,6 +68,7 @@ class RequiereFeature(BasePermission):
         return self
 
     def has_permission(self, request, view):
+        """Permite el acceso si el plan del negocio incluye la función requerida."""
         if not request.user or not request.user.is_authenticated:
             return False
         empresa = obtener_empresa_de_request(request)
@@ -80,6 +82,7 @@ class SwaggerPermitido(BasePermission):
     """Permite Swagger/OpenAPI a cualquiera con DEBUG=True, y solo a is_staff cuando DEBUG=False."""
 
     def has_permission(self, request, view):
+        """Swagger abierto con DEBUG; en producción solo para el personal (is_staff)."""
         from django.conf import settings
 
         if settings.DEBUG:

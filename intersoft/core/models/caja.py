@@ -46,6 +46,7 @@ class PagoCaja(ModeloTenant):
     """Lo que entra a la caja por una venta. Una venta puede pagarse con varios medios."""
 
     class Metodo(models.TextChoices):
+        """Valores posibles de metodo de pago de caja: «Efectivo», «Tarjeta (datáfono)», «Transferencia o Nequi»."""
         EFECTIVO = "efectivo", "Efectivo"
         TARJETA = "tarjeta", "Tarjeta (datáfono)"
         TRANSFERENCIA = "transferencia", "Transferencia o Nequi"

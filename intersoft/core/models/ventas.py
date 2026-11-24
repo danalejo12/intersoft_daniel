@@ -1,26 +1,31 @@
 """Ventas: facturas y su detalle."""
 from decimal import Decimal
- 
+
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
- 
+
 from ..impuestos import calcular_iva
 from .base import ModeloTenant
- 
- 
+
+
 class Factura(ModeloTenant):
+    """Factura de venta con instantánea de los datos del emisor y del cliente; nunca se borra, se anula."""
     class Estado(models.TextChoices):
+        """Valores posibles de estado de factura: «Emitida», «Anulada»."""
         EMITIDA = "emitida", "Emitida"
         ANULADA = "anulada", "Anulada"
 
     class EstadoDian(models.TextChoices):
+        """Valores posibles de estadodian de factura: «Interna (sin envío DIAN)», «Pendiente de envío», «Aceptada
+        por DIAN», «Rechazada por DIAN».
+        """
         NO_APLICA = "no_aplica", "Interna (sin envío DIAN)"
         PENDIENTE = "pendiente", "Pendiente de envío"
         ACEPTADA = "aceptada", "Aceptada por DIAN"
         RECHAZADA = "rechazada", "Rechazada por DIAN"
- 
+
     numero = models.PositiveIntegerField()  # Consecutivo por empresa (lo asigna el servicio de ventas).
     cliente = models.ForeignKey("Cliente", on_delete=models.PROTECT, related_name="facturas")
     estado = models.CharField(max_length=10, choices=Estado.choices, default=Estado.EMITIDA)
@@ -56,7 +61,7 @@ class Factura(ModeloTenant):
     dian_pdf_url = models.URLField(blank=True)
     dian_respuesta = models.CharField(max_length=250, blank=True)
     dian_emitida_en = models.DateTimeField(null=True, blank=True)
- 
+
     class Meta:
         verbose_name = "factura"
         verbose_name_plural = "facturas"
@@ -74,12 +79,13 @@ class Factura(ModeloTenant):
             models.Index(fields=["empresa", "-creado_en"], name="ix_factura_empresa_fecha"),
             models.Index(fields=["empresa", "estado"], name="ix_factura_empresa_estado"),
         ]
- 
+
     def __str__(self):
         return f"Factura {self.numero}"
 
     @property
     def esta_pagada(self):
+        """Indica si la factura está pagada: por Wompi, en caja, como pedido pagado o con la cartera saldada."""
         if self.pagos.filter(estado="aprobado").exists():
             return True
         # Venta de mostrador: se registra solo cuando los pagos cubren el total
@@ -91,9 +97,10 @@ class Factura(ModeloTenant):
             return True
         cartera = getattr(self, "cuentacartera", None)
         return cartera is not None and cartera.saldo == 0
- 
- 
+
+
 class DetalleFactura(ModeloTenant):
+    """Línea de factura con el nombre, precio e IVA del producto congelados al vender."""
     factura = models.ForeignKey(Factura, on_delete=models.CASCADE, related_name="detalles")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT, related_name="detalles_factura")
     nombre_producto = models.CharField(max_length=150, blank=True)
@@ -101,22 +108,21 @@ class DetalleFactura(ModeloTenant):
     # Precio e IVA se CONGELAN al vender: si mañana cambia el precio, la factura no cambia.
     precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
- 
+
     class Meta:
         verbose_name = "detalle de factura"
         verbose_name_plural = "detalles de factura"
         constraints = [
             models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_detalle_cantidad_positiva"),
         ]
- 
+
     def __str__(self):
         return f"{self.cantidad} × {self.producto}"
- 
+
     @property
     def subtotal(self):
         return self.precio_unitario * self.cantidad
- 
+
     @property
     def valor_iva(self):
         return calcular_iva(self.subtotal, self.iva_porcentaje)
- 

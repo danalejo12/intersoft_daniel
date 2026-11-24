@@ -12,6 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 
 def _pesos(valor) -> str:
+    """Formatea un valor como pesos colombianos sin decimales ($ 1.234.567)."""
     cantidad = Decimal(str(valor or 0))
     return f"$ {cantidad:,.0f}".replace(",", ".")
 
@@ -35,9 +36,6 @@ def generar_factura_pdf(factura) -> bytes:
     gris_claro = colors.HexColor("#F8FAFC")
     gris_borde = colors.HexColor("#CBD5E1")
 
-    estilo_titulo = ParagraphStyle(
-        "TituloFactura", parent=estilos["Heading1"], fontSize=18, textColor=azul, spaceAfter=4
-    )
     estilo_sub = ParagraphStyle(
         "SubFactura", parent=estilos["Normal"], fontSize=9.5, textColor=colors.HexColor("#475569"), leading=13
     )
@@ -193,12 +191,14 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
     hoja_inicial["A1"].font = font_titulo
 
     def _estilizar_cabecera(ws, fila=1):
+        """Pone el estilo de encabezado en una fila de la hoja de Excel."""
         for cell in ws[fila]:
             cell.fill = fill_header
             cell.font = font_header
             cell.alignment = Alignment(horizontal="left", vertical="center")
 
     def _auto_ancho(ws):
+        """Ajusta el ancho de las columnas de la hoja a su contenido (entre 14 y 45)."""
         for col in ws.columns:
             max_len = max((len(str(c.value or "")) for c in col), default=10)
             ws.column_dimensions[col[0].column_letter].width = min(45, max(14, max_len + 4))

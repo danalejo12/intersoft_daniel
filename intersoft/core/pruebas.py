@@ -1,3 +1,4 @@
+"""Ejecutor de pruebas del proyecto: ajusta la configuración que no aplica al entorno de pruebas."""
 from django.conf import settings
 from django.test.runner import DiscoverRunner
 
@@ -11,5 +12,6 @@ class EjecutorPruebas(DiscoverRunner):
     """
 
     def setup_test_environment(self, **kwargs):
+        """Desactiva la redirección a HTTPS durante las pruebas."""
         super().setup_test_environment(**kwargs)
         settings.SECURE_SSL_REDIRECT = False

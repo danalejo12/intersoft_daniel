@@ -9,6 +9,11 @@
     <form method="post">
       {% csrf_token %}
       {% include "core/tienda/campos.html" %}
+      <p class="aviso-privacidad">
+        <strong>Aviso de privacidad.</strong> Usaremos tus datos para crear tu cuenta, gestionar tus compras y atender tus solicitudes.
+        Puedes conocerlos, corregirlos, descargarlos o pedir que los eliminemos en «Mis datos personales».
+        Lee la <a href="{% url 'legal_privacidad' %}" target="_blank" rel="noopener">política de tratamiento de datos</a>.
+      </p>
       <input type="hidden" name="next" value="{{ next }}">
       <button type="submit" class="boton boton-ancho">Crear cuenta</button>
     </form>

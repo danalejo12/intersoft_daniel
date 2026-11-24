@@ -1,0 +1,35 @@
+{% extends "core/tienda/base.html" %}
+{% load static %}
+{% block titulo %}Autoriza el tratamiento de tus datos · InterSoft{% endblock %}
+
+{% block contenido %}
+  <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=2">
+
+  <section class="caja-formulario">
+    <h1>Antes de continuar</h1>
+    <p class="nota">Para usar tu cuenta necesitamos tu autorización para tratar tus datos personales (Ley 1581 de 2012).
+      Versión de la política: {{ version_politica }}.</p>
+
+    <p><strong>¿Para qué usamos tus datos?</strong></p>
+    <ul>
+      {% for finalidad in finalidades %}<li>{{ finalidad }}</li>{% endfor %}
+    </ul>
+    <p class="nota">Puedes conocer, corregir o descargar tus datos, revocar esta autorización o pedir que los eliminemos
+      cuando quieras, en <a href="{% url 'mis_datos' %}">Mis datos personales</a>.
+      Lee la <a href="{% url 'legal_privacidad' %}" target="_blank" rel="noopener">política completa</a>.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "core/tienda/campos.html" %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="boton boton-ancho">Acepto y continúo</button>
+    </form>
+
+    <form method="post" action="{% url 'logout' %}" class="datos-acciones">
+      {% csrf_token %}
+      <button type="submit" class="boton secundario boton-ancho">No acepto, cerrar sesión</button>
+    </form>
+    <p class="nota">Si no aceptas, no podremos atenderte con tu cuenta. Puedes pedir que eliminemos tus datos desde
+      <a href="{% url 'mis_datos' %}">Mis datos personales</a>.</p>
+  </section>
+{% endblock %}

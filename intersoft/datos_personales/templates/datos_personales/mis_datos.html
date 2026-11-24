@@ -1,0 +1,85 @@
+{% extends "core/tienda/base.html" %}
+{% load static %}
+{% block titulo %}Mis datos personales · InterSoft{% endblock %}
+
+{% block contenido %}
+  <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=2">
+
+  <div class="legal-contenedor datos-grid">
+    <header>
+      <h1 class="titulo-compra">Mis datos personales</h1>
+      <p class="nota">Aquí ejerces tus derechos de la Ley 1581 de 2012: conocer, actualizar, corregir, pedir prueba de tu
+        autorización, revocarla o eliminar tus datos.</p>
+    </header>
+
+    <section class="legal-documento" aria-labelledby="t-ver">
+      <h2 id="t-ver">1. Ver y descargar tus datos</h2>
+      <p>Descarga en un archivo todo lo que tenemos de ti: cuenta, pedidos, opiniones, PQRS y autorizaciones.</p>
+      <div class="datos-acciones">
+        <a class="boton" href="{% url 'mis_datos_descargar' %}">Descargar mis datos</a>
+        <a class="boton secundario" href="{% url 'perfil' %}">Actualizar mi nombre, teléfono o foto</a>
+      </div>
+    </section>
+
+    <section class="legal-documento" aria-labelledby="t-aut">
+      <h2 id="t-aut">2. Tu autorización</h2>
+      {% if autorizacion_vigente %}
+        <p>Autorizaste el tratamiento de tus datos el {{ autorizacion_vigente.aceptada_en|date:"d/m/Y H:i" }}
+          (política versión {{ autorizacion_vigente.version_politica }}).</p>
+      {% else %}
+        <p>No tienes una autorización vigente para la política actual.
+          <a href="{% url 'datos_autorizar' %}">Autorizar ahora</a>.</p>
+      {% endif %}
+      {% if autorizaciones %}
+        <div class="tabla-desplazable"><table class="datos-tabla">
+          <thead><tr><th>Fecha</th><th>Versión</th><th>Medio</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for a in autorizaciones %}
+              <tr>
+                <td>{{ a.aceptada_en|date:"d/m/Y H:i" }}</td>
+                <td>{{ a.version_politica }}</td>
+                <td>{{ a.medio }}</td>
+                <td>{% if a.revocada_en %}Revocada el {{ a.revocada_en|date:"d/m/Y" }}{% else %}Vigente{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      {% endif %}
+    </section>
+
+    <section class="legal-documento" aria-labelledby="t-sol">
+      <h2 id="t-sol">3. Hacer una solicitud</h2>
+      <p>Te daremos un número de radicado. Las consultas se responden en máximo {{ plazo_consulta }} días hábiles y los
+        reclamos (corregir, revocar o eliminar) en máximo {{ plazo_reclamo }} días hábiles.</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "core/tienda/campos.html" %}
+        <p class="aviso-privacidad">Si pides eliminar tus datos, cerraremos tu cuenta. Las facturas de tus compras se
+          conservan el tiempo que exige la ley, sin datos que te identifiquen.</p>
+        <button type="submit" class="boton">Radicar solicitud</button>
+      </form>
+    </section>
+
+    <section class="legal-documento" aria-labelledby="t-mis">
+      <h2 id="t-mis">4. Mis solicitudes</h2>
+      {% if solicitudes %}
+        <div class="tabla-desplazable"><table class="datos-tabla">
+          <thead><tr><th>Radicado</th><th>Solicitud</th><th>Estado</th><th>Respuesta a más tardar</th><th>Respuesta</th></tr></thead>
+          <tbody>
+            {% for s in solicitudes %}
+              <tr>
+                <td><code>{{ s.radicado }}</code></td>
+                <td>{{ s.get_tipo_display }}</td>
+                <td>{{ s.get_estado_display }}</td>
+                <td>{{ s.fecha_limite|date:"d/m/Y" }}</td>
+                <td>{{ s.respuesta|default:"—"|linebreaksbr }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <p class="nota">Aún no has hecho solicitudes.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

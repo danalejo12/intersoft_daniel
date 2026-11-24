@@ -25,6 +25,7 @@ from .services import StockInsuficiente
 
 
 def _entero(valor, por_defecto):
+    """Convierte a entero o devuelve el valor por defecto."""
     try:
         return int(valor)
     except (TypeError, ValueError):
@@ -32,11 +33,15 @@ def _entero(valor, por_defecto):
 
 
 def _avisar(request, avisos):
+    """Muestra cada aviso (por ejemplo, cambios de stock) como mensaje de advertencia."""
     for aviso in avisos:
         messages.warning(request, aviso)
 
 
 class CarritoView(TemplateView):
+    """Carrito del marketplace agrupado por negocio; corrige cantidades si cambió el stock. Ruta: `/carrito/`
+    («carrito»).
+    """
     template_name = "core/tienda/carrito.html"
 
     def get_context_data(self, **kwargs):
@@ -47,6 +52,9 @@ class CarritoView(TemplateView):
 
 
 class AgregarAlCarritoView(View):
+    """Agrega un producto al carrito sin pasar del stock (responde JSON si la petición es AJAX). Ruta:
+    `/carrito/agregar/<uuid:pk>/` («carrito_agregar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -84,19 +92,23 @@ class AgregarAlCarritoView(View):
 
 
 class ActualizarCarritoView(View):
+    """Cambia la cantidad de un producto del carrito, ajustándola a lo disponible. Ruta:
+    `/carrito/actualizar/<uuid:pk>/` («carrito_actualizar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
         producto = productos_publicos().filter(pk=pk).first()
         if producto is None:
             carrito.quitar(request, pk)
-        elif not carrito.actualizar(request, producto, _entero(request.POST.get("cantidad"), 1)):
-            if _entero(request.POST.get("cantidad"), 1) > 0:
-                messages.warning(request, f"Ajustamos {producto.nombre} a las unidades disponibles.")
+        elif (not carrito.actualizar(request, producto, _entero(request.POST.get("cantidad"), 1))
+              and _entero(request.POST.get("cantidad"), 1) > 0):
+            messages.warning(request, f"Ajustamos {producto.nombre} a las unidades disponibles.")
         return redirect("carrito")
 
 
 class QuitarDelCarritoView(View):
+    """Quita un producto del carrito. Ruta: `/carrito/quitar/<uuid:pk>/` («carrito_quitar»)."""
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -111,6 +123,7 @@ class QuitarDelCarritoView(View):
 
 
 class DatosEnvioMixin(LoginRequiredMixin):
+    """Comparte la carga de datos de envío entre los checkouts (recuerda los de la última compra)."""
     login_url = "registro"  # quien no tiene cuenta la crea y vuelve aquí con su carrito intacto
     form_class = DatosEnvioForm
 
@@ -129,6 +142,7 @@ class DatosEnvioMixin(LoginRequiredMixin):
 
     def stock_cambio(self):
         # El mensaje del servicio puede incluir el stock exacto, que es información interna del negocio
+        """Avisa que alguien se llevó el stock y vuelve al carrito (sin revelar cantidades)."""
         messages.warning(
             self.request,
             "Otra persona acaba de llevarse alguno de tus productos. Revisa tu carrito y seguimos.",
@@ -229,6 +243,7 @@ def _mi_pedido(request, pk):
 
 
 class MisPedidosView(LoginRequiredMixin, ListView):
+    """Listado. Ruta: `/pedidos/` («mis_pedidos»)."""
     template_name = "core/tienda/mis_pedidos.html"
     context_object_name = "pedidos"
     paginate_by = 10
@@ -273,6 +288,7 @@ class MisPedidosView(LoginRequiredMixin, ListView):
 
 
 class PedidoDetalleView(LoginRequiredMixin, DetailView):
+    """Detalle. Ruta: `/pedidos/<uuid:pk>/` («pedido_detalle»)."""
     template_name = "core/tienda/pedido.html"
     context_object_name = "pedido"
 
@@ -324,6 +340,9 @@ class EstadoPedidoView(LoginRequiredMixin, View):
 
 
 class PagarPedidoView(LoginRequiredMixin, View):
+    """Crea el intento de pago del pedido y redirige al checkout de Wompi del negocio. Ruta:
+    `/pedidos/<uuid:pk>/pagar/` («pedido_pagar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -344,6 +363,9 @@ class PagarPedidoView(LoginRequiredMixin, View):
 
 
 class CancelarPedidoView(LoginRequiredMixin, View):
+    """Cancela un pedido pendiente y devuelve su stock (si Wompi no lo aprobó ya). Ruta:
+    `/pedidos/<uuid:pk>/cancelar/` («pedido_cancelar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -357,6 +379,9 @@ class CancelarPedidoView(LoginRequiredMixin, View):
 
 
 class RenovarReservaView(LoginRequiredMixin, View):
+    """Renueva la reserva de stock de un pedido pendiente o vencido, dentro del máximo permitido. Ruta:
+    `/pedidos/<uuid:pk>/renovar/` («pedido_renovar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -375,6 +400,9 @@ class RenovarReservaView(LoginRequiredMixin, View):
 
 
 class ComentarView(View):
+    """Publica la opinión de un comprador sobre un producto (la compra verificada la calcula el servidor). Ruta:
+    `/tienda/producto/<uuid:pk>/comentar/` («comentar»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, pk):
@@ -400,6 +428,7 @@ class ComentarView(View):
 
 
 class EliminarComentarioView(LoginRequiredMixin, View):
+    """Eliminación lógica: desactiva sin borrar. Ruta: `/comentarios/<uuid:pk>/eliminar/` («comentario_eliminar»)."""
     http_method_names = ["post"]
 
     def post(self, request, pk):

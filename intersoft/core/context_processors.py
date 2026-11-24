@@ -1,3 +1,4 @@
+"""Datos comunes a todas las plantillas: carrito, permisos del menú, avisos y anuncios."""
 from django.db.models import F
 from django.urls import reverse
 

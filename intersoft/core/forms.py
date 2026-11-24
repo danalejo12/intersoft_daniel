@@ -1,3 +1,4 @@
+"""Formularios del panel: negocio, perfil, clientes, categorías, productos (con fotos), facturas y movimientos."""
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
@@ -9,10 +10,12 @@ IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
 
 class ClienteForm(forms.ModelForm):
+    """Formulario de cliente. Campos: tipo_documento, numero_documento, nombre, email, telefono, direccion,
+    autoriza_datos (prueba de la autorización del cliente, Ley 1581)."""
     class Meta:
         model = Cliente
         # "empresa" NO está en la lista: la asigna el servidor (TenantMixin.form_valid)
-        fields = ["tipo_documento", "numero_documento", "nombre", "email", "telefono", "direccion"]
+        fields = ["tipo_documento", "numero_documento", "nombre", "email", "telefono", "direccion", "autoriza_datos"]
         labels = {
             "tipo_documento": "Tipo de documento",
             "numero_documento": "Número de documento",
@@ -51,6 +54,17 @@ class ClienteForm(forms.ModelForm):
             if existe:
                 self.add_error("numero_documento", "Ya existe un cliente con este documento en tu empresa.")
         return datos
+
+    def save(self, commit=True):
+        """Guarda la fecha en que se registró la autorización del cliente (o la borra si se desmarca)."""
+        from django.utils import timezone
+
+        cliente = self.instance
+        if cliente.autoriza_datos and not cliente.autoriza_datos_en:
+            cliente.autoriza_datos_en = timezone.now()
+        elif not cliente.autoriza_datos:
+            cliente.autoriza_datos_en = None
+        return super().save(commit=commit)
 
 
 # ---------------------------------------------------------------
@@ -123,6 +137,7 @@ LineasFacturaFormSet = forms.formset_factory(
 # Inventario: Categorías y Productos
 # ---------------------------------------------------------------
 class CategoriaForm(forms.ModelForm):
+    """Formulario de categoría. Campos: nombre."""
     class Meta:
         model = Categoria
         fields = ["nombre"]
@@ -148,6 +163,7 @@ class CategoriaForm(forms.ModelForm):
 
 
 class EntradaVariasFotos(forms.ClearableFileInput):
+    """Campo de archivo que permite elegir varias fotos a la vez (galería del producto)."""
     allow_multiple_selected = True
 
 
@@ -168,11 +184,15 @@ class CampoVariasFotos(forms.ImageField):
 
 
 class FotoParaQuitar(forms.ModelMultipleChoiceField):
+    """Casillas para marcar las fotos de la galería que se quieren quitar del producto."""
     def label_from_instance(self, foto):
         return foto.imagen.url  # la plantilla la muestra como miniatura
 
 
 class ProductoForm(forms.ModelForm):
+    """Formulario de producto. Campos: codigo, nombre, categoria, precio, iva_porcentaje, stock_minimo,
+    peso_gramos, descripcion….
+    """
     class Meta:
         model = Producto
         # "stock" NO está: el stock solo cambia con movimientos (kardex), nunca a mano
@@ -403,6 +423,7 @@ class MovimientoForm(forms.Form):
 
 
 class PerfilUsuarioForm(forms.ModelForm):
+    """Formulario de usuario. Campos: foto, first_name, last_name, cargo, telefono, descripcion, quitar_foto."""
     quitar_foto = forms.BooleanField(required=False, label="Quitar foto actual")
 
     class Meta:
@@ -454,6 +475,7 @@ class PerfilUsuarioForm(forms.ModelForm):
         return usuario
 
 class BodegaForm(forms.Form):
+    """Formulario. Campos: nombre, direccion, es_principal, vende_en_linea."""
     nombre = forms.CharField(label="Nombre", max_length=80, help_text="Ejemplo: Bodega norte, Local centro.")
     direccion = forms.CharField(label="Dirección", max_length=200, required=False)
     es_principal = forms.BooleanField(
@@ -467,6 +489,7 @@ class BodegaForm(forms.Form):
 
 
 class TrasladoForm(forms.Form):
+    """Formulario. Campos: origen, destino, cantidad."""
     origen = forms.ModelChoiceField(label="Desde", queryset=Bodega.objects.none(), empty_label=None)
     destino = forms.ModelChoiceField(label="Hacia", queryset=Bodega.objects.none(), empty_label=None)
     cantidad = forms.IntegerField(label="Cantidad", min_value=1, max_value=999999)

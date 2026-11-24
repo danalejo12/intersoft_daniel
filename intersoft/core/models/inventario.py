@@ -2,22 +2,23 @@
 import os
 import uuid
 from decimal import Decimal
- 
+
 from django.conf import settings
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
- 
+
 from ..impuestos import calcular_iva
 from ..tarifas import cargo_pasarela
 from .base import ModeloBase, ModeloTenant
- 
- 
+
+
 class Categoria(ModeloTenant):
+    """Categoría de productos de un negocio (el nombre es único dentro del negocio)."""
     nombre = models.CharField(max_length=80)
     activa = models.BooleanField(default=True)
- 
+
     class Meta:
         verbose_name = "categoría"
         verbose_name_plural = "categorías"
@@ -25,18 +26,20 @@ class Categoria(ModeloTenant):
         constraints = [
             models.UniqueConstraint(fields=["empresa", "nombre"], name="uq_categoria_nombre_por_empresa"),
         ]
- 
+
     def __str__(self):
         return self.nombre
- 
- 
+
+
 def ruta_imagen_producto(producto, nombre_original):
     # El nombre lo pone el servidor: el que trae el archivo no es confiable y podría repetirse
+    """Ruta de la imagen del producto con nombre aleatorio (no se confía en el nombre del archivo)."""
     extension = os.path.splitext(nombre_original)[1].lower()
     return f"productos/{producto.empresa_id}/{uuid.uuid4().hex}{extension}"
 
 
 class Producto(ModeloTenant):
+    """Producto del catálogo: precio, IVA, stock total (suma de bodegas), peso y publicación en el marketplace."""
     categoria = models.ForeignKey(
         Categoria, on_delete=models.SET_NULL, null=True, blank=True, related_name="productos"
     )
@@ -66,7 +69,7 @@ class Producto(ModeloTenant):
     # Autor y licencia de la foto, cuando no es propia. Las licencias libres exigen citarlos.
     imagen_credito = models.CharField(max_length=200, blank=True)
     imagen_fuente = models.URLField(blank=True)
- 
+
     class Meta:
         verbose_name = "producto"
         verbose_name_plural = "productos"
@@ -84,10 +87,10 @@ class Producto(ModeloTenant):
         indexes = [
             models.Index(fields=["empresa", "nombre"], name="ix_producto_empresa_nombre"),
         ]
- 
+
     def __str__(self):
         return f"{self.codigo} · {self.nombre}"
- 
+
     @property
     def stock_bajo(self):
         return self.stock <= self.stock_minimo
@@ -106,8 +109,8 @@ class Producto(ModeloTenant):
     def precio_marketplace(self):
         """Lo que paga el comprador por una unidad: precio, IVA y cargo de la pasarela."""
         return self.precio_con_iva + self.cargo_pasarela
- 
- 
+
+
 FOTOS_EXTRA_MAXIMO = 8  # Galería: fotos además de la principal
 
 
@@ -132,12 +135,13 @@ class FotoProducto(ModeloTenant):
 
 class MovimientoInventario(ModeloTenant):
     """Historial inmutable de cada cambio de stock (kardex)."""
- 
+
     class Tipo(models.TextChoices):
+        """Valores posibles de tipo de movimiento de inventario: «Entrada», «Salida», «Ajuste»."""
         ENTRADA = "entrada", "Entrada"
         SALIDA = "salida", "Salida"
         AJUSTE = "ajuste", "Ajuste"
- 
+
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="movimientos")
     tipo = models.CharField(max_length=10, choices=Tipo.choices)
     cantidad = models.IntegerField()  # Entrada/salida en positivo; un ajuste puede ser negativo.
@@ -149,7 +153,7 @@ class MovimientoInventario(ModeloTenant):
     bodega = models.ForeignKey(
         "Bodega", on_delete=models.PROTECT, related_name="movimientos", null=True, blank=True
     )
- 
+
     class Meta:
         verbose_name = "movimiento de inventario"
         verbose_name_plural = "movimientos de inventario"
@@ -157,7 +161,7 @@ class MovimientoInventario(ModeloTenant):
         indexes = [
             models.Index(fields=["empresa", "producto", "-creado_en"], name="ix_movimiento_producto_fecha"),
         ]
- 
+
     def __str__(self):
         return f"{self.get_tipo_display()} {self.cantidad} · {self.producto}"
 
@@ -219,6 +223,7 @@ class TrasladoBodega(ModeloTenant):
     """Traslado en tránsito entre bodegas: descuenta al enviar y suma al confirmar recepción."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de traslado entre bodegas: «En tránsito (enviado)», «Recibido», «Cancelado»."""
         ENVIADO = "enviado", "En tránsito (enviado)"
         RECIBIDO = "recibido", "Recibido"
         CANCELADO = "cancelado", "Cancelado"

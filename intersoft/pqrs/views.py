@@ -47,6 +47,7 @@ class RadicarPQRSCompradorView(LoginRequiredMixin, View):
     template_name = "pqrs/comprador_nueva.html"
 
     def _initial(self, request):
+        """Precarga el pedido y el negocio si la PQRS se abre desde un pedido propio."""
         initial = {}
         pedido_id = (request.GET.get("pedido") or "").strip()
         if pedido_id:
@@ -182,6 +183,7 @@ class PanelPQRSDetalleView(PermisoRequeridoMixin, View):
     template_name = "pqrs/panel_detalle.html"
 
     def _contexto(self, pqrs, msg_form=None, encuesta_form=None):
+        """Contexto del detalle de la PQRS; en el flujo hacia Intersoft oculta las notas internas."""
         es_flujo_b = pqrs.flujo == PQRS.Flujo.COMPRADOR_NEGOCIO
         mensajes_qs = pqrs.mensajes.select_related("autor")
         if not es_flujo_b:

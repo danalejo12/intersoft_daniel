@@ -78,3 +78,14 @@
     padding: 20px 18px;
   }
 }
+
+/* Datos del responsable que faltan por configurar (Ley 1581): se ven en rojo para no publicar la política incompleta */
+.legal-aviso-pendiente { background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .5); }
+.legal-falta { color: var(--rojo-texto, #dc2626); font-weight: 600; }
+.legal-datos { list-style: none; padding-left: 0; }
+
+/* «Mis datos personales» y la autorización */
+.datos-grid { display: grid; gap: 18px; }
+.datos-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.datos-tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.datos-tabla th, .datos-tabla td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--borde); vertical-align: top; }
