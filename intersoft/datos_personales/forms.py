@@ -26,6 +26,10 @@ class SolicitudDatosForm(forms.ModelForm):
         labels = {"tipo": "¿Qué necesitas?", "detalle": "Cuéntanos los detalles (opcional)"}
         widgets = {"detalle": forms.Textarea(attrs={"rows": 3, "maxlength": 2000})}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tipo"].choices = [("", "Selecciona una opción")] + list(SolicitudDatos.Tipo.choices)
+
 
 class RespuestaSolicitudForm(forms.Form):
     """Respuesta del equipo al titular desde la consola de plataforma."""

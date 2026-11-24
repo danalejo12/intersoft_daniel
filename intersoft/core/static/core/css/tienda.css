@@ -1530,3 +1530,299 @@ button.cargando {
 .campo.casilla .error, .campo.casilla .ayuda { flex-basis: 100%; }
 /* Aviso de privacidad corto en formularios que recogen datos personales */
 .aviso-privacidad { font-size: .85rem; line-height: 1.5; color: var(--texto-suave); margin: 10px 0 14px; }
+
+
+/* =====================================================================
+   CORRECCIONES ROL COMPRADOR (/perfil/, /pqrs/, /precios/, Modo Oscuro)
+   ===================================================================== */
+
+/* 1. Evitar tarjetas ocultas o desvanecidas en PQRS, Precios, Perfil y Marketplace */
+.tarjeta.oculta,
+.tarjeta.visible {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+/* Tarjetas de contenido fuera de la rejilla de productos (PQRS, Precios, Perfil) */
+.tarjeta:not(.rejilla .tarjeta) {
+  background: var(--superficie);
+  color: var(--texto);
+  padding: 22px;
+  border-radius: 14px;
+}
+
+.tarjeta:not(.rejilla .tarjeta):hover {
+  transform: none;
+  border-color: var(--borde);
+  box-shadow: var(--sombra-s);
+}
+
+/* 2. Contraste modo oscuro en barra superior y subbarra del Marketplace */
+:root[data-tema="oscuro"] .menu-enlace {
+  color: #e2e8f0;
+}
+
+:root[data-tema="oscuro"] .menu-enlace:hover {
+  color: #ffffff;
+}
+
+:root[data-tema="oscuro"] .subbarra-vende {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+:root[data-tema="oscuro"] .subbarra-vende:hover {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* 3. Limitar íconos SVG dentro de botones y enlaces (evita SVGs gigantes en /perfil/) */
+.boton svg,
+button svg,
+.acciones-fila svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.boton.secundario {
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1.5px solid var(--borde);
+  box-shadow: var(--sombra-s);
+}
+
+.boton.secundario:hover {
+  background: var(--fondo);
+  border-color: var(--primario);
+  color: var(--primario);
+}
+
+/* 4. Encabezados, formularios y tablas compartidas en vistas de comprador */
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  margin-bottom: 20px;
+}
+
+.encabezado h1 {
+  margin: 0 0 4px;
+}
+
+.acciones-fila,
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.formulario {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: var(--sombra-s);
+  display: grid;
+  gap: 14px;
+}
+
+.tarjeta .formulario {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.campo select,
+.campo textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+
+.campo textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.92rem;
+}
+
+.tabla th {
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--borde);
+  color: var(--texto);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  border: 1px solid var(--borde);
+}
+
+.badge.exito { background: var(--exito-fondo); color: var(--exito-texto); border-color: transparent; }
+.badge.info { background: var(--primario-suave); color: var(--primario); border-color: transparent; }
+.badge.peligro { background: var(--peligro-fondo); color: var(--peligro); border-color: transparent; }
+.badge.advertencia { background: var(--destacado-fondo); color: var(--destacado-texto); border-color: transparent; }
+
+/* 5. Layout limpio de /perfil/ para compradores */
+.perfil-layout {
+  display: grid;
+  gap: 20px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.perfil-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.perfil-foto-grande {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--primario);
+  color: #ffffff;
+  font-size: 1.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.perfil-foto-grande img,
+.perfil-foto-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.perfil-nombre {
+  margin: 0 0 2px;
+  font-size: 1.25rem;
+}
+
+.perfil-correo {
+  margin: 0 0 8px;
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.perfil-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.perfil-detalles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.perfil-dato {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+}
+
+.perfil-dato-ancho {
+  grid-column: 1 / -1;
+}
+
+.perfil-dato dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+  margin: 0 0 4px;
+}
+
+.perfil-dato dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.perfil-foto-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.perfil-foto-mini {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--primario);
+  color: #ffffff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.perfil-foto-botones {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.perfil-foto-editor input[type="file"] {
+  position: absolute;
+  width: 1px;
+  min-height: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+}
