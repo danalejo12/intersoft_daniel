@@ -1517,3 +1517,9 @@ button.cargando {
     transform: scale(0.985);
   }
 }
+
+.tarjeta > .nota {
+  margin: 0;
+  padding: 0 14px 14px;
+  font-size: 0.85rem;
+}
