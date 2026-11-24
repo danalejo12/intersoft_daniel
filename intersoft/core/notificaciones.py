@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def _enviar(*, asunto, mensaje, destinatarios):
+    """Envía un correo a los destinatarios sin repetir ni vacíos; devuelve cuántos se enviaron."""
     limpios = []
     for correo in destinatarios:
         valor = (correo or "").strip()

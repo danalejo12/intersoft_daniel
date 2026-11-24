@@ -26,6 +26,7 @@ from .models import ComentarioWidget, EncuestaNPS, ErrorRegistrado, Idea, Report
 
 
 def _redirigir_seguro(request, destino_crudo: str, fallback: str = "dashboard"):
+    """Redirige al destino solo si es del propio sitio; si no, al destino por defecto."""
     if destino_crudo and url_has_allowed_host_and_scheme(
         destino_crudo, allowed_hosts={request.get_host()}, require_https=request.is_secure()
     ):
@@ -124,6 +125,7 @@ class IdeasListaView(LoginRequiredMixin, View):
     template_name = "soporte/ideas.html"
 
     def _contexto(self, request, form=None):
+        """Ideas ordenadas por votos y las que ya votó el usuario."""
         ideas = Idea.objects.annotate(total_votos=Count("votos")).order_by("-total_votos", "-creado_en")
         mis_votos_ids = set(
             VotoIdea.objects.filter(usuario=request.user).values_list("idea_id", flat=True)

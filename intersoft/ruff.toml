@@ -1,0 +1,26 @@
+# Estilo y calidad del código de InterSoft (ISO/IEC 25010 · Mantenibilidad).
+# Uso:  pip install ruff  →  ruff check .   (desde la carpeta intersoft/)
+#
+# Reglas activas:
+#   F    errores lógicos (nombres sin definir, importaciones y variables sin uso)
+#   E9   errores de sintaxis        W    espacios sobrantes y fin de archivo
+#   B    errores típicos de Python  DJ   buenas prácticas de Django
+#   UP   sintaxis moderna           SIM  simplificaciones
+#   C4   colecciones y comprensiones PIE  código innecesario
+#   RET  retornos claros            PERF rendimiento en bucles
+line-length = 120
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[lint]
+select = ["F", "E9", "E7", "W", "B", "DJ", "UP", "SIM", "C4", "PIE", "RET", "PERF"]
+# E501 (líneas de más de 120 caracteres) no se exige todavía: hay 564 heredadas y corregirlas todas de una vez
+# generaría conflictos con el trabajo en curso. Las líneas nuevas deben respetar el límite.
+ignore = [
+    "DJ001",   # null=True en campos de texto: varios modelos lo usan a propósito
+    "RET505",  # else después de return: se permite cuando hace el código más legible
+    "PERF401", # filas de reportes PDF/Excel y correos: pocos elementos, se prioriza la claridad del bucle
+]
+
+[lint.per-file-ignores]
+"*/tests*.py" = ["PERF", "SIM117"]

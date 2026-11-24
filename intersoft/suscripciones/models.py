@@ -70,12 +70,14 @@ class Suscripcion(ModeloBase):
     """Estado de suscripción vigente de una empresa (relación 1 a 1 con core.Empresa)."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de suscripción: «Periodo de prueba», «Activa», «Vencida», «Cancelada»."""
         TRIAL = "TRIAL", "Periodo de prueba"
         ACTIVA = "ACTIVA", "Activa"
         VENCIDA = "VENCIDA", "Vencida"
         CANCELADA = "CANCELADA", "Cancelada"
 
     class Ciclo(models.TextChoices):
+        """Valores posibles de ciclo de suscripción: «Mensual», «Anual»."""
         MENSUAL = "MENSUAL", "Mensual"
         ANUAL = "ANUAL", "Anual"
 
@@ -210,6 +212,9 @@ class CobroSuscripcion(ModeloBase):
     el navegador nunca decide. Monto, plan y ciclo quedan congelados al crear el cobro."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de cobro de suscripción: «Pendiente», «Aprobado», «Rechazado», «Anulado sin
+        pago», «Requiere revisión».
+        """
         PENDIENTE = "pendiente", "Pendiente"
         APROBADO = "aprobado", "Aprobado"
         RECHAZADO = "rechazado", "Rechazado"
@@ -277,11 +282,13 @@ class ConfiguracionSuscripciones(ModeloBase):
 
     @classmethod
     def obtener(cls):
+        """Configuración única de suscripciones (se crea si no existe)."""
         obj, _ = cls.objects.get_or_create(clave_unica=1, defaults={"cupos_fundador": 50})
         return obj
 
     @classmethod
     def obtener_cupos_fundador(cls, defecto: int = 50) -> int:
+        """Cupos de fundador configurados (o el valor por defecto si la tabla aún no existe)."""
         from django.db import OperationalError, ProgrammingError
 
         try:
@@ -295,6 +302,7 @@ class CuponPlan(ModeloBase):
     """Cupón de descuento aplicable al pago de planes de suscripción."""
 
     class Tipo(models.TextChoices):
+        """Valores posibles de tipo de cupón de plan: «Porcentaje (%)», «Valor fijo (COP)»."""
         PORCENTAJE = "porcentaje", "Porcentaje (%)"
         VALOR_FIJO = "valor_fijo", "Valor fijo (COP)"
 
@@ -325,6 +333,7 @@ class CuponPlan(ModeloBase):
         super().save(*args, **kwargs)
 
     def esta_vigente(self, ahora=None) -> bool:
+        """Indica si el cupón está activo, en vigencia y con usos disponibles."""
         ahora = ahora or timezone.now()
         if not self.activo:
             return False
@@ -332,9 +341,7 @@ class CuponPlan(ModeloBase):
             return False
         if self.vence_en and ahora > self.vence_en:
             return False
-        if self.usos_maximos is not None and self.usos_actuales >= self.usos_maximos:
-            return False
-        return True
+        return not (self.usos_maximos is not None and self.usos_actuales >= self.usos_maximos)
 
 
 class RecordatorioVencimiento(ModeloBase):

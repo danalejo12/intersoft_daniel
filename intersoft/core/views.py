@@ -58,6 +58,9 @@ from .views_inventario import (
 # Dashboard y Negocio
 # ---------------------------------------------------------------
 class DashboardView(TenantMixin, TemplateView):
+    """Inicio del panel: saludo, accesos rápidos, «Para hoy», guía de primeros pasos e indicadores de ventas e
+    inventario. Ruta: `/panel/` («dashboard»).
+    """
     template_name = "core/dashboard.html"
 
     def get_context_data(self, **kwargs):
@@ -261,6 +264,7 @@ class CambiarNegocioView(TenantMixin, View):
 # Clientes
 # ---------------------------------------------------------------
 class ClienteListView(PermisoRequeridoMixin, ListView):
+    """Lista de clientes del negocio activo. Ruta: `/panel/clientes/` («clientes_lista»). Permiso: `clientes.ver`."""
     model = Cliente
     permiso_requerido = "clientes.ver"
     template_name = "core/clientes/lista.html"
@@ -304,10 +308,14 @@ class ClienteFormMixin:
 
 
 class ClienteCreateView(PermisoRequeridoMixin, ClienteFormMixin, SuccessMessageMixin, CreateView):
+    """Crea un cliente. Ruta: `/panel/clientes/nuevo/` («clientes_crear»). Permiso: `clientes.crear`."""
     permiso_requerido = "clientes.crear"
 
 
 class ClienteUpdateView(PermisoRequeridoMixin, ClienteFormMixin, SuccessMessageMixin, UpdateView):
+    """Edita un cliente. Ruta: `/panel/clientes/<uuid:pk>/editar/` («clientes_editar»). Permiso:
+    `clientes.editar`.
+    """
     permiso_requerido = "clientes.editar"
 
 
@@ -352,8 +360,13 @@ class RecuperarContrasenaView(auth_views.PasswordResetView):
                 self.request.session.pop("debug_reset_url", None)
         return respuesta
 
-
+    """Confirma que se envió el correo para recuperar la contraseña (en DEBUG muestra el enlace de prueba). Ruta:
+    `/recuperar-contrasena/enviado/` («password_reset_done»).
+    """
 class RecuperarContrasenaEnviadoView(auth_views.PasswordResetDoneView):
+    """Confirma que se envió el correo para recuperar la contraseña (en DEBUG muestra el enlace de prueba). Ruta:
+    `/recuperar-contrasena/enviado/` («password_reset_done»).
+    """
     template_name = "core/auth/password_reset_done.html"
 
     def get_context_data(self, **kwargs):
@@ -364,6 +377,9 @@ class RecuperarContrasenaEnviadoView(auth_views.PasswordResetDoneView):
 
 
 class ClienteDeleteView(EliminarLogicoView):
+    """Desactiva un cliente sin borrarlo (eliminación lógica). Ruta: `/panel/clientes/<uuid:pk>/eliminar/`
+    («clientes_eliminar»). Permiso: `clientes.eliminar`.
+    """
     model = Cliente
     permiso_requerido = "clientes.eliminar"
     url_lista = "clientes_lista"
@@ -400,6 +416,7 @@ __all__ = [
     "FacturaCreateView",
     "FacturaAnularView",
     "FacturaEmitirDianView",
+    "FacturaContabilizarView",
     "FacturaCobrarView",
     "PagoResultadoView",
     "PagoSimuladorView",

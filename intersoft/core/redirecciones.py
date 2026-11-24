@@ -1,3 +1,4 @@
+"""Redirecciones seguras: solo se aceptan destinos del propio sitio (evita redirecciones abiertas)."""
 from django.utils.http import url_has_allowed_host_and_scheme
 
 

@@ -14,6 +14,7 @@ MAX_BYTES_CAPTURA = 5 * 1024 * 1024
 
 
 def validar_captura_soporte(archivo):
+    """Valida que la captura sea una imagen permitida de máximo 5 MB."""
     if not archivo:
         return
     ext = os.path.splitext(getattr(archivo, "name", "") or "")[1].lower()
@@ -27,6 +28,7 @@ class ErrorRegistrado(ModeloBase):
     """Error 500 capturado automáticamente y agrupado por huella."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de error registrado: «Nuevo», «Investigando», «Resuelto», «Ignorado»."""
         NUEVO = "nuevo", "Nuevo"
         INVESTIGANDO = "investigando", "Investigando"
         RESUELTO = "resuelto", "Resuelto"
@@ -79,6 +81,7 @@ class ReporteProblema(ModeloBase):
     """Reporte manual enviado desde el panel con contexto automático del navegador y empresa."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de reporte de problema: «Nuevo», «En revisión», «Resuelto»."""
         NUEVO = "nuevo", "Nuevo"
         EN_REVISION = "en_revision", "En revisión"
         RESUELTO = "resuelto", "Resuelto"
@@ -191,6 +194,7 @@ class Idea(ModeloBase):
     """Propuesta de mejora enviada por un negocio y votada por otros usuarios."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de idea: «En evaluación», «Planeada», «Lanzada», «Descartada»."""
         EN_EVALUACION = "en_evaluacion", "En evaluación"
         PLANEADA = "planeada", "Planeada"
         LANZADA = "lanzada", "Lanzada"

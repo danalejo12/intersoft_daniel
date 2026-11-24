@@ -1,6 +1,7 @@
 """Rutas de la consola interna de plataforma (/plataforma/)."""
 from django.urls import path
 
+from datos_personales.views import PlataformaSolicitudDatosDetalleView, PlataformaSolicitudesDatosView
 from pqrs.views import PlataformaPQRSDetalleView, PlataformaPQRSListView
 from soporte.views import (
     PlataformaComentariosListView,
@@ -64,6 +65,8 @@ urlpatterns = [
         PlataformaIdeasListView.as_view(),
         name="plataforma_ideas",
     ),
+    path("datos-personales/", PlataformaSolicitudesDatosView.as_view(), name="plataforma_datos"),
+    path("datos-personales/<uuid:pk>/", PlataformaSolicitudDatosDetalleView.as_view(), name="plataforma_datos_detalle"),
     path("operacion/", views.OperacionPlataformaView.as_view(), name="plataforma_operacion"),
     path("auditoria/", views.AuditoriaPlataformaView.as_view(), name="plataforma_auditoria"),
 ]

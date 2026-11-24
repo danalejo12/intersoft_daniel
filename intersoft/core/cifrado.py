@@ -25,12 +25,14 @@ class SecretoIlegible(Exception):
 
 class FiltroSecretosPago(SafeExceptionReporterFilter):
     # Django no reconoce «CLAVES» como secreto en los reportes de excepción.
+    """Filtro de reportes de error que oculta llaves y secretos de pago en las trazas enviadas a ADMINS."""
     hidden_settings = re.compile(
         SafeExceptionReporterFilter.hidden_settings.pattern + r"|CIFRAD[OA]|CLAVES", re.IGNORECASE,
     )
 
 
 def _claves_configuradas() -> tuple[str, ...]:
+    """Claves de cifrado configuradas en PAGOS_CLAVES_CIFRADO (la primera cifra; todas descifran)."""
     crudo = getattr(settings, "PAGOS_CLAVES_CIFRADO", "") or ""
     return tuple(c.strip() for c in crudo.split(",") if c.strip())
 
@@ -38,6 +40,7 @@ def _claves_configuradas() -> tuple[str, ...]:
 @lru_cache(maxsize=8)
 @sensitive_variables()
 def _cifrador(claves: tuple[str, ...], secret_key: str) -> MultiFernet:
+    """Construye el cifrador; sin claves configuradas deriva una de SECRET_KEY."""
     if not claves:
         derivada = hashlib.sha256(CONTEXTO_DERIVACION + secret_key.encode()).digest()
         claves = (base64.urlsafe_b64encode(derivada).decode(),)
@@ -56,6 +59,7 @@ def cifrador() -> MultiFernet:
 
 @sensitive_variables()
 def cifrar(texto: str) -> str:
+    """Cifra un texto (vacío se queda vacío)."""
     if not texto:
         return ""
     return cifrador().encrypt(texto.encode()).decode()
@@ -63,6 +67,7 @@ def cifrar(texto: str) -> str:
 
 @sensitive_variables()
 def descifrar(token: str) -> str:
+    """Descifra un texto; lanza SecretoIlegible si ninguna clave lo abre."""
     if not token:
         return ""
     try:
@@ -91,6 +96,7 @@ def recifrar(token: str, *, incluir_clave_derivada=False) -> str:
 
 @register(deploy=True)
 def revisar_clave_de_cifrado(app_configs, **kwargs):
+    """Revisión del sistema: avisa si no hay una clave de cifrado propia configurada."""
     if _claves_configuradas():
         return []
     return [Warning(

@@ -8,6 +8,7 @@ from .models import Factura, Pedido, Producto
 
 @dataclass(frozen=True)
 class Paso:
+    """Un paso de la guía de primeros pasos del panel (título, ayuda, enlace y si ya está hecho)."""
     titulo: str
     ayuda: str
     hecho: bool
@@ -20,6 +21,7 @@ def _cobros_activos(empresa) -> bool:
 
 
 def pasos_del_negocio(empresa, usuario) -> list[Paso]:
+    """Pasos de la guía de inicio del negocio y si cada uno ya está hecho."""
     productos = Producto.objects.de_empresa(empresa).filter(activo=True)
     perfil_completo = all([empresa.nit, empresa.direccion, empresa.telefono, empresa.email])
     vendio = (

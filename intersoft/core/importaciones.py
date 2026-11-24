@@ -14,6 +14,7 @@ def _limpiar_texto(valor) -> str:
 
 
 def _parsear_decimal(valor, *, defecto=None, campo: str) -> Decimal:
+    """Convierte una celda en Decimal no negativo; usa el valor por defecto si está vacía."""
     if valor in (None, ""):
         if defecto is not None:
             return defecto
@@ -28,6 +29,7 @@ def _parsear_decimal(valor, *, defecto=None, campo: str) -> Decimal:
 
 
 def _parsear_entero(valor, *, defecto=0, campo: str) -> int:
+    """Convierte una celda en entero no negativo; usa el valor por defecto si está vacía."""
     if valor in (None, ""):
         return defecto
     try:
@@ -77,6 +79,7 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
     validados = []
 
     def _celda(fila, col):
+        """Valor de la columna indicada en la fila (None si la columna no existe)."""
         pos = indice.get(col)
         if pos is None or pos >= len(fila):
             return None

@@ -1,3 +1,4 @@
+"""Modelos de pagos: intentos de cobro con Wompi, configuración de la pasarela de cada negocio y su auditoría."""
 import uuid
 from decimal import Decimal
 
@@ -15,6 +16,7 @@ class Pago(ModeloTenant):
     """Un intento de cobro de una factura a través de la pasarela."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de pago: «Pendiente», «Aprobado», «Rechazado», «Anulado», «Error»."""
         PENDIENTE = "pendiente", "Pendiente"
         APROBADO = "aprobado", "Aprobado"
         RECHAZADO = "rechazado", "Rechazado"
@@ -66,9 +68,11 @@ class ConfiguracionPagos(ModeloTenant):
     y nunca se vuelven a mostrar: solo sus últimos 4 caracteres."""
 
     class Proveedor(models.TextChoices):
+        """Valores posibles de proveedor de configuración de pagos: «Wompi»."""
         WOMPI = "wompi", "Wompi"
 
     class Modo(models.TextChoices):
+        """Valores posibles de modo de configuración de pagos: «Pruebas (sandbox)», «Producción»."""
         PRUEBAS = "pruebas", "Pruebas (sandbox)"
         PRODUCCION = "produccion", "Producción"
 

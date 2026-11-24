@@ -52,6 +52,7 @@ class CobroNoDisponible(Exception):
 
 
 def credenciales_intersoft() -> CredencialesWompi:
+    """Llaves de Wompi de Intersoft: primero las de la consola; si no, las del .env."""
     from django.db import OperationalError, ProgrammingError
     from plataforma.models import ConfiguracionCobroPlataforma
 
@@ -89,6 +90,7 @@ def es_plan_pago(plan: Plan) -> bool:
 
 
 def _normalizar_ciclo(ciclo) -> str:
+    """Normaliza el ciclo (MENSUAL o ANUAL) o lanza ValidationError."""
     ciclo = str(ciclo or Suscripcion.Ciclo.MENSUAL).strip().upper()
     if ciclo not in Suscripcion.Ciclo.values:
         raise ValidationError(f"Ciclo de cobro no válido: '{ciclo}'. Usa MENSUAL o ANUAL.")
@@ -166,6 +168,7 @@ def iniciar_cobro(*, empresa, plan, ciclo, usuario, cupon_codigo: str = "") -> C
 
 
 def url_pago(cobro: CobroSuscripcion, *, redirect_url: str) -> str:
+    """URL del checkout de Wompi para pagar un plan, firmada con el secreto de integridad."""
     llaves = credenciales_intersoft()
     parametros = {
         "public-key": llaves.publica,

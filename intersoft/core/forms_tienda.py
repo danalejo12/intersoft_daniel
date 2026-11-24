@@ -1,3 +1,4 @@
+"""Formularios públicos del marketplace: registro de compradores y negocios, datos de envío y opiniones."""
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
@@ -17,10 +18,20 @@ DEPARTAMENTOS = [
 
 
 class RegistroCompradorForm(UserCreationForm):
+    """Formulario de usuario. Campos: first_name, last_name, email, password1, password2."""
     first_name = forms.CharField(label="Nombres", max_length=150)
     last_name = forms.CharField(label="Apellidos", max_length=150)
     # 150 y no 254: el correo también se guarda como username, que admite 150
     email = forms.EmailField(label="Correo electrónico", max_length=150)
+    # Ley 1581 art. 9: autorización previa, expresa e informada. Nunca viene marcada por defecto.
+    acepta_datos = forms.BooleanField(
+        label="Autorizo el tratamiento de mis datos personales según la Política de tratamiento de datos.",
+        error_messages={"required": "Para crear la cuenta debes autorizar el tratamiento de tus datos."},
+    )
+    mayor_edad = forms.BooleanField(
+        label="Declaro que soy mayor de 18 años.",
+        error_messages={"required": "Solo personas mayores de edad pueden crear una cuenta."},
+    )
 
     class Meta(UserCreationForm.Meta):
         model = Usuario
@@ -39,6 +50,7 @@ class RegistroCompradorForm(UserCreationForm):
 
 
 class RegistroNegocioForm(forms.ModelForm):
+    """Formulario de empresa. Campos: nombre, nit, email, telefono, direccion."""
     class Meta:
         model = Empresa
         # slug, plan y activa los decide el servidor
@@ -71,6 +83,9 @@ def hacer_obligatorios_datos_legales(form):
 
 
 class DatosEnvioForm(forms.Form):
+    """Formulario. Campos: nombre, tipo_documento, numero_documento, email, telefono, departamento, ciudad,
+    direccion….
+    """
     nombre = forms.CharField(
         label="Nombre completo", max_length=150,
         widget=forms.TextInput(attrs={"autocomplete": "name"}),
@@ -113,6 +128,7 @@ class DatosEnvioForm(forms.Form):
 
 
 class ComentarioForm(forms.ModelForm):
+    """Formulario de comentario. Campos: calificacion, texto."""
     class Meta:
         model = Comentario
         fields = ["calificacion", "texto"]

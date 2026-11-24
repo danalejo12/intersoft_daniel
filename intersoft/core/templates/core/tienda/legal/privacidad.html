@@ -1,9 +1,9 @@
 {% extends "core/tienda/base.html" %}
 {% load static %}
-{% block titulo %}Política de privacidad y tratamiento de datos · InterSoft{% endblock %}
+{% block titulo %}Política de tratamiento de datos personales · InterSoft{% endblock %}
 
 {% block contenido %}
-  <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'core/css/legal.css' %}?v=2">
 
   <div class="legal-contenedor">
     <nav class="legal-nav" aria-label="Documentos legales">
@@ -13,28 +13,80 @@
     </nav>
 
     <article class="legal-documento">
-      <h1>Política de Privacidad y Tratamiento de Datos Personales</h1>
-      <p class="nota">Marco normativo: Ley 1581 de 2012 y Decreto 1377 de 2013 (Colombia)</p>
+      <h1>Política de Tratamiento de Datos Personales</h1>
+      <p class="nota">Ley 1581 de 2012, Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) · Versión {{ version_politica }}</p>
 
-      <div class="legal-aviso" role="note">
-        <strong>Documento base:</strong> completar razón social, NIT, dirección física y correo del oficial de datos personales antes de salir a producción.
-      </div>
+      {% if responsable.faltantes %}
+        <div class="legal-aviso legal-aviso-pendiente" role="note">
+          <strong>Pendiente antes de publicar:</strong> faltan datos del responsable en la configuración
+          (DATOS_RESPONSABLE_*: {{ responsable.faltantes|join:", " }}).
+        </div>
+      {% endif %}
 
-      <h2>1. Datos que recolectamos</h2>
+      <h2>1. Responsable del tratamiento</h2>
+      <ul class="legal-datos">
+        <li><strong>Razón social:</strong> {% if responsable.razon_social %}{{ responsable.razon_social }}{% else %}<span class="legal-falta">por configurar</span>{% endif %}</li>
+        <li><strong>NIT:</strong> {% if responsable.nit %}{{ responsable.nit }}{% else %}<span class="legal-falta">por configurar</span>{% endif %}</li>
+        <li><strong>Dirección:</strong> {% if responsable.direccion %}{{ responsable.direccion }}{% else %}<span class="legal-falta">por configurar</span>{% endif %}</li>
+        <li><strong>Correo para asuntos de datos personales:</strong> {% if responsable.correo %}<a href="mailto:{{ responsable.correo }}">{{ responsable.correo }}</a>{% else %}<span class="legal-falta">por configurar</span>{% endif %}</li>
+        <li><strong>Teléfono:</strong> {% if responsable.telefono %}{{ responsable.telefono }}{% else %}<span class="legal-falta">por configurar</span>{% endif %}</li>
+      </ul>
+      <p>Cada negocio que vende en InterSoft es, a su vez, responsable de los datos de sus propios clientes (por ejemplo, los que registra en su punto de venta). Para esos datos, InterSoft actúa como encargado: los guarda y procesa por cuenta del negocio y siguiendo sus instrucciones.</p>
+
+      <h2>2. Datos que tratamos</h2>
       <ul>
-        <li><strong>Compradores:</strong> nombre completo, tipo y número de documento, correo electrónico, teléfono y dirección de entrega necesaria para procesar y despachar pedidos.</li>
-        <li><strong>Comercios (negocios):</strong> razón social, NIT, datos de contacto legal, usuarios autorizados y configuración cifrada de pasarela de pagos.</li>
-        <li><strong>Operación y seguridad:</strong> registros técnicos de auditoría, IP de acceso y reportes de soporte enviados voluntariamente.</li>
+        <li><strong>Cuenta:</strong> nombres, apellidos, correo electrónico, contraseña (guardada solo como huella cifrada, nunca en texto), teléfono y foto si decides agregarlos.</li>
+        <li><strong>Compras:</strong> tipo y número de documento, teléfono, dirección de entrega e historial de pedidos.</li>
+        <li><strong>Negocios:</strong> razón social, NIT, datos de contacto y usuarios del equipo.</li>
+        <li><strong>Seguridad:</strong> dirección IP, navegador, intentos de ingreso y bitácora de acciones.</li>
+      </ul>
+      <p>No pedimos datos sensibles (salud, origen étnico, orientación política o religiosa, biometría). Tampoco guardamos los números completos de tus tarjetas: los pagos los procesa Wompi.</p>
+
+      <h2>3. Finalidades</h2>
+      <p>Usamos tus datos únicamente para:</p>
+      <ol>
+        {% for finalidad in finalidades %}<li>{{ finalidad }}</li>{% endfor %}
+      </ol>
+      <p>No vendemos ni alquilamos tus datos. No te enviamos publicidad sin una autorización aparte.</p>
+
+      <h2>4. Quién más recibe tus datos (encargados)</h2>
+      <ul>
+        {% for nombre, para_que in encargados %}<li><strong>{{ nombre }}:</strong> {{ para_que }}</li>{% endfor %}
+      </ul>
+      <p>Con cada encargado se pacta que use los datos solo para esa finalidad y con medidas de seguridad. Si un proveedor guarda los datos fuera de Colombia, lo hace en países con un nivel adecuado de protección o con las garantías que exige la ley.</p>
+
+      <h2>5. Tus derechos como titular (Ley 1581, art. 8)</h2>
+      <ul>
+        <li>Conocer, actualizar y rectificar tus datos.</li>
+        <li>Pedir prueba de la autorización que nos diste.</li>
+        <li>Saber qué uso le hemos dado a tus datos.</li>
+        <li>Revocar la autorización y pedir que suprimamos tus datos, cuando no exista un deber legal o contractual de conservarlos.</li>
+        <li>Acceder gratis a tus datos.</li>
+        <li>Presentar quejas ante la Superintendencia de Industria y Comercio (SIC) después de haber agotado el trámite con nosotros.</li>
       </ul>
 
-      <h2>2. Finalidad del tratamiento</h2>
-      <p>Utilizamos los datos exclusivamente para gestionar compras en el marketplace, coordinar envíos con el comercio vendedor, emitir soportes de venta, atender solicitudes <a href="{% url 'pqrs_mis_list' %}">PQRS</a>, prevenir fraude y enviar notificaciones transaccionales del servicio.</p>
+      <h2>6. Cómo ejercer tus derechos y plazos</h2>
+      <p>Entra a <a href="{% url 'mis_datos' %}">Mis datos personales</a> (con tu sesión iniciada). Allí puedes descargar todos tus datos, ver la prueba de tu autorización y radicar una solicitud. También puedes escribir al correo del responsable indicado arriba. Cada solicitud recibe un número de radicado y te respondemos por correo.</p>
+      <ul>
+        <li><strong>Consultas</strong> (conocer tus datos o la prueba de autorización): máximo <strong>{{ plazo_consulta }} días hábiles</strong>, prorrogables por 5 días hábiles más si te avisamos el motivo antes de vencer (art. 14).</li>
+        <li><strong>Reclamos</strong> (actualizar, rectificar, revocar o suprimir): máximo <strong>{{ plazo_reclamo }} días hábiles</strong>, prorrogables por 8 días hábiles más si te avisamos el motivo (art. 15).</li>
+      </ul>
+      <p>Área responsable de atender las solicitudes: equipo de atención y protección de datos de InterSoft.</p>
 
-      <h2>3. Seguridad de la información</h2>
-      <p>InterSoft no almacena números completos de tarjetas de crédito/débito; el procesamiento de pagos se delega a pasarelas certificadas (Wompi). Las llaves de integración de cada comercio se almacenan cifradas en base de datos.</p>
+      <h2>7. Supresión de datos y conservación obligatoria</h2>
+      <p>Al suprimir tus datos cerramos tu cuenta y borramos o anonimizamos tu información. Las facturas y los registros contables de tus compras se conservan el tiempo que exige la ley comercial y tributaria (hasta 10 años), sin datos que te identifiquen más allá de lo que la ley obliga. Las copias de seguridad que ya existían se eliminan solas al cumplirse su periodo de conservación.</p>
 
-      <h2>4. Derechos del titular (ARCO)</h2>
-      <p>Como titular de los datos puedes conocer, actualizar, rectificar o solicitar la supresión de tu información personal en cualquier momento radicando una solicitud en nuestro canal de <a href="{% url 'pqrs_mis_list' %}">PQRS</a>.</p>
+      <h2>8. Menores de edad</h2>
+      <p>Las cuentas son solo para mayores de 18 años. No recolectamos a sabiendas datos de niñas, niños o adolescentes.</p>
+
+      <h2>9. Seguridad</h2>
+      <p>Usamos conexión cifrada (HTTPS), contraseñas con huella criptográfica, llaves de pago cifradas, verificación en dos pasos para el personal interno, bloqueo ante intentos repetidos, separación estricta de datos entre negocios, bitácora de auditoría y copias de seguridad.</p>
+
+      <h2>10. Cookies</h2>
+      <p>Solo usamos cookies necesarias para que el sitio funcione: la sesión, la protección contra falsificación de formularios (CSRF), el carrito y tus preferencias de apariencia. No usamos cookies de publicidad ni de rastreo de terceros.</p>
+
+      <h2>11. Vigencia y cambios</h2>
+      <p>Esta política rige desde el 24 de noviembre de 2026 (versión {{ version_politica }}). Las bases de datos se conservan mientras la cuenta esté activa y durante los plazos legales. Si cambiamos las finalidades o algo importante de esta política, te lo avisaremos y te pediremos de nuevo tu autorización al ingresar.</p>
     </article>
   </div>
 {% endblock %}

@@ -17,6 +17,9 @@ def _campo_secreto(etiqueta: str, ayuda: str) -> forms.CharField:
 
 
 class ConfiguracionPagosForm(forms.ModelForm):
+    """Formulario de configuración de pagos. Campos: llave_publica, cobrar_tarifa_al_comprador, tarifa_porcentaje,
+    tarifa_fija, llave_privada, secreto_integridad, secreto_eventos.
+    """
     llave_privada = _campo_secreto(
         "Llave privada", "Opcional. Permite confirmar pagos consultando a Wompi si un aviso se pierde.",
     )
@@ -50,6 +53,7 @@ class ConfiguracionPagosForm(forms.ModelForm):
 
     @sensitive_variables()
     def _validar_secreto(self, nombre: str) -> str:
+        """Valida el formato de un secreto de Wompi según su prefijo (vacío = no cambiarlo)."""
         valor = self.cleaned_data.get(nombre, "")
         if valor and modo_de_llave(nombre, valor) is None:
             raise forms.ValidationError(f"Formato inválido. Debe empezar por {EJEMPLOS[nombre]}")

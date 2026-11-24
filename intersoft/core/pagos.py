@@ -34,7 +34,7 @@ ESTADOS_WOMPI = {
 
 
 class PagoNoPermitido(Exception):
-    pass
+    """No se puede crear o cobrar este pago; el mensaje se le muestra a la persona."""
 
 
 class WompiNoResponde(Exception):
@@ -42,6 +42,7 @@ class WompiNoResponde(Exception):
 
 
 class ResultadoWompi:
+    """Respuesta mínima de Wompi que se usa al conciliar un pago."""
     APROBADO = "aprobado"
     EN_PROCESO = "en_proceso"  # Wompi la tiene en PENDING
     LIBRE = "libre"            # ningún intento sigue vivo en Wompi
@@ -61,18 +62,20 @@ def monto_en_centavos(total):
 @sensitive_variables()
 def calcular_firma_integridad(*, referencia, monto_centavos, moneda, secreto, expiracion=""):
     # Orden de la documentación de Wompi; la expiración solo va cuando se envía en el checkout
+    """Firma de integridad SHA-256 que exige el checkout de Wompi (referencia + monto + moneda + secreto)."""
     cadena = f"{referencia}{monto_centavos}{moneda}{expiracion}{secreto}"
     return hashlib.sha256(cadena.encode("utf-8")).hexdigest()
 
 
 def formato_expiracion(fecha):
     """ISO 8601 en UTC, como el ejemplo de Wompi: 2023-06-09T20:28:50.000Z."""
-    return fecha.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return fecha.astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 @transaction.atomic
 def crear_pago(*, factura):
     # Bloquea la factura para que dos peticiones no la evalúen al mismo tiempo
+    """Crea el intento de pago de una factura vigente y no pagada, con referencia única."""
     factura = Factura.objects.select_for_update().get(pk=factura.pk)
 
     if factura.estado == Factura.Estado.ANULADA:
@@ -135,6 +138,7 @@ def crear_pago_pedido(*, pedido):
 
 
 def _credenciales_nuevas(empresa_id):
+    """Llaves cifradas del negocio para guardarlas en el intento de pago."""
     try:
         return credenciales_negocio(empresa_id).cifradas()
     except PasarelaNoDisponible as error:
@@ -155,6 +159,7 @@ def es_direccion_local(url):
 
 
 def url_checkout(*, pago, redirect_url):
+    """URL del checkout de Wompi para un pago, firmada sin exponer el secreto."""
     try:
         llaves = credenciales_pago(pago)
     except PasarelaNoDisponible as error:
@@ -197,6 +202,7 @@ def calcular_checksum(evento, secreto):
 
 
 def evento_es_valido(evento, secreto):
+    """Verifica la firma de un evento de Wompi (con propiedades obligatorias y comparación segura)."""
     if not secreto:
         return False
     try:
@@ -217,6 +223,7 @@ def evento_es_valido(evento, secreto):
 
 
 def _guardar_resultado(pago, nuevo_estado, transaccion):
+    """Guarda en el pago el estado, la transacción y el medio de pago informados por Wompi."""
     pago.estado = nuevo_estado
     pago.wompi_transaccion_id = str(transaccion.get("id", ""))[:60]
     pago.metodo_pago = str(transaccion.get("payment_method_type") or "")[:30]
@@ -227,6 +234,7 @@ def _guardar_resultado(pago, nuevo_estado, transaccion):
 
 def _aplicar_en_pedido(pago, transaccion):
     # Siempre en este orden: primero el pedido y luego el pago
+    """Aplica una transacción de Wompi a un pedido: valida monto y moneda, y lo marca pagado o a reembolsar."""
     pedido = Pedido.objects.select_for_update().get(pk=pago.pedido_id)
     pago = Pago.objects.select_for_update().get(pk=pago.pk)
 

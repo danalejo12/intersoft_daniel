@@ -1,3 +1,4 @@
+"""Comando que sincroniza el catálogo de permisos y crea los roles base que falten."""
 from django.core.management.base import BaseCommand
 
 from core.models import Empresa
@@ -5,6 +6,9 @@ from core.permisos import crear_roles_base, sincronizar_catalogo_permisos
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py sincronizar_permisos`: Sincroniza el catálogo de permisos y asegura los roles base
+    en todas las empresas. Idempotente.
+    """
     help = "Sincroniza el catálogo de permisos y asegura los roles base en todas las empresas. Idempotente."
 
     def handle(self, *args, **options):

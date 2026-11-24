@@ -5,6 +5,9 @@ from suscripciones.cobros import conciliar_pendientes
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py conciliar_cobros_suscripcion`: Concilia con Wompi los cobros de planes pendientes.
+    Es seguro ejecutarlo varias veces.
+    """
     help = "Concilia con Wompi los cobros de planes pendientes. Es seguro ejecutarlo varias veces."
 
     def handle(self, *args, **options):

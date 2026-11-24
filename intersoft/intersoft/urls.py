@@ -31,5 +31,6 @@ urlpatterns = [
     path("pqrs/", include("pqrs.urls")),
     path("soporte/", include("soporte.urls")),
     path("api/", include("suscripciones.urls")),
+    path("", include("datos_personales.urls")),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # static() solo actúa con DEBUG=True

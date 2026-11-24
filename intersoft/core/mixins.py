@@ -1,3 +1,4 @@
+"""Mixins de acceso del panel: sesión iniciada, empresa activa y permiso por rol."""
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect

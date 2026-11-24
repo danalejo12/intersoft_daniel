@@ -1,0 +1,62 @@
+{% extends "plataforma/base.html" %}
+{% block titulo %}Datos personales · Consola de Plataforma · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Solicitudes sobre datos personales</h1>
+      <p class="nota">Ley 1581 de 2012: consultas en máximo 10 días hábiles y reclamos en máximo 15. Las más urgentes aparecen primero.</p>
+    </div>
+  </div>
+
+  {% if responsable.faltantes %}
+    <article class="tarjeta" role="alert" style="margin-bottom: 16px; border-color: rgba(239, 68, 68, .55);">
+      <strong>La política de privacidad está incompleta.</strong>
+      Configura en el .env: {{ responsable.faltantes|join:", " }} (variables DATOS_RESPONSABLE_*).
+    </article>
+  {% endif %}
+
+  <div class="tarjetas-resumen" style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+    <article class="tarjeta"><span class="nota">Pendientes</span><h2 style="margin:4px 0 0;">{{ pendientes }}</h2></article>
+    <article class="tarjeta"><span class="nota">Vencidas</span><h2 style="margin:4px 0 0;">{{ vencidas }}</h2></article>
+  </div>
+
+  <article class="tarjeta">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-bottom:16px;">
+      <div class="campo" style="margin:0;">
+        <label for="f-estado">Estado</label>
+        <select id="f-estado" name="estado">
+          <option value="">Todos</option>
+          {% for valor, etiqueta in estados %}
+            <option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="boton">Filtrar</button>
+    </form>
+
+    <div class="tabla-desplazable"><table class="tabla">
+      <thead>
+        <tr><th>Radicado</th><th>Solicitud</th><th>Titular</th><th>Estado</th><th>Plazo</th><th>Límite</th></tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes %}
+          <tr>
+            <td><a href="{% url 'plataforma_datos_detalle' s.pk %}"><code>{{ s.radicado }}</code></a></td>
+            <td><a href="{% url 'plataforma_datos_detalle' s.pk %}">{{ s.get_tipo_display }}</a></td>
+            <td>{{ s.titular.email }}</td>
+            <td>{{ s.get_estado_display }}</td>
+            <td>
+              {% if s.vencida %}<span class="badge peligro">Vencida</span>
+              {% elif s.estado == "radicada" or s.estado == "en_tramite" %}<span class="badge exito">A tiempo</span>
+              {% else %}<span class="badge">Cerrada</span>{% endif %}
+            </td>
+            <td>{{ s.fecha_limite|date:"d/m/Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No hay solicitudes sobre datos personales.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </article>
+{% endblock %}

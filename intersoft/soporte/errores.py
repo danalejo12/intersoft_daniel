@@ -19,6 +19,7 @@ FILTRO_SECRETOS = FiltroSecretosPago()
 
 
 def _es_trama_propia(filename: str) -> bool:
+    """Indica si una trama de la traza es del proyecto (no de librerías)."""
     if not filename:
         return False
     ruta = os.path.abspath(filename)
@@ -27,6 +28,7 @@ def _es_trama_propia(filename: str) -> bool:
 
 
 def _ubicacion_ultima_trama(exc_tb) -> tuple[str, int]:
+    """Archivo y línea de la última trama propia del error (o de la última trama si no hay propias)."""
     tramas = traceback.extract_tb(exc_tb)
     if not tramas:
         return "", 0
@@ -67,11 +69,13 @@ def _formatear_traza_sanitizada(request, exc_type, exc_value, exc_tb) -> str:
 
 
 def _calcular_huella(tipo_excepcion: str, archivo: str, linea: int) -> str:
+    """Huella del error (tipo + archivo + línea) para agrupar ocurrencias iguales."""
     clave = f"{tipo_excepcion}|{archivo}|{linea}"
     return hashlib.sha256(clave.encode("utf-8")).hexdigest()
 
 
 def _notificar_admins_huella_nueva(error_obj: ErrorRegistrado) -> None:
+    """Avisa por correo a ADMINS la primera vez que aparece un error; nunca lanza excepciones."""
     try:
         if not getattr(settings, "ADMINS", None):
             return

@@ -148,6 +148,7 @@ class CheckoutTests(Base):
         self.client.post(reverse("registro") + f"?next={url}", {
             "first_name": "Nueva", "last_name": "Persona", "email": "n@correo.co",
             "password1": "ClaveSegura#2026", "password2": "ClaveSegura#2026",
+            "acepta_datos": "on", "mayor_edad": "on",
         })
         self.assertEqual(self.cantidad_en_carrito(), {str(self.producto.pk): 1})
 

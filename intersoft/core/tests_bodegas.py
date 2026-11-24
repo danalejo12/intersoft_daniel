@@ -1,6 +1,5 @@
 """Bodegas: stock por bodega, traslados, POS por bodega, marketplace desde la bodega en línea y reglas."""
 import json
-from decimal import Decimal
 from unittest import mock
 
 from django.db.models import Sum
@@ -11,7 +10,7 @@ from suscripciones.services import cambiar_plan
 
 from . import bodegas, caja
 from .compras import crear_pedido, vencer_pedido
-from .models import Bodega, Existencia, Factura, MovimientoInventario, Pedido, Producto
+from .models import Bodega, Existencia, MovimientoInventario, Pedido, Producto
 from .services import StockInsuficiente, anular_factura, crear_factura, registrar_movimiento
 from .tests_compra import DATOS_ENVIO, crear_negocio, crear_producto, crear_usuario
 from .testing_pagos import conectar_pruebas

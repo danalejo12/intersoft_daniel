@@ -32,6 +32,7 @@ class RolPlataforma(ModeloBase):
     """Rol interno asignado a miembros del equipo dueño de Intersoft (is_staff)."""
 
     class Rol(models.TextChoices):
+        """Valores posibles de rol de rol de plataforma: «Dueño», «Finanzas», «Soporte», «Desarrollador»."""
         DUENO = "dueno", "Dueño"
         FINANZAS = "finanzas", "Finanzas"
         SOPORTE = "soporte", "Soporte"
@@ -69,6 +70,7 @@ class RolPlataforma(ModeloBase):
         return set(PERMISOS_POR_ROL.get(self.rol, set())) if self.activo else set()
 
     def tiene_permiso(self, permiso: str) -> bool:
+        """Indica si el rol (activo) puede entrar a la sección indicada."""
         if not self.activo:
             return False
         if not permiso:
@@ -114,6 +116,7 @@ class ConfiguracionCobroPlataforma(ModeloBase):
     """Configuración singleton con las llaves cifradas de Wompi de Intersoft para cobrar planes."""
 
     class Modo(models.TextChoices):
+        """Valores posibles de modo de configuración de cobro de plataforma: «Pruebas (sandbox)», «Producción»."""
         PRUEBAS = "pruebas", "Pruebas (sandbox)"
         PRODUCCION = "produccion", "Producción"
 
@@ -151,6 +154,7 @@ class ConfiguracionCobroPlataforma(ModeloBase):
 
     @classmethod
     def obtener(cls):
+        """Configuración única de cobros de Intersoft (se crea si no existe)."""
         obj, _ = cls.objects.get_or_create(clave_unica=1)
         return obj
 
@@ -180,6 +184,7 @@ class AnuncioGlobal(ModeloBase):
     """Anuncio global publicado desde /plataforma/ visible como aviso en el /panel/ de los negocios."""
 
     class Tipo(models.TextChoices):
+        """Valores posibles de tipo de anuncio global: «Información», «Advertencia», «Mantenimiento»."""
         INFO = "info", "Información"
         ADVERTENCIA = "advertencia", "Advertencia"
         MANTENIMIENTO = "mantenimiento", "Mantenimiento"
@@ -209,6 +214,7 @@ class AnuncioGlobal(ModeloBase):
 
     @classmethod
     def vigentes(cls, ahora=None) -> list:
+        """Anuncios activos y en su período de vigencia (máximo 5)."""
         ahora = ahora or timezone.now()
         try:
             return list(

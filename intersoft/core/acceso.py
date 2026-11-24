@@ -1,3 +1,4 @@
+"""Datos del intento de ingreso que usa django-axes para bloquear por correo + IP."""
 def correo_del_intento(request, credentials):
     """Correo con el que se intenta ingresar, en minúsculas, para django-axes.
 

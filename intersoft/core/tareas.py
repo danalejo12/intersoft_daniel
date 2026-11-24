@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Tarea:
+    """Una tarea periódica: nombre, comando que ejecuta, cada cuánto y descripción."""
     nombre: str
     comando: str
     cada: timedelta

@@ -186,6 +186,9 @@ def vencer_pedido(pedido_id):
 
 @transaction.atomic
 def renovar_reserva(pedido):
+    """Amplía el plazo de un pedido pendiente o vencido (volviendo a reservar stock si hace falta),
+    hasta PEDIDO_MAX_RENOVACIONES veces.
+    """
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
     if not pedido.pago_directo:
         raise OperacionNoPermitida("Este pedido usa el cobro anterior. Crea un pedido nuevo.")

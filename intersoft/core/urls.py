@@ -1,3 +1,4 @@
+"""Rutas de la app core: marketplace público, compra, cuentas y el panel de cada negocio (/panel/)."""
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import TemplateView
@@ -140,7 +141,7 @@ urlpatterns = [
 
     # Páginas legales públicas
     path("terminos/", TemplateView.as_view(template_name="core/tienda/legal/terminos.html"), name="legal_terminos"),
-    path("privacidad/", TemplateView.as_view(template_name="core/tienda/legal/privacidad.html"), name="legal_privacidad"),
+    # /privacidad/ la sirve datos_personales (la política necesita los datos del responsable)
     path("devoluciones/", TemplateView.as_view(template_name="core/tienda/legal/devoluciones.html"), name="legal_devoluciones"),
 
     # Cuentas

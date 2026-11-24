@@ -5,6 +5,9 @@ from suscripciones.services import verificar_vencimientos
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py verificar_suscripciones`: Revisa todas las suscripciones TRIAL y ACTIVAS cuya
+    fecha vence_en ya expiró y las pasa automáticamente al plan 'gratis' sin bloquear la cuenta. Es idempotente.
+    """
     help = (
         "Revisa todas las suscripciones TRIAL y ACTIVAS cuya fecha vence_en ya expiró "
         "y las pasa automáticamente al plan 'gratis' sin bloquear la cuenta. Es idempotente."

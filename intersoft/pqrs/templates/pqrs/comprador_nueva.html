@@ -22,6 +22,11 @@
           {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
         </div>
       {% endfor %}
+      <p class="aviso-privacidad">
+        Usaremos los datos de esta solicitud solo para atenderla y responderte. ¿Tu solicitud es sobre tus datos personales
+        (conocerlos, corregirlos o eliminarlos)? Hazla en <a href="{% url 'mis_datos' %}">Mis datos personales</a>, donde tiene los plazos de la Ley 1581.
+        Más información en la <a href="{% url 'legal_privacidad' %}" target="_blank" rel="noopener">política de tratamiento de datos</a>.
+      </p>
       <div class="acciones">
         <button type="submit" class="boton">Radicar PQRS</button>
         <a href="{% url 'pqrs_mis_list' %}" class="boton secundario">Cancelar</a>

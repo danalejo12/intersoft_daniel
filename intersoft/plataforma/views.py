@@ -145,6 +145,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
 
     def _cobros_filtrados(self, request):
+        """Cobros filtrados por estado, plan y negocio o referencia, y los filtros aplicados."""
         estado = (request.GET.get("estado") or "").strip()
         plan_codigo = (request.GET.get("plan") or "").strip()
         negocio = (request.GET.get("negocio") or "").strip()
@@ -171,6 +172,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         cortesia_form=None,
         cupos_form=None,
     ):
+        """Contexto de la página Planes y cobros: planes, cobros, fundadores, cupones e interruptores."""
         planes = Plan.objects.all().order_by("orden", "precio_mensual")
         cobros_filtrados, filtros = self._cobros_filtrados(request)
         cobros_revision = CobroSuscripcion.objects.select_related("empresa", "plan").filter(
@@ -252,6 +254,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return render(request, self.template_name, self._contexto(request, config, form))
 
     def _verificar_llaves(self, request, config):
+        """Verifica en Wompi las llaves de Intersoft y deja el resultado en la auditoría."""
         if not config.llave_publica:
             messages.error(request, "Guarda primero una llave pública antes de verificar.")
             return redirect("plataforma_planes_cobros")
@@ -295,6 +298,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return redirect("plataforma_planes_cobros")
 
     def _actualizar_cupos_fundador(self, request, config):
+        """Actualiza el cupo de fundadores y lo registra en la auditoría."""
         cupos_form = CuposFundadorForm(request.POST)
         if cupos_form.is_valid():
             nuevo_cupo = cupos_form.cleaned_data["cupos_fundador"]
@@ -321,6 +325,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
 
     def _otorgar_cortesia(self, request, config):
+        """Otorga días gratis o un plan de cortesía a un negocio y lo registra en la auditoría."""
         cortesia_form = CortesiaPlataformaForm(request.POST)
         if cortesia_form.is_valid():
             empresa = cortesia_form.cleaned_data["empresa"]
@@ -360,6 +365,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         )
 
     def _reconsultar_cobro(self, request):
+        """Vuelve a consultar en Wompi un cobro de plan y registra el cambio de estado."""
         cobro = get_object_or_404(CobroSuscripcion, pk=request.POST.get("cobro_id"))
         estado_anterior = cobro.estado
         cobro_actualizado = cobros_suscripcion.sincronizar_cobro(cobro, forzar=True)
@@ -382,6 +388,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return redirect("plataforma_planes_cobros")
 
     def _aplicar_cobro_manual(self, request):
+        """Activa manualmente el plan de un cobro (con motivo obligatorio) y lo registra en la auditoría."""
         cobro = get_object_or_404(
             CobroSuscripcion.objects.select_related("empresa", "plan"),
             pk=request.POST.get("cobro_id"),
@@ -435,6 +442,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return redirect("plataforma_planes_cobros")
 
     def _crear_cupon(self, request, config):
+        """Crea un cupón de descuento para planes."""
         cupon_form = CuponPlanForm(request.POST)
         if cupon_form.is_valid():
             cupon = cupon_form.save()
@@ -453,6 +461,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return render(request, self.template_name, ctx)
 
     def _toggle_cupon(self, request):
+        """Activa o desactiva un cupón."""
         cupon = get_object_or_404(CuponPlan, pk=request.POST.get("cupon_id"))
         cupon.activo = not cupon.activo
         cupon.save(update_fields=["activo", "actualizado_en"])
@@ -468,6 +477,7 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
         return redirect("plataforma_planes_cobros")
 
     def _guardar_feature_flag(self, request, config):
+        """Crea o actualiza un interruptor de función para un negocio."""
         ff_form = FeatureFlagForm(request.POST)
         if ff_form.is_valid():
             flag, _ = FeatureFlag.objects.update_or_create(
@@ -530,6 +540,7 @@ class PlataformaNegociosView(PlataformaMixin, View):
     template_name = "plataforma/negocios.html"
 
     def _contexto(self, request, anuncio_form=None):
+        """Contexto de la página Negocios: búsqueda, directorio y anuncios globales."""
         q = (request.GET.get("q") or "").strip()
         empresas = Empresa.objects.select_related("suscripcion__plan").order_by("nombre")
         if q:

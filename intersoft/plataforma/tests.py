@@ -9,7 +9,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import EjecucionTarea, Empresa, Membresia, MovimientoInventario, Rol, Usuario
+from core.models import EjecucionTarea, Empresa, Membresia, Rol, Usuario
 from core.pasarela_negocio import ResultadoVerificacion
 from core.tareas import ejecutar_pendientes
 from suscripciones import cobros as cobros_suscripcion
@@ -27,7 +27,7 @@ from suscripciones.services import cambiar_plan, crear_suscripcion_inicial, cupo
 
 from . import auditoria
 from .metricas import calcular_metricas_saas
-from .models import AuditoriaPlataforma, ConfiguracionCobroPlataforma, FeatureFlag, RolPlataforma
+from .models import AuditoriaPlataforma, ConfiguracionCobroPlataforma, RolPlataforma
 from .totp import codigo_totp_actual
 
 

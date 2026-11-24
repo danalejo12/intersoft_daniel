@@ -13,6 +13,9 @@ from .services import StockInsuficiente
 
 
 class BodegaListView(PermisoRequeridoMixin, View):
+    """Lista las bodegas del negocio con sus unidades y productos con stock. Ruta: `/panel/bodegas/`
+    («bodegas_lista»). Permiso: `inventario.ver`.
+    """
     permiso_requerido = "inventario.ver"
 
     def get(self, request):
@@ -33,6 +36,10 @@ class BodegaListView(PermisoRequeridoMixin, View):
 
 
 class BodegaFormView(PermisoRequeridoMixin, View):
+    """Crea o edita una bodega y sus marcas (Principal, Vende en línea); exige el plan multisede para la segunda.
+    Ruta: `/panel/bodegas/nueva/` («bodegas_crear»), `/panel/bodegas/<uuid:pk>/editar/` («bodegas_editar»).
+    Permiso: `inventario.editar`.
+    """
     permiso_requerido = "inventario.editar"
 
     def objeto(self, pk):
@@ -61,6 +68,9 @@ class BodegaFormView(PermisoRequeridoMixin, View):
 
 
 class BodegaDesactivarView(PermisoRequeridoMixin, View):
+    """Desactiva una bodega sin mercancía ni caja abierta. Ruta: `/panel/bodegas/<uuid:pk>/desactivar/`
+    («bodegas_desactivar»). Permiso: `inventario.editar`.
+    """
     permiso_requerido = "inventario.editar"
     http_method_names = ["post"]
 
@@ -83,6 +93,7 @@ class TrasladoView(PermisoRequeridoMixin, View):
         return get_object_or_404(Producto, pk=pk, empresa=self.request.empresa, activo=True)
 
     def mostrar(self, producto, form):
+        """Muestra el formulario de traslado con las existencias del producto en cada bodega activa."""
         activas = Bodega.objects.de_empresa(self.request.empresa).filter(activa=True)
         return render(self.request, "core/bodegas/traslado.html", {
             "producto": producto, "form": form,
@@ -165,6 +176,7 @@ class ConteoFisicoView(PermisoRequeridoMixin, View):
     template_name = "core/bodegas/conteo.html"
 
     def _contexto(self, request, bodega):
+        """Productos activos con el stock que el sistema tiene en la bodega (para el conteo físico)."""
         productos = list(Producto.objects.filter(empresa=request.empresa, activo=True).order_by("nombre"))
         existencias = bodegas.existencias_por_producto(bodega, productos)
         filas = [{"producto": p, "stock_sistema": existencias.get(p.pk, 0)} for p in productos]

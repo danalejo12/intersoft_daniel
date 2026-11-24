@@ -34,6 +34,9 @@ class Pedido(ModeloTenant):
     """Lo que compró una persona en un negocio. Guarda sus líneas y su total: la factura nace al pagar."""
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de pedido: «Pendiente de pago», «Pagado», «Vencido», «Cancelado», «Requiere
+        reembolso», «Reembolsado».
+        """
         PENDIENTE = "pendiente", "Pendiente de pago"
         PAGADO = "pagado", "Pagado"
         VENCIDO = "vencido", "Vencido"
@@ -42,12 +45,16 @@ class Pedido(ModeloTenant):
         REEMBOLSADO = "reembolsado", "Reembolsado"
 
     class EstadoEnvio(models.TextChoices):
+        """Valores posibles de estadoenvio de pedido: «Pendiente», «Preparando», «Enviado», «Entregado»."""
         PENDIENTE = "pendiente", "Pendiente"
         PREPARANDO = "preparando", "Preparando"
         ENVIADO = "enviado", "Enviado"
         ENTREGADO = "entregado", "Entregado"
 
     class EstadoDispersion(models.TextChoices):
+        """Valores posibles de estadodispersion de pedido: «Pendiente de dispersión», «Programada», «Liquidada al
+        comercio».
+        """
         PENDIENTE = "pendiente", "Pendiente de dispersión"
         PROGRAMADA = "programada", "Programada"
         LIQUIDADA = "liquidada", "Liquidada al comercio"
@@ -140,6 +147,7 @@ class Pedido(ModeloTenant):
 
     @property
     def necesita_renovar(self):
+        """Indica si a la reserva le queda menos del mínimo de minutos para pagar y conviene renovarla."""
         minimo = timedelta(minutes=settings.PEDIDO_MINUTOS_MINIMOS_PAGO)
         return self.estado == self.Estado.PENDIENTE and self.expira_en - timezone.now() < minimo
 
@@ -156,11 +164,13 @@ class Pedido(ModeloTenant):
 
     @property
     def estado_etiqueta(self):
+        """Texto del estado que ve el comprador (incluye el del último intento de pago)."""
         estado = self.estado_compra
         return self.ETIQUETAS_DEL_INTENTO.get(estado) or self.Estado(estado).label
 
 
 class DetallePedido(ModeloTenant):
+    """Línea de un pedido del marketplace con el precio y el IVA congelados al confirmar."""
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="lineas")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT, related_name="lineas_pedido")
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -180,6 +190,7 @@ class DetallePedido(ModeloTenant):
 
 
 class Comentario(ModeloTenant):
+    """Opinión de un comprador sobre un producto (una por persona; marca de compra verificada)."""
     producto = models.ForeignKey("Producto", on_delete=models.CASCADE, related_name="comentarios")
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comentarios")
     calificacion = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])

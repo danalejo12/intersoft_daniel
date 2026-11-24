@@ -681,8 +681,6 @@ class IntegracionesFase10Tests(TestCase):
             calcular_aportes_nomina_colombia,
             contabilizar_compra,
             contabilizar_factura,
-            contabilizar_movimiento_tesoreria,
-            contabilizar_nomina,
         )
         from .erp_services import aprobar_nomina, recibir_compra, registrar_tesoreria
         from .models import Compra, CuentaTesoreria, LineaCompra, Proveedor
@@ -776,7 +774,7 @@ class IntegracionesFase10Tests(TestCase):
             desde=hoy,
             hasta=hoy,
             base=Decimal("2000000.00"),
-            adicionales=Decimal("162000.00"),
+            auxilio_transporte=Decimal("162000.00"),   # no salarial: no aporta a salud ni pensión
             deducciones=Decimal("0.00"),
             neto=Decimal("2162000.00"),
         )

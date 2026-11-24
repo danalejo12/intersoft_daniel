@@ -8,10 +8,11 @@ from . import models
 
 
 class FormularioERP(forms.ModelForm):
+    """Formulario."""
     def __init__(self, *args, empresa, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance.empresa = empresa
-        for nombre, campo in self.fields.items():
+        for campo in self.fields.values():
             if isinstance(campo, forms.ModelChoiceField):
                 campo.queryset = campo.queryset.filter(empresa=empresa)
                 if hasattr(campo.queryset.model, "activo"):
@@ -31,6 +32,7 @@ def formulario(modelo, campos):
 
 
 class MovimientoForm(forms.Form):
+    """Formulario. Campos: cuenta, tipo, fecha, concepto, monto, cartera, referencia, operacion."""
     cuenta = forms.ModelChoiceField(queryset=models.CuentaTesoreria.objects.none())
     tipo = forms.ChoiceField(choices=[("ingreso", "Ingreso"), ("egreso", "Egreso")])
     fecha = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
@@ -48,6 +50,7 @@ class MovimientoForm(forms.Form):
 
 
 class CarteraFacturaForm(forms.Form):
+    """Formulario. Campos: factura, vencimiento."""
     factura = forms.ModelChoiceField(queryset=models.Factura.objects.none())
     vencimiento = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
 

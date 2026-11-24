@@ -17,6 +17,7 @@ def importe(**kwargs):
 
 
 class RegistroERP(ModeloTenant):
+    """Base de los documentos del ERP: pertenecen a una empresa y se ordenan del más reciente al más antiguo."""
     class Meta:
         abstract = True
         ordering = ["-creado_en"]
@@ -31,6 +32,7 @@ class RegistroERP(ModeloTenant):
 
 
 class Proveedor(RegistroERP):
+    """Proveedor al que el negocio le compra mercancía."""
     nombre = models.CharField(max_length=150)
     documento = models.CharField(max_length=30)
     email = models.EmailField(blank=True)
@@ -47,6 +49,7 @@ class Proveedor(RegistroERP):
 
 
 class Compra(RegistroERP):
+    """Compra a un proveedor; al recibirla entra la mercancía al kardex y se genera la cuenta por pagar."""
     proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
     referencia = models.CharField("Factura del proveedor", max_length=60)
     bodega = models.ForeignKey(
@@ -73,6 +76,7 @@ class Compra(RegistroERP):
 
 
 class LineaCompra(RegistroERP):
+    """Línea de una compra: producto, cantidad, costo e IVA."""
     compra = models.ForeignKey(Compra, on_delete=models.PROTECT, related_name="lineas")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -84,6 +88,7 @@ class LineaCompra(RegistroERP):
 
 
 class CuentaTesoreria(RegistroERP):
+    """Caja o cuenta bancaria del negocio donde entra y sale dinero (tesorería)."""
     nombre = models.CharField(max_length=100)
     tipo = models.CharField(max_length=10, choices=[("caja", "Caja"), ("banco", "Banco")])
     activa = models.BooleanField(default=True)
@@ -97,6 +102,7 @@ class CuentaTesoreria(RegistroERP):
 
 
 class CuentaCartera(RegistroERP):
+    """Cuenta por cobrar o por pagar (cartera) con su total, abonos y vencimiento."""
     tipo = models.CharField(max_length=10, choices=[("cobrar", "Por cobrar"), ("pagar", "Por pagar")])
     tercero = models.CharField(max_length=150)
     concepto = models.CharField(max_length=200)
@@ -116,6 +122,7 @@ class CuentaCartera(RegistroERP):
 
     @property
     def estado(self):
+        """Estado de la cuenta de cartera: Pagada, Vencida o Pendiente."""
         if not self.saldo:
             return "Pagada"
         return "Vencida" if self.vencimiento < timezone.localdate() else "Pendiente"
@@ -125,6 +132,7 @@ class CuentaCartera(RegistroERP):
 
 
 class MovimientoTesoreria(RegistroERP):
+    """Ingreso o egreso de dinero en una cuenta de tesorería; idempotente por su clave de operación."""
     cuenta = models.ForeignKey(CuentaTesoreria, on_delete=models.PROTECT, related_name="movimientos")
     tipo = models.CharField(max_length=10, choices=[("ingreso", "Ingreso"), ("egreso", "Egreso")])
     fecha = models.DateField(default=timezone.localdate)
@@ -141,6 +149,7 @@ class MovimientoTesoreria(RegistroERP):
 
 
 class CuentaContable(RegistroERP):
+    """Cuenta del plan de cuentas contable (PUC) del negocio."""
     codigo = models.CharField(max_length=20)
     nombre = models.CharField(max_length=100)
     naturaleza = models.CharField(max_length=10, choices=[("debito", "Débito"), ("credito", "Crédito")])
@@ -154,6 +163,7 @@ class CuentaContable(RegistroERP):
 
 
 class AsientoContable(RegistroERP):
+    """Comprobante contable; al confirmarlo sus débitos y créditos deben cuadrar (partida doble)."""
     fecha = models.DateField(default=timezone.localdate)
     concepto = models.CharField(max_length=200)
     referencia = models.CharField(max_length=100, blank=True)
@@ -165,6 +175,7 @@ class AsientoContable(RegistroERP):
 
 
 class LineaAsiento(RegistroERP):
+    """Línea de un comprobante contable: cuenta y valor débito o crédito (solo uno de los dos)."""
     asiento = models.ForeignKey(AsientoContable, on_delete=models.PROTECT, related_name="lineas")
     cuenta = models.ForeignKey(CuentaContable, on_delete=models.PROTECT)
     debito = importe()
@@ -182,6 +193,7 @@ class LineaAsiento(RegistroERP):
 
 
 class Empleado(RegistroERP):
+    """Empleado o profesional del negocio (nómina y agenda de servicios)."""
     nombre = models.CharField(max_length=150)
     documento = models.CharField(max_length=30)
     cargo = models.CharField(max_length=100)
@@ -198,11 +210,17 @@ class Empleado(RegistroERP):
 
 
 class LiquidacionNomina(RegistroERP):
+    """Liquidación de nómina de un período: base, adicionales salariales, auxilio de transporte y deducciones."""
     empleado = models.ForeignKey(Empleado, on_delete=models.PROTECT)
     desde = models.DateField()
     hasta = models.DateField()
     base = importe()
-    adicionales = importe()
+    # Salariales: horas extra, recargos, comisiones, bonificaciones. Aportan a salud y pensión (IBC).
+    adicionales = importe(verbose_name="adicionales salariales",
+                          help_text="Horas extra, recargos, comisiones o bonificaciones. Aportan a salud y pensión.")
+    # No salarial por ley: se paga, pero no hace parte de la base de aportes (QA-03).
+    auxilio_transporte = importe(verbose_name="auxilio de transporte", blank=True,
+                                 help_text="Opcional. Se paga al empleado pero no aporta a salud ni pensión.")
     deducciones = importe()
     neto = importe(editable=False)
     observaciones = models.TextField(blank=True)
@@ -218,16 +236,21 @@ class LiquidacionNomina(RegistroERP):
             raise ValidationError({"hasta": "La fecha final del período no puede ser anterior a la inicial."})
         base = self.base if self.base is not None else Decimal("0")
         adicionales = self.adicionales if self.adicionales is not None else Decimal("0")
+        if self.auxilio_transporte is None:          # campo opcional: vacío equivale a cero
+            self.auxilio_transporte = Decimal("0")
+        auxilio = self.auxilio_transporte
         deducciones = self.deducciones if self.deducciones is not None else Decimal("0")
-        self.neto = base + adicionales - deducciones
+        self.neto = base + adicionales + auxilio - deducciones
         if self.neto <= 0:
-            raise ValidationError("El neto a pagar (base + adicionales − deducciones) debe ser mayor que cero.")
+            raise ValidationError(
+                "El neto a pagar (base + adicionales + auxilio de transporte − deducciones) debe ser mayor que cero.")
 
     def __str__(self):
         return f"{self.empleado} · {self.desde} / {self.hasta}"
 
 
 class OrdenProduccion(RegistroERP):
+    """Orden de producción: consume insumos del kardex y produce un producto terminado."""
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     fecha = models.DateField(default=timezone.localdate)
@@ -242,6 +265,7 @@ class OrdenProduccion(RegistroERP):
 
 
 class InsumoProduccion(RegistroERP):
+    """Insumo (producto y cantidad) que consume una orden de producción."""
     orden = models.ForeignKey(OrdenProduccion, on_delete=models.PROTECT, related_name="insumos")
     producto = models.ForeignKey("Producto", on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField("Cantidad total a consumir", validators=[MinValueValidator(1)])
@@ -256,6 +280,7 @@ class InsumoProduccion(RegistroERP):
 
 
 class Servicio(RegistroERP):
+    """Servicio que ofrece el negocio, con precio, IVA y duración (para la agenda)."""
     nombre = models.CharField(max_length=150)
     precio = importe()
     iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -270,6 +295,7 @@ class Servicio(RegistroERP):
 
 
 class Cita(RegistroERP):
+    """Cita de un cliente con un profesional; al atenderla se genera la cuenta por cobrar."""
     cliente = models.ForeignKey("Cliente", on_delete=models.PROTECT)
     empleado = models.ForeignKey(Empleado, on_delete=models.PROTECT)
     servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT)

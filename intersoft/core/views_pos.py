@@ -18,7 +18,7 @@ from django.views.generic import DetailView, ListView
 from . import caja, erp_services
 from .mixins import PermisoRequeridoMixin, TenantMixin
 from . import bodegas
-from .models import Bodega, Cliente, CuentaTesoreria, DetalleFactura, Factura, MovimientoTesoreria, PagoCaja, Producto, TurnoCaja
+from .models import Bodega, Cliente, CuentaTesoreria, DetalleFactura, Factura, MovimientoTesoreria, Producto, TurnoCaja
 
 MAXIMO_RESULTADOS = 20
 PRODUCTOS_FRECUENTES = 12
@@ -82,6 +82,7 @@ def productos_frecuentes(empresa):
 
 
 class PosMixin(PermisoRequeridoMixin):
+    """Acceso al punto de venta: exige `ventas.crear` y que el plan incluya POS."""
     permiso_requerido = "ventas.crear"
 
     def dispatch(self, request, *args, **kwargs):
@@ -112,6 +113,9 @@ class PosMixin(PermisoRequeridoMixin):
 
 
 class PosView(PosMixin, View):
+    """Pantalla del punto de venta; si no hay caja abierta, muestra la apertura de turno. Ruta: `/panel/pos/`
+    («pos»). Permiso: `ventas.crear`.
+    """
     def get(self, request):
         turno = self.turno()
         if turno is None:
@@ -129,6 +133,9 @@ class PosView(PosMixin, View):
 
 
 class AbrirTurnoView(PosMixin, View):
+    """Abre la caja del cajero con su base en efectivo y la bodega desde la que venderá. Ruta: `/panel/pos/abrir/`
+    («pos_abrir»). Permiso: `ventas.crear`.
+    """
     http_method_names = ["post"]
 
     def post(self, request):
@@ -147,6 +154,9 @@ class AbrirTurnoView(PosMixin, View):
 
 
 class BuscarProductosView(PosMixin, View):
+    """Busca productos para el POS por nombre o código (lector de código de barras) y devuelve JSON. Ruta:
+    `/panel/pos/productos/` («pos_productos»). Permiso: `ventas.crear`.
+    """
     def get(self, request):
         q = request.GET.get("q", "").strip()
         if not q:
@@ -167,6 +177,9 @@ class BuscarProductosView(PosMixin, View):
 
 
 class BuscarClientesView(PosMixin, View):
+    """Busca clientes para la venta POS y devuelve JSON. Ruta: `/panel/pos/clientes/` («pos_clientes»). Permiso:
+    `ventas.crear`.
+    """
     def get(self, request):
         q = request.GET.get("q", "").strip()
         clientes = []
@@ -183,6 +196,9 @@ class BuscarClientesView(PosMixin, View):
 
 
 class VenderView(PosMixin, View):
+    """Registra una venta POS (JSON): valida cantidades, cobra con pagos mixtos y es idempotente por operación.
+    Ruta: `/panel/pos/vender/` («pos_vender»). Permiso: `ventas.crear`.
+    """
     http_method_names = ["post"]
 
     def error(self, mensaje, estado=400):
@@ -271,6 +287,9 @@ class VenderView(PosMixin, View):
 
 
 class CerrarTurnoView(PosMixin, View):
+    """Cierra la caja con arqueo a ciegas: el cajero cuenta y el sistema calcula la diferencia. Ruta:
+    `/panel/pos/cerrar/` («pos_cerrar»). Permiso: `ventas.crear`.
+    """
     def get(self, request):
         turno = self.turno()
         if turno is None:
@@ -296,6 +315,7 @@ class CerrarTurnoView(PosMixin, View):
 
 
 class TurnosView(PermisoRequeridoMixin, ListView):
+    """Lista de turnos de caja del negocio activo. Ruta: `/panel/pos/cajas/` («pos_turnos»). Permiso: `ventas.ver`."""
     permiso_requerido = "ventas.ver"
     model = TurnoCaja
     template_name = "core/pos/turnos.html"
@@ -325,6 +345,7 @@ class TurnosExportarExcelView(PermisoRequeridoMixin, View):
 
 
 class TurnoView(PermisoRequeridoMixin, DetailView):
+    """Detalle de un turno de caja. Ruta: `/panel/pos/cajas/<uuid:pk>/` («pos_turno»). Permiso: `ventas.ver`."""
     permiso_requerido = "ventas.ver"
     model = TurnoCaja
     template_name = "core/pos/turno.html"

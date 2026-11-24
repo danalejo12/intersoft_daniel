@@ -45,6 +45,9 @@ class EliminarLogicoView(PermisoRequeridoMixin, View):
 
 
 class CategoriaListView(PermisoRequeridoMixin, ListView):
+    """Lista de categorías del negocio activo. Ruta: `/panel/categorias/` («categorias_lista»). Permiso:
+    `inventario.ver`.
+    """
     model = Categoria
     permiso_requerido = "inventario.ver"
     template_name = "core/categorias/lista.html"
@@ -75,6 +78,7 @@ class CategoriaListView(PermisoRequeridoMixin, ListView):
 
 
 class CategoriaFormMixin:
+    """Configuración común de los formularios de categoría (plantilla, mensajes y redirección)."""
     model = Categoria
     form_class = CategoriaForm
     template_name = "core/categorias/form.html"
@@ -88,26 +92,37 @@ class CategoriaFormMixin:
 
 
 class CategoriaCreateView(PermisoRequeridoMixin, CategoriaFormMixin, SuccessMessageMixin, CreateView):
+    """Crea una categoría. Ruta: `/panel/categorias/nueva/` («categorias_crear»). Permiso: `inventario.crear`."""
     permiso_requerido = "inventario.crear"
 
 
 class CategoriaUpdateView(PermisoRequeridoMixin, CategoriaFormMixin, SuccessMessageMixin, UpdateView):
+    """Edita una categoría. Ruta: `/panel/categorias/<uuid:pk>/editar/` («categorias_editar»). Permiso:
+    `inventario.editar`.
+    """
     permiso_requerido = "inventario.editar"
 
 
 class CategoriaDeleteView(EliminarLogicoView):
+    """Desactiva una categoría sin borrarla (eliminación lógica). Ruta: `/panel/categorias/<uuid:pk>/eliminar/`
+    («categorias_eliminar»). Permiso: `inventario.eliminar`.
+    """
     model = Categoria
     campo_activo = "activa"
     permiso_requerido = "inventario.eliminar"
     url_lista = "categorias_lista"
 
     def motivo_bloqueo(self, objeto):
+        """Impide desactivar una categoría que todavía tiene productos activos."""
         if objeto.productos.filter(activo=True).exists():
             return f"No puedes eliminar la categoría «{objeto.nombre}» porque tiene productos activos asociados."
         return None
 
 
 class ProductoListView(PermisoRequeridoMixin, ListView):
+    """Lista de productos del negocio activo. Ruta: `/panel/productos/` («productos_lista»). Permiso:
+    `inventario.ver`.
+    """
     model = Producto
     permiso_requerido = "inventario.ver"
     template_name = "core/productos/lista.html"
@@ -138,6 +153,7 @@ class ProductoListView(PermisoRequeridoMixin, ListView):
 
 
 class ProductoFormMixin:
+    """Configuración común de los formularios de producto, incluida la galería de fotos."""
     model = Producto
     form_class = ProductoForm
     template_name = "core/productos/form.html"
@@ -157,6 +173,7 @@ class ProductoFormMixin:
         return respuesta
 
     def guardar_galeria(self, form):
+        """Guarda las fotos nuevas de la galería y borra las quitadas (los archivos, al confirmar la transacción)."""
         quitar = list(form.cleaned_data.get("quitar_fotos") or [])
         archivos_viejos = [foto.imagen.name for foto in quitar]
         FotoProducto.objects.filter(pk__in=[foto.pk for foto in quitar], producto=self.object).delete()
@@ -171,6 +188,7 @@ class ProductoFormMixin:
 
 
 class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, CreateView):
+    """Crea un producto. Ruta: `/panel/productos/nuevo/` («productos_crear»). Permiso: `inventario.crear`."""
     permiso_requerido = "inventario.crear"
 
     def dispatch(self, request, *args, **kwargs):
@@ -211,6 +229,9 @@ class ProductoCreateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessag
 
 
 class ProductoUpdateView(PermisoRequeridoMixin, ProductoFormMixin, SuccessMessageMixin, UpdateView):
+    """Edita un producto. Ruta: `/panel/productos/<uuid:pk>/editar/` («productos_editar»). Permiso:
+    `inventario.editar`.
+    """
     permiso_requerido = "inventario.editar"
 
 
@@ -269,6 +290,9 @@ class MovimientoCreateView(PermisoRequeridoMixin, View):
 
 
 class ProductoDeleteView(EliminarLogicoView):
+    """Desactiva un producto sin borrarlo (eliminación lógica). Ruta: `/panel/productos/<uuid:pk>/eliminar/`
+    («productos_eliminar»). Permiso: `inventario.eliminar`.
+    """
     model = Producto
     permiso_requerido = "inventario.eliminar"
     url_lista = "productos_lista"

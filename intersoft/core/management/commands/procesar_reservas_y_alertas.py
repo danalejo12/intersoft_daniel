@@ -1,3 +1,4 @@
+"""Comando que libera reservas vencidas y envía las alertas de stock mínimo."""
 from collections import Counter, defaultdict
 
 from django.core.management.base import BaseCommand
@@ -10,6 +11,9 @@ from core.notificaciones import notificar_alerta_stock_minimo
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py procesar_reservas_y_alertas`: Libera reservas de pedidos vencidos de forma
+    idempotente y envía alertas de stock mínimo a los roles Administrador y Bodega e inventario.
+    """
     help = (
         "Libera reservas de pedidos vencidos de forma idempotente y envía alertas de stock mínimo "
         "a los roles Administrador y Bodega e inventario."

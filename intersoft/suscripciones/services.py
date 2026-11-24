@@ -34,6 +34,7 @@ def cupos_fundador_actuales() -> int:
 
 
 class CanalVenta:
+    """Canales de venta para calcular comisiones: el marketplace paga comisión, el POS no."""
     MARKETPLACE = "MARKETPLACE"
     POS = "POS"
     VALORES = (MARKETPLACE, POS)
@@ -48,6 +49,7 @@ class DowngradeNoPermitido(ValidationError):
 
 
 def _obtener_plan(plan_o_codigo) -> Plan:
+    """Devuelve el plan (objeto o código) activo o lanza ValidationError."""
     if isinstance(plan_o_codigo, Plan):
         return plan_o_codigo
     codigo = str(plan_o_codigo or "").strip().lower()

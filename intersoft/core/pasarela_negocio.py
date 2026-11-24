@@ -50,6 +50,7 @@ def modo_de_llave(tipo: str, valor: str) -> str | None:
 
 @dataclass(frozen=True)
 class ResultadoVerificacion:
+    """Resultado de verificar las llaves de Wompi de un negocio: si sirven, el comercio y los errores."""
     ok: bool
     comercio: str = ""
     errores: tuple[str, ...] = field(default_factory=tuple)
@@ -57,6 +58,7 @@ class ResultadoVerificacion:
 
 @sensitive_variables()
 def _pedir_json(url: str, encabezados: dict | None = None) -> dict:
+    """Hace una petición GET a la API de Wompi y devuelve el JSON."""
     peticion = Request(url, headers={"Accept": "application/json", **(encabezados or {})})
     with urlopen(peticion, timeout=TIEMPO_ESPERA) as respuesta:
         return json.load(respuesta)

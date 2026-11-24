@@ -25,6 +25,7 @@ OK, AVISO, FALLA = "ok", "aviso", "falla"
 
 @dataclass
 class Revision:
+    """Resultado de una revisión del estado del sistema (ok, aviso o falla) con su resumen y detalle."""
     nombre: str
     estado: str
     resumen: str
@@ -33,6 +34,7 @@ class Revision:
 
 @dataclass
 class EstadoTarea:
+    """Estado de una tarea periódica para la sección Operación: última ejecución, próxima y fallos."""
     nombre: str
     descripcion: str
     cada: timedelta
@@ -48,6 +50,7 @@ class EstadoTarea:
 
 
 def _texto_intervalo(intervalo: timedelta) -> str:
+    """Texto legible de un intervalo: «cada 5 min», «cada hora», «cada día»."""
     minutos = int(intervalo.total_seconds() // 60)
     if minutos < 60:
         return f"cada {minutos} min"
@@ -68,6 +71,7 @@ def _seguro(nombre, funcion):
 
 # ---------- Revisiones ----------
 def revisar_base_de_datos():
+    """Revisa que la base de datos responda y mide su tiempo de respuesta."""
     inicio = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
@@ -82,6 +86,7 @@ def revisar_base_de_datos():
 
 
 def revisar_migraciones():
+    """Revisa si hay migraciones sin aplicar."""
     ejecutor = MigrationExecutor(connections[DEFAULT_DB_ALIAS])
     pendientes = ejecutor.migration_plan(ejecutor.loader.graph.leaf_nodes())
     if not pendientes:
@@ -92,6 +97,7 @@ def revisar_migraciones():
 
 
 def revisar_cache():
+    """Revisa que la caché guarde datos y avisa si no es compartida entre procesos."""
     backend = settings.CACHES["default"]["BACKEND"].rsplit(".", 1)[-1]
     clave = "plataforma:diagnostico"
     cache.set(clave, "ok", 10)
@@ -104,6 +110,7 @@ def revisar_cache():
 
 
 def revisar_correo():
+    """Revisa que el correo salga de verdad y que haya ADMINS para las alertas."""
     backend = settings.EMAIL_BACKEND.rsplit(".", 1)[-1]
     if "console" in settings.EMAIL_BACKEND or "locmem" in settings.EMAIL_BACKEND:
         return Revision("Correo", AVISO, "Solo se muestra en consola",
@@ -115,12 +122,14 @@ def revisar_correo():
 
 
 def revisar_monitoreo():
+    """Revisa si el monitoreo de errores con Sentry está configurado."""
     if getattr(settings, "SENTRY_DSN", ""):
         return Revision("Monitoreo", OK, "Sentry configurado")
     return Revision("Monitoreo", AVISO, "Sin Sentry", "Los errores solo quedan en la bitácora de Soporte.")
 
 
 def revisar_cifrado():
+    """Revisa que haya una clave propia para cifrar los secretos de pago."""
     if getattr(settings, "PAGOS_CLAVES_CIFRADO", ""):
         return Revision("Cifrado de pagos", OK, "Clave propia configurada")
     return Revision("Cifrado de pagos", AVISO, "Derivado de SECRET_KEY",
@@ -128,6 +137,7 @@ def revisar_cifrado():
 
 
 def revisar_modo():
+    """Revisa si DEBUG está activo."""
     if settings.DEBUG:
         return Revision("Modo", AVISO, "DEBUG activo", "Correcto en desarrollo; nunca en producción.")
     return Revision("Modo", OK, "Producción (DEBUG apagado)")
@@ -138,6 +148,7 @@ def carpeta_respaldos() -> Path:
 
 
 def revisar_respaldos():
+    """Revisa la copia de seguridad más reciente (falla si tiene más de 26 horas)."""
     carpeta = carpeta_respaldos()
     archivos = sorted(carpeta.glob("*.dump"), key=lambda a: a.stat().st_mtime, reverse=True) if carpeta.is_dir() else []
     if not archivos:
@@ -153,6 +164,7 @@ def revisar_respaldos():
 
 
 def revisar_errores():
+    """Revisa los errores 500 nuevos y los de las últimas 24 horas."""
     from soporte.models import ErrorRegistrado
 
     desde = timezone.now() - timedelta(hours=24)
@@ -166,6 +178,7 @@ def revisar_errores():
 
 # ---------- Tareas periódicas ----------
 def estado_tareas(ahora=None):
+    """Estado de cada tarea periódica: última y próxima ejecución, fallos y si está atrasada."""
     ahora = ahora or timezone.now()
     filas = {f.nombre: f for f in EjecucionTarea.objects.all()}
     resultado = []
@@ -194,6 +207,7 @@ def estado_tareas(ahora=None):
 
 
 def revisar_tareas(tareas=None):
+    """Resumen de las tareas periódicas: falla si alguna tiene fallos, aviso si alguna está atrasada."""
     tareas = tareas if tareas is not None else estado_tareas()
     con_fallos = [t for t in tareas if t.fallos_seguidos]
     atrasadas = [t for t in tareas if t.atrasada]
@@ -208,6 +222,7 @@ def revisar_tareas(tareas=None):
 
 # ---------- Resumen ----------
 def diagnostico():
+    """Todas las revisiones del sistema y el conteo de fallas y avisos."""
     tareas = estado_tareas()
     revisiones = [
         _seguro("Base de datos", revisar_base_de_datos),
@@ -240,6 +255,7 @@ def revision_despliegue():
 
 
 def entorno():
+    """Datos del entorno: versiones, base de datos, zona horaria y hosts permitidos."""
     hosts = list(getattr(settings, "ALLOWED_HOSTS", []) or [])
     return [
         ("Versión de Intersoft", getattr(settings, "APP_VERSION", "") or settings.SPECTACULAR_SETTINGS.get("VERSION", "")),

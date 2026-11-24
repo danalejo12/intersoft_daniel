@@ -1,3 +1,4 @@
+"""Comando que vence pedidos sin pagar y devuelve su stock (idempotente)."""
 from collections import Counter
 
 from django.core.management.base import BaseCommand
@@ -8,6 +9,9 @@ from core.models import Pedido
 
 
 class Command(BaseCommand):
+    """Comando `python manage.py liberar_pedidos_vencidos`: Vence los pedidos pendientes cuyo plazo terminó y
+    devuelve su stock. Es seguro ejecutarlo varias veces.
+    """
     help = "Vence los pedidos pendientes cuyo plazo terminó y devuelve su stock. Es seguro ejecutarlo varias veces."
 
     def handle(self, *args, **options):

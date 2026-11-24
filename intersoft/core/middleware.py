@@ -1,3 +1,4 @@
+"""Middleware multiempresa: fija la empresa y la membresía activas de cada petición (y el modo soporte)."""
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
@@ -5,6 +6,7 @@ from .models import Empresa, Membresia
 
 
 class _RolSoporteVirtual:
+    """Rol de solo lectura que se usa cuando el personal de Intersoft entra a un negocio en modo soporte."""
     nombre = "Soporte InterSoft"
     es_admin = True
 
@@ -22,6 +24,7 @@ class _MembresiaSoporteVirtual:
 
 
 class TenantMiddleware:
+    """Pone en cada petición la empresa activa (`request.empresa`) y la membresía del usuario en ella."""
     def __init__(self, get_response):
         # Django lo ejecuta UNA vez al arrancar el servidor
         self.get_response = get_response
@@ -54,6 +57,7 @@ class TenantMiddleware:
         return self.get_response(request)
 
     def _aplicar_modo_soporte(self, request) -> bool:
+        """Si el personal de soporte entró «como» un negocio, activa esa empresa con el rol de soporte."""
         soporte_ctx = request.session.get("plataforma_soporte")
         if not soporte_ctx:
             return False
@@ -85,6 +89,7 @@ class TenantMiddleware:
 
     def _membresia_activa(self, request):
         # Siempre se parte de las membresías del usuario: la sesión nunca da acceso a una empresa ajena
+        """Membresía activa del usuario: la elegida en la sesión o la primera disponible."""
         membresias = list(
             Membresia.objects
             .select_related("empresa", "rol")   # una sola consulta en vez de tres
@@ -118,7 +123,7 @@ class ContentSecurityPolicyMiddleware:
         if not getattr(settings, "CSP_ACTIVA", True):
             return response
         ruta = request.path_info or request.path
-        if ruta.startswith("/api/docs/") or ruta.startswith("/api/schema/"):
+        if ruta.startswith(("/api/docs/", "/api/schema/")):
             return response
         tipo = (response.get("Content-Type") or "").lower()
         if "text/html" in tipo and "Content-Security-Policy" not in response:

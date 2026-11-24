@@ -42,6 +42,7 @@ class AccesoPedidosPanelMixin(TenantMixin):
 
 
 class PedidoPanelListView(AccesoPedidosPanelMixin, ListView):
+    """Lista de pedidos del negocio activo. Ruta: `/panel/pedidos/` («pedidos_panel_lista»)."""
     model = Pedido
     template_name = "core/pedidos_panel/lista.html"
     context_object_name = "pedidos"
@@ -142,6 +143,7 @@ class PedidoPanelExportarExcelView(AccesoPedidosPanelMixin, View):
 
 
 class PedidoPanelDetailView(AccesoPedidosPanelMixin, DetailView):
+    """Detalle de un pedido. Ruta: `/panel/pedidos/<uuid:pk>/` («pedidos_panel_detalle»)."""
     model = Pedido
     template_name = "core/pedidos_panel/detalle.html"
     context_object_name = "pedido"

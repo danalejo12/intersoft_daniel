@@ -15,6 +15,7 @@ def generar_secreto_totp() -> str:
 
 
 def _codigo_en_contador(secreto: str, contador: int, digitos: int = 6) -> str:
+    """Código TOTP (RFC 6238) para un contador de tiempo dado."""
     limpio = secreto.strip().upper().replace(" ", "")
     relleno = (-len(limpio)) % 8
     clave = base64.b32decode(limpio + ("=" * relleno), casefold=True)
@@ -26,6 +27,7 @@ def _codigo_en_contador(secreto: str, contador: int, digitos: int = 6) -> str:
 
 
 def codigo_totp_actual(secreto: str, timestamp: float | None = None, paso: int = 30) -> str:
+    """Código TOTP vigente para el secreto."""
     ts = time.time() if timestamp is None else timestamp
     return _codigo_en_contador(secreto, int(ts // paso))
 
@@ -38,6 +40,7 @@ def verificar_codigo_totp(
     paso: int = 30,
     ventana: int = 1,
 ) -> bool:
+    """Verifica un código de 6 dígitos aceptando un paso de tolerancia por desfase del reloj."""
     if not secreto or not codigo:
         return False
     limpio = str(codigo).strip().replace(" ", "")
@@ -53,6 +56,7 @@ def verificar_codigo_totp(
 
 
 def uri_otpauth(secreto: str, email: str, emisor: str = "InterSoft Plataforma") -> str:
+    """URI otpauth:// para registrar el secreto en una app de autenticación (y su código QR)."""
     etiqueta = quote(f"{emisor}:{email}")
     emisor_q = quote(emisor)
     return f"otpauth://totp/{etiqueta}?secret={secreto}&issuer={emisor_q}&digits=6&period=30"

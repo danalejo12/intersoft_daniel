@@ -16,12 +16,10 @@ from core.tareas import ejecutar_pendientes
 from plataforma.models import RolPlataforma
 
 from .dias_habiles import FESTIVOS_COLOMBIA, semaforo_pqrs, sumar_dias_habiles
-from .models import PQRS, MensajePQRS, generar_radicado, validar_archivo_pqrs
+from .models import PQRS, generar_radicado, validar_archivo_pqrs
 from .services import (
     agregar_mensaje_pqrs,
-    escalar_pqrs_vencidas,
     radicar_pqrs,
-    registrar_encuesta_satisfaccion,
 )
 
 

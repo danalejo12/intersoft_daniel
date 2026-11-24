@@ -64,16 +64,21 @@ class PQRS(ModeloBase):
     """Solicitud PQRS en flujo A (Negocio -> Intersoft) o flujo B (Comprador -> Negocio)."""
 
     class Tipo(models.TextChoices):
+        """Valores posibles de tipo de pqrs: «Petición», «Queja», «Reclamo», «Sugerencia»."""
         PETICION = "peticion", "Petición"
         QUEJA = "queja", "Queja"
         RECLAMO = "reclamo", "Reclamo"
         SUGERENCIA = "sugerencia", "Sugerencia"
 
     class Flujo(models.TextChoices):
+        """Valores posibles de flujo de pqrs: «Negocio → Intersoft», «Comprador → Negocio»."""
         NEGOCIO_INTERSOFT = "A", "Negocio → Intersoft"
         COMPRADOR_NEGOCIO = "B", "Comprador → Negocio"
 
     class Estado(models.TextChoices):
+        """Valores posibles de estado de pqrs: «Radicada», «En trámite», «Respondida», «Cerrada», «Escalada a
+        Intersoft».
+        """
         RADICADA = "radicada", "Radicada"
         EN_TRAMITE = "en_tramite", "En trámite"
         RESPONDIDA = "respondida", "Respondida"
@@ -81,6 +86,7 @@ class PQRS(ModeloBase):
         ESCALADA = "escalada", "Escalada a Intersoft"
 
     class Prioridad(models.TextChoices):
+        """Valores posibles de prioridad de pqrs: «Baja», «Media», «Alta», «Urgente»."""
         BAJA = "baja", "Baja"
         MEDIA = "media", "Media"
         ALTA = "alta", "Alta"

@@ -40,6 +40,7 @@ from .services import StockInsuficiente, anular_factura, crear_factura
 
 
 class FacturaListView(PermisoRequeridoMixin, ListView):
+    """Lista de facturas del negocio activo. Ruta: `/panel/facturas/` («facturas_lista»). Permiso: `ventas.ver`."""
     model = Factura
     permiso_requerido = "ventas.ver"
     template_name = "core/facturas/lista.html"
@@ -77,6 +78,7 @@ class FacturaListView(PermisoRequeridoMixin, ListView):
 
 
 class FacturaDetailView(PermisoRequeridoMixin, DetailView):
+    """Detalle de una factura. Ruta: `/panel/facturas/<uuid:pk>/` («facturas_detalle»). Permiso: `ventas.ver`."""
     model = Factura
     permiso_requerido = "ventas.ver"
     template_name = "core/facturas/detalle.html"
@@ -166,6 +168,9 @@ class FacturaCreateView(PermisoRequeridoMixin, View):
 
 
 class FacturaAnularView(PermisoRequeridoMixin, View):
+    """Anula una factura no pagada: devuelve la mercancía a su bodega y reversa su asiento contable. Ruta:
+    `/panel/facturas/<uuid:pk>/anular/` («facturas_anular»). Permiso: `facturas.anular`.
+    """
     http_method_names = ["post"]
     permiso_requerido = "facturas.anular"
 
@@ -340,6 +345,9 @@ class PagoSimuladorView(PermisoRequeridoMixin, View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class WompiWebhookNegocioView(View):
+    """Recibe los eventos de Wompi de un negocio: verifica la firma y consulta la transacción en la API antes de
+    aplicarla. Ruta: `/webhooks/wompi/<uuid:empresa_id>/` («wompi_webhook_negocio»).
+    """
     http_method_names = ["post"]
 
     def post(self, request, empresa_id):
