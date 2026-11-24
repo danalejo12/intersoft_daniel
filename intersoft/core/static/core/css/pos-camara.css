@@ -14,12 +14,13 @@
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  min-height: 44px;
   padding: 0 16px;
 }
 
 .pos-camara-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .pos-camara-dialogo {
@@ -29,8 +30,9 @@
 .pos-camara-visor {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  background: #050811;
+  border-radius: 12px;
+  border: 1px solid var(--borde, #e2e8f0);
+  background: #0b0f19;
   aspect-ratio: 4 / 3;
   margin: 12px 0;
 }
