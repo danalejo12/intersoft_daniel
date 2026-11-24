@@ -1,5 +1,5 @@
-{# Comandos del buscador global (Ctrl + K) del panel. Solo aparece lo que el rol puede hacer.
-   data-claves: sinónimos con los que también se encuentra. data-buscar: búsqueda de texto en esa lista. #}
+{% comment %}Comandos del buscador global (Ctrl + K) del panel. Solo aparece lo que el rol puede hacer.
+data-claves: sinónimos con los que también se encuentra. data-buscar: búsqueda de texto en esa lista.{% endcomment %}
 <ul id="paleta-comandos" hidden>
   <li data-grupo="Ir a" data-url="{% url 'dashboard' %}" data-claves="inicio resumen tablero dashboard">Inicio</li>
   {% if nav_permisos.ver_pos %}<li data-grupo="Ir a" data-url="{% url 'pos' %}" data-claves="caja vender pos mostrador">Punto de venta</li>{% endif %}

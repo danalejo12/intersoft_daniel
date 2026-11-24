@@ -1777,3 +1777,88 @@ dialog.paleta {
     transform: scale(0.98);
   }
 }
+
+
+/* =====================================================================
+   AJUSTES DE AUDITORÍA EN VIVO (/panel/ y /panel/pqrs/ vs Figma)
+   ===================================================================== */
+
+/* 1. Padding consistente en primera y última celda dentro de .tabla-wrap */
+.tabla-wrap .tabla th,
+.tabla-wrap .tabla td {
+  padding: 11px 14px;
+}
+
+.tabla-wrap .tabla th:first-child,
+.tabla-wrap .tabla td:first-child {
+  padding-left: 16px;
+}
+
+.tabla-wrap .tabla th:last-child,
+.tabla-wrap .tabla td:last-child {
+  padding-right: 16px;
+}
+
+/* 2. "Para hoy": texto alineado a la izquierda junto al indicador y contraste limpio en oscuro */
+.pendiente {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.pendiente > span {
+  flex: 1 1 auto;
+  text-align: left;
+  color: var(--texto);
+}
+
+:root[data-tema="oscuro"] .pendiente.alerta {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.35);
+  border-left-color: var(--ambar);
+}
+
+:root[data-tema="oscuro"] .pendiente.peligro {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  border-left-color: var(--rojo);
+}
+
+/* 3. Guía de primeros pasos: sin tachado invasivo en descripciones */
+.guia-pasos li.hecho .guia-texto strong,
+.guia-pasos li.hecho .guia-texto small {
+  text-decoration: none;
+  color: var(--texto);
+}
+
+.guia-pasos li.hecho .guia-texto small {
+  color: var(--suave);
+}
+
+/* 4. KPIs alineados a la misma base */
+.kpis {
+  align-items: stretch;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi > small:last-child {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* 5. Medidor de salud de inventario nítido en modo claro (sin halo borroso) */
+:root:not([data-tema="oscuro"]) .medidor-valor {
+  filter: none;
+}
+
+/* 6. Tarjeta izquierda de soporte en /panel/pqrs/ sin hueco excesivo */
+.soporte-card {
+  justify-content: flex-start;
+}
+
+.soporte-card .soporte-acciones {
+  margin-top: auto;
+}

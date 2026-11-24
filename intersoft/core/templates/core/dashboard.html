@@ -194,41 +194,51 @@
 
   <section class="paneles parejos">
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Stock bajo</h2></div>
-      <table class="tabla">
-        <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th><th></th></tr></thead>
-        <tbody>
-          {% for producto in stock_bajo %}
-            <tr>
-              <td><a href="{% url 'productos_kardex' producto.pk %}">{{ producto.nombre }}</a></td>
-              <td class="num">{{ producto.stock }} <span class="alerta">bajo</span></td>
-              <td class="num">{{ producto.stock_minimo }}</td>
-              <td>{% if puede_mover %}<a href="{% url 'productos_movimiento' producto.pk %}">Reponer</a>{% endif %}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="tarjeta-cabecera">
+        <h2>Stock bajo</h2>
+        <span class="badge {% if stock_bajo %}alerta{% else %}exito{% endif %}">{{ stock_bajo|length }} producto{{ stock_bajo|length|pluralize }}</span>
+      </div>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Productos con stock bajo">
+        <table class="tabla">
+          <thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Mínimo</th><th></th></tr></thead>
+          <tbody>
+            {% for producto in stock_bajo %}
+              <tr>
+                <td><a href="{% url 'productos_kardex' producto.pk %}"><strong>{{ producto.nombre }}</strong></a></td>
+                <td class="num">{{ producto.stock }} <span class="alerta">bajo</span></td>
+                <td class="num">{{ producto.stock_minimo }}</td>
+                <td class="acciones-fila">{% if puede_mover %}<a class="boton exito pequeno" href="{% url 'productos_movimiento' producto.pk %}">Reponer</a>{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">Todo el inventario está por encima del mínimo.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </article>
 
     {% if puede_ver_ventas %}
     <article class="tarjeta">
-      <div class="tarjeta-cabecera"><h2>Últimas facturas</h2></div>
-      <table class="tabla">
-        <thead><tr><th>N.º</th><th>Cliente</th><th class="num">Total</th></tr></thead>
-        <tbody>
-          {% for factura in ultimas_facturas %}
-            <tr>
-              <td><a href="{% url 'facturas_detalle' factura.pk %}">{{ factura.numero }}</a></td>
-              <td>{{ factura.cliente.nombre }}</td>
-              <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="3">Aún no hay facturas.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="tarjeta-cabecera">
+        <h2>Últimas facturas</h2>
+        <span class="badge neutro">{{ ultimas_facturas|length }} reciente{{ ultimas_facturas|length|pluralize }}</span>
+      </div>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Últimas facturas emitidas">
+        <table class="tabla">
+          <thead><tr><th>N.º</th><th>Cliente</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            {% for factura in ultimas_facturas %}
+              <tr>
+                <td><a href="{% url 'facturas_detalle' factura.pk %}"><strong>{{ factura.numero }}</strong></a></td>
+                <td>{{ factura.cliente.nombre }}</td>
+                <td class="num">$ {{ factura.total|floatformat:"0g" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">Aún no hay facturas.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </article>
     {% endif %}
   </section>
@@ -240,6 +250,6 @@
   {{ serie_meses|json_script:"datos-meses" }}
   {{ serie_dias|json_script:"datos-dias" }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
-  <script defer src="{% static 'core/js/dashboard.js' %}"></script>
+  <script defer src="{% static 'core/js/dashboard.js' %}?v=2"></script>
   {% endif %}
 {% endblock %}
