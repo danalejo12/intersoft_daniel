@@ -1519,11 +1519,12 @@ dialog.paleta {
   gap: 10px;
 }
 
-.pendiente {
+.pendientes .pendiente {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  text-align: left;
   gap: 10px 14px;
   padding: 12px 14px;
   border-radius: 10px;
@@ -1532,12 +1533,18 @@ dialog.paleta {
   border-left: 3px solid var(--azul);
 }
 
-.pendiente.alerta {
+.pendientes .pendiente > span {
+  flex: 1 1 auto;
+  text-align: left;
+  color: var(--texto);
+}
+
+.pendientes .pendiente.alerta {
   border-left-color: var(--ambar);
   background: var(--ambar-fondo);
 }
 
-.pendiente.peligro {
+.pendientes .pendiente.peligro {
   border-left-color: var(--rojo);
   background: var(--rojo-fondo);
 }
@@ -1861,4 +1868,139 @@ dialog.paleta {
 
 .soporte-card .soporte-acciones {
   margin-top: auto;
+}
+
+
+/* =====================================================================
+   CORRECCIONES DEL BARRIDO COMPLETO DE 14 PÁGINAS
+   ===================================================================== */
+
+/* 1. Contraste nítido en botones rojos Eliminar */
+.boton.peligro,
+button.boton.peligro,
+a.boton.peligro {
+  color: #ffffff !important;
+}
+
+.boton.peligro svg,
+button.boton.peligro svg {
+  stroke: #ffffff;
+}
+
+/* 2. Tarjetas ERP visibles de inmediato (sin quedar invisibles esperando scroll) */
+.erp-modulo-card {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+/* 3. /panel/pedidos/: KPIs sin truncado, filtros en 1 línea y tabla sin desborde */
+.pedidos-panel-kpi,
+.pedidos-desglose-kpi {
+  white-space: normal;
+  overflow: visible;
+}
+
+.pedidos-panel-kpi > strong {
+  font-size: clamp(1.25rem, 1.05rem + 0.5vw, 1.55rem) !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.pedidos-filtros-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.pedidos-filtros-barra input[type="search"] {
+  flex: 1 1 240px;
+  width: auto;
+  min-width: 200px;
+}
+
+.pedidos-filtros-barra select {
+  width: auto;
+  min-width: 185px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.pedidos-tabla-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--superficie);
+}
+
+.pedidos-tabla th,
+.pedidos-tabla td {
+  padding: 9px 9px;
+  font-size: 12.5px;
+}
+
+.pedidos-tabla th:first-child,
+.pedidos-tabla td:first-child {
+  padding-left: 12px;
+}
+
+.pedidos-tabla th:last-child,
+.pedidos-tabla td:last-child {
+  padding-right: 12px;
+}
+
+.pedido-badge.pendiente {
+  border: 0;
+  border-left: 0;
+}
+
+/* 4. /panel/negocio/pagos/: evitar que "Tarifa de la pasarela" quede huérfano en 2 cols */
+.pagos-central .formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pagos-subtitulo {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+/* 5. /panel/suscripcion/: evitar que <strong> dentro de <small> herede 2rem de KPI */
+.kpi small strong {
+  font-size: inherit !important;
+  font-weight: 700;
+  display: inline !important;
+  line-height: inherit;
+  color: var(--texto);
+  letter-spacing: 0;
+}
+
+.kpi > strong {
+  text-align: left;
+}
+
+/* 6. Tablas: evitar cortes entre "$" y cifras en columnas numéricas */
+.tabla td.num,
+.tabla th.num {
+  white-space: nowrap;
+}
+
+/* 7. /plataforma/2fa/: formulario TOTP apilado limpiamente */
+.totp-tarjeta .formulario {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.totp-tarjeta .campo {
+  width: 100%;
+  margin: 0;
 }
