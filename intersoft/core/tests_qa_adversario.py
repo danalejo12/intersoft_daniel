@@ -131,3 +131,23 @@ class QAAdversarioTests(TestCase):
         self.assertNotIn("<script>", html)
         self.assertIn("&lt;script&gt;", html)
         self.assertNotIn("<b>G-1</b>", html)
+
+    def test_filtros_get_corruptos_en_pqrs_tienda_y_panel_no_dan_500(self):
+        """Parámetros GET maliciosos (UUID inválido, fechas imposibles, páginas basura) nunca causan 500."""
+        self.client.force_login(self.comprador)
+        for ruta in (
+            f"{reverse('pqrs_radicar')}?pedido=no-es-uuid",
+            f"{reverse('pqrs_radicar')}?pedido=' OR 1=1 --",
+            f"{reverse('marketplace')}?categoria=<script>&orden=invalido&page=abc",
+            f"{reverse('mis_pedidos')}?estado=invalido&page=-5",
+        ):
+            resp = self.client.get(ruta)
+            self.assertNotEqual(resp.status_code, 500, f"HTTP 500 inesperado en {ruta}")
+
+        self.client.force_login(self.dueno)
+        for ruta in (
+            f"{reverse('dashboard')}?bodega=no-es-uuid",
+            f"{reverse('pedidos_panel_lista')}?estado=basura&envio=basura&page=xyz",
+        ):
+            resp = self.client.get(ruta)
+            self.assertNotEqual(resp.status_code, 500, f"HTTP 500 inesperado en {ruta}")

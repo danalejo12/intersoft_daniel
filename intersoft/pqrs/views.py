@@ -48,9 +48,11 @@ class RadicarPQRSCompradorView(LoginRequiredMixin, View):
 
     def _initial(self, request):
         """Precarga el pedido y el negocio si la PQRS se abre desde un pedido propio."""
+        from core.http_utils import es_uuid_valido
+
         initial = {}
         pedido_id = (request.GET.get("pedido") or "").strip()
-        if pedido_id:
+        if es_uuid_valido(pedido_id):
             pedido = Pedido.objects.filter(pk=pedido_id, comprador=request.user).select_related("empresa").first()
             if pedido is not None:
                 initial["pedido"] = pedido
