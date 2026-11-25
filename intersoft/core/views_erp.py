@@ -326,8 +326,14 @@ class DetalleERP(AccesoERP):
         if getattr(obj, self.config["cerrado"]):
             raise ValidationError("El documento ya está confirmado y no se puede modificar.")
         if accion == "quitar":
-            linea = get_object_or_404(self.config["linea"], empresa=request.empresa,
-                                      pk=request.POST.get("linea"), **{self.config["relacion"]: obj})
+            from .http_utils import obtener_por_uuid_o_404
+
+            linea = obtener_por_uuid_o_404(
+                self.config["linea"],
+                request.POST.get("linea"),
+                empresa=request.empresa,
+                **{self.config["relacion"]: obj},
+            )
             linea.delete()
             return None
         form = formulario(self.config["linea"], self.config["campos_linea"])(request.POST, empresa=request.empresa)

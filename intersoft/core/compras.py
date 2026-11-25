@@ -16,6 +16,7 @@ from .services import StockInsuficiente, siguiente_consecutivo
 from .tarifas import cargo_pasarela
 
 Estado = Pedido.Estado
+MINIMO_COBRABLE_WOMPI = Decimal("1500.00")
 
 
 class OperacionNoPermitida(Exception):
@@ -52,7 +53,13 @@ def evaluar_cupon(*, negocio, codigo, total_productos):
         cupon.validar_para(total_productos)
     except ValueError as error:
         raise OperacionNoPermitida(str(error)) from None
-    return cupon, cupon.calcular_descuento(total_productos)
+    descuento = cupon.calcular_descuento(total_productos)
+    if total_productos - descuento < MINIMO_COBRABLE_WOMPI:
+        raise OperacionNoPermitida(
+            "El descuento deja el pedido por debajo del mínimo cobrable en Wompi ($ 1.500). "
+            "Agrega más productos o usa otro cupón."
+        )
+    return cupon, descuento
 
 
 @transaction.atomic
@@ -109,6 +116,11 @@ def crear_pedido(*, usuario, negocio, lineas, datos, codigo_cupon=""):
         peso_total_gramos=peso_total_gramos,
     )
     antes_de_pasarela = (total_productos_neto + costo_envio).quantize(CENTAVOS)
+    if cupon_aplicado is not None and antes_de_pasarela < MINIMO_COBRABLE_WOMPI:
+        raise OperacionNoPermitida(
+            "El descuento deja el pedido por debajo del mínimo cobrable en Wompi ($ 1.500). "
+            "Agrega más productos o usa otro cupón."
+        )
     cargo = cargo_pasarela(antes_de_pasarela, config=config) if antes_de_pasarela > 0 else Decimal("0.00")
     total = (antes_de_pasarela + cargo).quantize(CENTAVOS)
     comision_porcentaje = Decimal("0.00")

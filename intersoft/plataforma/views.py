@@ -366,7 +366,9 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
 
     def _reconsultar_cobro(self, request):
         """Vuelve a consultar en Wompi un cobro de plan y registra el cambio de estado."""
-        cobro = get_object_or_404(CobroSuscripcion, pk=request.POST.get("cobro_id"))
+        from core.http_utils import obtener_por_uuid_o_404
+
+        cobro = obtener_por_uuid_o_404(CobroSuscripcion, request.POST.get("cobro_id"))
         estado_anterior = cobro.estado
         cobro_actualizado = cobros_suscripcion.sincronizar_cobro(cobro, forzar=True)
         auditoria.registrar(
@@ -389,9 +391,11 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
 
     def _aplicar_cobro_manual(self, request):
         """Activa manualmente el plan de un cobro (con motivo obligatorio) y lo registra en la auditoría."""
-        cobro = get_object_or_404(
+        from core.http_utils import obtener_por_uuid_o_404
+
+        cobro = obtener_por_uuid_o_404(
             CobroSuscripcion.objects.select_related("empresa", "plan"),
-            pk=request.POST.get("cobro_id"),
+            request.POST.get("cobro_id"),
         )
         motivo = (request.POST.get("motivo") or "").strip()
         if not motivo:
@@ -462,7 +466,9 @@ class PlanesCobrosPlataformaView(PlataformaMixin, View):
 
     def _toggle_cupon(self, request):
         """Activa o desactiva un cupón."""
-        cupon = get_object_or_404(CuponPlan, pk=request.POST.get("cupon_id"))
+        from core.http_utils import obtener_por_uuid_o_404
+
+        cupon = obtener_por_uuid_o_404(CuponPlan, request.POST.get("cupon_id"))
         cupon.activo = not cupon.activo
         cupon.save(update_fields=["activo", "actualizado_en"])
         auditoria.registrar(
@@ -564,7 +570,9 @@ class PlataformaNegociosView(PlataformaMixin, View):
         if accion == "entrar_como":
             if request.rol_plataforma.rol not in (RolPlataforma.Rol.DUENO, RolPlataforma.Rol.SOPORTE):
                 raise PermissionDenied("Solo Dueño o Soporte pueden entrar como un negocio.")
-            empresa = get_object_or_404(Empresa, pk=request.POST.get("empresa_id"))
+            from core.http_utils import obtener_por_uuid_o_404
+
+            empresa = obtener_por_uuid_o_404(Empresa, request.POST.get("empresa_id"))
             modo = (request.POST.get("modo") or "lectura").strip().lower()
             solo_lectura = modo != "escritura"
             request.session["plataforma_soporte"] = {
@@ -586,7 +594,9 @@ class PlataformaNegociosView(PlataformaMixin, View):
             return redirect("dashboard")
 
         if accion == "toggle_anuncio":
-            anuncio = get_object_or_404(AnuncioGlobal, pk=request.POST.get("anuncio_id"))
+            from core.http_utils import obtener_por_uuid_o_404
+
+            anuncio = obtener_por_uuid_o_404(AnuncioGlobal, request.POST.get("anuncio_id"))
             anuncio.activo = not anuncio.activo
             anuncio.save(update_fields=["activo", "actualizado_en"])
             auditoria.registrar(

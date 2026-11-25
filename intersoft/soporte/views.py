@@ -304,7 +304,9 @@ class PlataformaIdeasListView(PlataformaMixin, View):
         )
 
     def post(self, request):
-        idea = get_object_or_404(Idea, pk=request.POST.get("idea_id"))
+        from core.http_utils import obtener_por_uuid_o_404
+
+        idea = obtener_por_uuid_o_404(Idea, request.POST.get("idea_id"))
         estado_anterior = idea.estado
         form = IdeaEstadoForm(request.POST, instance=idea)
         if form.is_valid():

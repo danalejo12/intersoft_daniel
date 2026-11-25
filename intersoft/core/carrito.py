@@ -12,6 +12,7 @@ from django.db.models import Sum
 from django.dispatch import receiver
 
 from .compras import calcular_costo_envio
+from .http_utils import es_uuid_valido
 from .impuestos import CENTAVOS, calcular_iva
 from .marketplace import productos_publicos
 from .models import ItemCarrito, Producto
@@ -23,6 +24,7 @@ MAXIMO_POR_PRODUCTO = 99
 
 
 def _usuario(request):
+    """Devuelve el usuario autenticado del request, o None si es un visitante anónimo."""
     usuario = getattr(request, "user", None)
     if usuario is not None and getattr(usuario, "is_authenticated", False):
         return usuario
@@ -30,6 +32,7 @@ def _usuario(request):
 
 
 def _mapa_bd(usuario):
+    """Construye el diccionario {producto_id: cantidad} desde ItemCarrito para el usuario."""
     return {
         str(pid): cant
         for pid, cant in ItemCarrito.objects.filter(usuario=usuario).values_list("producto_id", "cantidad")
@@ -63,8 +66,11 @@ def fusionar_en_bd(usuario, items_por_id):
     """Fusiona un diccionario {producto_id: cantidad} en los ItemCarrito del usuario."""
     if not items_por_id:
         return
+    ids_validos = [str(k).strip() for k in items_por_id.keys() if es_uuid_valido(k)]
+    if not ids_validos:
+        return
     existentes_prod = set(
-        str(pk) for pk in Producto.objects.filter(pk__in=list(items_por_id.keys())).values_list("pk", flat=True)
+        str(pk) for pk in Producto.objects.filter(pk__in=ids_validos).values_list("pk", flat=True)
     )
     actuales = {str(i.producto_id): i for i in ItemCarrito.objects.filter(usuario=usuario)}
     for clave, cantidad in items_por_id.items():
@@ -99,6 +105,7 @@ def fusionar_carrito_al_entrar(sender, request, user, **kwargs):
 
 
 def _datos(request):
+    """Devuelve el mapa {producto_id: cantidad} del carrito activo (BD si autenticado, sesión si invitado)."""
     usuario = _usuario(request)
     if usuario is not None:
         _absorber_sesion_en_bd(request, usuario)
@@ -109,6 +116,7 @@ def _datos(request):
 
 
 def cantidad_total(request):
+    """Total de unidades en el carrito activo."""
     usuario = _usuario(request)
     if usuario is not None:
         _absorber_sesion_en_bd(request, usuario)
@@ -217,11 +225,17 @@ def grupos(request):
     """Devuelve (grupos por negocio, avisos). Corrige lo que cambió desde que se agregó."""
     usuario = _usuario(request)
     datos = _datos(request)
-    productos = {str(p.pk): p for p in productos_publicos().filter(pk__in=list(datos))}
+    claves_validas = [clave for clave in list(datos) if es_uuid_valido(clave)]
+    productos = {str(p.pk): p for p in productos_publicos().filter(pk__in=claves_validas)} if claves_validas else {}
     avisos = []
     por_negocio = {}
 
     for clave, cantidad in list(datos.items()):
+        if not es_uuid_valido(clave):
+            if usuario is None:
+                del datos[clave]
+                request.session.modified = True
+            continue
         producto = productos.get(clave)
         if producto is None or producto.disponible <= 0:
             if usuario is not None:

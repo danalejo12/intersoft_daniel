@@ -58,6 +58,7 @@ class CuponTienda(ModeloTenant):
     """Cupón de descuento propio de un negocio para compras en el marketplace."""
 
     class Tipo(models.TextChoices):
+        """Tipos de descuento admitidos para un cupón de tienda: porcentaje o valor fijo."""
         PORCENTAJE = "porcentaje", "Porcentaje (%)"
         FIJO = "fijo", "Valor fijo ($)"
 
@@ -102,6 +103,7 @@ class CuponTienda(ModeloTenant):
 
     @property
     def esta_vigente(self) -> bool:
+        """Indica si el cupón está activo, dentro de fechas de vigencia y con usos disponibles."""
         ahora = timezone.now()
         if not self.activo:
             return False

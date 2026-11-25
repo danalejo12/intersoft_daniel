@@ -377,11 +377,13 @@ class TurnoView(PermisoRequeridoMixin, DetailView):
         if not (request.membresia and request.membresia.tiene_permiso("tesoreria.gestionar")):
             raise PermissionDenied("No tienes permiso para trasladar fondos a tesorería.")
         turno = self.get_object()
-        cuenta = get_object_or_404(
+        from .http_utils import obtener_por_uuid_o_404
+
+        cuenta = obtener_por_uuid_o_404(
             CuentaTesoreria,
+            request.POST.get("cuenta_tesoreria"),
             empresa=request.empresa,
             activa=True,
-            pk=request.POST.get("cuenta_tesoreria"),
         )
         try:
             mov = erp_services.trasladar_turno_a_tesoreria(

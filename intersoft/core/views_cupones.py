@@ -4,10 +4,11 @@ from decimal import Decimal
 from django import forms
 from django.contrib import messages
 from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views import View
 
+from .http_utils import obtener_por_uuid_o_404
 from .mixins import PermisoRequeridoMixin
 from .models import CuponTienda
 
@@ -60,6 +61,7 @@ class CuponesPanelView(PermisoRequeridoMixin, View):
     template_name = "core/cupones_panel.html"
 
     def _contexto(self, request, form=None):
+        """Construye el contexto del panel de cupones con métricas y formulario."""
         cupones = list(CuponTienda.objects.de_empresa(request.empresa).order_by("-creado_en"))
         activos = sum(1 for c in cupones if c.esta_vigente)
         usos_totales = sum(c.usos_actuales for c in cupones)
@@ -77,7 +79,10 @@ class CuponesPanelView(PermisoRequeridoMixin, View):
         accion = request.POST.get("accion", "crear")
 
         if accion == "toggle":
-            cupon = get_object_or_404(CuponTienda.objects.de_empresa(request.empresa), pk=request.POST.get("cupon_id"))
+            cupon = obtener_por_uuid_o_404(
+                CuponTienda.objects.de_empresa(request.empresa),
+                request.POST.get("cupon_id"),
+            )
             cupon.activo = not cupon.activo
             cupon.save(update_fields=["activo", "actualizado_en"])
             estado = "activado" if cupon.activo else "desactivado"
@@ -85,7 +90,10 @@ class CuponesPanelView(PermisoRequeridoMixin, View):
             return redirect("cupones_panel")
 
         if accion == "eliminar":
-            cupon = get_object_or_404(CuponTienda.objects.de_empresa(request.empresa), pk=request.POST.get("cupon_id"))
+            cupon = obtener_por_uuid_o_404(
+                CuponTienda.objects.de_empresa(request.empresa),
+                request.POST.get("cupon_id"),
+            )
             if cupon.usos_actuales > 0:
                 messages.warning(request, f"El cupón «{cupon.codigo}» ya fue usado; desactívalo en lugar de eliminarlo.")
             else:
