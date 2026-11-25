@@ -36,6 +36,9 @@
         <tbody>
           <tr><td>Subtotal productos</td><td class="num">$ {{ pedido.subtotal|floatformat:"-2g" }}</td></tr>
           <tr><td>IVA</td><td class="num">$ {{ pedido.iva|floatformat:"-2g" }}</td></tr>
+          {% if pedido.descuento %}
+          <tr><td>Descuento{% if pedido.cupon_codigo %} (<code>{{ pedido.cupon_codigo }}</code>){% endif %}</td><td class="num">- $ {{ pedido.descuento|floatformat:"-2g" }}</td></tr>
+          {% endif %}
           <tr><td>Costo de envío</td><td class="num">$ {{ pedido.costo_envio|floatformat:"-2g" }}</td></tr>
           <tr><td>Cargo pasarela (lo paga el comprador)</td><td class="num">$ {{ pedido.cargo_pasarela|floatformat:"-2g" }}</td></tr>
           <tr><td><strong>Total cobrado al comprador</strong></td><td class="num"><strong>$ {{ pedido.total|floatformat:"-2g" }}</strong></td></tr>

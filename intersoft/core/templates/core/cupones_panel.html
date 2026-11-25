@@ -1,0 +1,119 @@
+{% extends "core/base.html" %}
+{% block titulo %}Cupones de tienda · Intersoft{% endblock %}
+
+{% block contenido %}
+  <div class="encabezado">
+    <div>
+      <h1>Cupones de tienda</h1>
+      <p class="nota">Crea códigos de descuento para tus compradores en el Marketplace. Se validan automáticamente en el checkout.</p>
+    </div>
+    <a class="boton secundario" href="{% url 'pedidos_panel_lista' %}">Ver pedidos web</a>
+  </div>
+
+  <section class="kpis" style="margin-bottom: 22px;">
+    <article class="kpi">
+      <div class="kpi-cabecera"><span>Cupones creados</span></div>
+      <strong>{{ cupones|length }}</strong>
+      <small>Total configurado en tu negocio</small>
+    </article>
+    <article class="kpi verde">
+      <div class="kpi-cabecera"><span>Vigentes ahora</span></div>
+      <strong>{{ activos }}</strong>
+      <small>Activos y disponibles para aplicar</small>
+    </article>
+    <article class="kpi">
+      <div class="kpi-cabecera"><span>Usos acumulados</span></div>
+      <strong>{{ usos_totales }}</strong>
+      <small>Pedidos creados con descuento</small>
+    </article>
+  </section>
+
+  <article class="tarjeta" style="margin-bottom: 22px;">
+    <div class="tarjeta-cabecera">
+      <h2>Nuevo cupón</h2>
+      <span class="badge neutro">Marketplace</span>
+    </div>
+    <form method="post" class="form-compacto" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="crear">
+      {% for campo in form %}
+        <div class="campo{% if campo.errors %} con-error{% endif %}">
+          {{ campo.label_tag }}
+          {{ campo }}
+          {% for error in campo.errors %}<p class="error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="form-compacto-acciones">
+        <button type="submit" class="boton">Crear cupón</button>
+      </div>
+    </form>
+  </article>
+
+  <article class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2>Tus cupones</h2>
+      <span class="badge neutro">{% if cupones|length == 1 %}1 cupón{% else %}{{ cupones|length }} cupones{% endif %}</span>
+    </div>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descuento</th>
+            <th class="num">Compra mínima</th>
+            <th class="num">Usos</th>
+            <th>Vencimiento</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cupones %}
+            <tr>
+              <td><code>{{ c.codigo }}</code></td>
+              <td>
+                {% if c.tipo == "porcentaje" %}
+                  <strong>{{ c.valor|floatformat:"-2g" }}%</strong>
+                {% else %}
+                  <strong>$ {{ c.valor|floatformat:"-2g" }}</strong>
+                {% endif %}
+              </td>
+              <td class="num">{% if c.monto_minimo %}$ {{ c.monto_minimo|floatformat:"-2g" }}{% else %}—{% endif %}</td>
+              <td class="num">{{ c.usos_actuales }}{% if c.usos_maximos %} / {{ c.usos_maximos }}{% endif %}</td>
+              <td>{% if c.vence_en %}{{ c.vence_en|date:"d/m/Y H:i" }}{% else %}Sin vencimiento{% endif %}</td>
+              <td>
+                {% if c.esta_vigente %}
+                  <span class="badge exito">Vigente</span>
+                {% elif c.activo %}
+                  <span class="badge advertencia">Agotado / vencido</span>
+                {% else %}
+                  <span class="badge neutro">Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <form method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="toggle">
+                    <input type="hidden" name="cupon_id" value="{{ c.pk }}">
+                    <button type="submit" class="boton secundario pequeno">{% if c.activo %}Desactivar{% else %}Activar{% endif %}</button>
+                  </form>
+                  {% if c.usos_actuales == 0 %}
+                    <form method="post" style="margin:0;" data-confirmar="¿Eliminar el cupón «{{ c.codigo }}»?">
+                      {% csrf_token %}
+                      <input type="hidden" name="accion" value="eliminar">
+                      <input type="hidden" name="cupon_id" value="{{ c.pk }}">
+                      <button type="submit" class="boton peligro pequeno">Eliminar</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7">Aún no has creado cupones de descuento para tu tienda.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+{% endblock %}

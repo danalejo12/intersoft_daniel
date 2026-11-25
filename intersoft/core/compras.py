@@ -4,11 +4,12 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from . import bodegas, reservas
 from .impuestos import CENTAVOS, calcular_iva
-from .models import Comentario, DetallePedido, Orden, Pago, Pedido, Producto
+from .models import Comentario, CuponTienda, DetallePedido, Orden, Pago, Pedido, Producto
 from .pagos import PagoNoPermitido, ResultadoWompi, revisar_en_wompi, sincronizar_pago
 from .pasarelas import PasarelaNoDisponible, configuracion_activa, credenciales_negocio
 from .services import StockInsuficiente, siguiente_consecutivo
@@ -39,8 +40,23 @@ def calcular_costo_envio(*, negocio, total_productos, peso_total_gramos=0):
     return (base + por_kg * kilos).quantize(CENTAVOS)
 
 
+def evaluar_cupon(*, negocio, codigo, total_productos):
+    """Valida un código de cupón de tienda sin modificar usos; devuelve (cupon, descuento)."""
+    limpio = (codigo or "").strip().upper()
+    if not limpio:
+        return None, Decimal("0.00")
+    cupon = CuponTienda.objects.filter(empresa=negocio, codigo=limpio).first()
+    if cupon is None:
+        raise OperacionNoPermitida("El cupón ingresado no existe para este negocio.")
+    try:
+        cupon.validar_para(total_productos)
+    except ValueError as error:
+        raise OperacionNoPermitida(str(error)) from None
+    return cupon, cupon.calcular_descuento(total_productos)
+
+
 @transaction.atomic
-def crear_pedido(*, usuario, negocio, lineas, datos):
+def crear_pedido(*, usuario, negocio, lineas, datos, codigo_cupon=""):
     """Crea el pedido con precios congelados y reserva el stock: todo o nada. No crea factura."""
     try:
         credenciales_negocio(negocio.pk)
@@ -68,13 +84,32 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
 
     subtotal_redondeado = subtotal.quantize(CENTAVOS)
     total_productos = (subtotal_redondeado + iva).quantize(CENTAVOS)
+
+    cupon_aplicado = None
+    descuento = Decimal("0.00")
+    codigo_limpio = (codigo_cupon or "").strip().upper()
+    if codigo_limpio:
+        cupon_aplicado = (
+            CuponTienda.objects.select_for_update()
+            .filter(empresa=negocio, codigo=codigo_limpio)
+            .first()
+        )
+        if cupon_aplicado is None:
+            raise OperacionNoPermitida("El cupón ingresado no existe para este negocio.")
+        try:
+            cupon_aplicado.validar_para(total_productos)
+        except ValueError as error:
+            raise OperacionNoPermitida(str(error)) from None
+        descuento = cupon_aplicado.calcular_descuento(total_productos)
+
+    total_productos_neto = max(total_productos - descuento, Decimal("0.00")).quantize(CENTAVOS)
     costo_envio = calcular_costo_envio(
         negocio=negocio,
-        total_productos=total_productos,
+        total_productos=total_productos_neto,
         peso_total_gramos=peso_total_gramos,
     )
-    antes_de_pasarela = (total_productos + costo_envio).quantize(CENTAVOS)
-    cargo = cargo_pasarela(antes_de_pasarela, config=config)
+    antes_de_pasarela = (total_productos_neto + costo_envio).quantize(CENTAVOS)
+    cargo = cargo_pasarela(antes_de_pasarela, config=config) if antes_de_pasarela > 0 else Decimal("0.00")
     total = (antes_de_pasarela + cargo).quantize(CENTAVOS)
     comision_porcentaje = Decimal("0.00")
     comision_valor = Decimal("0.00")
@@ -90,6 +125,9 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         expira_en=_nuevo_vencimiento(),
         subtotal=subtotal_redondeado,
         iva=iva,
+        cupon=cupon_aplicado,
+        cupon_codigo=cupon_aplicado.codigo if cupon_aplicado else "",
+        descuento=descuento,
         costo_envio=costo_envio,
         cargo_pasarela=cargo,
         total=total,
@@ -107,6 +145,8 @@ def crear_pedido(*, usuario, negocio, lineas, datos):
         direccion=datos["direccion"],
         indicaciones=datos["indicaciones"],
     )
+    if cupon_aplicado is not None:
+        CuponTienda.objects.filter(pk=cupon_aplicado.pk).update(usos_actuales=F("usos_actuales") + 1)
     for producto in productos:
         DetallePedido.objects.create(
             empresa=negocio,

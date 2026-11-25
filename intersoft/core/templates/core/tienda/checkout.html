@@ -6,8 +6,11 @@
   <h1 class="titulo-compra">¿A dónde te lo enviamos?</h1>
   <p class="nota">Son solo unos datos. Todavía no se hace ningún cobro.</p>
 
+  <form id="form-cupon" method="get" action="{% url 'checkout' negocio.slug %}" hidden></form>
+
   <form method="post" class="compra-rejilla" data-un-envio>
     {% csrf_token %}
+    {% if cupon_aplicado %}<input type="hidden" name="cupon" value="{{ cupon_aplicado.codigo }}">{% endif %}
     <div class="panel-compra">
       {% include "core/tienda/datos_envio_campos.html" %}
     </div>
@@ -19,7 +22,24 @@
           <li><span>{{ linea.cantidad }} × {{ linea.producto.nombre }}</span><span>${{ linea.total|floatformat:"-2g" }}</span></li>
         {% endfor %}
       </ul>
+
+      <div class="cupon-caja">
+        <label for="id_cupon_checkout">¿Tienes un cupón de descuento?</label>
+        <div class="cupon-fila">
+          <input id="id_cupon_checkout" type="text" name="cupon" form="form-cupon" value="{{ cupon_codigo }}" placeholder="Ej.: BIENVENIDO10" autocomplete="off">
+          <button type="submit" form="form-cupon" class="boton secundario">Aplicar</button>
+        </div>
+        {% if cupon_aplicado %}
+          <p class="cupon-ok">Cupón <strong>{{ cupon_aplicado.codigo }}</strong> aplicado · <a href="{% url 'checkout' negocio.slug %}">Quitar</a></p>
+        {% elif cupon_error %}
+          <p class="cupon-error">{{ cupon_error }}</p>
+        {% endif %}
+      </div>
+
       <dl>
+        {% if descuento %}
+          <div class="resumen-descuento"><dt>Descuento ({{ cupon_aplicado.codigo }})</dt><dd>-${{ descuento|floatformat:"-2g" }}</dd></div>
+        {% endif %}
         <div>
           <dt>Envío</dt>
           <dd>
@@ -32,7 +52,7 @@
             {% endif %}
           </dd>
         </div>
-                {% if grupo.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
+        {% if grupo.cargo_pasarela %}<div><dt>Cargo pasarela de pagos (Wompi)</dt><dd>${{ grupo.cargo_pasarela|floatformat:"-2g" }}</dd></div>{% endif %}
         <div class="resumen-total"><dt>Total</dt><dd>${{ grupo.total|floatformat:"-2g" }}</dd></div>
       </dl>
       <button type="submit" class="boton boton-grande boton-ancho">Continuar al pago</button>

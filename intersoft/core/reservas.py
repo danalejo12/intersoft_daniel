@@ -5,9 +5,10 @@ Quien llama debe tener bloqueado el pedido (select_for_update) dentro de una tra
 import logging
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
-from .models import MovimientoInventario, Pedido
+from .models import CuponTienda, MovimientoInventario, Pedido
 from .notificaciones import (
     notificar_envio_actualizado,
     notificar_negocio_pedido_pagado,
@@ -49,10 +50,14 @@ def reservar_stock(pedido):
 
 
 def liberar_pedido(pedido, nuevo_estado):
-    """Devuelve el stock reservado. Solo un pedido pendiente tiene reserva."""
+    """Devuelve el stock reservado y libera el cupón si aplica. Solo un pedido pendiente tiene reserva."""
     if pedido.estado != Estado.PENDIENTE:
         raise ValueError("Este pedido no tiene una reserva activa.")
     _mover_stock(pedido, MovimientoInventario.Tipo.ENTRADA, f"Liberación pedido {pedido.numero}")
+    if pedido.cupon_id:
+        CuponTienda.objects.filter(pk=pedido.cupon_id, usos_actuales__gt=0).update(
+            usos_actuales=F("usos_actuales") - 1
+        )
     pedido.estado = nuevo_estado
     pedido.save(update_fields=["estado", "actualizado_en"])
 

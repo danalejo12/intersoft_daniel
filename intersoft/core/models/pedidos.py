@@ -54,6 +54,94 @@ class Orden(ModeloBase):
         return f"Orden {str(self.pk)[:8]}"
 
 
+class CuponTienda(ModeloTenant):
+    """Cupón de descuento propio de un negocio para compras en el marketplace."""
+
+    class Tipo(models.TextChoices):
+        PORCENTAJE = "porcentaje", "Porcentaje (%)"
+        FIJO = "fijo", "Valor fijo ($)"
+
+    codigo = models.CharField("código", max_length=40)
+    tipo = models.CharField("tipo de descuento", max_length=15, choices=Tipo.choices, default=Tipo.PORCENTAJE)
+    valor = models.DecimalField(
+        "valor",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    monto_minimo = models.DecimalField(
+        "compra mínima",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+    )
+    usos_maximos = models.PositiveIntegerField("usos máximos", null=True, blank=True)
+    usos_actuales = models.PositiveIntegerField("usos actuales", default=0)
+    inicia_en = models.DateTimeField("inicia en", default=timezone.now)
+    vence_en = models.DateTimeField("vence en", null=True, blank=True)
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        verbose_name = "cupón de tienda"
+        verbose_name_plural = "cupones de tienda"
+        ordering = ["-creado_en"]
+        constraints = [
+            models.UniqueConstraint(fields=["empresa", "codigo"], name="uq_cupon_tienda_codigo_por_empresa"),
+            models.CheckConstraint(condition=Q(valor__gt=0), name="ck_cupon_tienda_valor_positivo"),
+            models.CheckConstraint(condition=Q(monto_minimo__gte=0), name="ck_cupon_tienda_monto_minimo"),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.codigo = (self.codigo or "").strip().upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        sufijo = f"{self.valor}%" if self.tipo == self.Tipo.PORCENTAJE else f"${self.valor}"
+        return f"{self.codigo} ({sufijo})"
+
+    @property
+    def esta_vigente(self) -> bool:
+        ahora = timezone.now()
+        if not self.activo:
+            return False
+        if self.inicia_en and ahora < self.inicia_en:
+            return False
+        if self.vence_en and ahora > self.vence_en:
+            return False
+        if self.usos_maximos is not None and self.usos_actuales >= self.usos_maximos:
+            return False
+        return True
+
+    def validar_para(self, total_productos: Decimal, ahora=None) -> None:
+        """Valida si el cupón puede aplicarse a una compra; lanza ValueError con motivo claro."""
+        ahora = ahora or timezone.now()
+        if not self.activo:
+            raise ValueError("Este cupón no está activo.")
+        if self.inicia_en and ahora < self.inicia_en:
+            raise ValueError("Este cupón aún no está vigente.")
+        if self.vence_en and ahora > self.vence_en:
+            raise ValueError("Este cupón ya venció.")
+        if self.usos_maximos is not None and self.usos_actuales >= self.usos_maximos:
+            raise ValueError("Este cupón alcanzó el límite máximo de usos.")
+        if self.monto_minimo and total_productos < self.monto_minimo:
+            minimo_txt = f"$ {self.monto_minimo:,.0f}".replace(",", ".")
+            raise ValueError(f"Este cupón requiere una compra mínima de {minimo_txt} en productos.")
+
+    def calcular_descuento(self, total_productos: Decimal) -> Decimal:
+        """Calcula el descuento en COP redondeado a centavos, nunca mayor al total de productos."""
+        from core.impuestos import CENTAVOS
+
+        if total_productos <= 0:
+            return Decimal("0.00")
+        if self.tipo == self.Tipo.PORCENTAJE:
+            porcentaje = min(self.valor, Decimal("100"))
+            bruto = (total_productos * porcentaje / Decimal("100")).quantize(CENTAVOS)
+        else:
+            bruto = self.valor.quantize(CENTAVOS)
+        return min(bruto, total_productos).quantize(CENTAVOS)
+
+
 class Pedido(ModeloTenant):
     """Lo que compró una persona en un negocio. Guarda sus líneas y su total: la factura nace al pagar."""
 
@@ -103,6 +191,15 @@ class Pedido(ModeloTenant):
     pago_directo = models.BooleanField(default=False)  # False conserva el historial del antiguo recaudador.
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     iva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    cupon = models.ForeignKey(
+        CuponTienda,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos",
+    )
+    cupon_codigo = models.CharField(max_length=40, blank=True)
+    descuento = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     costo_envio = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     # Comisión de Wompi que paga el comprador; Wompi la descuenta y no llega al negocio.
     cargo_pasarela = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))

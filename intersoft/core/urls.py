@@ -6,7 +6,7 @@ from django.views.generic import TemplateView
 from pqrs import views as views_pqrs
 from suscripciones import views_panel as views_suscripciones_panel
 
-from . import views, views_bodegas, views_compra, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
+from . import views, views_bodegas, views_compra, views_cupones, views_equipo, views_erp, views_facturas, views_pagos, views_pedidos_panel, views_pos, views_tienda
 
 # Todo lo que exige negocio vive bajo panel/. Los nombres de ruta no cambian.
 panel_urlpatterns = [
@@ -72,6 +72,7 @@ panel_urlpatterns = [
     path("pedidos/", views_pedidos_panel.PedidoPanelListView.as_view(), name="pedidos_panel_lista"),
     path("pedidos/exportar/", views_pedidos_panel.PedidoPanelExportarExcelView.as_view(), name="pedidos_panel_exportar"),
     path("pedidos/<uuid:pk>/", views_pedidos_panel.PedidoPanelDetailView.as_view(), name="pedidos_panel_detalle"),
+    path("cupones/", views_cupones.CuponesPanelView.as_view(), name="cupones_panel"),
     path("pqrs/", views_pqrs.PanelPQRSListView.as_view(), name="panel_pqrs_lista"),
     path("pqrs/nueva/", views_pqrs.PanelPQRSNuevaView.as_view(), name="panel_pqrs_nueva"),
     path("pqrs/<uuid:pk>/", views_pqrs.PanelPQRSDetalleView.as_view(), name="panel_pqrs_detalle"),

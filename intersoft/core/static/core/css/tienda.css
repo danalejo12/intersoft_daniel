@@ -1886,3 +1886,63 @@ button svg,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* 7. Caja de cupón de descuento en checkout */
+.cupon-caja {
+  margin: 14px 0 16px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--borde);
+  background: var(--fondo);
+}
+
+.cupon-caja label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--texto);
+  margin-bottom: 8px;
+}
+
+.cupon-fila {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.cupon-fila input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-transform: uppercase;
+}
+
+.cupon-fila .boton {
+  min-height: 40px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.cupon-ok {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--exito-texto, #047857);
+}
+
+.cupon-error {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--peligro, #dc2626);
+}
+
+.resumen-descuento dt,
+.resumen-descuento dd {
+  color: var(--exito-texto, #047857);
+  font-weight: 600;
+}

@@ -196,6 +196,9 @@
       <dl>
         <div><dt>Productos</dt><dd>${{ pedido.subtotal|floatformat:"-2g" }}</dd></div>
         <div><dt>IVA</dt><dd>${{ pedido.iva|floatformat:"-2g" }}</dd></div>
+        {% if pedido.descuento %}
+          <div class="resumen-descuento"><dt>Descuento{% if pedido.cupon_codigo %} ({{ pedido.cupon_codigo }}){% endif %}</dt><dd>-${{ pedido.descuento|floatformat:"-2g" }}</dd></div>
+        {% endif %}
         {% if pedido.costo_envio %}
           <div><dt>Envío</dt><dd>${{ pedido.costo_envio|floatformat:"-2g" }}</dd></div>
         {% endif %}

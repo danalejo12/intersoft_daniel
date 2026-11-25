@@ -51,6 +51,9 @@
     <a href="{% url 'pedidos_panel_lista' %}" data-label="Pedidos web" aria-label="Pedidos web" class="{% if 'pedidos_panel' in ruta %}activo{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     </a>
+    <a href="{% url 'cupones_panel' %}" data-label="Cupones" aria-label="Cupones de tienda" class="{% if ruta == 'cupones_panel' %}activo{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="m9 15 6-6"/><circle cx="9.5" cy="9.5" r=".5" fill="currentColor"/><circle cx="14.5" cy="14.5" r=".5" fill="currentColor"/></svg>
+    </a>
     {% endif %}
     {% if nav_permisos.ver_clientes %}
     <a href="{% url 'clientes_lista' %}" data-label="Clientes" aria-label="Clientes" class="{% if 'clientes' in ruta %}activo{% endif %}">

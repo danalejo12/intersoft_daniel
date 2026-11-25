@@ -210,20 +210,68 @@ class CheckoutView(DatosEnvioMixin, FormView):
             return redirect("carrito")
         return super().dispatch(request, *args, **kwargs)
 
+    def _resumen_con_cupon(self, codigo_cupon):
+        """Evalúa el cupón (si hay) y calcula el resumen actualizado para el checkout."""
+        from .impuestos import CENTAVOS
+        from .pasarelas import configuracion_activa
+        from .tarifas import cargo_pasarela
+
+        codigo = (codigo_cupon or "").strip().upper()
+        grupo = dict(self.grupo)
+        cupon_obj = None
+        descuento = Decimal("0.00")
+        cupon_error = ""
+        if codigo:
+            total_productos = (grupo["subtotal"] + grupo["iva"]).quantize(CENTAVOS)
+            try:
+                cupon_obj, descuento = compras.evaluar_cupon(
+                    negocio=self.negocio,
+                    codigo=codigo,
+                    total_productos=total_productos,
+                )
+            except compras.OperacionNoPermitida as error:
+                cupon_error = str(error)
+            else:
+                total_neto = max(total_productos - descuento, Decimal("0.00")).quantize(CENTAVOS)
+                peso = sum((l["producto"].peso_gramos or 0) * l["cantidad"] for l in grupo["lineas"])
+                costo_envio = compras.calcular_costo_envio(
+                    negocio=self.negocio,
+                    total_productos=total_neto,
+                    peso_total_gramos=peso,
+                )
+                antes = (total_neto + costo_envio).quantize(CENTAVOS)
+                config = configuracion_activa(self.negocio.pk)
+                cargo = cargo_pasarela(antes, config=config) if antes > 0 else Decimal("0.00")
+                grupo["costo_envio"] = costo_envio
+                grupo["cargo_pasarela"] = cargo
+                grupo["total"] = (antes + cargo).quantize(CENTAVOS)
+        return grupo, cupon_obj, descuento, codigo, cupon_error
+
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["grupo"] = self.grupo
+        codigo_req = self.request.POST.get("cupon") if self.request.method == "POST" else self.request.GET.get("cupon", "")
+        grupo, cupon_obj, descuento, codigo, cupon_error = self._resumen_con_cupon(codigo_req)
+        contexto["grupo"] = grupo
         contexto["negocio"] = self.negocio
+        contexto["cupon_aplicado"] = cupon_obj
+        contexto["cupon_codigo"] = cupon_obj.codigo if cupon_obj else codigo
+        contexto["descuento"] = descuento
+        contexto["cupon_error"] = cupon_error
         return contexto
 
     def form_valid(self, form):
+        codigo_cupon = (self.request.POST.get("cupon") or "").strip().upper()
         try:
             pedido = compras.crear_pedido(
                 usuario=self.request.user,
                 negocio=self.negocio,
                 lineas=self.grupo["lineas"],
                 datos=form.cleaned_data,
+                codigo_cupon=codigo_cupon,
             )
+        except compras.OperacionNoPermitida as error:
+            messages.warning(self.request, str(error))
+            return self.render_to_response(self.get_context_data(form=form))
         except PagoNoPermitido as error:
             messages.warning(self.request, str(error))
             return redirect("carrito")
