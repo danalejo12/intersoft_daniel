@@ -23,6 +23,9 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
   - Catálogo público por negocio (`/tienda/<slug>/`), opiniones con insignia de compra verificada y cumplimiento del art. 53 de la Ley 1480 (datos legales del vendedor).
   - Reserva temporal de stock al confirmar pedido con bloqueo de filas (`select_for_update`), renovación controlada y liberación automática de pedidos vencidos (`liberar_pedidos_vencidos`).
   - Compra unificada (`/comprar/`): un checkout con los datos de envío una sola vez para varios negocios; cada negocio se paga por separado desde `/compras/<id>/`, porque cobra con su propia cuenta de Wompi.
+  - **Carrito persistente multi-dispositivo (`ItemCarrito`)**: los usuarios autenticados mantienen su carrito sincronizado en base de datos entre celular y computador, fusionando automáticamente los productos agregados como invitado al iniciar sesión.
+  - **Cupones de tienda por negocio (`/panel/cupones/`)**: códigos de descuento (`%` o `$`) con compra mínima, límite de usos y vigencia, aplicables en `/comprar/<slug>/` con validación atómica y devolución de uso si el pedido se cancela o vence.
+  - **Seguimiento de envío y notificaciones**: enlaces automáticos de rastreo para transportadoras colombianas (Servientrega, Coordinadora, Inter Rapidísimo, Envía, TCC, Deprisa, 4-72) o URL personalizada, correos transaccionales HTML + texto plano y aviso rápido por WhatsApp (`wa.me`).
   - Orden «Más vendidos» (unidades pagadas en los últimos 90 días) y relevancia que combina ventas con opiniones.
 - **Bodegas o sedes (`/panel/bodegas/`)**:
   - Stock por bodega (`Existencia`); `Producto.stock` es siempre la suma de todas las bodegas (`core/bodegas.py`).

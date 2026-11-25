@@ -191,11 +191,57 @@ erDiagram
         uuid orden_id FK
         uuid bodega_id FK
         uuid factura_id FK
+        uuid cupon_id FK
         int numero
         varchar estado
         varchar estado_envio
+        varchar cupon_codigo
+        decimal descuento
+        varchar transportadora
+        varchar numero_guia
+        url url_rastreo
         decimal total
         datetime expira_en
+    }
+
+    CORE_CUPONTIENDA {
+        uuid id PK
+        uuid empresa_id FK
+        varchar codigo UK
+        varchar tipo
+        decimal valor
+        decimal monto_minimo
+        int usos_maximos
+        int usos_actuales
+        datetime inicia_en
+        datetime vence_en
+        boolean activo
+    }
+
+    CORE_ITEMCARRITO {
+        uuid id PK
+        uuid usuario_id FK
+        uuid producto_id FK
+        int cantidad
+        datetime actualizado_en
+    }
+
+    DATOS_PERSONALES_AUTORIZACIONDATOS {
+        uuid id PK
+        uuid usuario_id FK
+        varchar version_politica
+        datetime aceptada_en
+        datetime revocada_en
+        varchar ip
+    }
+
+    DATOS_PERSONALES_SOLICITUDDATOS {
+        uuid id PK
+        uuid usuario_id FK
+        varchar tipo
+        varchar estado
+        text detalle
+        datetime vence_en
     }
 
     CORE_ORDEN {
@@ -307,4 +353,10 @@ erDiagram
     CORE_FACTURA |o--o| CORE_PEDIDO : "factura"
     CORE_FACTURA |o--o{ CORE_PAGO : "cobra"
     CORE_PEDIDO |o--o{ CORE_PAGO : "cobra"
+    CORE_EMPRESA ||--o{ CORE_CUPONTIENDA : "ofrece"
+    CORE_CUPONTIENDA |o--o{ CORE_PEDIDO : "aplica_descuento"
+    CORE_USUARIO ||--o{ CORE_ITEMCARRITO : "guarda"
+    CORE_PRODUCTO ||--o{ CORE_ITEMCARRITO : "en_carrito"
+    CORE_USUARIO ||--o{ DATOS_PERSONALES_AUTORIZACIONDATOS : "autoriza_ley1581"
+    CORE_USUARIO ||--o{ DATOS_PERSONALES_SOLICITUDDATOS : "radica_habeas_data"
 ```

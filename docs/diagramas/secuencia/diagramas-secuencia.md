@@ -268,3 +268,30 @@ sequenceDiagram
         end
     end
 ```
+
+## 10. Carrito Multi-dispositivo, Cupón de Tienda y Rastreo de Envío
+
+```mermaid
+sequenceDiagram
+    actor C as Comprador Web
+    actor N as Negocio (/panel/)
+    participant CAR as core.carrito (ItemCarrito)
+    participant CHK as CheckoutView / compras.py
+    participant DB as PostgreSQL
+    participant NOT as notificaciones.py (HTML / WhatsApp)
+
+    C->>CAR: Agrega productos como invitado (sesión) y luego inicia sesión
+    CAR->>DB: user_logged_in -> fusiona sesión en ItemCarrito (sincronizado entre dispositivos)
+    C->>CHK: GET /comprar/<slug>/?cupon=PROMO20
+    CHK->>DB: evaluar_cupon() valida vigencia, compra mínima y usos
+    CHK-->>C: Muestra descuento y total recalculado (con tarifa Wompi)
+    C->>CHK: POST checkout con cupón
+    CHK->>DB: @transaction.atomic bloquea Producto + CuponTienda, crea Pedido e incrementa usos_actuales
+    CHK->>CAR: quitar_lineas() limpia los ítems comprados de ItemCarrito
+
+    Note over N,DB: Una vez pagado el pedido en Wompi
+    N->>DB: POST /panel/pedidos/<id>/ (estado_envio=enviado, transportadora, numero_guia, url_rastreo)
+    DB-->>NOT: actualizar_envio_pedido() dispara correo HTML + texto con enlace_rastreo automático
+    NOT-->>C: Correo HTML con botón «Rastrear envío» (Servientrega, Coordinadora, Inter Rapidísimo, etc.)
+    N-->>C: Botón opcional «Avisar por WhatsApp» (wa.me prellenado con guía y enlace)
+```

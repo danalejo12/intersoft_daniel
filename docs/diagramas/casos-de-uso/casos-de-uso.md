@@ -29,8 +29,11 @@ flowchart LR
         UC_CAT["CU-08: Explorar Marketplace, carrito y checkout"]
         UC_UNIF["CU-18: Compra unificada en varios negocios (Orden)"]
         UC_PLAN_WOMPI["CU-19: Pagar plan de suscripción con Wompi"]
-        UC_DESP["CU-09: Gestionar despacho y guía de pedidos web"]
+        UC_DESP["CU-09: Gestionar despacho, guía, rastreo y aviso WhatsApp"]
         UC_REEM["CU-10: Registrar reembolso y dispersión de pedido"]
+        UC_CUP["CU-23: Crear cupones de tienda y aplicarlos en checkout"]
+        UC_CAR_SYNC["CU-24: Sincronizar carrito persistente multi-dispositivo"]
+        UC_DATOS["CU-25: Autorizar y ejercer derechos Habeas Data (Ley 1581)"]
     end
 
     subgraph SubsistemaERP["Inventario, Bodegas, ERP, DIAN y Contabilidad"]
@@ -55,6 +58,7 @@ flowchart LR
     ADM --> UC_SUS
     ADM --> UC_PLAN_WOMPI
     ADM --> UC_PAG_CFG
+    ADM --> UC_CUP
     ADM --> UC_REEM
 
     CAJ --> UC_PER
@@ -82,6 +86,9 @@ flowchart LR
     COMP --> UC_PER
     COMP --> UC_CAT
     COMP --> UC_UNIF
+    COMP --> UC_CUP
+    COMP --> UC_CAR_SYNC
+    COMP --> UC_DATOS
 
     CRON --> UC_VENC_PED
     CRON --> UC_VENC_SUS
@@ -104,3 +111,6 @@ flowchart LR
 | **CU-20** | Traslado entre bodegas | Bodega e Inventario | Plan con `multisede` y ≥2 bodegas activas | `bodegas.trasladar` bloquea existencias, resta en bodega origen, suma en bodega destino y registra `MovimientoInventario(TRASLADO)`. | Si origen = destino o falta stock en origen, lanza error sin alterar `Producto.stock`. |
 | **CU-21** | Venta POS desde una bodega | Cajero POS | Turno abierto con bodega elegida | El turno fija `TurnoCaja.bodega`; cada venta registra `Factura.bodega` y descuenta `Existencia` de esa bodega específica. | Si esa bodega no tiene existencias suficientes (aunque otras sedes sí), bloquea la venta (`StockInsuficiente`). |
 | **CU-22** | Tareas periódicas | Sistema / Cron | Scheduler activo (`tareas_periodicas`) | Reclama turno atómicamente en `EjecucionTarea`, ejecuta `liberar_pedidos_vencidos`, `verificar_suscripciones`, `conciliar_cobros_suscripcion` y `procesar_reservas_y_alertas`. | Si una tarea falla, incrementa `fallos_seguidos` y registra `ultimo_error` sin detener las demás. |
+| **CU-23** | Cupones de tienda en Marketplace | Administrador / Comprador | Cupón vigente en `CuponTienda` | El negocio crea códigos (`%` o `$`, compra mínima, tope de usos y vigencia) en `/panel/cupones/`; el comprador aplica el código en `/comprar/<slug>/` y el descuento se congela en `Pedido` recalculando Wompi. | Si el cupón está vencido, agotado, inactivo o pertenece a otro negocio, rechaza la aplicación; si el pedido se cancela/vence, devuelve el uso. |
+| **CU-24** | Carrito persistente multi-dispositivo | Comprador Web | Usuario autenticado | Los ítems se guardan en `ItemCarrito` en PostgreSQL y se sincronizan entre celular y PC; si agregó productos como invitado, `user_logged_in` los fusiona automáticamente al entrar. | Si el stock baja o un producto se desactiva, ajusta o elimina los registros en BD al consultar el carrito. |
+| **CU-25** | Cumplimiento Ley 1581 (Habeas Data) | Comprador / Plataforma | Usuario autenticado | El titular acepta la política vigente (`/privacidad/autorizar/`) y puede consultar, exportar o solicitar rectificación/supresión desde `/mis-datos/`, atendida en `/plataforma/datos-personales/`. | Sin autorización vigente en rutas protegidas, `ExigirAutorizacionDatosMiddleware` redirige a `/privacidad/autorizar/`. |

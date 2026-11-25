@@ -6,7 +6,7 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 
 
 ---
-## Aplicación: `core` (39 tablas)
+## Aplicación: `core` (41 tablas)
 
 ### Tabla `core_empresa` (`core.Empresa`)
 *Empresa(id, creado_en, actualizado_en, nombre, nit, slug, email, telefono, direccion, logo, descripcion, sitio_web, plan, activa, comision_porcentaje, tarifa_envio_base, tarifa_envio_por_kg, envio_gratis_desde)*
@@ -373,6 +373,9 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `pago_directo` | `boolean` | — | NO (`NOT NULL`) | Pago directo |
 | `subtotal` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Subtotal |
 | `iva` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Iva |
+| `cupon_id` | `uuid` | `FK` → `core_cupontienda`, `INDEX` | SÍ (`NULL`) | Cupón de tienda aplicado |
+| `cupon_codigo` | `varchar(40)` | — | NO (`NOT NULL`) | Código de cupón congelado al confirmar |
+| `descuento` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Descuento aplicado en COP |
 | `costo_envio` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Costo envio |
 | `cargo_pasarela` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Cargo pasarela |
 | `total` | `numeric(14, 2)` | — | NO (`NOT NULL`) | Total |
@@ -386,6 +389,7 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `estado_envio` | `varchar(20)` | — | NO (`NOT NULL`) | Estado envio |
 | `transportadora` | `varchar(80)` | — | NO (`NOT NULL`) | Transportadora |
 | `numero_guia` | `varchar(80)` | — | NO (`NOT NULL`) | Numero guia |
+| `url_rastreo` | `varchar(300)` | — | NO (`NOT NULL`) | URL personalizada de rastreo (http/https) |
 | `enviado_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Enviado en |
 | `entregado_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Entregado en |
 | `reembolsado_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Reembolsado en |
@@ -401,6 +405,37 @@ Este documento detalla todas las tablas, columnas, tipos de datos PostgreSQL, re
 | `ciudad` | `varchar(80)` | — | NO (`NOT NULL`) | Ciudad |
 | `direccion` | `varchar(200)` | — | NO (`NOT NULL`) | Direccion |
 | `indicaciones` | `varchar(200)` | — | NO (`NOT NULL`) | Indicaciones |
+
+### Tabla `core_cupontienda` (`core.CuponTienda`)
+*Cupón de descuento propio de un negocio para compras en el marketplace.*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `empresa_id` | `uuid` | `FK` → `core_empresa`, `INDEX` | NO (`NOT NULL`) | Empresa |
+| `codigo` | `varchar(40)` | `UK (empresa_id, codigo)` | NO (`NOT NULL`) | Código en mayúsculas sin espacios |
+| `tipo` | `varchar(15)` | — | NO (`NOT NULL`) | `porcentaje` o `fijo` |
+| `valor` | `numeric(12, 2)` | `CHECK (valor > 0)` | NO (`NOT NULL`) | Porcentaje o monto en COP |
+| `monto_minimo` | `numeric(12, 2)` | `CHECK (monto_minimo >= 0)` | NO (`NOT NULL`) | Compra mínima en productos |
+| `usos_maximos` | `integer` | — | SÍ (`NULL`) | Límite máximo de usos (`NULL` = ilimitado) |
+| `usos_actuales` | `integer` | — | NO (`NOT NULL`) | Usos consumidos |
+| `inicia_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Inicio de vigencia |
+| `vence_en` | `timestamp with time zone` | — | SÍ (`NULL`) | Fin de vigencia |
+| `activo` | `boolean` | — | NO (`NOT NULL`) | Activo |
+
+### Tabla `core_itemcarrito` (`core.ItemCarrito`)
+*Línea persistente del carrito para usuarios autenticados (sincronizada entre dispositivos).*
+
+| Columna | Tipo PostgreSQL | Llave / Restricciones | Nulable | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `uuid` | `PK` | NO (`NOT NULL`) | Id |
+| `creado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Creado en |
+| `actualizado_en` | `timestamp with time zone` | — | NO (`NOT NULL`) | Actualizado en |
+| `usuario_id` | `uuid` | `FK` → `core_usuario`, `UK (usuario_id, producto_id)` | NO (`NOT NULL`) | Usuario autenticado |
+| `producto_id` | `uuid` | `FK` → `core_producto`, `UK (usuario_id, producto_id)` | NO (`NOT NULL`) | Producto guardado |
+| `cantidad` | `integer` | `CHECK (cantidad > 0)` | NO (`NOT NULL`) | Unidades en carrito |
 
 ### Tabla `core_detallepedido` (`core.DetallePedido`)
 *DetallePedido(id, creado_en, actualizado_en, empresa, pedido, producto, cantidad, precio_unitario, iva_porcentaje)*

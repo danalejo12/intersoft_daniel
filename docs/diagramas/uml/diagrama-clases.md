@@ -151,14 +151,42 @@ classDiagram
         +DateTime creado_en
     }
 
+    class CuponTienda {
+        +String codigo
+        +String tipo
+        +Decimal valor
+        +Decimal monto_minimo
+        +Integer usos_maximos
+        +Integer usos_actuales
+        +DateTime inicia_en
+        +DateTime vence_en
+        +Boolean activo
+        +validar_para(total) void
+        +calcular_descuento(total) Decimal
+    }
+
+    class ItemCarrito {
+        +Usuario usuario
+        +Producto producto
+        +Integer cantidad
+    }
+
     class Pedido {
         +Orden orden
         +Bodega bodega
+        +CuponTienda cupon
         +Integer numero
         +String estado
         +String estado_envio
+        +String cupon_codigo
+        +Decimal descuento
+        +String transportadora
+        +String numero_guia
+        +URL url_rastreo
         +Decimal total
         +DateTime expira_en
+        +enlace_rastreo() str
+        +enlace_whatsapp_envio() str
     }
 
     class Bodega {
@@ -213,6 +241,7 @@ classDiagram
     ModeloBase <|-- Suscripcion
     ModeloBase <|-- HistorialSuscripcion
     ModeloBase <|-- Orden
+    ModeloBase <|-- ItemCarrito
     ModeloBase <|-- EjecucionTarea
     ModeloBase <|-- CobroSuscripcion
 
@@ -226,6 +255,7 @@ classDiagram
     ModeloTenant <|-- Factura
     ModeloTenant <|-- DetalleFactura
     ModeloTenant <|-- TurnoCaja
+    ModeloTenant <|-- CuponTienda
     ModeloTenant <|-- Pedido
     ModeloTenant <|-- Pago
 
@@ -256,4 +286,8 @@ classDiagram
     Plan "1" -- "*" CobroSuscripcion : factura
     Factura "0..1" -- "*" Pago : cobra
     Pedido "0..1" -- "*" Pago : cobra
+    Empresa "1" -- "*" CuponTienda : ofrece
+    CuponTienda "0..1" -- "*" Pedido : descuenta
+    Usuario "1" -- "*" ItemCarrito : sincroniza
+    Producto "1" -- "*" ItemCarrito : guarda
 ```
