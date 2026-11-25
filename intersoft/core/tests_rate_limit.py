@@ -23,8 +23,13 @@ DATOS_ENVIO = {
 }
 
 
+@override_settings(RATELIMIT_ACTIVO=True)
 class RateLimitYAntiAcaparamientoTests(TestCase):
     """Verifica límites de tasa HTTP 429 y tope de pedidos pendientes simultáneos."""
+
+    def tearDown(self):
+        cache.clear()
+        super().tearDown()
 
     def setUp(self):
         cache.clear()

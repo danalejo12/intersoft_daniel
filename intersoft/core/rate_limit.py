@@ -5,9 +5,13 @@ from django.http import HttpResponse
 
 
 def ip_cliente(request) -> str:
-    """Obtiene la IP del cliente respetando X-Forwarded-For cuando existe proxy inverso."""
-    reenviada = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
-    return reenviada or (request.META.get("REMOTE_ADDR") or "0.0.0.0")
+    """Obtiene la IP real del cliente respetando RATELIMIT_PROXIES_DE_CONFIANZA."""
+    proxies = getattr(settings, "RATELIMIT_PROXIES_DE_CONFIANZA", 0)
+    if proxies > 0:
+        reenviada = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+        if reenviada:
+            return reenviada
+    return request.META.get("REMOTE_ADDR") or "0.0.0.0"
 
 
 def verificar_limite(
@@ -19,7 +23,7 @@ def verificar_limite(
     por_usuario: bool = False,
 ) -> bool:
     """Incrementa el contador del ámbito y devuelve True si aún está dentro del límite permitido."""
-    if not getattr(settings, "RATE_LIMIT_ACTIVO", True):
+    if not getattr(settings, "RATELIMIT_ACTIVO", True):
         return True
     usuario = getattr(request, "user", None)
     if por_usuario and usuario is not None and getattr(usuario, "is_authenticated", False):
