@@ -656,14 +656,43 @@ class SalirModoSoporteView(PlataformaMixin, View):
 
 
 class PlataformaTOTPView(PlataformaMixin, View):
-    """Enrolamiento y verificación obligatoria 2FA/TOTP para personal de /plataforma/."""
+    """Enrolamiento, verificación 2FA/TOTP, códigos de recuperación y límite de intentos para /plataforma/."""
 
     permiso = ""
     requiere_totp = False
     template_name = "plataforma/totp.html"
+    max_intentos = 5
+    ventana_bloqueo_segundos = 15 * 60
+
+    @staticmethod
+    def _clave_intentos(user_id) -> str:
+        """Clave de caché para contabilizar intentos fallidos de TOTP por usuario."""
+        return f"plataforma:totp:intentos:{user_id}"
+
+    def _esta_bloqueado(self, user_id) -> bool:
+        """Devuelve True si el usuario excedió el límite de intentos fallidos de 2FA."""
+        from django.core.cache import cache
+
+        return (cache.get(self._clave_intentos(user_id)) or 0) >= self.max_intentos
+
+    def _registrar_fallo(self, user_id) -> int:
+        """Incrementa el contador de intentos fallidos de 2FA en caché."""
+        from django.core.cache import cache
+
+        clave = self._clave_intentos(user_id)
+        intentos = (cache.get(clave) or 0) + 1
+        cache.set(clave, intentos, self.ventana_bloqueo_segundos)
+        return intentos
+
+    def _limpiar_fallos(self, user_id) -> None:
+        """Reinicia el contador de intentos fallidos tras una verificación exitosa."""
+        from django.core.cache import cache
+
+        cache.delete(self._clave_intentos(user_id))
 
     def get(self, request):
         rol = request.rol_plataforma
+        codigos_nuevos = request.session.pop("plataforma_totp_codigos_nuevos", None)
         if not rol.totp_activo:
             secreto = request.session.get("plataforma_totp_setup") or generar_secreto_totp()
             request.session["plataforma_totp_setup"] = secreto
@@ -678,15 +707,43 @@ class PlataformaTOTPView(PlataformaMixin, View):
                     "qr_totp": qr_data_uri(uri),
                 },
             )
-        return render(request, self.template_name, {"configurando": False})
+        return render(
+            request,
+            self.template_name,
+            {
+                "configurando": False,
+                "codigos_nuevos": codigos_nuevos,
+                "codigos_restantes": len(rol.totp_codigos_recuperacion or []),
+                "bloqueado": self._esta_bloqueado(request.user.pk),
+            },
+        )
 
     def post(self, request):
+        import time
+
         rol = request.rol_plataforma
+        if self._esta_bloqueado(request.user.pk):
+            messages.error(
+                request,
+                "Demasiados intentos fallidos de 2FA. Espera 15 minutos antes de volver a intentarlo.",
+            )
+            return render(
+                request,
+                self.template_name,
+                {
+                    "configurando": not rol.totp_activo,
+                    "codigos_restantes": len(rol.totp_codigos_recuperacion or []),
+                    "bloqueado": True,
+                },
+                status=429,
+            )
+
         codigo = (request.POST.get("codigo") or "").strip()
 
         if not rol.totp_activo:
             secreto = request.session.get("plataforma_totp_setup") or ""
             if not verificar_codigo_totp(secreto, codigo):
+                self._registrar_fallo(request.user.pk)
                 messages.error(request, "Código TOTP inválido. Verifica la hora de tu dispositivo e inténtalo de nuevo.")
                 uri = uri_otpauth(secreto, request.user.email)
                 return render(
@@ -699,35 +756,72 @@ class PlataformaTOTPView(PlataformaMixin, View):
                         "qr_totp": qr_data_uri(uri),
                     },
                 )
+            self._limpiar_fallos(request.user.pk)
             rol.establecer_totp_secreto(secreto)
             rol.totp_activo = True
-            rol.save(update_fields=["totp_secreto_cifrado", "totp_activo", "actualizado_en"])
+            codigos_planos = rol.generar_codigos_recuperacion()
+            rol.save(
+                update_fields=[
+                    "totp_secreto_cifrado",
+                    "totp_activo",
+                    "totp_codigos_recuperacion",
+                    "actualizado_en",
+                ]
+            )
             request.session.pop("plataforma_totp_setup", None)
             request.session["plataforma_totp_verificado"] = str(request.user.pk)
+            request.session["plataforma_totp_ultima_actividad"] = int(time.time())
+            request.session["plataforma_totp_codigos_nuevos"] = codigos_planos
             auditoria.registrar(
                 actor=request.user,
                 accion="activar_totp",
                 objeto_tipo="RolPlataforma",
                 objeto_id=str(rol.pk),
-                detalle={"rol": rol.rol},
+                detalle={"rol": rol.rol, "codigos_recuperacion": len(codigos_planos)},
                 request=request,
             )
-            messages.success(request, "Autenticación en dos pasos (2FA) activada correctamente.")
-            return redirect("plataforma_inicio")
+            messages.success(
+                request,
+                "Autenticación en dos pasos (2FA) activada. Guarda tus códigos de recuperación en un lugar seguro.",
+            )
+            return redirect("plataforma_totp")
 
+        uso_recuperacion = False
         if not verificar_codigo_totp(rol.totp_secreto, codigo):
-            messages.error(request, "Código TOTP incorrecto.")
-            return render(request, self.template_name, {"configurando": False})
+            if rol.consumir_codigo_recuperacion(codigo):
+                uso_recuperacion = True
+            else:
+                self._registrar_fallo(request.user.pk)
+                messages.error(request, "Código TOTP o código de recuperación incorrecto.")
+                return render(
+                    request,
+                    self.template_name,
+                    {
+                        "configurando": False,
+                        "codigos_restantes": len(rol.totp_codigos_recuperacion or []),
+                        "bloqueado": self._esta_bloqueado(request.user.pk),
+                    },
+                )
 
+        self._limpiar_fallos(request.user.pk)
         request.session["plataforma_totp_verificado"] = str(request.user.pk)
+        request.session["plataforma_totp_ultima_actividad"] = int(time.time())
         auditoria.registrar(
             actor=request.user,
-            accion="verificar_totp",
+            accion="usar_codigo_recuperacion_totp" if uso_recuperacion else "verificar_totp",
             objeto_tipo="RolPlataforma",
             objeto_id=str(rol.pk),
-            detalle={"rol": rol.rol},
+            detalle={
+                "rol": rol.rol,
+                "codigos_restantes": len(rol.totp_codigos_recuperacion or []),
+            },
             request=request,
         )
+        if uso_recuperacion:
+            messages.warning(
+                request,
+                f"Ingresaste con un código de recuperación. Te quedan {len(rol.totp_codigos_recuperacion or [])}.",
+            )
         return redirect("plataforma_inicio")
 
 

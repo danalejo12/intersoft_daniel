@@ -1,5 +1,8 @@
 """Modelos de la consola interna de plataforma: roles internos, auditoría y llaves de cobro de Intersoft."""
+import secrets
+
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import OperationalError, ProgrammingError, models
 from django.db.models import Q
 from django.utils import timezone
@@ -48,13 +51,46 @@ class RolPlataforma(ModeloBase):
     activo = models.BooleanField("activo", default=True)
     totp_secreto_cifrado = models.TextField(blank=True)
     totp_activo = models.BooleanField("2FA TOTP activado", default=False)
+    totp_codigos_recuperacion = models.JSONField(
+        "códigos de recuperación 2FA (hasheados)", default=list, blank=True
+    )
 
     @property
     def totp_secreto(self) -> str:
+        """Devuelve el secreto TOTP descifrado."""
         return descifrar(self.totp_secreto_cifrado)
 
     def establecer_totp_secreto(self, secreto: str) -> None:
+        """Cifra y almacena el secreto TOTP del usuario."""
         self.totp_secreto_cifrado = cifrar(secreto) if secreto else ""
+
+    def generar_codigos_recuperacion(self, cantidad: int = 8) -> list[str]:
+        """Genera códigos de recuperación de un solo uso, guarda solo sus hashes y devuelve los planos una vez."""
+        alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        planos = []
+        hashes = []
+        for _ in range(cantidad):
+            parte_a = "".join(secrets.choice(alfabeto) for _ in range(4))
+            parte_b = "".join(secrets.choice(alfabeto) for _ in range(4))
+            codigo = f"{parte_a}-{parte_b}"
+            planos.append(codigo)
+            hashes.append(make_password(f"{parte_a}{parte_b}"))
+        self.totp_codigos_recuperacion = hashes
+        return planos
+
+    def consumir_codigo_recuperacion(self, codigo: str) -> bool:
+        """Verifica y consume un código de recuperación de un solo uso; devuelve True si era válido."""
+        limpio = "".join(c for c in (codigo or "").strip().upper() if c.isalnum())
+        if len(limpio) != 8:
+            return False
+        hashes = list(self.totp_codigos_recuperacion or [])
+        for idx, h in enumerate(hashes):
+            if check_password(limpio, h):
+                del hashes[idx]
+                self.totp_codigos_recuperacion = hashes
+                self.save(update_fields=["totp_codigos_recuperacion", "actualizado_en"])
+                return True
+        return False
 
     class Meta:
         verbose_name = "rol de plataforma"

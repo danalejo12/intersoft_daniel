@@ -1,4 +1,8 @@
 """Mixins de control de acceso por rol interno para /plataforma/."""
+import time
+
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
@@ -34,6 +38,16 @@ class PlataformaMixin(LoginRequiredMixin):
             raise PermissionDenied("Tu rol interno no tiene permiso para esta sección.")
 
         request.rol_plataforma = rol_plataforma
-        if self.requiere_totp and request.session.get("plataforma_totp_verificado") != str(request.user.pk):
-            return redirect("plataforma_totp")
+        if self.requiere_totp:
+            if request.session.get("plataforma_totp_verificado") != str(request.user.pk):
+                return redirect("plataforma_totp")
+            timeout_min = getattr(settings, "PLATAFORMA_TOTP_TIMEOUT_MINUTOS", 30)
+            ahora = int(time.time())
+            ultima = request.session.get("plataforma_totp_ultima_actividad")
+            if ultima is not None and (ahora - int(ultima)) > int(timeout_min) * 60:
+                request.session.pop("plataforma_totp_verificado", None)
+                request.session.pop("plataforma_totp_ultima_actividad", None)
+                messages.info(request, "Tu verificación 2FA expiró por inactividad. Ingresa un código nuevo.")
+                return redirect("plataforma_totp")
+            request.session["plataforma_totp_ultima_actividad"] = ahora
         return super().dispatch(request, *args, **kwargs)

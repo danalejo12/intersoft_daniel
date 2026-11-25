@@ -134,6 +134,21 @@
     </form>
   </section>
 
+  <article class="tarjeta" style="margin-top: 22px;">
+    <div class="tarjeta-cabecera">
+      <h2>Seguridad y sesiones activas</h2>
+      <span class="badge neutro">Cuenta</span>
+    </div>
+    <p class="nota">Si iniciaste sesión en otro computador o perdiste tu celular, puedes cerrar todas las demás sesiones activas sin cerrar esta.</p>
+    <div class="acciones-fila" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <form method="post" action="{% url 'perfil_cerrar_otras_sesiones' %}" style="margin:0;" data-confirmar="¿Cerrar tu sesión en todos los demás dispositivos?">
+        {% csrf_token %}
+        <button type="submit" class="boton secundario">Cerrar sesión en otros dispositivos</button>
+      </form>
+      <a class="boton secundario" href="{% url 'mis_datos' %}">Privacidad y mis datos (Ley 1581)</a>
+    </div>
+  </article>
+
   <div data-preview-imagen
        data-preview-input="{{ form.foto.id_for_label }}"
        data-preview-target="perfil-preview"

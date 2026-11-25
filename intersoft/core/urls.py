@@ -153,6 +153,11 @@ urlpatterns = [
     path("entrar/", views_tienda.despues_de_login, name="despues_login"),
     path("perfil/", views.PerfilView.as_view(), name="perfil"),
     path(
+        "perfil/cerrar-otras-sesiones/",
+        views.CerrarOtrasSesionesView.as_view(),
+        name="perfil_cerrar_otras_sesiones",
+    ),
+    path(
         "recuperar-contrasena/",
         views.RecuperarContrasenaView.as_view(),
         name="password_reset",

@@ -338,6 +338,38 @@ class PerfilView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
         return contexto
 
 
+class CerrarOtrasSesionesView(LoginRequiredMixin, View):
+    """Cierra todas las demás sesiones activas del usuario manteniendo viva únicamente la actual."""
+
+    http_method_names = ["post"]
+
+    def post(self, request):
+        from django.contrib.sessions.models import Session
+        from django.shortcuts import redirect
+
+        uid_actual = str(request.user.pk)
+        clave_actual = request.session.session_key
+        claves_a_borrar = []
+        for sesion in Session.objects.filter(expire_date__gte=timezone.now()).iterator():
+            if sesion.session_key == clave_actual:
+                continue
+            try:
+                datos = sesion.get_decoded()
+            except Exception:
+                continue
+            if str(datos.get("_auth_user_id") or "") == uid_actual:
+                claves_a_borrar.append(sesion.session_key)
+        if claves_a_borrar:
+            Session.objects.filter(session_key__in=claves_a_borrar).delete()
+            messages.success(
+                request,
+                f"Se cerraron {len(claves_a_borrar)} sesión(es) activa(s) en otros dispositivos.",
+            )
+        else:
+            messages.info(request, "No tenías otras sesiones abiertas en otros dispositivos.")
+        return redirect("perfil")
+
+
 class RecuperarContrasenaView(auth_views.PasswordResetView):
     """Solicita restablecimiento de contraseña y, solo en DEBUG=True, guarda un acceso de prueba en sesión."""
 

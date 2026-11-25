@@ -10,32 +10,43 @@
   </div>
 
   <article class="tarjeta totp-tarjeta">
-    {% if configurando %}
-      <h2>Activar 2FA en tu cuenta</h2>
-      <p>Escanea este código QR con <strong>Google Authenticator</strong>, <strong>Authy</strong> o tu gestor de contraseñas:</p>
+    {% if codigos_nuevos %}
+      <h2>Guarda tus códigos de recuperación</h2>
+      <p>Cada código funciona <strong>una sola vez</strong> si pierdes acceso a tu app de autenticación. No volverán a mostrarse.</p>
+      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0 18px;">
+        {% for c in codigos_nuevos %}
+          <code class="totp-secreto" style="text-align:center;">{{ c }}</code>
+        {% endfor %}
+      </div>
+      <a class="boton" href="{% url 'plataforma_inicio' %}">Ya los guardé, entrar a la consola</a>
+    {% else %}
+      {% if configurando %}
+        <h2>Activar 2FA en tu cuenta</h2>
+        <p>Escanea este código QR con <strong>Google Authenticator</strong>, <strong>Authy</strong> o tu gestor de contraseñas:</p>
 
-      {% if qr_totp %}
-        <div class="totp-qr-caja">
-          <img src="{{ qr_totp }}" alt="Código QR para configurar 2FA en tu aplicación de autenticación" width="210" height="210">
-        </div>
+        {% if qr_totp %}
+          <div class="totp-qr-caja">
+            <img src="{{ qr_totp }}" alt="Código QR para configurar 2FA en tu aplicación de autenticación" width="210" height="210">
+          </div>
+        {% endif %}
+
+        <p class="nota">Si prefieres ingresarlo manualmente, usa esta clave (basada en tiempo):</p>
+        <p><code class="totp-secreto">{{ secreto_nuevo }}</code></p>
+      {% else %}
+        <h2>Ingresa tu código de verificación</h2>
+        <p class="nota">Escribe el código de 6 dígitos de tu app de autenticación, o uno de tus códigos de recuperación (<code>XXXX-XXXX</code>).</p>
       {% endif %}
 
-      <p class="nota">Si prefieres ingresarlo manualmente, usa esta clave (basada en tiempo):</p>
-      <p><code class="totp-secreto">{{ secreto_nuevo }}</code></p>
-    {% else %}
-      <h2>Ingresa tu código de verificación</h2>
-      <p class="nota">Escribe el código de 6 dígitos generado por tu aplicación de autenticación.</p>
+      <form method="post" class="formulario" novalidate>
+        {% csrf_token %}
+        <div class="campo">
+          <label for="id_codigo">Código TOTP o de recuperación</label>
+          <input id="id_codigo" type="text" name="codigo" maxlength="12" autocomplete="one-time-code" required autofocus{% if bloqueado %} disabled{% endif %}>
+        </div>
+        <button type="submit" class="boton"{% if bloqueado %} disabled{% endif %}>
+          {% if configurando %}Activar y ver códigos de respaldo{% else %}Verificar código{% endif %}
+        </button>
+      </form>
     {% endif %}
-
-    <form method="post" class="formulario" novalidate>
-      {% csrf_token %}
-      <div class="campo">
-        <label for="id_codigo">Código TOTP (6 dígitos)</label>
-        <input id="id_codigo" type="text" name="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required autofocus>
-      </div>
-      <button type="submit" class="boton">
-        {% if configurando %}Activar y entrar{% else %}Verificar código{% endif %}
-      </button>
-    </form>
   </article>
 {% endblock %}
