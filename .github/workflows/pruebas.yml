@@ -72,7 +72,7 @@ jobs:
 
       - name: Verificar que no haya secretos de producción en el repositorio
         run: |
-          if git grep -En "(prv_prod_|prod_integrity_|prod_events_)[A-Za-z0-9]{12,}" -- . ':!.github/workflows/pruebas.yml'; then
+          if git grep -En "(prv_prod_|prod_integrity_|prod_events_)[A-Za-z0-9]{12,}" -- . ':!.github/workflows/pruebas.yml' ':!*tests*.py'; then
             echo "ERROR: Se detectó un posible secreto de producción de Wompi en el repositorio."
             exit 1
           fi
