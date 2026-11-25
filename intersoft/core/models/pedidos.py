@@ -400,3 +400,27 @@ class Favorito(ModeloBase):
     def __str__(self):
         return f"{self.usuario} ♥ {self.producto}"
 
+
+class ItemCarrito(ModeloBase):
+    """Línea persistente del carrito para usuarios autenticados (sincronizada entre dispositivos)."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="items_carrito"
+    )
+    producto = models.ForeignKey(
+        "Producto", on_delete=models.CASCADE, related_name="items_carrito"
+    )
+    cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+    class Meta:
+        verbose_name = "ítem de carrito"
+        verbose_name_plural = "ítems de carrito"
+        ordering = ["-actualizado_en"]
+        constraints = [
+            models.UniqueConstraint(fields=["usuario", "producto"], name="uq_item_carrito_usuario_producto"),
+            models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_item_carrito_cantidad_positiva"),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} · {self.cantidad} × {self.producto}"
+
