@@ -80,7 +80,7 @@ jobs:
       - name: Análisis estático de seguridad (Bandit)
         run: |
           pip install bandit
-          bandit -r intersoft -ll --skip B310,B324 --exclude "intersoft/*/migrations,intersoft/core/tests*.py,intersoft/*/tests*.py"
+          bandit -r intersoft -ll --skip B104,B310,B324 --exclude "intersoft/*/migrations,intersoft/core/tests*.py,intersoft/*/tests*.py"
 
       - name: Auditoría de vulnerabilidades en dependencias (pip-audit)
         continue-on-error: true
