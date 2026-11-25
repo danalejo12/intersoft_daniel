@@ -14,14 +14,10 @@ MAX_BYTES_CAPTURA = 5 * 1024 * 1024
 
 
 def validar_captura_soporte(archivo):
-    """Valida que la captura sea una imagen permitida de máximo 5 MB."""
-    if not archivo:
-        return
-    ext = os.path.splitext(getattr(archivo, "name", "") or "")[1].lower()
-    if ext not in EXTENSIONES_CAPTURA:
-        raise ValidationError("Formato no permitido. Sube una imagen (JPG, PNG, WEBP o GIF).")
-    if archivo.size > MAX_BYTES_CAPTURA:
-        raise ValidationError("La captura supera el máximo permitido de 5 MB.")
+    """Valida que la captura sea una imagen real (por magic bytes) de máximo 5 MB."""
+    from core.archivos_seguros import validar_firma_archivo
+
+    validar_firma_archivo(archivo, permitir_pdf=False, max_bytes=MAX_BYTES_CAPTURA)
 
 
 class ErrorRegistrado(ModeloBase):

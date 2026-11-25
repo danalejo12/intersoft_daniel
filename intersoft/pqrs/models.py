@@ -16,17 +16,10 @@ MAX_BYTES_ADJUNTO_PQRS = 5 * 1024 * 1024  # 5 MB
 
 
 def validar_archivo_pqrs(archivo):
-    """Valida que el adjunto sea imagen o PDF y no supere 5 MB."""
-    if not archivo:
-        return
-    nombre = getattr(archivo, "name", "") or ""
-    ext = os.path.splitext(nombre)[1].lower()
-    if ext not in EXTENSIONES_PERMITIDAS_PQRS:
-        raise ValidationError(
-            "Formato de archivo no permitido. Usa imágenes (JPG, PNG, WEBP, GIF) o PDF."
-        )
-    if archivo.size > MAX_BYTES_ADJUNTO_PQRS:
-        raise ValidationError("El archivo supera el tamaño máximo permitido de 5 MB.")
+    """Valida que el adjunto sea imagen o PDF real (por magic bytes) y no supere 5 MB."""
+    from core.archivos_seguros import validar_firma_archivo
+
+    validar_firma_archivo(archivo, permitir_pdf=True, max_bytes=MAX_BYTES_ADJUNTO_PQRS)
 
 
 class SecuenciaRadicadoPQRS(ModeloBase):

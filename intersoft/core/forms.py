@@ -276,9 +276,14 @@ class ProductoForm(forms.ModelForm):
         return self.cleaned_data.get("peso_gramos") or 0
 
     def clean_imagen(self):
+        from .archivos_seguros import sanitizar_imagen, validar_firma_archivo
+
         imagen = self.cleaned_data.get("imagen")
-        if isinstance(imagen, UploadedFile) and imagen.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("La imagen no puede pesar más de 5 MB.")
+        if isinstance(imagen, UploadedFile):
+            if imagen.size > IMAGEN_TAMANO_MAXIMO:
+                raise forms.ValidationError("La imagen no puede pesar más de 5 MB.")
+            validar_firma_archivo(imagen, permitir_pdf=False, max_bytes=IMAGEN_TAMANO_MAXIMO)
+            imagen = sanitizar_imagen(imagen)
         # False = el usuario marcó "limpiar". Si la foto cambia, el crédito de la anterior ya no aplica
         if imagen is False or isinstance(imagen, UploadedFile):
             self.instance.imagen_credito = ""
@@ -356,9 +361,14 @@ class DatosNegocioForm(forms.ModelForm):
             self.fields[campo].required = False
 
     def clean_logo(self):
+        from .archivos_seguros import sanitizar_imagen, validar_firma_archivo
+
         archivo = self.cleaned_data.get("logo")
-        if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("El logo no puede superar los 5 MB.")
+        if isinstance(archivo, UploadedFile):
+            if archivo.size > IMAGEN_TAMANO_MAXIMO:
+                raise forms.ValidationError("El logo no puede superar los 5 MB.")
+            validar_firma_archivo(archivo, permitir_pdf=False, max_bytes=IMAGEN_TAMANO_MAXIMO)
+            return sanitizar_imagen(archivo, max_lado=1024)
         return archivo
 
     def save(self, commit=True):
@@ -461,9 +471,14 @@ class PerfilUsuarioForm(forms.ModelForm):
         return (self.cleaned_data.get("last_name") or "").strip()
 
     def clean_foto(self):
+        from .archivos_seguros import sanitizar_imagen, validar_firma_archivo
+
         archivo = self.cleaned_data.get("foto")
-        if isinstance(archivo, UploadedFile) and archivo.size > IMAGEN_TAMANO_MAXIMO:
-            raise forms.ValidationError("La foto no puede superar los 5 MB.")
+        if isinstance(archivo, UploadedFile):
+            if archivo.size > IMAGEN_TAMANO_MAXIMO:
+                raise forms.ValidationError("La foto no puede superar los 5 MB.")
+            validar_firma_archivo(archivo, permitir_pdf=False, max_bytes=IMAGEN_TAMANO_MAXIMO)
+            return sanitizar_imagen(archivo, max_lado=1024)
         return archivo
 
     def save(self, commit=True):
