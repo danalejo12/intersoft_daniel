@@ -58,5 +58,32 @@ jobs:
 
       - name: Pruebas con cobertura (>= 85%)
         run: |
-          coverage run --rcfile=.coveragerc manage.py test core suscripciones plataforma pqrs soporte --noinput
+          coverage run --rcfile=.coveragerc manage.py test core suscripciones plataforma pqrs soporte datos_personales --noinput
           coverage report --rcfile=.coveragerc --fail-under=85
+
+  seguridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Verificar que no haya secretos de producción en el repositorio
+        run: |
+          if git grep -En "(prv_prod_|prod_integrity_|prod_events_)[A-Za-z0-9]{12,}" -- . ':!.github/workflows/pruebas.yml'; then
+            echo "ERROR: Se detectó un posible secreto de producción de Wompi en el repositorio."
+            exit 1
+          fi
+
+      - name: Análisis estático de seguridad (Bandit)
+        run: |
+          pip install bandit
+          bandit -r intersoft -ll --skip B310,B324 --exclude "intersoft/*/migrations,intersoft/core/tests*.py,intersoft/*/tests*.py"
+
+      - name: Auditoría de vulnerabilidades en dependencias (pip-audit)
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt

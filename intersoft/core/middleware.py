@@ -113,19 +113,30 @@ class TenantMiddleware:
 
 
 class ContentSecurityPolicyMiddleware:
-    """Agrega cabecera Content-Security-Policy (sin 'unsafe-inline' en scripts)."""
+    """Agrega cabeceras de seguridad HTTP: CSP (sin 'unsafe-inline' en scripts), Permissions-Policy y COOP."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         response = self.get_response(request)
+        ruta = request.path_info or request.path
+        tipo = (response.get("Content-Type") or "").lower()
+        if "text/html" in tipo:
+            if "Permissions-Policy" not in response:
+                camara = "(self)" if ruta.startswith("/panel/pos/") else "()"
+                response["Permissions-Policy"] = (
+                    f'camera={camara}, microphone=(), geolocation=(), payment=(self "https://checkout.wompi.co")'
+                )
+            if "Referrer-Policy" not in response:
+                response["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            if "Cross-Origin-Opener-Policy" not in response:
+                response["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+
         if not getattr(settings, "CSP_ACTIVA", True):
             return response
-        ruta = request.path_info or request.path
         if ruta.startswith(("/api/docs/", "/api/schema/")):
             return response
-        tipo = (response.get("Content-Type") or "").lower()
         if "text/html" in tipo and "Content-Security-Policy" not in response:
             politica = getattr(settings, "CSP_POLITICA", "")
             if politica:

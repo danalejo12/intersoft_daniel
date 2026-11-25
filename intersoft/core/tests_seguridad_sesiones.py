@@ -106,3 +106,12 @@ class SeguridadAutenticacionSesionesTests(TestCase):
         # Dispositivo 1 sigue autenticado; Dispositivo 2 es redirigido a login
         self.assertEqual(dispositivo_1.get(reverse("perfil")).status_code, 200)
         self.assertEqual(dispositivo_2.get(reverse("perfil")).status_code, 302)
+
+    def test_cabeceras_permissions_policy_y_coop(self):
+        """Permissions-Policy bloquea cámara fuera del POS y la permite en /panel/pos/; COOP y Referrer activos."""
+        resp_home = self.client.get(reverse("marketplace"))
+        self.assertEqual(resp_home.status_code, 200)
+        self.assertIn("camera=()", resp_home["Permissions-Policy"])
+        self.assertIn("microphone=()", resp_home["Permissions-Policy"])
+        self.assertEqual(resp_home["Cross-Origin-Opener-Policy"], "same-origin-allow-popups")
+        self.assertEqual(resp_home["Referrer-Policy"], "strict-origin-when-cross-origin")
