@@ -69,6 +69,19 @@ def crear_pedido(*, usuario, negocio, lineas, datos, codigo_cupon=""):
         credenciales_negocio(negocio.pk)
     except PasarelaNoDisponible as error:
         raise PagoNoPermitido(str(error)) from None
+
+    max_pendientes = getattr(settings, "PEDIDO_MAX_PENDIENTES_POR_COMPRADOR", 5)
+    if max_pendientes > 0:
+        pendientes_activos = Pedido.objects.filter(
+            comprador=usuario,
+            estado=Estado.PENDIENTE,
+            expira_en__gt=timezone.now(),
+        ).count()
+        if pendientes_activos >= max_pendientes:
+            raise OperacionNoPermitida(
+                "Tienes varios pedidos pendientes de pago. Completa o cancela alguno antes de crear uno nuevo."
+            )
+
     config = configuracion_activa(negocio.pk)
     # Productos primero y empresa después, el mismo orden de crear_factura, para evitar bloqueos cruzados
     cantidades = {linea["producto"].pk: linea["cantidad"] for linea in lineas}

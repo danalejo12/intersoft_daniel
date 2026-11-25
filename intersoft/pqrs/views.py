@@ -64,6 +64,12 @@ class RadicarPQRSCompradorView(LoginRequiredMixin, View):
         return render(request, self.template_name, {"form": form})
 
     def post(self, request):
+        from core.rate_limit import respuesta_limite_excedido, verificar_limite
+
+        if not verificar_limite(request, ambito="pqrs_radicar", maximo=10, ventana_segundos=900, por_usuario=True):
+            return respuesta_limite_excedido(
+                "Has radicado varias solicitudes en pocos minutos. Espera un momento antes de enviar otra."
+            )
         form = RadicarPQRSCompradorForm(request.POST, request.FILES, usuario=request.user)
         if form.is_valid():
             try:

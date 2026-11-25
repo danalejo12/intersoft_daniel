@@ -112,6 +112,15 @@ class RegistroCompradorView(FormView):
             return self._ir_al_destino()
         return super().dispatch(request, *args, **kwargs)
 
+    def post(self, request, *args, **kwargs):
+        from .rate_limit import respuesta_limite_excedido, verificar_limite
+
+        if not verificar_limite(request, ambito="registro", maximo=10, ventana_segundos=900):
+            return respuesta_limite_excedido(
+                "Demasiados intentos de registro desde esta conexión. Inténtalo de nuevo en 15 minutos."
+            )
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         # Con django-axes hay dos backends: se indica el que de verdad autentica
         from datos_personales.services import registrar_autorizacion

@@ -54,6 +54,12 @@ class ReportarProblemaView(LoginRequiredMixin, View):
         )
 
     def post(self, request):
+        from core.rate_limit import respuesta_limite_excedido, verificar_limite
+
+        if not verificar_limite(request, ambito="soporte_reportar", maximo=10, ventana_segundos=900, por_usuario=True):
+            return respuesta_limite_excedido(
+                "Has enviado varios reportes en pocos minutos. Espera un momento antes de enviar otro."
+            )
         form = ReporteProblemaForm(request.POST, request.FILES)
         url_origen = (request.POST.get("url") or request.META.get("HTTP_REFERER") or "")[:500]
         navegador = (request.META.get("HTTP_USER_AGENT") or "")[:300]

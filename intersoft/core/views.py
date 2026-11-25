@@ -377,6 +377,15 @@ class RecuperarContrasenaView(auth_views.PasswordResetView):
     email_template_name = "core/auth/password_reset_email.txt"
     subject_template_name = "core/auth/password_reset_subject.txt"
 
+    def post(self, request, *args, **kwargs):
+        from .rate_limit import respuesta_limite_excedido, verificar_limite
+
+        if not verificar_limite(request, ambito="recuperar_clave", maximo=6, ventana_segundos=900):
+            return respuesta_limite_excedido(
+                "Demasiadas solicitudes de recuperación de contraseña. Inténtalo de nuevo en 15 minutos."
+            )
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         respuesta = super().form_valid(form)
         if settings.DEBUG:
