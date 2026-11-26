@@ -2,6 +2,7 @@
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from .bodegas import bodega_principal, validar_bodega
@@ -99,6 +100,15 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
             errores_fila.append(f"El código '{codigo}' ya existe en el catálogo.")
         elif codigo in vistos_archivo:
             errores_fila.append(f"El código '{codigo}' está duplicado en el archivo.")
+        # Mismas reglas que el formulario (pruebas CP-13 y CP-14): el Excel no se las salta
+        for campo, valor in (("codigo", codigo), ("nombre", nombre)):
+            if not valor:
+                continue
+            try:
+                for validador in Producto._meta.get_field(campo).validators:
+                    validador(valor)
+            except ValidationError as error:
+                errores_fila.append(f"{campo.capitalize()} «{valor}»: {' '.join(error.messages)}")
 
         if not nombre:
             errores_fila.append("El nombre es obligatorio.")
@@ -142,7 +152,7 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
         vistos_archivo.add(codigo)
         validados.append(
             {
-                "codigo": codigo[:40],
+                "codigo": codigo[:30],
                 "nombre": nombre[:150],
                 "categoria": categoria_nombre[:80],
                 "precio": precio,

@@ -75,7 +75,7 @@ class RevisionUIPlataformaTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.jefe = Usuario.objects.create_user(username="jefe@intersoft.co", email="jefe@intersoft.co",
-                                               password="x", is_staff=True, first_name="Daniel")
+                                               password="x", is_staff=True, first_name="Daniel", last_name="Prueba")
         RolPlataforma.objects.create(usuario=cls.jefe, rol=RolPlataforma.Rol.DUENO, activo=True)
 
         dueno = crear_usuario("dueno@negocio.co", "Marta")
@@ -198,10 +198,12 @@ class RevisionUIPlataformaTests(TestCase):
 
     def test_la_ventana_queda_centrada_con_el_menu_abierto_o_cerrado(self):
         """El menú (dock) va en la primera columna y a la derecha hay una columna espejo del mismo ancho;
-        así abrir el menú no corre la ventana. Exige que la escena tenga solo dos hijos: dock y ventana."""
+        así abrir el menú (o la ayuda ☰) no corre la ventana. La escena solo tiene dock, ventana y, en el
+        panel de negocios, el menú de ayuda en la columna derecha."""
         with open(finders.find("core/css/app.css"), encoding="utf-8") as archivo:
             css = archivo.read()
-        self.assertIn("grid-template-columns: var(--dock-col) minmax(0, 1fr) var(--dock-col);", css)
+        self.assertIn("grid-template-columns: var(--lado-col) minmax(0, 1fr) var(--lado-col);", css)
+        self.assertIn("max-width: calc(1240px + 2 * var(--lado-col));", css)
         self.assertIn(".dock-abierto .escena { --dock-col: 210px; }", css)
         self.assertIn('.escena::after { content: ""; }', css)
 

@@ -35,7 +35,7 @@ class ConsultasPorPaginaTests(TestCase):
             i = self.creados
             producto = Producto.objects.create(empresa=self.negocio, codigo=f"P{i}", nombre=f"Producto {i}",
                                                precio=Decimal("1000"), stock=5, publicado=True)
-            comprador = Usuario.objects.create_user(username=f"c{i}@x.co", email=f"c{i}@x.co", password="x")
+            comprador = Usuario.objects.create_user(username=f"c{i}@x.co", email=f"c{i}@x.co", password="x", first_name="Ana", last_name="Prueba")
             Pedido.objects.create(empresa=self.negocio, comprador=comprador, numero=i + 1, total=Decimal("1190"),
                                   estado=Pedido.Estado.PAGADO, expira_en=timezone.now() + timedelta(minutes=30),
                                   tipo_documento="CC", numero_documento="1", nombre="N", email="n@x.co",
@@ -79,7 +79,7 @@ class ConsultasPorPaginaTests(TestCase):
                 self.assertSinNmas1(self.client, reverse(nombre))
 
     def test_consola_negocios(self):
-        jefe = Usuario.objects.create_user(username="jefe@x.co", email="jefe@x.co", password="x", is_staff=True)
+        jefe = Usuario.objects.create_user(username="jefe@x.co", email="jefe@x.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=jefe, rol=RolPlataforma.Rol.DUENO, activo=True)
         self.client.force_login(jefe)
         sesion = self.client.session

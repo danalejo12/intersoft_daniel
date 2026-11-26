@@ -13,7 +13,7 @@ from .models import Cliente, Empresa, Factura, Membresia, PagoCaja, Permiso, Pro
 
 
 def crear_admin(empresa, correo):
-    usuario = Usuario.objects.create_user(username=correo, email=correo, password="x", first_name="Caja")
+    usuario = Usuario.objects.create_user(username=correo, email=correo, password="x", first_name="Caja", last_name="Prueba")
     rol = Rol.objects.create(empresa=empresa, nombre=f"Admin {correo}", es_admin=True)
     Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
     return usuario
@@ -408,7 +408,7 @@ class BusquedaYTicketTests(PosBase):
 class PermisosPosTests(TestCase):
     def test_rol_sin_permiso_de_vender_no_entra(self):
         empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
-        usuario = Usuario.objects.create_user(username="v@c.co", email="v@c.co", password="x")
+        usuario = Usuario.objects.create_user(username="v@c.co", email="v@c.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=empresa, nombre="Bodega", es_admin=False)
         perm, _ = Permiso.objects.get_or_create(codigo="inventario.ver", defaults={"descripcion": "Ver inventario"})
         rol.permisos.add(perm)
@@ -433,7 +433,7 @@ class PermisosPosTests(TestCase):
 
         for codigo, esperado in (("ventas.crear", 200), ("ventas.ver", 200), ("inventario.ver", 403)):
             with self.subTest(permiso=codigo):
-                u = Usuario.objects.create_user(username=f"{codigo}@una.co", email=f"{codigo}@una.co", password="x")
+                u = Usuario.objects.create_user(username=f"{codigo}@una.co", email=f"{codigo}@una.co", password="x", first_name="Ana", last_name="Prueba")
                 rol = Rol.objects.create(empresa=empresa, nombre=f"Rol {codigo}", es_admin=False)
                 perm, _ = Permiso.objects.get_or_create(codigo=codigo, defaults={"descripcion": codigo})
                 rol.permisos.add(perm)
@@ -466,7 +466,7 @@ class PermisosPosTests(TestCase):
         turno = caja.cerrar_turno(turno=turno, usuario=admin, contado="75000", observaciones="Cierre OK")
 
         # 3. Un cajero con ventas.ver pero sin tesoreria.gestionar recibe 403 al intentar trasladar
-        cajero_solo = Usuario.objects.create_user(username="caj@tes.co", email="caj@tes.co", password="x")
+        cajero_solo = Usuario.objects.create_user(username="caj@tes.co", email="caj@tes.co", password="x", first_name="Ana", last_name="Prueba")
         rol_caj = Rol.objects.create(empresa=empresa, nombre="Solo Ventas", es_admin=False)
         perm_ver, _ = Permiso.objects.get_or_create(codigo="ventas.ver", defaults={"descripcion": "Ver ventas"})
         rol_caj.permisos.add(perm_ver)

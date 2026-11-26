@@ -52,7 +52,7 @@ def crear_pedido_simple(empresa, comprador, numero=1):
 class RestriccionesPagoTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
-        self.usuario = Usuario.objects.create_user(username="a@c.co", email="a@c.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="a@c.co", email="a@c.co", password="x", first_name="Ana", last_name="Prueba")
         self.pedido = crear_pedido_simple(self.empresa, self.usuario)
         cliente = Cliente.objects.create(empresa=self.empresa, tipo_documento="CC", numero_documento="9", nombre="C")
         self.factura = Factura.objects.create(empresa=self.empresa, numero=1, cliente=cliente, creada_por=self.usuario)
@@ -666,7 +666,7 @@ class ComandoVencimientoTests(PedidoBase):
 class AdminPedidosTests(TestCase):
     def test_filtro_por_estado_encuentra_los_reembolsos(self):
         empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
-        usuario = Usuario.objects.create_superuser(username="s@c.co", email="s@c.co", password="x")
+        usuario = Usuario.objects.create_superuser(username="s@c.co", email="s@c.co", password="x", first_name="Ana", last_name="Prueba")
         crear_pedido_simple(empresa, usuario, numero=1)
         reembolso = crear_pedido_simple(empresa, usuario, numero=2)
         Pedido.objects.filter(pk=reembolso.pk).update(estado=Pedido.Estado.REQUIERE_REEMBOLSO)

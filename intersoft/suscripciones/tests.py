@@ -52,7 +52,7 @@ def crear_empresa_con_usuario(sufijo: str):
         username=f"user-{sufijo}@test.co",
         email=f"user-{sufijo}@test.co",
         password="ClaveSegura#2026",
-        first_name=f"Usuario {sufijo}",
+        first_name=f"Usuario {sufijo}", last_name="Prueba"
     )
     empresa = Empresa.objects.create(
         nombre=f"Empresa {sufijo}",

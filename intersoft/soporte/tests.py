@@ -20,7 +20,7 @@ class SoporteErroresTests(TestCase):
 
     def setUp(self):
         self.factory = RequestFactory()
-        self.usuario = Usuario.objects.create_user(username="err@test.co", email="err@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="err@test.co", email="err@test.co", password="x", first_name="Ana", last_name="Prueba")
 
     def _lanzar_en_misma_linea(self, request):
         api_secret = "SECRETO_SUPER_PRIVADO_1234"  # noqa: F841 - verificado por FiltroSecretosPago
@@ -73,17 +73,17 @@ class SoporteFeedbackNPSIdeasYPermisosTests(TestCase):
 
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Neg Feedback", nit="930001", slug="neg-feed", activa=True)
-        self.usuario = Usuario.objects.create_user(username="neg@test.co", email="neg@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="neg@test.co", email="neg@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol, activa=True)
 
-        self.otro = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x")
+        self.otro = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x", first_name="Ana", last_name="Prueba")
         self.dev = Usuario.objects.create_user(
-            username="dev-soporte@intersoft.co", email="dev-soporte@intersoft.co", password="x", is_staff=True
+            username="dev-soporte@intersoft.co", email="dev-soporte@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.dev, rol=RolPlataforma.Rol.DESARROLLADOR, activo=True)
         self.soporte = Usuario.objects.create_user(
-            username="sop-soporte@intersoft.co", email="sop-soporte@intersoft.co", password="x", is_staff=True
+            username="sop-soporte@intersoft.co", email="sop-soporte@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.soporte, rol=RolPlataforma.Rol.SOPORTE, activo=True)
 

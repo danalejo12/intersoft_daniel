@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from ..validadores import validar_nombre_persona
 from .base import ModeloTenant
 
 
@@ -66,7 +67,7 @@ class Compra(RegistroERP):
     subtotal = importe(editable=False)
     iva = importe(editable=False)
     total = importe(editable=False)
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
 
     class Meta(RegistroERP.Meta):
         constraints = [models.UniqueConstraint(fields=["empresa", "proveedor", "referencia"], name="uq_compra_referencia")]
@@ -194,7 +195,7 @@ class LineaAsiento(RegistroERP):
 
 class Empleado(RegistroERP):
     """Empleado o profesional del negocio (nómina y agenda de servicios)."""
-    nombre = models.CharField(max_length=150)
+    nombre = models.CharField(max_length=150, validators=[validar_nombre_persona])
     documento = models.CharField(max_length=30)
     cargo = models.CharField(max_length=100)
     salario_base = importe()
@@ -203,7 +204,10 @@ class Empleado(RegistroERP):
 
     class Meta(RegistroERP.Meta):
         ordering = ["nombre"]
-        constraints = [models.UniqueConstraint(fields=["empresa", "documento"], name="uq_empleado_documento")]
+        constraints = [
+            models.UniqueConstraint(fields=["empresa", "documento"], name="uq_empleado_documento"),
+            models.CheckConstraint(condition=models.Q(nombre__regex=r"\S"), name="ck_empleado_nombre_no_vacio"),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -223,7 +227,7 @@ class LiquidacionNomina(RegistroERP):
                                  help_text="Opcional. Se paga al empleado pero no aporta a salud ni pensión.")
     deducciones = importe()
     neto = importe(editable=False)
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
     aprobada = models.BooleanField(default=False, editable=False)
     cartera = models.OneToOneField(CuentaCartera, on_delete=models.PROTECT, null=True, blank=True, editable=False)
 
@@ -255,7 +259,7 @@ class OrdenProduccion(RegistroERP):
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     fecha = models.DateField(default=timezone.localdate)
     completada = models.BooleanField(default=False, editable=False)
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
 
     class Meta(RegistroERP.Meta):
         constraints = [models.CheckConstraint(condition=Q(cantidad__gt=0), name="ck_produccion_cantidad")]
@@ -304,7 +308,7 @@ class Cita(RegistroERP):
     estado = models.CharField(max_length=12, choices=[("pendiente", "Pendiente"), ("atendida", "Atendida"), ("cancelada", "Cancelada")], default="pendiente", editable=False)
     total = importe(editable=False)
     cartera = models.OneToOneField(CuentaCartera, on_delete=models.PROTECT, null=True, blank=True, editable=False)
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
 
     class Meta(RegistroERP.Meta):
         ordering = ["inicio"]

@@ -53,10 +53,10 @@ class PlataformaAccesoYRolesTests(_TotpAutoMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.no_staff = Usuario.objects.create_user(
-            username="cliente@test.co", email="cliente@test.co", password="x", is_staff=False
+            username="cliente@test.co", email="cliente@test.co", password="x", is_staff=False, first_name="Ana", last_name="Prueba"
         )
         self.staff_sin_rol = Usuario.objects.create_user(
-            username="sinrol@intersoft.co", email="sinrol@intersoft.co", password="x", is_staff=True
+            username="sinrol@intersoft.co", email="sinrol@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         self.dueno = self._crear_staff_con_rol("dueno@intersoft.co", RolPlataforma.Rol.DUENO)
         self.finanzas = self._crear_staff_con_rol("finanzas@intersoft.co", RolPlataforma.Rol.FINANZAS)
@@ -65,7 +65,7 @@ class PlataformaAccesoYRolesTests(_TotpAutoMixin, TestCase):
 
     def _crear_staff_con_rol(self, correo: str, rol: str) -> Usuario:
         usuario = Usuario.objects.create_user(
-            username=correo, email=correo, password="x", is_staff=True
+            username=correo, email=correo, password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=usuario, rol=rol, activo=True)
         return usuario
@@ -161,7 +161,7 @@ class PlataformaLlavesYAuditoriaTests(_TotpAutoMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.dueno = Usuario.objects.create_user(
-            username="dueno-llaves@intersoft.co", email="dueno-llaves@intersoft.co", password="x", is_staff=True
+            username="dueno-llaves@intersoft.co", email="dueno-llaves@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.dueno, rol=RolPlataforma.Rol.DUENO, activo=True)
 
@@ -277,7 +277,7 @@ class PlataformaPlanesCobrosCortesiasYMetricasTests(_TotpAutoMixin, TestCase):
 
     def _crear_staff(self, correo: str, rol: str) -> Usuario:
         usuario = Usuario.objects.create_user(
-            username=correo, email=correo, password="x", is_staff=True
+            username=correo, email=correo, password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=usuario, rol=rol, activo=True)
         return usuario
@@ -598,10 +598,10 @@ class SaludYSwaggerTests(TestCase):
     @override_settings(DEBUG=False)
     def test_swagger_restringido_a_is_staff(self):
         no_staff = Usuario.objects.create_user(
-            username="nostaff-api@test.co", email="nostaff-api@test.co", password="x", is_staff=False
+            username="nostaff-api@test.co", email="nostaff-api@test.co", password="x", is_staff=False, first_name="Ana", last_name="Prueba"
         )
         staff = Usuario.objects.create_user(
-            username="staff-api@test.co", email="staff-api@test.co", password="x", is_staff=True
+            username="staff-api@test.co", email="staff-api@test.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
 
         # Anónimo y no-staff no pueden acceder
@@ -627,17 +627,17 @@ class PlataformaEntrarComoYAnunciosTests(_TotpAutoMixin, TestCase):
             nombre="Comercio Soporte", nit="950001", slug="comercio-soporte", activa=True
         )
         self.soporte = Usuario.objects.create_user(
-            username="sop-entrar@intersoft.co", email="sop-entrar@intersoft.co", password="x", is_staff=True
+            username="sop-entrar@intersoft.co", email="sop-entrar@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.soporte, rol=RolPlataforma.Rol.SOPORTE, activo=True)
 
         self.finanzas = Usuario.objects.create_user(
-            username="fin-entrar@intersoft.co", email="fin-entrar@intersoft.co", password="x", is_staff=True
+            username="fin-entrar@intersoft.co", email="fin-entrar@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.finanzas, rol=RolPlataforma.Rol.FINANZAS, activo=True)
 
         self.cliente_normal = Usuario.objects.create_user(
-            username="normal-entrar@test.co", email="normal-entrar@test.co", password="x", is_staff=False
+            username="normal-entrar@test.co", email="normal-entrar@test.co", password="x", is_staff=False, first_name="Ana", last_name="Prueba"
         )
 
     def test_entrar_como_solo_lectura_franja_roja_auditoria_y_salir(self):
@@ -729,7 +729,7 @@ class PlataformaCuponesPreciosRecordatoriosFlagsYTotpTests(TestCase):
 
     def setUp(self):
         self.dueno = Usuario.objects.create_user(
-            username="dueno-2fa@intersoft.co", email="dueno-2fa@intersoft.co", password="x", is_staff=True
+            username="dueno-2fa@intersoft.co", email="dueno-2fa@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         self.rol_dueno = RolPlataforma.objects.create(
             usuario=self.dueno, rol=RolPlataforma.Rol.DUENO, activo=True
@@ -738,7 +738,7 @@ class PlataformaCuponesPreciosRecordatoriosFlagsYTotpTests(TestCase):
             nombre="Negocio Cupon", nit="960001", slug="negocio-cupon", email="cupon@neg.co", activa=True
         )
         self.admin_neg = Usuario.objects.create_user(
-            username="admin-cup@neg.co", email="admin-cup@neg.co", password="x"
+            username="admin-cup@neg.co", email="admin-cup@neg.co", password="x", first_name="Ana", last_name="Prueba"
         )
         rol_neg = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.admin_neg, empresa=self.empresa, rol=rol_neg, activa=True)

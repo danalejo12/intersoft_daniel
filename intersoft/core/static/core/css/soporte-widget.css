@@ -1,6 +1,74 @@
-/* Barra de retroalimentación, soporte y encuesta NPS en el panel */
+/* Ayuda, retroalimentación y encuesta NPS del panel: menú (☰) cerrado por defecto.
+   Vive en la columna derecha de la escena (espejo del dock), nunca encima del contenido central:
+   al abrirlo las dos columnas laterales se ensanchan (--ayuda-col) y la ventana se angosta sin perder el centro. */
+.escena:has(> .soporte-flotante)::after { display: none; }
+.escena:has(> .soporte-flotante[open]) { --ayuda-col: 360px; }
+
+.soporte-flotante {
+  grid-column: 3;
+  grid-row: 1;
+  position: sticky;
+  top: 120px;
+  margin-top: 110px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  justify-self: start;
+  width: var(--dock-col, 68px);
+}
+.soporte-flotante[open] { align-items: stretch; width: auto; justify-self: stretch; }
+.soporte-flotante[open] .soporte-flotante-boton { align-self: flex-start; }
+.soporte-flotante-boton {
+  list-style: none;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: var(--azul, #5b8cff);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  transition: transform 0.15s ease;
+}
+
+.soporte-flotante-boton::-webkit-details-marker { display: none; }
+.soporte-flotante-boton:hover { transform: translateY(-2px); }
+.soporte-flotante-boton:focus-visible { outline: 3px solid var(--azul, #5b8cff); outline-offset: 3px; }
+.soporte-flotante .icono-cerrar,
+.soporte-flotante[open] .icono-abrir { display: none; }
+.soporte-flotante[open] .icono-cerrar { display: block; }
+
+/* Punto de aviso cuando hay una encuesta pendiente */
+.soporte-flotante-punto {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff7b7b;
+  border: 2px solid var(--fondo, #0b1020);
+}
+
+.soporte-flotante .soporte-pie {
+  width: 100%;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  margin: 0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+}
+
+.soporte-flotante .soporte-fila { flex-direction: column; align-items: stretch; }
+.soporte-flotante .soporte-acciones .boton { flex: 1 1 0; justify-content: center; }
+.soporte-flotante .soporte-util-form input[type="text"] { flex: 1 1 100%; }
+.soporte-flotante .nps-escala { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
 .soporte-pie {
-  margin-top: 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -170,6 +238,18 @@
 .nps-pie-form input[type="text"] {
   flex: 1 1 240px;
   min-width: 200px;
+}
+
+/* En celular el menú del panel (dock) va abajo: el botón se ubica encima para no taparlo */
+@media (max-width: 760px) {
+  /* En celular no hay columnas laterales: el botón flota en la esquina, encima del dock de abajo */
+  .soporte-flotante {
+    position: fixed; right: 16px; bottom: 96px; top: auto; margin: 0; z-index: 60; width: auto;
+    flex-direction: column-reverse; align-items: flex-end;
+  }
+  .soporte-flotante[open] { align-items: flex-end; }
+  .soporte-flotante[open] .soporte-flotante-boton { align-self: flex-end; }
+  .soporte-flotante .soporte-pie { width: calc(100vw - 32px); max-height: calc(100vh - 190px); }
 }
 
 @media (max-width: 640px) {

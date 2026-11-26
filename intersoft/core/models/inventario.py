@@ -10,6 +10,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from ..impuestos import calcular_iva
+from ..validadores import exigir_letra_o_numero, validar_codigo_producto
 from ..tarifas import cargo_pasarela
 from .base import ModeloBase, ModeloTenant
 
@@ -43,9 +44,10 @@ class Producto(ModeloTenant):
     categoria = models.ForeignKey(
         Categoria, on_delete=models.SET_NULL, null=True, blank=True, related_name="productos"
     )
-    codigo = models.CharField(max_length=30)
-    nombre = models.CharField(max_length=150)
-    descripcion = models.TextField(blank=True)
+    codigo = models.CharField(max_length=30, validators=[validar_codigo_producto])
+    nombre = models.CharField(max_length=150, validators=[exigir_letra_o_numero])
+    # Límite: un texto gigante pegado congela el navegador (prueba CP-15)
+    descripcion = models.TextField(blank=True, max_length=5000)
     precio = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0"))]
     )
@@ -57,7 +59,8 @@ class Producto(ModeloTenant):
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
     )
     stock = models.IntegerField(default=0)
-    stock_minimo = models.IntegerField(default=0)  # Para alertas de reabastecimiento.
+    # Para alertas de reabastecimiento; nunca negativo (hallado en las pruebas de valores límite)
+    stock_minimo = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     peso_gramos = models.PositiveIntegerField("Peso (gramos)", default=0)
     activo = models.BooleanField(default=True)
     publicado = models.BooleanField(default=False)  # Cada negocio decide qué se ve en el marketplace.

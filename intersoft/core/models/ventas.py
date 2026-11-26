@@ -32,7 +32,7 @@ class Factura(ModeloTenant):
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     iva = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
     total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
     creada_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="facturas_creadas"
     )

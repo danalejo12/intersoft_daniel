@@ -52,7 +52,7 @@ class PqrsDiasHabilesYAdjuntosTests(TestCase):
         self.assertEqual(resultado.date().isoformat(), "2026-01-13")
 
     def test_semaforo_verde_amarillo_y_rojo(self):
-        autor = Usuario.objects.create_user(username="u@test.co", email="u@test.co", password="x")
+        autor = Usuario.objects.create_user(username="u@test.co", email="u@test.co", password="x", first_name="Ana", last_name="Prueba")
         emp = Empresa.objects.create(nombre="Neg Sem", nit="910001", slug="neg-sem", activa=True)
         ahora = timezone.make_aware(datetime(2026, 2, 2, 10, 0), timezone.get_current_timezone())
 
@@ -112,26 +112,26 @@ class PqrsFlujosPermisosAislamientoYEscalamientoTests(TestCase):
             nombre="Negocio B", nit="911002", slug="negocio-b", email="b@negocio.co", activa=True
         )
 
-        self.dueno_a = Usuario.objects.create_user(username="dueno_a@test.co", email="dueno_a@test.co", password="x")
+        self.dueno_a = Usuario.objects.create_user(username="dueno_a@test.co", email="dueno_a@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol_admin_a = Rol.objects.create(empresa=self.emp_a, nombre="Admin A", es_admin=True)
         Membresia.objects.create(usuario=self.dueno_a, empresa=self.emp_a, rol=rol_admin_a, activa=True)
 
         self.sin_permiso_a = Usuario.objects.create_user(
-            username="bodega_a@test.co", email="bodega_a@test.co", password="x"
+            username="bodega_a@test.co", email="bodega_a@test.co", password="x", first_name="Ana", last_name="Prueba"
         )
         rol_sin_pqrs = Rol.objects.create(empresa=self.emp_a, nombre="Sin PQRS", es_admin=False)
         rol_sin_pqrs.permisos.add(Permiso.objects.get(codigo="inventario.ver"))
         Membresia.objects.create(usuario=self.sin_permiso_a, empresa=self.emp_a, rol=rol_sin_pqrs, activa=True)
 
-        self.dueno_b = Usuario.objects.create_user(username="dueno_b@test.co", email="dueno_b@test.co", password="x")
+        self.dueno_b = Usuario.objects.create_user(username="dueno_b@test.co", email="dueno_b@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol_admin_b = Rol.objects.create(empresa=self.emp_b, nombre="Admin B", es_admin=True)
         Membresia.objects.create(usuario=self.dueno_b, empresa=self.emp_b, rol=rol_admin_b, activa=True)
 
-        self.comprador_1 = Usuario.objects.create_user(username="comp1@test.co", email="comp1@test.co", password="x")
-        self.comprador_2 = Usuario.objects.create_user(username="comp2@test.co", email="comp2@test.co", password="x")
+        self.comprador_1 = Usuario.objects.create_user(username="comp1@test.co", email="comp1@test.co", password="x", first_name="Ana", last_name="Prueba")
+        self.comprador_2 = Usuario.objects.create_user(username="comp2@test.co", email="comp2@test.co", password="x", first_name="Ana", last_name="Prueba")
 
         self.soporte_plataforma = Usuario.objects.create_user(
-            username="soporte@intersoft.co", email="soporte@intersoft.co", password="x", is_staff=True
+            username="soporte@intersoft.co", email="soporte@intersoft.co", password="x", is_staff=True, first_name="Ana", last_name="Prueba"
         )
         RolPlataforma.objects.create(usuario=self.soporte_plataforma, rol=RolPlataforma.Rol.SOPORTE, activo=True)
 

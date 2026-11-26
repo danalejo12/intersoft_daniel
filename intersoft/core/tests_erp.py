@@ -42,7 +42,7 @@ def _crear_empresa_con_admin(email, nombre):
         username=email,
         email=email,
         password="PasswordSegura123!",
-        first_name="Admin",
+        first_name="Admin", last_name="Prueba"
     )
     empresa = registrar_negocio(
         usuario=usuario,
@@ -311,7 +311,7 @@ class FlujoOperativoERPTests(TestCase):
 
         # Crear usuario con solo permiso de consulta ("compras.ver")
         lector = User.objects.create_user(
-            username="lector@erp.co", email="lector@erp.co", password="PasswordSegura123!"
+            username="lector@erp.co", email="lector@erp.co", password="PasswordSegura123!", first_name="Ana", last_name="Prueba"
         )
         rol_lector = Rol.objects.create(empresa=self.empresa, nombre="Auditor Compras", es_admin=False)
         rol_lector.permisos.add(Permiso.objects.get(codigo="compras.ver"))

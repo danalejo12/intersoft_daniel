@@ -458,7 +458,10 @@ class PerfilUsuarioForm(forms.ModelForm):
         return valor
 
     def clean_last_name(self):
-        return (self.cleaned_data.get("last_name") or "").strip()
+        valor = (self.cleaned_data.get("last_name") or "").strip()
+        if not valor:
+            raise forms.ValidationError("Ingresa tus apellidos.")
+        return valor
 
     def clean_foto(self):
         archivo = self.cleaned_data.get("foto")

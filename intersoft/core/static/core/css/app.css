@@ -135,9 +135,12 @@ svg { flex-shrink: 0; }
 .escena {
   --dock-col: 68px;
   display: grid;
-  grid-template-columns: var(--dock-col) minmax(0, 1fr) var(--dock-col);
+  /* Columnas laterales siempre iguales (la derecha es espejo del dock): la ventana queda centrada.
+     El menú de ayuda las ensancha a las dos con --ayuda-col para abrirse sin tapar el contenido. */
+  --lado-col: max(var(--dock-col), var(--ayuda-col, 0px));
+  grid-template-columns: var(--lado-col) minmax(0, 1fr) var(--lado-col);
   gap: 22px;
-  max-width: calc(1240px + 2 * var(--dock-col));
+  max-width: calc(1240px + 2 * var(--lado-col));
   margin: 0 auto;
   padding: 36px 28px;
   align-items: start;
@@ -1387,6 +1390,7 @@ button.boton-hamburguesa[aria-expanded="true"] .icono-hamburguesa span:nth-child
 .dock-expandir:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
 
 @media (min-width: 761px) {
+  .dock { width: var(--dock-col); justify-self: end; }   /* conserva su ancho si la columna crece */
   .dock-abierto .escena { --dock-col: 210px; }
   .dock-abierto .dock { align-items: stretch; padding: 14px 12px; border-radius: 28px; }
   .dock-abierto .dock-expandir { align-self: flex-end; }

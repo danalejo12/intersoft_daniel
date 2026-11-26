@@ -66,7 +66,7 @@ class ErrorRegistrado(ModeloBase):
         default=Estado.NUEVO,
         db_index=True,
     )
-    notas_internas = models.TextField("notas internas", blank=True)
+    notas_internas = models.TextField("notas internas", blank=True, max_length=5000)
 
     class Meta:
         verbose_name = "error registrado"
@@ -103,7 +103,7 @@ class ReporteProblema(ModeloBase):
     url = models.CharField("URL de origen", max_length=500, blank=True)
     navegador = models.CharField("navegador", max_length=300, blank=True)
     fecha_reporte = models.DateTimeField("hora del reporte", default=timezone.now)
-    descripcion = models.TextField("descripción del problema")
+    descripcion = models.TextField("descripción del problema", max_length=5000)
     captura = models.FileField(
         "captura de pantalla",
         upload_to="soporte/capturas/%Y/%m/",
@@ -146,7 +146,7 @@ class ComentarioWidget(ModeloBase):
         related_name="comentarios_widget",
     )
     util = models.BooleanField("¿fue útil?")
-    comentario = models.TextField("comentario opcional", blank=True)
+    comentario = models.TextField("comentario opcional", blank=True, max_length=1000)
     pantalla = models.CharField("pantalla de origen", max_length=500, blank=True)
 
     class Meta:
@@ -178,7 +178,7 @@ class EncuestaNPS(ModeloBase):
         "puntaje NPS",
         validators=[MinValueValidator(0), MaxValueValidator(10)],
     )
-    comentario = models.TextField("comentario opcional", blank=True)
+    comentario = models.TextField("comentario opcional", blank=True, max_length=1000)
     pantalla = models.CharField("pantalla de origen", max_length=500, blank=True)
 
     class Meta:
@@ -213,7 +213,7 @@ class Idea(ModeloBase):
         related_name="ideas_propuestas",
     )
     titulo = models.CharField("título", max_length=160)
-    descripcion = models.TextField("descripción")
+    descripcion = models.TextField("descripción", max_length=3000)
     estado = models.CharField(
         "estado",
         max_length=20,

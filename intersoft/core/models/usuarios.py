@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower
 
+from ..validadores import validar_nombre_persona, validar_usuario_del_correo
 from .base import ModeloBase, ModeloTenant
 
 
@@ -16,14 +17,19 @@ class Usuario(AbstractUser):
     IMPORTANTE: debe existir ANTES de la primera migración del proyecto."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField("correo electrónico", unique=True)
+    # Se redefinen para exigirlos (not null y not blank, también en la base de datos) y validar que sean
+    # solo letras y espacios
+    first_name = models.CharField("nombres", max_length=150, validators=[validar_nombre_persona])
+    last_name = models.CharField("apellidos", max_length=150, validators=[validar_nombre_persona])
+    email = models.EmailField("correo electrónico", unique=True, validators=[validar_usuario_del_correo])
     foto = models.ImageField("foto de perfil", upload_to="perfiles/", blank=True, null=True)
     telefono = models.CharField("teléfono", max_length=20, blank=True)
     cargo = models.CharField("cargo o especialidad", max_length=80, blank=True)
     descripcion = models.TextField("descripción", max_length=400, blank=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]  # Lo pide createsuperuser además de email y contraseña.
+    # Lo pide createsuperuser además de email y contraseña
+    REQUIRED_FIELDS = ["username", "first_name", "last_name"]
 
     class Meta:
         verbose_name = "usuario"
@@ -31,6 +37,9 @@ class Usuario(AbstractUser):
         constraints = [
             # unique=True distingue mayúsculas; esto lo impide también en la base de datos
             models.UniqueConstraint(Lower("email"), name="uq_usuario_email_ci"),
+            # Not blank en la base de datos: al menos un carácter que no sea espacio
+            models.CheckConstraint(condition=models.Q(first_name__regex=r"\S"), name="ck_usuario_nombres_no_vacio"),
+            models.CheckConstraint(condition=models.Q(last_name__regex=r"\S"), name="ck_usuario_apellidos_no_vacio"),
         ]
 
     def __str__(self):

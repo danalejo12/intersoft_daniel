@@ -81,7 +81,7 @@ class SolicitudDatos(ModeloBase):
     detalle = models.TextField("detalle de la solicitud", max_length=2000, blank=True)
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.RADICADA, db_index=True)
     fecha_limite = models.DateTimeField("fecha límite de respuesta", db_index=True)
-    respuesta = models.TextField("respuesta al titular", blank=True)
+    respuesta = models.TextField("respuesta al titular", blank=True, max_length=4000)
     atendida_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )

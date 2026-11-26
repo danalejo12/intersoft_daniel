@@ -12,8 +12,8 @@
   {# Menú lateral con nombres visibles por defecto; se recuerda si el usuario lo contrae #}
   <script src="{% static 'core/js/tema-init.js' %}"></script>
   <script src="{% static 'core/js/dock-init.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=32">
-  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}?v=33">
+  <link rel="stylesheet" href="{% static 'core/css/soporte-widget.css' %}?v=5">
 </head>
 <body>
 {% include "core/includes/bienvenida.html" %}
@@ -239,7 +239,18 @@
 
       {% block contenido %}{% endblock %}
 
+    </main>
+
+{% if user.is_authenticated %}
+  </div>
       {% if user.is_authenticated and request.empresa %}
+        {# Menú de ayuda (☰) en la columna derecha, fuera del contenido; cerrado por defecto #}
+        <details class="soporte-flotante">
+          <summary class="soporte-flotante-boton" aria-label="Ayuda y comentarios">
+            <svg class="icono-abrir" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <svg class="icono-cerrar" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            {% if soporte_mostrar_nps %}<span class="soporte-flotante-punto" aria-hidden="true"></span>{% endif %}
+          </summary>
         <section class="tarjeta soporte-pie" aria-label="Soporte y calificación de experiencia">
           <div class="soporte-fila">
             <div class="soporte-acciones">
@@ -296,11 +307,8 @@
             </form>
           {% endif %}
         </section>
+        </details>
       {% endif %}
-    </main>
-
-{% if user.is_authenticated %}
-  </div>
 </div>
 {% endif %}
 

@@ -20,7 +20,7 @@ class TurnoCaja(ModeloTenant):
     efectivo_esperado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     efectivo_contado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     diferencia = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
-    observaciones = models.TextField(blank=True)
+    observaciones = models.TextField(blank=True, max_length=2000)
 
     class Meta:
         verbose_name = "turno de caja"

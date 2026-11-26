@@ -19,7 +19,7 @@ from .tests import _TotpAutoMixin
 
 
 def staff(correo, rol):
-    usuario = Usuario.objects.create_user(username=correo, email=correo, password="x", is_staff=True)
+    usuario = Usuario.objects.create_user(username=correo, email=correo, password="x", is_staff=True, first_name="Ana", last_name="Prueba")
     RolPlataforma.objects.create(usuario=usuario, rol=rol, activo=True)
     return usuario
 

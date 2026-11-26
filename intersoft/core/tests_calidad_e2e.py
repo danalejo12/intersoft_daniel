@@ -257,7 +257,7 @@ class RecorridoPQRSTests(TestCase):
 class RecorridoConsolaTests(TestCase):
     def test_entrar_con_2fa_y_operar(self):
         Usuario.objects.create_user(username="dev@intersoft.co", email="dev@intersoft.co", password=CLAVE,
-                                    is_staff=True)
+                                    is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=Usuario.objects.get(email="dev@intersoft.co"),
                                      rol=RolPlataforma.Rol.DUENO, activo=True)
         cliente = Client()

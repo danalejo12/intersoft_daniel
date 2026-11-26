@@ -118,7 +118,7 @@ class PQRS(ModeloBase):
         verbose_name="autor",
     )
     asunto = models.CharField("asunto", max_length=160)
-    descripcion = models.TextField("descripción")
+    descripcion = models.TextField("descripción", max_length=5000)
     adjunto = models.FileField(
         "adjunto",
         upload_to="pqrs/adjuntos/%Y/%m/",
@@ -203,7 +203,7 @@ class MensajePQRS(ModeloBase):
         related_name="mensajes_pqrs",
         verbose_name="autor",
     )
-    texto = models.TextField("mensaje")
+    texto = models.TextField("mensaje", max_length=5000)
     adjunto = models.FileField(
         "adjunto",
         upload_to="pqrs/mensajes/%Y/%m/",

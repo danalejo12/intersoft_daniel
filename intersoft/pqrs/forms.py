@@ -23,7 +23,7 @@ class RadicarPQRSCompradorForm(forms.Form):
         empty_label="Selecciona un negocio (si no elegiste pedido)",
     )
     asunto = forms.CharField(label="Asunto", max_length=160)
-    descripcion = forms.CharField(label="Descripción", widget=forms.Textarea(attrs={"rows": 4}))
+    descripcion = forms.CharField(label="Descripción", max_length=5000, widget=forms.Textarea(attrs={"rows": 4}))
     adjunto = forms.FileField(
         label="Adjunto (imagen o PDF, máx. 5 MB)",
         required=False,
@@ -59,7 +59,7 @@ class RadicarPQRSNegocioForm(forms.Form):
         initial=PQRS.Prioridad.MEDIA,
     )
     asunto = forms.CharField(label="Asunto", max_length=160)
-    descripcion = forms.CharField(label="Descripción", widget=forms.Textarea(attrs={"rows": 4}))
+    descripcion = forms.CharField(label="Descripción", max_length=5000, widget=forms.Textarea(attrs={"rows": 4}))
     adjunto = forms.FileField(
         label="Adjunto (imagen o PDF, máx. 5 MB)",
         required=False,

@@ -27,7 +27,7 @@ class TemaPanelYPlataformaTests(TestCase):
 
     def test_consola_de_plataforma_tiene_modo_dia_y_noche(self):
         dev = Usuario.objects.create_user(username="dev@intersoft.co", email="dev@intersoft.co",
-                                          password="x", is_staff=True)
+                                          password="x", is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=dev, rol=RolPlataforma.Rol.DESARROLLADOR, activo=True)
         self.client.force_login(dev)
         sesion = self.client.session

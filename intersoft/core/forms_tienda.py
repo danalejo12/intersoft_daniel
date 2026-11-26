@@ -5,6 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
 
 from .models import Cliente, Comentario, Empresa
+from .validadores import validar_nombre_persona, validar_usuario_del_correo
 
 Usuario = get_user_model()
 
@@ -19,10 +20,10 @@ DEPARTAMENTOS = [
 
 class RegistroCompradorForm(UserCreationForm):
     """Formulario de usuario. Campos: first_name, last_name, email, password1, password2."""
-    first_name = forms.CharField(label="Nombres", max_length=150)
-    last_name = forms.CharField(label="Apellidos", max_length=150)
+    first_name = forms.CharField(label="Nombres", max_length=150, validators=[validar_nombre_persona])
+    last_name = forms.CharField(label="Apellidos", max_length=150, validators=[validar_nombre_persona])
     # 150 y no 254: el correo también se guarda como username, que admite 150
-    email = forms.EmailField(label="Correo electrónico", max_length=150)
+    email = forms.EmailField(label="Correo electrónico", max_length=150, validators=[validar_usuario_del_correo])
     # Ley 1581 art. 9: autorización previa, expresa e informada. Nunca viene marcada por defecto.
     acepta_datos = forms.BooleanField(
         label="Autorizo el tratamiento de mis datos personales según la Política de tratamiento de datos.",
@@ -87,7 +88,7 @@ class DatosEnvioForm(forms.Form):
     direccion….
     """
     nombre = forms.CharField(
-        label="Nombre completo", max_length=150,
+        label="Nombre completo", max_length=150, validators=[validar_nombre_persona],
         widget=forms.TextInput(attrs={"autocomplete": "name"}),
     )
     tipo_documento = forms.ChoiceField(label="Tipo de documento", choices=Cliente.TipoDocumento.choices)

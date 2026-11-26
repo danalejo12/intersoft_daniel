@@ -281,7 +281,7 @@ class LimpiezaTests(TestCase):
         empresa = Empresa.objects.create(nombre="Una", nit="1", slug="una")
         for codigo, debe_eliminar in (("inventario.eliminar", True), ("productos.eliminar", False)):
             with self.subTest(permiso=codigo):
-                usuario = Usuario.objects.create_user(username=f"{codigo}@c.co", email=f"{codigo}@c.co", password="x")
+                usuario = Usuario.objects.create_user(username=f"{codigo}@c.co", email=f"{codigo}@c.co", password="x", first_name="Ana", last_name="Prueba")
                 rol = Rol.objects.create(empresa=empresa, nombre=codigo, es_admin=False)
                 rol.permisos.add(Permiso.objects.get_or_create(codigo=codigo, defaults={"descripcion": codigo})[0])
                 Membresia.objects.create(usuario=usuario, empresa=empresa, rol=rol)
@@ -375,7 +375,7 @@ class InicioPanelTests(TestCase):
         from .services import crear_factura
 
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000090", slug="mia-inicio", direccion="C 1", telefono="6011234567")
-        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
         self.client.force_login(self.usuario)
@@ -454,7 +454,7 @@ class InicioPanelTests(TestCase):
         from .models import Membresia, Rol, Usuario
 
         otra = Empresa.objects.get(slug="otra-inicio")
-        usuario = Usuario.objects.create_user(username="o@test.co", email="o@test.co", password="x")
+        usuario = Usuario.objects.create_user(username="o@test.co", email="o@test.co", password="x", first_name="Ana", last_name="Prueba")
         Membresia.objects.create(usuario=usuario, empresa=otra, rol=Rol.objects.create(empresa=otra, nombre="A", es_admin=True))
         self.client.force_login(usuario)
         contexto = self.contexto()
@@ -465,7 +465,7 @@ class InicioPanelTests(TestCase):
         from .models import Membresia, Rol, Usuario
 
         vacia = Empresa.objects.create(nombre="Vacía", nit="900000092", slug="vacia")
-        usuario = Usuario.objects.create_user(username="v@test.co", email="v@test.co", password="x")
+        usuario = Usuario.objects.create_user(username="v@test.co", email="v@test.co", password="x", first_name="Ana", last_name="Prueba")
         Membresia.objects.create(usuario=usuario, empresa=vacia, rol=Rol.objects.create(empresa=vacia, nombre="A", es_admin=True))
         self.client.force_login(usuario)
         contexto = self.contexto()
@@ -478,7 +478,7 @@ class LimiteDeIntentosTests(TestCase):
     def setUp(self):
         from .models import Usuario
 
-        self.usuario = Usuario.objects.create_user(username="ana@correo.co", email="ana@correo.co", password=self.CLAVE)
+        self.usuario = Usuario.objects.create_user(username="ana@correo.co", email="ana@correo.co", password=self.CLAVE, first_name="Ana", last_name="Prueba")
 
     def ingresar(self, correo="ana@correo.co", clave="equivocada"):
         return self.client.post(reverse("login"), {"username": correo, "password": clave})
@@ -515,7 +515,7 @@ class LimiteDeIntentosTests(TestCase):
     def test_otro_correo_desde_la_misma_ip_no_queda_bloqueado(self):
         from .models import Usuario
 
-        Usuario.objects.create_user(username="luis@correo.co", email="luis@correo.co", password=self.CLAVE)
+        Usuario.objects.create_user(username="luis@correo.co", email="luis@correo.co", password=self.CLAVE, first_name="Ana", last_name="Prueba")
         for _ in range(5):
             self.ingresar()
         self.assertEqual(self.ingresar(correo="luis@correo.co", clave=self.CLAVE).status_code, 302)

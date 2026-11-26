@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from .models import Membresia, Permiso, Rol, Usuario
+from .validadores import validar_nombre_persona
 from .permisos import GRUPOS_PERMISOS, sincronizar_catalogo_permisos
 
 
@@ -89,8 +90,9 @@ class RolForm(forms.ModelForm):
 class MiembroCrearForm(forms.Form):
     """Formulario. Campos: email, first_name, last_name, rol, password."""
     email = forms.EmailField(label="Correo electrónico")
-    first_name = forms.CharField(max_length=150, required=False, label="Nombres")
-    last_name = forms.CharField(max_length=150, required=False, label="Apellidos")
+    # Obligatorios solo si el correo aún no tiene cuenta (se validan en clean)
+    first_name = forms.CharField(max_length=150, required=False, label="Nombres", validators=[validar_nombre_persona])
+    last_name = forms.CharField(max_length=150, required=False, label="Apellidos", validators=[validar_nombre_persona])
     rol = forms.ModelChoiceField(
         queryset=Rol.objects.none(),
         label="Rol en el negocio",
@@ -127,6 +129,10 @@ class MiembroCrearForm(forms.Form):
         if correo:
             self.usuario_existente = Usuario.objects.filter(email__iexact=correo).first()
             if self.usuario_existente is None:
+                # Cuenta nueva: nombres y apellidos son obligatorios, como en el registro (prueba CP-02)
+                for campo, mensaje in (("first_name", "Ingresa los nombres."), ("last_name", "Ingresa los apellidos.")):
+                    if not (datos.get(campo) or "").strip():
+                        self.add_error(campo, mensaje)
                 if not password:
                     self.add_error(
                         "password",

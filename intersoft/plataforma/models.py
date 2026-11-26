@@ -190,7 +190,7 @@ class AnuncioGlobal(ModeloBase):
         MANTENIMIENTO = "mantenimiento", "Mantenimiento"
 
     titulo = models.CharField("título", max_length=140)
-    mensaje = models.TextField("mensaje")
+    mensaje = models.TextField("mensaje", max_length=2000)
     tipo = models.CharField("tipo", max_length=20, choices=Tipo.choices, default=Tipo.INFO)
     inicia_en = models.DateTimeField("vigente desde", default=timezone.now)
     vence_en = models.DateTimeField("vigente hasta", null=True, blank=True)

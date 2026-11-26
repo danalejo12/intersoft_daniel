@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from ..validadores import exigir_letra_o_numero, validar_direccion, validar_nit, validar_usuario_del_correo
 from .base import ModeloBase
 
 
@@ -15,12 +16,12 @@ class Empresa(ModeloBase):
         PRO = "pro", "Pro"
         EMPRESARIAL = "empresarial", "Empresarial"
 
-    nombre = models.CharField(max_length=150)
-    nit = models.CharField("NIT", max_length=20, unique=True)
+    nombre = models.CharField(max_length=150, validators=[exigir_letra_o_numero])
+    nit = models.CharField("NIT", max_length=20, unique=True, validators=[validar_nit])
     slug = models.SlugField(max_length=160, unique=True)
-    email = models.EmailField(blank=True)
+    email = models.EmailField(blank=True, validators=[validar_usuario_del_correo])
     telefono = models.CharField(max_length=20, blank=True)
-    direccion = models.CharField(max_length=200, blank=True)
+    direccion = models.CharField(max_length=200, blank=True, validators=[validar_direccion])
     logo = models.ImageField("logo del negocio", upload_to="negocios/", blank=True, null=True)
     descripcion = models.TextField("descripción del negocio", max_length=500, blank=True)
     sitio_web = models.URLField("sitio web o red social", blank=True)

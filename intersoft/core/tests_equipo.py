@@ -17,7 +17,7 @@ def _crear_dueno_y_negocio(email, nombre_negocio, nombre_dueno="Admin", nit=None
         username=email,
         email=email,
         password="PasswordSegura123!",
-        first_name=nombre_dueno,
+        first_name=nombre_dueno, last_name="Prueba"
     )
     datos = {"nombre": nombre_negocio, "nit": (nit or f"NIT-{email}")[:20]}
     empresa = registrar_negocio(
@@ -274,7 +274,7 @@ class GestionEquipoYRolesTests(TestCase):
             username="bodega@andina.co",
             email="bodega@andina.co",
             password="PasswordSegura123!",
-            first_name="Bodeguero",
+            first_name="Bodeguero", last_name="Prueba"
         )
         Membresia.objects.create(
             usuario=bodeguero,

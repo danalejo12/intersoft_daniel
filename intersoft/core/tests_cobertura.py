@@ -40,7 +40,7 @@ class BodegasVistasCoberturaTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Bodegas Co", nit="940001", slug="bodegas-co", activa=True)
         cambiar_plan(self.empresa, "pro")
-        self.usuario = Usuario.objects.create_user(username="bod@test.co", email="bod@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="bod@test.co", email="bod@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol, activa=True)
         self.client.force_login(self.usuario)
@@ -301,8 +301,8 @@ class BodegasVistasCoberturaTests(TestCase):
         self.prod.publicado = True
         self.prod.save(update_fields=["publicado"])
 
-        comprador = Usuario.objects.create_user(username="comp-fav@test.co", email="comp-fav@test.co", password="x")
-        otro = Usuario.objects.create_user(username="otro-fav@test.co", email="otro-fav@test.co", password="x")
+        comprador = Usuario.objects.create_user(username="comp-fav@test.co", email="comp-fav@test.co", password="x", first_name="Ana", last_name="Prueba")
+        otro = Usuario.objects.create_user(username="otro-fav@test.co", email="otro-fav@test.co", password="x", first_name="Ana", last_name="Prueba")
         from django.utils import timezone
 
         pedido = Pedido.objects.create(

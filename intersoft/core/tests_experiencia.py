@@ -82,7 +82,7 @@ class PanelTests(TestCase):
 class ConsolaTests(TestCase):
     def entrar(self, rol):
         usuario = Usuario.objects.create_user(username=f"{rol}@intersoft.co", email=f"{rol}@intersoft.co",
-                                              password="x", is_staff=True, first_name="Ana")
+                                              password="x", is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=usuario, rol=rol, activo=True)
         self.client.force_login(usuario)
         sesion = self.client.session

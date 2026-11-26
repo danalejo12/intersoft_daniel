@@ -37,7 +37,7 @@ def crear_producto(empresa, nombre, codigo="P-1", publicado=True, activo=True, s
 
 
 def crear_usuario(correo="ana@correo.co"):
-    return Usuario.objects.create_user(username=correo, email=correo, password=CLAVE)
+    return Usuario.objects.create_user(username=correo, email=correo, password=CLAVE, first_name="Ana", last_name="Prueba")
 
 
 def datos_registro(correo="nueva@correo.co", **extra):
@@ -301,7 +301,7 @@ class LoginSinMayusculasTests(TestCase):
 
     def test_la_base_no_permite_correos_que_solo_difieren_en_mayusculas(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Usuario.objects.create_user(username="otra", email="ANA@correo.co", password=CLAVE)
+            Usuario.objects.create_user(username="otra", email="ANA@correo.co", password=CLAVE, first_name="Ana", last_name="Prueba")
 
     def test_usuario_inactivo_no_inicia_sesion(self):
         Usuario.objects.filter(pk=self.usuario.pk).update(is_active=False)

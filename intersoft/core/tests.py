@@ -42,7 +42,7 @@ class FacturacionTests(TestCase):
     def setUp(self):
         # setUp se ejecuta ANTES de cada prueba, con una base de datos limpia
         self.empresa = Empresa.objects.create(nombre="Empresa Test", nit="900000001", slug="empresa-test")
-        self.usuario = Usuario.objects.create_user(username="v@test.co", email="v@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="v@test.co", email="v@test.co", password="x", first_name="Ana", last_name="Prueba")
         self.cliente = Cliente.objects.create(
             empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente Test"
         )
@@ -100,7 +100,7 @@ class FacturacionTests(TestCase):
 class InventarioTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Empresa Inv", nit="900000010", slug="empresa-inv")
-        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="i@test.co", email="i@test.co", password="x", first_name="Ana", last_name="Prueba")
         self.producto = Producto.objects.create(
             empresa=self.empresa, codigo="A1", nombre="Arroz", precio=Decimal("3000"), stock=0
         )
@@ -138,7 +138,7 @@ class EliminacionTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000020", slug="mia")
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000021", slug="ajena")
-        usuario = Usuario.objects.create_user(username="a@test.co", email="a@test.co", password="x")
+        usuario = Usuario.objects.create_user(username="a@test.co", email="a@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=usuario, empresa=self.empresa, rol=rol)
         self.client.force_login(usuario)
@@ -178,7 +178,7 @@ class PagoTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Empresa Pago", nit="900000030", slug="empresa-pago")
         conectar_pruebas(self.empresa)
-        self.usuario = Usuario.objects.create_user(username="p@test.co", email="p@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="p@test.co", email="p@test.co", password="x", first_name="Ana", last_name="Prueba")
         cliente = Cliente.objects.create(
             empresa=self.empresa, tipo_documento="CC", numero_documento="1", nombre="Cliente"
         )
@@ -259,7 +259,7 @@ class CobroVistaTests(TestCase):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000040", slug="mia-pago")
         conectar_pruebas(self.empresa)
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000041", slug="ajena-pago")
-        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
         self.client.force_login(self.usuario)
@@ -305,7 +305,7 @@ class FlujoPagoTests(TestCase):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000050", slug="mia-flujo")
         conectar_pruebas(self.empresa)
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000051", slug="ajena-flujo")
-        self.usuario = Usuario.objects.create_user(username="f@test.co", email="f@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="f@test.co", email="f@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
         self.client.force_login(self.usuario)
@@ -387,7 +387,7 @@ class ConsultaWompiTests(TestCase):
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Mía", nit="900000060", slug="mia-consulta")
         conectar_pruebas(self.empresa)
-        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="c@test.co", email="c@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.empresa, rol=rol)
         self.client.force_login(self.usuario)
@@ -525,12 +525,12 @@ class AislamientoPanelTests(TestCase):
     def setUp(self):
         self.mia = Empresa.objects.create(nombre="Mía", nit="900000070", slug="mia-aislada")
         self.ajena = Empresa.objects.create(nombre="Ajena", nit="900000071", slug="ajena-aislada")
-        self.usuario = Usuario.objects.create_user(username="m@test.co", email="m@test.co", password="x")
+        self.usuario = Usuario.objects.create_user(username="m@test.co", email="m@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol = Rol.objects.create(empresa=self.mia, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.usuario, empresa=self.mia, rol=rol)
         self.client.force_login(self.usuario)
 
-        dueno_ajeno = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x")
+        dueno_ajeno = Usuario.objects.create_user(username="otro@test.co", email="otro@test.co", password="x", first_name="Ana", last_name="Prueba")
         self.categoria = Categoria.objects.create(empresa=self.ajena, nombre="Categoría Ajena")
         self.cliente = Cliente.objects.create(empresa=self.ajena, tipo_documento="CC", numero_documento="9", nombre="Ajeno")
         self.producto = Producto.objects.create(
@@ -620,7 +620,7 @@ class CategoriasCRUDTests(TestCase):
 
     def setUp(self):
         self.empresa = Empresa.objects.create(nombre="Cat Test", nit="900000180", slug="cat-test")
-        self.admin = Usuario.objects.create_user(username="admin-cat@test.co", email="admin-cat@test.co", password="x")
+        self.admin = Usuario.objects.create_user(username="admin-cat@test.co", email="admin-cat@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol_admin = Rol.objects.create(empresa=self.empresa, nombre="Admin", es_admin=True)
         Membresia.objects.create(usuario=self.admin, empresa=self.empresa, rol=rol_admin)
         self.client.force_login(self.admin)
@@ -670,7 +670,7 @@ class CategoriasCRUDTests(TestCase):
         self.assertFalse(categoria.activa)
 
     def test_permisos_de_inventario_en_categorias(self):
-        lector = Usuario.objects.create_user(username="lector-cat@test.co", email="lector-cat@test.co", password="x")
+        lector = Usuario.objects.create_user(username="lector-cat@test.co", email="lector-cat@test.co", password="x", first_name="Ana", last_name="Prueba")
         rol_lector = Rol.objects.create(empresa=self.empresa, nombre="Solo ver", es_admin=False)
         perm_ver, _ = Permiso.objects.get_or_create(codigo="inventario.ver", defaults={"descripcion": "Ver inventario"})
         rol_lector.permisos.add(perm_ver)
@@ -822,14 +822,14 @@ class PerfilUsuarioTests(TestCase):
 
         resp_confirm = self.client.post(
             url_set_password,
-            {"new_password1": "NuevaClave#2026!", "new_password2": "NuevaClave#2026!"},
+            {"new_password1": "Torta#Fresa-2026!", "new_password2": "Torta#Fresa-2026!"},
             follow=True,
         )
         self.assertEqual(resp_confirm.status_code, 200)
         self.assertContains(resp_confirm, "Contraseña actualizada")
 
         self.usuario.refresh_from_db()
-        self.assertTrue(self.usuario.check_password("NuevaClave#2026!"))
+        self.assertTrue(self.usuario.check_password("Torta#Fresa-2026!"))
 
 
     def test_enlace_incompleto_de_recuperacion_muestra_pagina_amigable(self):

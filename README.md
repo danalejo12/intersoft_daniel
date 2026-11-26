@@ -33,6 +33,19 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
 - **Pasarela de pagos Wompi y simulador local**:
   - Cada negocio conecta sus propias llaves cifradas en **Panel → Negocio → Pagos**, con tarifas, verificación y auditoría. [Configuración y transición](docs/PAGOS-POR-NEGOCIO.md).
   - Firma de integridad SHA-256, webhook con verificación `hmac.compare_digest`, idempotencia en pagos y alertas `CRITICAL` a `ADMINS` ante discrepancias de monto/moneda o reembolsos requeridos.
+- **Protección de datos personales — Ley 1581 de 2012 (`intersoft/datos_personales/`)**:
+  - Autorización previa, expresa e informada en el registro (casillas sin marcar) con prueba guardada: versión de la política, finalidades, fecha, IP y navegador.
+  - Si cambia la política (`VERSION_POLITICA`), se vuelve a pedir la autorización al ingresar.
+  - Política completa en `/privacidad/` (Decreto 1377, art. 13) y avisos de privacidad en registro, pago y PQRS.
+  - «Mis datos personales» (`/mis-datos/`): descarga de todos los datos en JSON, historial de autorizaciones y solicitudes con radicado y plazos legales en días hábiles (consultas 10, reclamos 15).
+  - Consola `/plataforma/datos-personales/`: responder, rechazar o suprimir; la supresión anonimiza al titular y conserva las facturas por obligación legal.
+  - Lo que debe hacer la empresa (RNBD, oficial de datos, contratos, revisión legal): [docs/calidad/ley-1581-cumplimiento.md](docs/calidad/ley-1581-cumplimiento.md).
+- **Validación de datos de entrada** (`intersoft/core/validadores.py`, aplicada en los modelos):
+  - Nombres y apellidos de personas: obligatorios (not null y not blank, también en la base de datos) y solo letras y espacios.
+  - Nombre de negocio y de producto con al menos una letra o número; NIT, código de producto y dirección con formato válido; correo con máximo 64 caracteres antes de la @.
+  - Contraseñas: además de las reglas de Django, rechaza las comunes en español, los caracteres repetidos y las secuencias.
+  - Límite de largo en todos los textos libres (por ejemplo, 5.000 caracteres en la descripción del producto) para que pegar un texto gigante no congele el navegador.
+- **Consola de plataforma (`/plataforma/`)**: negocios, planes y cobros, PQRS, datos personales, comentarios, ideas, errores, operación y auditoría, con roles internos y verificación en dos pasos (TOTP).
 - **Seguridad y operación**:
   - Configuración por variables de entorno con `python-decouple`.
   - Protección contra fuerza bruta en inicio de sesión con `django-axes` (bloqueo por combinación correo + IP tras 5 intentos fallidos durante 15 minutos).
@@ -44,7 +57,7 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
 
 - **Python** 3.14 (versión estándar en `Dockerfile` y `.github/workflows/pruebas.yml`)
 - **PostgreSQL** 16+
-- Dependencias listadas en `requirements.txt` (`Django`, `psycopg2-binary`, `Pillow`, `python-decouple`, `django-axes`)
+- Dependencias listadas en `requirements.txt` (entre otras `Django`, `psycopg2-binary`, `Pillow`, `python-decouple`, `django-axes`)
 
 ---
 
@@ -79,12 +92,16 @@ Plataforma web multiempresa (SaaS + Marketplace + Punto de Venta POS + ERP) desa
    - `DEBUG=True`
    - `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
 
+   Antes de producción define también los datos del responsable de los datos personales (`DATOS_RESPONSABLE_RAZON_SOCIAL`, `DATOS_RESPONSABLE_NIT`, `DATOS_RESPONSABLE_DIRECCION`, `DATOS_RESPONSABLE_CORREO`, `DATOS_RESPONSABLE_TELEFONO`). Mientras falten, la política de `/privacidad/` los muestra en rojo.
+
 4. **Ejecutar migraciones y sincronizar catálogo de permisos:**
 
    ```bash
    python intersoft/manage.py migrate
    python intersoft/manage.py sincronizar_permisos
    ```
+
+   Corre `migrate` cada vez que bajes cambios del repositorio. La migración `core.0034_nombres_obligatorios` completa con «Pendiente» los nombres o apellidos vacíos de usuarios existentes, antes de exigirlos en la base de datos; esas personas deben corregirlos en «Mi perfil».
 
 5. **Iniciar el servidor de desarrollo:**
 
@@ -105,9 +122,30 @@ python intersoft/manage.py check
 # 2. Verificar que no falten migraciones por generar
 python intersoft/manage.py makemigrations --check --dry-run
 
-# 3. Ejecutar la suite completa de pruebas
-python intersoft/manage.py test core --noinput
+# 3. Revisión de estilo con las reglas de intersoft/ruff.toml (debe decir «All checks passed!»)
+pip install ruff   # una sola vez; no está en requirements.txt porque no se usa en producción
+cd intersoft && ruff check . && cd ..
+
+# 4. Ejecutar la suite completa de pruebas (706 pruebas, todas las aplicaciones)
+python intersoft/manage.py test --noinput
 ```
+
+Pruebas de caja negra por técnica (partición de equivalencia, valores límite, flujos positivo y negativo) de los casos de uso registrar usuario, iniciar sesión, registrar empresa y registrar producto:
+
+```bash
+python intersoft/manage.py test core.tests_caja_negra --noinput
+```
+
+Informes de calidad en [`docs/calidad/`](docs/calidad/):
+
+| Documento | Contenido |
+|---|---|
+| [2026-11-26-pruebas-caja-negra-tecnicas.md](docs/calidad/2026-11-26-pruebas-caja-negra-tecnicas.md) | 169 casos de caja negra por técnica y 2 defectos corregidos |
+| [2026-11-24-informe-pruebas-caja-negra-y-blanca.md](docs/calidad/2026-11-24-informe-pruebas-caja-negra-y-blanca.md) | Pruebas de caja negra y blanca de principio a fin |
+| [ISO-25010-calidad-del-codigo.md](docs/calidad/ISO-25010-calidad-del-codigo.md) | Las 8 características de ISO/IEC 25010 y las normas de código del equipo |
+| [ley-1581-cumplimiento.md](docs/calidad/ley-1581-cumplimiento.md) | Cumplimiento de la Ley 1581: lo que hace el software y lo que hace la empresa |
+
+Las correcciones al informe de validación de datos de entrada de los evaluadores (25 de noviembre de 2026, casos CP-02, 04, 08, 09, 12, 13, 14 y 15) tienen su prueba de regresión en `intersoft/core/tests_validacion_entradas.py`.
 
 ---
 
@@ -225,7 +263,13 @@ El repositorio usa **Python 3.14** (`Dockerfile` y `.github/workflows/pruebas.ym
   - `caja.py`, `views_pos.py` — Punto de venta (POS), turnos de caja y recibos.
   - `compras.py`, `reservas.py`, `pagos.py`, `views_tienda.py`, `views_compra.py` — Marketplace, reservas y pasarela Wompi.
   - `erp_services.py`, `erp_forms.py`, `views_erp.py` — Módulos ERP (compras, cartera, tesorería, contabilidad, nómina, producción y agenda).
+  - `validadores.py` — Reglas de datos de entrada compartidas (nombres, NIT, código, dirección, correo y contraseñas).
+- `intersoft/suscripciones/` — Planes de Intersoft, cobros con Wompi y API REST.
+- `intersoft/plataforma/` — Consola interna del equipo de Intersoft con roles, 2FA y bitácora de auditoría.
 - `intersoft/pqrs/` — Sistema de Peticiones, Quejas, Reclamos y Sugerencias (flujo A: negocio → Intersoft; flujo B: comprador → negocio con escalamiento automático).
+- `intersoft/soporte/` — Reporte de problemas, comentarios, encuesta NPS, ideas y registro de errores.
+- `intersoft/datos_personales/` — Protección de datos personales (Ley 1581): autorizaciones, solicitudes del titular y supresión.
+- `docs/calidad/` — Informes de pruebas y de calidad.
 
 ---
 

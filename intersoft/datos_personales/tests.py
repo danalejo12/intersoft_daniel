@@ -230,7 +230,7 @@ class ConsolaPlataformaTests(TestCase):
         self.titular = crear_usuario()
         self.solicitud = services.radicar_solicitud(titular=self.titular, tipo="suprimir", detalle="Borren todo")
         self.soporte = Usuario.objects.create_user(username="soporte@x.co", email="soporte@x.co", password=CLAVE,
-                                                   is_staff=True)
+                                                   is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=self.soporte, rol=RolPlataforma.Rol.SOPORTE, activo=True)
         self.client.force_login(self.soporte)
         sesion = self.client.session
@@ -243,7 +243,7 @@ class ConsolaPlataformaTests(TestCase):
         self.assertContains(respuesta, self.solicitud.radicado)
 
     def test_usuario_sin_permiso_pqrs_no_entra(self):
-        finanzas = Usuario.objects.create_user(username="fin@x.co", email="fin@x.co", password=CLAVE, is_staff=True)
+        finanzas = Usuario.objects.create_user(username="fin@x.co", email="fin@x.co", password=CLAVE, is_staff=True, first_name="Ana", last_name="Prueba")
         RolPlataforma.objects.create(usuario=finanzas, rol=RolPlataforma.Rol.FINANZAS, activo=True)
         self.client.force_login(finanzas)
         sesion = self.client.session
