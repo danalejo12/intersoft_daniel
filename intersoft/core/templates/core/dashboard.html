@@ -242,6 +242,58 @@
     </article>
     {% endif %}
   </section>
+
+  {% if puede_ver_ventas %}
+  <section class="paneles parejos">
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Top 5 productos más vendidos</h2>
+        <span class="badge info">Últimos 30 días</span>
+      </div>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Productos más vendidos">
+        <table class="tabla">
+          <thead><tr><th>Producto</th><th class="num">Unidades</th><th class="num">Subtotal</th></tr></thead>
+          <tbody>
+            {% for item in top_productos_mes %}
+              <tr>
+                <td><a href="{% url 'productos_kardex' item.producto__pk %}"><strong>{{ item.producto__nombre }}</strong></a></td>
+                <td class="num">{{ item.unidades }}</td>
+                <td class="num">$ {{ item.total|floatformat:"0g" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">Todavía no hay ventas registradas en los últimos 30 días.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Analítica y cupones</h2>
+        <a class="boton secundario pequeno" href="{% url 'cupones_panel' %}">Gestionar cupones</a>
+      </div>
+      <dl class="perfil-detalles" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;">
+        <div class="perfil-dato">
+          <dt>Ticket promedio del mes</dt>
+          <dd><strong>$ {{ ticket_promedio_mes|floatformat:"0g" }}</strong></dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Cupones vigentes</dt>
+          <dd><strong>{{ cupones_activos }}</strong></dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Usos de cupones</dt>
+          <dd><strong>{{ cupones_usos }}</strong></dd>
+        </div>
+        <div class="perfil-dato">
+          <dt>Descuento otorgado</dt>
+          <dd><strong>$ {{ cupones_descuento_total|floatformat:"0g" }}</strong></dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+  {% endif %}
 {% endblock %}
 
 {% block scripts %}

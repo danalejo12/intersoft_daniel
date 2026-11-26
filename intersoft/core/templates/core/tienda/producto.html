@@ -60,13 +60,23 @@
           </p>
         </form>
       {% else %}
-        <p class="nota">Este producto se agotó por ahora. ¡Vuelve pronto!</p>
+        <p class="nota">Este producto se agotó por ahora. Déjanos tu correo y te avisamos apenas vuelva a estar disponible.</p>
+        <form method="post" action="{% url 'producto_avisar_stock' producto.pk %}" class="aviso-stock-form" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+          {% csrf_token %}
+          <label for="id_email_aviso" class="oculto-visual">Correo para aviso de stock</label>
+          <input id="id_email_aviso" type="email" name="email" required placeholder="tu@correo.com"
+                 value="{% if user.is_authenticated %}{{ user.email }}{% endif %}"
+                 style="flex:1 1 220px;min-height:42px;padding:8px 12px;border:1px solid var(--borde,#cbd5e1);border-radius:8px;">
+          <button type="submit" class="boton">Avísame cuando haya stock</button>
+        </form>
       {% endif %}
 
       {% if user.is_authenticated %}
         <form method="post" action="{% url 'favorito_toggle' producto.pk %}" class="favorito-form">
           {% csrf_token %}
-          <button type="submit" class="boton boton-claro favorito-btn">♥ Guardar / quitar de favoritos</button>
+          <button type="submit" class="boton boton-claro favorito-btn">
+            {% if es_favorito %}♥ En tus favoritos (quitar){% else %}♡ Guardar en favoritos{% endif %}
+          </button>
         </form>
       {% endif %}
 
@@ -81,6 +91,32 @@
       </a>
     </div>
   </article>
+
+  {% if relacionados %}
+    <section class="relacionados" aria-labelledby="titulo-relacionados" style="margin:32px 0;">
+      <h2 id="titulo-relacionados" style="margin:0 0 16px;">También te puede interesar</h2>
+      <div class="rejilla">
+        {% for rel in relacionados %}
+          <article class="tarjeta">
+            <a class="tarjeta-enlace" href="{% url 'tienda_producto' rel.pk %}">
+              <div class="tarjeta-foto">
+                {% if rel.imagen %}
+                  <img src="{{ rel.imagen.url }}" alt="{{ rel.nombre }}" loading="lazy">
+                {% else %}
+                  <span class="inicial con-tono" data-letra="{{ rel.nombre|first|upper }}" aria-hidden="true">{{ rel.nombre|first|upper }}</span>
+                {% endif %}
+              </div>
+              <div class="tarjeta-cuerpo">
+                <h3>{{ rel.nombre }}</h3>
+                <p class="tarjeta-negocio">{{ rel.empresa.nombre }}</p>
+                <p class="tarjeta-precio">$ {{ rel.precio_marketplace|floatformat:"0g" }}</p>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <section class="comentarios" id="comentarios" aria-labelledby="titulo-comentarios">
     <h2 id="titulo-comentarios">Opiniones de quienes lo conocen</h2>

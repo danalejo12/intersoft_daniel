@@ -426,3 +426,36 @@ class ItemCarrito(ModeloBase):
     def __str__(self):
         return f"{self.usuario} · {self.cantidad} × {self.producto}"
 
+
+class AvisoStock(ModeloBase):
+    """Suscripción de un comprador para recibir aviso por correo cuando un producto vuelva a tener stock."""
+
+    producto = models.ForeignKey(
+        "Producto", on_delete=models.CASCADE, related_name="avisos_stock"
+    )
+    email = models.EmailField()
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="avisos_stock",
+    )
+    notificado = models.BooleanField(default=False)
+    notificado_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "aviso de stock"
+        verbose_name_plural = "avisos de stock"
+        ordering = ["-creado_en"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["producto", "email"],
+                condition=Q(notificado=False),
+                name="uq_aviso_stock_pendiente_producto_email",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Aviso stock {self.producto} → {self.email}"
+

@@ -18,8 +18,8 @@ def _limpiar_correos(correos):
     return limpios
 
 
-def _enviar(*, asunto, mensaje, destinatarios, html=None, reply_to=None):
-    """Envía un correo (texto + HTML opcional y Reply-To) sin repetir destinatarios."""
+def _enviar(*, asunto, mensaje, destinatarios, html=None, reply_to=None, adjuntos=None):
+    """Envía un correo (texto + HTML opcional, Reply-To y adjuntos) sin repetir destinatarios."""
     limpios = _limpiar_correos(destinatarios)
     if not limpios:
         return 0
@@ -36,6 +36,8 @@ def _enviar(*, asunto, mensaje, destinatarios, html=None, reply_to=None):
         )
         if html:
             correo.attach_alternative(html, "text/html")
+        for nombre_archivo, contenido, tipo_mime in adjuntos or ():
+            correo.attach(nombre_archivo, contenido, tipo_mime)
         return correo.send(fail_silently=False)
     except Exception:
         logger.warning("No se pudo enviar correo transaccional: %s", asunto, exc_info=True)
@@ -109,13 +111,93 @@ def notificar_pedido_pagado(pedido):
             ("Entrega", f"{pedido.direccion}, {pedido.ciudad} ({pedido.departamento})"),
         ],
     )
+    adjuntos = []
+    if pedido.factura_id:
+        try:
+            from .exportaciones import generar_factura_pdf
+
+            pdf_bytes = generar_factura_pdf(pedido.factura)
+            adjuntos.append((f"factura-{pedido.factura.numero}.pdf", pdf_bytes, "application/pdf"))
+        except Exception:
+            logger.warning("No se pudo adjuntar PDF de factura del pedido %s", pedido.numero, exc_info=True)
+
     return _enviar(
         asunto=asunto,
         mensaje=mensaje,
         destinatarios=[pedido.email],
         html=html,
         reply_to=[pedido.empresa.email] if pedido.empresa.email else None,
+        adjuntos=adjuntos,
     )
+
+
+def notificar_bienvenida_usuario(usuario):
+    """Envía correo de bienvenida HTML+texto al crear una cuenta nueva en InterSoft."""
+    nombre = (usuario.first_name or "").strip() or usuario.email
+    asunto = "¡Bienvenido a InterSoft! Tu cuenta ya está activa"
+    mensaje = (
+        f"Hola {nombre},\n\n"
+        f"Gracias por registrarte en InterSoft con el correo {usuario.email}.\n"
+        f"Ya puedes comprar en el marketplace, guardar favoritos, hacer seguimiento a tus pedidos "
+        f"o registrar tu propio negocio cuando quieras.\n\n"
+        f"Equipo InterSoft"
+    )
+    html = _correo_html(
+        titulo="¡Bienvenido a InterSoft!",
+        saludo=f"Hola {nombre},",
+        parrafos=[
+            f"Tu cuenta con el correo {usuario.email} fue creada con éxito.",
+            "Ya puedes explorar tiendas, guardar favoritos, seguir tus pedidos en tiempo real o registrar tu propio negocio.",
+        ],
+        detalles=[
+            ("Correo registrado", usuario.email),
+            ("Estado", "Cuenta activa"),
+        ],
+    )
+    return _enviar(asunto=asunto, mensaje=mensaje, destinatarios=[usuario.email], html=html)
+
+
+def notificar_stock_disponible(producto):
+    """Avisa por correo a todos los suscritos en AvisoStock cuando un producto vuelve a tener existencias."""
+    from django.utils import timezone
+
+    from .models import AvisoStock
+
+    pendientes = list(AvisoStock.objects.filter(producto=producto, notificado=False))
+    if not pendientes:
+        return 0
+    enviados = 0
+    ahora = timezone.now()
+    asunto = f"¡Volvió el stock! {producto.nombre} ya está disponible"
+    precio_txt = f"$ {producto.precio_marketplace:,.0f}".replace(",", ".")
+    for aviso in pendientes:
+        mensaje = (
+            f"Hola,\n\n"
+            f"El producto «{producto.nombre}» de {producto.empresa.nombre} volvió a estar disponible.\n"
+            f"Precio actual: {precio_txt}\n\n"
+            f"Ingresa a InterSoft antes de que se agote nuevamente."
+        )
+        html = _correo_html(
+            titulo=f"¡Volvió el stock de {producto.nombre}!",
+            saludo="Hola,",
+            parrafos=[
+                f"El producto «{producto.nombre}» vendido por {producto.empresa.nombre} ya tiene unidades disponibles nuevamente.",
+            ],
+            detalles=[
+                ("Producto", producto.nombre),
+                ("Negocio", producto.empresa.nombre),
+                ("Precio", precio_txt),
+            ],
+        )
+        enviados += _enviar(
+            asunto=asunto,
+            mensaje=mensaje,
+            destinatarios=[aviso.email],
+            html=html,
+            reply_to=[producto.empresa.email] if producto.empresa.email else None,
+        )
+    AvisoStock.objects.filter(pk__in=[a.pk for a in pendientes]).update(notificado=True, notificado_en=ahora)
+    return enviados
 
 
 def notificar_envio_actualizado(pedido):

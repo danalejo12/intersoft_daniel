@@ -544,3 +544,95 @@ class QAAdversarioTests(TestCase):
         self.assertEqual(mail.outbox[0].to, [self.comprador.email])
         self.assertEqual(mail.outbox[0].reply_to, ["ventas@negocio.co"])
         self.assertEqual(mail.outbox[0].alternatives[0][1], "text/html")
+
+    def test_factura_pdf_bienvenida_aviso_stock_relacionados_analitica_y_errores(self):
+        """Verifica PDF adjunto, bienvenida, aviso de stock, relacionados, analítica y plantillas 404/403/500."""
+        from django.core import mail
+        from django.template.loader import render_to_string
+
+        from . import services
+        from .models import AvisoStock, MovimientoInventario, Producto
+
+        # 1. Factura PDF adjunta en confirmación de pedido pagado
+        mail.outbox.clear()
+        pedido = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 1}],
+            datos=DATOS_ENVIO,
+        )
+        reservas.marcar_pagado(pedido)
+        correo_pago = next(m for m in mail.outbox if DATOS_ENVIO["email"] in m.to)
+        self.assertTrue(correo_pago.attachments)
+        nombre_pdf, contenido_pdf, mime_pdf = correo_pago.attachments[0]
+        self.assertTrue(nombre_pdf.startswith("factura-"))
+        self.assertEqual(mime_pdf, "application/pdf")
+        self.assertTrue(contenido_pdf.startswith(b"%PDF"))
+
+        # 2. Correo de bienvenida al registrarse
+        mail.outbox.clear()
+        resp_reg = self.client.post(
+            reverse("registro"),
+            {
+                "first_name": "Lucía",
+                "last_name": "Rojas",
+                "email": "lucia.rojas@gmail.com",
+                "password1": "ClaveSegura2026!",
+                "password2": "ClaveSegura2026!",
+                "acepta_datos": True,
+                "mayor_edad": True,
+            },
+        )
+        self.assertEqual(resp_reg.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Bienvenido", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].alternatives[0][1], "text/html")
+
+        # 3. Aviso de stock agotado → notificación automática al reponer
+        agotado = Producto.objects.create(
+            empresa=self.negocio,
+            codigo="AGOT-01",
+            nombre="Producto Agotado",
+            precio=Decimal("15000.00"),
+            iva_porcentaje=Decimal("0"),
+            stock=0,
+            publicado=True,
+            activo=True,
+        )
+        resp_aviso = self.client.post(
+            reverse("producto_avisar_stock", args=[agotado.pk]),
+            {"email": "esperando@gmail.com"},
+        )
+        self.assertEqual(resp_aviso.status_code, 302)
+        self.assertTrue(AvisoStock.objects.filter(producto=agotado, email="esperando@gmail.com", notificado=False).exists())
+
+        mail.outbox.clear()
+        services.registrar_movimiento(
+            empresa=self.negocio,
+            producto=agotado,
+            tipo=MovimientoInventario.Tipo.ENTRADA,
+            cantidad=4,
+            usuario=self.dueno,
+            referencia="Reposición QA",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["esperando@gmail.com"])
+        self.assertIn("Volvió el stock", mail.outbox[0].subject)
+        self.assertTrue(AvisoStock.objects.filter(producto=agotado, email="esperando@gmail.com", notificado=True).exists())
+
+        # 4. Productos relacionados en ficha pública
+        resp_prod = self.client.get(reverse("tienda_producto", args=[self.producto.pk]))
+        self.assertEqual(resp_prod.status_code, 200)
+        self.assertIn(agotado, resp_prod.context["relacionados"])
+
+        # 5. Analítica de ventas y cupones en el Dashboard
+        self.client.force_login(self.dueno)
+        resp_dash = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp_dash.status_code, 200)
+        self.assertIn("top_productos_mes", resp_dash.context)
+        self.assertIn("ticket_promedio_mes", resp_dash.context)
+        self.assertIn("cupones_activos", resp_dash.context)
+
+        # 6. Plantillas personalizadas de error 404, 403 y 500
+        for tpl, texto in (("404.html", "Error 404"), ("403.html", "Error 403"), ("500.html", "Error 500")):
+            self.assertIn(texto, render_to_string(tpl))

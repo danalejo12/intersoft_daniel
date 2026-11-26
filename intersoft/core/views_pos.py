@@ -462,7 +462,10 @@ class TicketEnviarCorreoView(TenantMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, pk):
+        from django.core.validators import validate_email
+
         from .exportaciones import generar_ticket_pos_pdf
+        from .notificaciones import _correo_html, _enviar
 
         factura = get_object_or_404(
             Factura.objects.de_empresa(request.empresa).select_related("cliente", "creada_por"), pk=pk
@@ -471,19 +474,40 @@ class TicketEnviarCorreoView(TenantMixin, View):
         if not correo:
             messages.error(request, "Ingresa el correo del cliente para enviar el ticket.")
             return redirect("pos_ticket", pk=factura.pk)
+        try:
+            validate_email(correo)
+        except ValidationError:
+            messages.error(request, "Escribe una dirección de correo válida.")
+            return redirect("pos_ticket", pk=factura.pk)
 
         pdf = generar_ticket_pos_pdf(factura)
-        mensaje = EmailMessage(
-            subject=f"Ticket de compra #{factura.numero} · {request.empresa.nombre}",
-            body=(
-                f"Hola {factura.cliente_nombre or factura.cliente.nombre},\n\n"
-                f"Adjuntamos tu ticket de compra N.º {factura.numero} por valor de $ {factura.total}.\n"
+        cliente_nom = factura.cliente_nombre or factura.cliente.nombre
+        total_txt = f"$ {factura.total:,.0f}".replace(",", ".")
+        html = _correo_html(
+            titulo=f"Ticket de compra #{factura.numero}",
+            saludo=f"Hola {cliente_nom},",
+            parrafos=[
+                f"Adjuntamos en PDF tu comprobante de compra en {request.empresa.nombre}.",
+                "Gracias por tu compra.",
+            ],
+            detalles=[
+                ("Negocio", request.empresa.nombre),
+                ("Comprobante", f"#{factura.numero}"),
+                ("Total pagado", total_txt),
+            ],
+        )
+        _enviar(
+            asunto=f"Ticket de compra #{factura.numero} · {request.empresa.nombre}",
+            mensaje=(
+                f"Hola {cliente_nom},\n\n"
+                f"Adjuntamos tu ticket de compra N.º {factura.numero} por valor de {total_txt}.\n"
                 f"Gracias por tu compra en {request.empresa.nombre}."
             ),
-            to=[correo],
+            destinatarios=[correo],
+            html=html,
+            reply_to=[request.empresa.email] if request.empresa.email else None,
+            adjuntos=[(f"ticket-{factura.numero}.pdf", pdf, "application/pdf")],
         )
-        mensaje.attach(f"ticket-{factura.numero}.pdf", pdf, "application/pdf")
-        mensaje.send(fail_silently=False)
         messages.success(request, f"Ticket #{factura.numero} enviado por correo a {correo}.")
         return redirect("pos_ticket", pk=factura.pk)
 

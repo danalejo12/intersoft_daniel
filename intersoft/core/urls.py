@@ -139,6 +139,11 @@ urlpatterns = [
     ),
     path("favoritos/", views_compra.FavoritosListView.as_view(), name="favoritos_lista"),
     path("favoritos/<uuid:pk>/toggle/", views_compra.ToggleFavoritoView.as_view(), name="favorito_toggle"),
+    path(
+        "tienda/producto/<uuid:pk>/avisar-stock/",
+        views_tienda.AvisoStockCreateView.as_view(),
+        name="producto_avisar_stock",
+    ),
 
     # Páginas legales públicas
     path("terminos/", TemplateView.as_view(template_name="core/tienda/legal/terminos.html"), name="legal_terminos"),

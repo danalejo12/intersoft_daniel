@@ -6,6 +6,7 @@ from django.db.models import Avg, Count, Q
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.views import View
 from django.views.decorators.http import require_GET
 from django.views.generic import DetailView, FormView, ListView
 
@@ -100,13 +101,67 @@ class ProductoPublicoView(DetailView):
         return productos_publicos()
 
     def get_context_data(self, **kwargs):
+        from .models import Favorito
+
         contexto = super().get_context_data(**kwargs)
         comentarios = self.object.comentarios.select_related("autor")
         contexto["comentarios"] = comentarios[:30]
         contexto["opiniones"] = comentarios.aggregate(promedio=Avg("calificacion"), total=Count("id"))
         if self.request.user.is_authenticated:
             contexto["mi_comentario"] = comentarios.filter(autor=self.request.user).first()
+            contexto["es_favorito"] = Favorito.objects.filter(
+                usuario=self.request.user, producto=self.object
+            ).exists()
+        else:
+            contexto["es_favorito"] = False
+
+        relacionados = []
+        base_rel = productos_publicos().exclude(pk=self.object.pk)
+        if self.object.categoria_id:
+            relacionados = list(base_rel.filter(categoria=self.object.categoria)[:4])
+        if len(relacionados) < 4:
+            vistos = [p.pk for p in relacionados]
+            faltan = 4 - len(relacionados)
+            relacionados += list(
+                base_rel.filter(empresa=self.object.empresa).exclude(pk__in=vistos)[:faltan]
+            )
+        contexto["relacionados"] = relacionados
         return contexto
+
+
+class AvisoStockCreateView(View):
+    """Registra el correo de un comprador para avisarle cuando un producto agotado vuelva a tener stock."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        from django.core.exceptions import ValidationError
+        from django.core.validators import validate_email
+
+        from .models import AvisoStock
+
+        producto = get_object_or_404(productos_publicos(), pk=pk)
+        correo = (
+            request.POST.get("email")
+            or (request.user.email if request.user.is_authenticated else "")
+        ).strip().lower()
+        try:
+            validate_email(correo)
+        except ValidationError:
+            messages.error(request, "Escribe un correo electrónico válido para recibir el aviso de stock.")
+            return redirect("tienda_producto", pk=producto.pk)
+
+        AvisoStock.objects.get_or_create(
+            producto=producto,
+            email=correo,
+            notificado=False,
+            defaults={"usuario": request.user if request.user.is_authenticated else None},
+        )
+        messages.success(
+            request,
+            f"¡Listo! Te avisaremos a {correo} en cuanto «{producto.nombre}» vuelva a tener stock.",
+        )
+        return redirect("tienda_producto", pk=producto.pk)
 
 
 class RegistroCompradorView(FormView):
@@ -140,6 +195,9 @@ class RegistroCompradorView(FormView):
         # Prueba de la autorización (Decreto 1377 art. 8): versión, fecha, IP y navegador
         registrar_autorizacion(usuario, medio="registro", request=self.request,
                                mayor_de_edad=form.cleaned_data["mayor_edad"])
+        from .notificaciones import notificar_bienvenida_usuario
+
+        notificar_bienvenida_usuario(usuario)
         login(self.request, usuario, backend="core.backends.EmailBackend")
         return self._ir_al_destino()
 

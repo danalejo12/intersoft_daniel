@@ -243,8 +243,10 @@ def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referenc
     bodega = bodegas.validar_bodega(empresa, bodega)
     # Bloqueamos el producto: si alguien factura al mismo tiempo, espera su turno
     producto = Producto.objects.select_for_update().get(pk=producto.pk, empresa=empresa)
+    stock_anterior = producto.stock
     bodegas.mover(producto=producto, bodega=bodega, variacion=variacion)
-    return MovimientoInventario.objects.create(
+    producto.refresh_from_db(fields=["stock"])
+    movimiento = MovimientoInventario.objects.create(
         empresa=empresa,
         producto=producto,
         bodega=bodega,
@@ -253,3 +255,8 @@ def registrar_movimiento(*, empresa, producto, tipo, cantidad, usuario, referenc
         referencia=referencia,
         usuario=usuario,
     )
+    if stock_anterior <= 0 and producto.stock > 0:
+        from .notificaciones import notificar_stock_disponible
+
+        notificar_stock_disponible(producto)
+    return movimiento

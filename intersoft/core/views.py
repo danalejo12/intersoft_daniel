@@ -132,15 +132,52 @@ class DashboardView(TenantMixin, TemplateView):
             contexto["ventas_mes_anterior"] = ventas_mes_anterior
             contexto["variacion_mes_pct"] = variacion_pct
             contexto["facturas_mes"] = del_mes["cantidad"]
+            contexto["ticket_promedio_mes"] = (
+                round(ventas_mes / del_mes["cantidad"], 0) if del_mes["cantidad"] else 0
+            )
             contexto["ultimas_facturas"] = ventas.select_related("cliente").order_by("-numero")[:5]
             contexto["serie_meses"] = self.serie_meses(ventas, inicio_mes)
             contexto["serie_dias"] = self.serie_dias(ventas, ahora.date())
+
+            from django.db.models import DecimalField, ExpressionWrapper
+
+            from .models import CuponTienda, DetalleFactura, Pedido
+
+            desde_30 = ahora - timedelta(days=30)
+            detalles_30 = DetalleFactura.objects.filter(
+                factura__empresa=empresa,
+                factura__creado_en__gte=desde_30,
+            ).exclude(factura__estado=Factura.Estado.ANULADA)
+            if bodega_activa is not None:
+                detalles_30 = detalles_30.filter(factura__bodega=bodega_activa)
+            expr_subtotal = ExpressionWrapper(
+                F("cantidad") * F("precio_unitario"),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            )
+            contexto["top_productos_mes"] = list(
+                detalles_30.values("producto__pk", "producto__nombre")
+                .annotate(unidades=Sum("cantidad"), total=Sum(expr_subtotal))
+                .order_by("-unidades", "-total")[:5]
+            )
+            cupones_empresa = CuponTienda.objects.de_empresa(empresa)
+            contexto["cupones_activos"] = sum(1 for c in cupones_empresa if c.esta_vigente)
+            contexto["cupones_usos"] = cupones_empresa.aggregate(u=Sum("usos_actuales"))["u"] or 0
+            contexto["cupones_descuento_total"] = (
+                Pedido.objects.filter(empresa=empresa, estado=Pedido.Estado.PAGADO)
+                .aggregate(d=Sum("descuento"))["d"]
+                or 0
+            )
         else:
             contexto["ventas_mes"] = 0
             contexto["ventas_mes_anterior"] = 0
             contexto["variacion_mes_pct"] = None
             contexto["facturas_mes"] = 0
+            contexto["ticket_promedio_mes"] = 0
             contexto["ultimas_facturas"] = []
+            contexto["top_productos_mes"] = []
+            contexto["cupones_activos"] = 0
+            contexto["cupones_usos"] = 0
+            contexto["cupones_descuento_total"] = 0
             contexto["serie_meses"] = {"etiquetas": [], "valores": []}
             contexto["serie_dias"] = {"etiquetas": [], "valores": []}
         contexto.update(self.contexto_bienvenida(empresa))

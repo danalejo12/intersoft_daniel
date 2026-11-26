@@ -14,7 +14,7 @@ from .inventario import (
 )
 from .ventas import Factura, DetalleFactura
 from .pagos import AuditoriaPagos, ConfiguracionPagos, Pago
-from .pedidos import Comentario, CuponTienda, DetallePedido, Favorito, ItemCarrito, Orden, Pedido
+from .pedidos import AvisoStock, Comentario, CuponTienda, DetallePedido, Favorito, ItemCarrito, Orden, Pedido
 from .caja import PagoCaja, TurnoCaja
 from .tareas import EjecucionTarea
 from .erp import (
@@ -32,7 +32,7 @@ __all__ = [
     "Bodega", "Existencia", "TrasladoBodega", "ConteoFisico", "LineaConteoFisico",
     "Factura", "DetalleFactura",
     "AuditoriaPagos", "ConfiguracionPagos", "Pago",
-    "Comentario", "CuponTienda", "DetallePedido", "Favorito", "ItemCarrito", "Orden", "Pedido",
+    "AvisoStock", "Comentario", "CuponTienda", "DetallePedido", "Favorito", "ItemCarrito", "Orden", "Pedido",
     "PagoCaja", "TurnoCaja",
     "EjecucionTarea",
     "Proveedor", "Compra", "LineaCompra", "CuentaTesoreria", "CuentaCartera",
