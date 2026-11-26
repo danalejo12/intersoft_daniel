@@ -5,6 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
 
 from .models import Cliente, Comentario, Empresa
+from .validadores import validar_nit_negocio, validar_nombre_negocio, validar_nombre_persona
 
 Usuario = get_user_model()
 
@@ -37,6 +38,14 @@ class RegistroCompradorForm(UserCreationForm):
         model = Usuario
         fields = ["first_name", "last_name", "email"]
 
+    def clean_first_name(self):
+        """Valida que los nombres solo contengan caracteres reales de persona."""
+        return validar_nombre_persona(self.cleaned_data["first_name"])
+
+    def clean_last_name(self):
+        """Valida que los apellidos solo contengan caracteres reales de persona."""
+        return validar_nombre_persona(self.cleaned_data["last_name"])
+
     def clean_email(self):
         correo = self.cleaned_data["email"].lower()
         # Se revisa también username porque una cuenta creada con otro método puede tener este valor
@@ -67,15 +76,14 @@ class RegistroNegocioForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         hacer_obligatorios_datos_legales(self)
-        self.fields["nit"].validators.append(
-            RegexValidator(
-                r"^(?=.*\d)[0-9A-Za-z.\s-]+$",
-                "Escribe un NIT válido (solo dígitos, letras, puntos, espacios o guion).",
-            )
-        )
+
+    def clean_nombre(self):
+        """Valida que el nombre del negocio use solo letras, números y signos comerciales permitidos."""
+        return validar_nombre_negocio(self.cleaned_data["nombre"])
 
     def clean_nit(self):
-        return self.cleaned_data["nit"].replace(".", "").replace(" ", "")
+        """Valida el formato numérico del NIT y lo normaliza sin puntos ni espacios."""
+        return validar_nit_negocio(self.cleaned_data["nit"])
 
 
 def hacer_obligatorios_datos_legales(form):
@@ -128,6 +136,10 @@ class DatosEnvioForm(forms.Form):
         label="Indicaciones de entrega (opcional)", max_length=200, required=False,
         widget=forms.TextInput(attrs={"placeholder": "Apartamento, torre, barrio o una referencia"}),
     )
+
+    def clean_nombre(self):
+        """Valida el nombre del comprador en el checkout."""
+        return validar_nombre_persona(self.cleaned_data["nombre"])
 
     def clean_numero_documento(self):
         return self.cleaned_data["numero_documento"].replace(".", "").replace(" ", "")

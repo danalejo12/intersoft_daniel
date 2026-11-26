@@ -500,13 +500,19 @@ class PerfilUsuarioForm(forms.ModelForm):
         )
 
     def clean_first_name(self):
-        valor = (self.cleaned_data.get("first_name") or "").strip()
+        """Valida que el nombre del usuario no esté vacío y solo use caracteres reales."""
+        from .validadores import validar_nombre_persona
+
+        valor = validar_nombre_persona(self.cleaned_data.get("first_name"))
         if not valor:
             raise forms.ValidationError("Ingresa tu nombre.")
         return valor
 
     def clean_last_name(self):
-        return (self.cleaned_data.get("last_name") or "").strip()
+        """Valida que el apellido (si se ingresa) solo use caracteres reales."""
+        from .validadores import validar_nombre_persona
+
+        return validar_nombre_persona(self.cleaned_data.get("last_name"))
 
     def clean_foto(self):
         from .archivos_seguros import sanitizar_imagen, validar_firma_archivo

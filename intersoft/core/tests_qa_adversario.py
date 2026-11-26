@@ -244,3 +244,120 @@ class QAAdversarioTests(TestCase):
         )
         self.assertFalse(form_neg.is_valid())
         self.assertIn("nit", form_neg.errors)
+
+    def test_validadores_nombres_personas_negocios_y_nit(self):
+        """Registro de cuenta, perfil y negocio aceptan nombres reales y rechazan símbolos extraños o XSS."""
+        from django.core.exceptions import ValidationError
+
+        from .forms import PerfilUsuarioForm
+        from .forms_tienda import RegistroCompradorForm, RegistroNegocioForm
+        from .validadores import validar_nit_negocio, validar_nombre_negocio, validar_nombre_persona
+
+        # Nombres reales de persona (incluye tildes, ñ, guion, apóstrofe, abreviatura)
+        for valido in (
+            "María José",
+            "Ángel Ñáñez",
+            "Ana-María",
+            "Jean-Luc Pérez-Gómez",
+            "O'Connor",
+            "D’Angelo",
+            "Ma. Fernanda",
+            "Carlos Jr.",
+            "De la Cruz",
+        ):
+            self.assertEqual(validar_nombre_persona(valido), valido)
+
+        # Nombres inválidos de persona (números, XSS, símbolos raros, bordes)
+        for invalido in (
+            "QA <script>window.__xss=1</script>",
+            "Juan123",
+            "Juan--Carlos",
+            "-Juan",
+            "Juan-",
+            "---",
+            "Juan@mail.com",
+            "Juan!!!",
+            "😀🔥",
+        ):
+            with self.assertRaises(ValidationError, msg=f"Debió rechazar persona: {invalido}"):
+                validar_nombre_persona(invalido)
+
+        # Nombres reales de negocio (guion, S.A.S., &, apóstrofe, coma, números)
+        for valido in (
+            "mi-empresa",
+            "Inversiones El Sol S.A.S.",
+            "Café & Pan",
+            "H&M",
+            "Gómez, Pérez & Cía.",
+            "McDonald's",
+            "Ferretería 365",
+            "7-Eleven",
+            "Dr. Mueble",
+        ):
+            self.assertEqual(validar_nombre_negocio(valido), valido)
+
+        # Nombres inválidos de negocio
+        for invalido in (
+            "Tienda <script>alert(1)</script>",
+            "Tienda!!!",
+            "mi--empresa",
+            "-mi-empresa",
+            "mi-empresa-",
+            "---",
+            "Mi_Empresa$100",
+            "Empresa @gmail",
+        ):
+            with self.assertRaises(ValidationError, msg=f"Debió rechazar negocio: {invalido}"):
+                validar_nombre_negocio(invalido)
+
+        # NIT colombiano válido vs inválido
+        self.assertEqual(validar_nit_negocio("900.123.456-7"), "900123456-7")
+        self.assertEqual(validar_nit_negocio("901998877"), "901998877")
+        for nit_malo in ("NIT-INVALIDO!!!", "ABC-123", "900--123", "-900123", "900123-"):
+            with self.assertRaises(ValidationError, msg=f"Debió rechazar NIT: {nit_malo}"):
+                validar_nit_negocio(nit_malo)
+
+        # Integración en formularios reales
+        form_reg = RegistroCompradorForm(
+            {
+                "first_name": "QA <script>alert(1)</script>",
+                "last_name": "Pérez123",
+                "email": "nuevo.qa@ejemplo.co",
+                "password1": "ClaveSegura2026!",
+                "password2": "ClaveSegura2026!",
+                "acepta_datos": True,
+                "mayor_edad": True,
+            }
+        )
+        self.assertFalse(form_reg.is_valid())
+        self.assertIn("first_name", form_reg.errors)
+        self.assertIn("last_name", form_reg.errors)
+
+        form_perfil = PerfilUsuarioForm(
+            {"first_name": "Ana-María", "last_name": "O'Connor", "telefono": "300 123 4567"},
+            instance=self.comprador,
+        )
+        self.assertTrue(form_perfil.is_valid(), form_perfil.errors)
+
+        form_neg_ok = RegistroNegocioForm(
+            {
+                "nombre": "mi-empresa S.A.S.",
+                "nit": "901.555.444-2",
+                "email": "hola@mi-empresa.co",
+                "telefono": "3001234567",
+                "direccion": "Calle 10 # 20-30",
+            }
+        )
+        self.assertTrue(form_neg_ok.is_valid(), form_neg_ok.errors)
+
+        form_neg_mal = RegistroNegocioForm(
+            {
+                "nombre": "mi_empresa!!!",
+                "nit": "901.555.444-2",
+                "email": "hola@mi-empresa.co",
+                "telefono": "3001234567",
+                "direccion": "Calle 10 # 20-30",
+            }
+        )
+        self.assertFalse(form_neg_mal.is_valid())
+        self.assertIn("nombre", form_neg_mal.errors)
