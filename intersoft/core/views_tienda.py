@@ -29,6 +29,17 @@ class MarketplaceView(ListView):
     context_object_name = "productos"
     paginate_by = 24
 
+    def paginate_queryset(self, queryset, page_size):
+        """Usa get_page() para que ?page=-5 o ?page=999999 no lancen 404 sino primera/última página."""
+        paginator = self.get_paginator(
+            queryset,
+            page_size,
+            orphans=self.get_paginate_orphans(),
+            allow_empty_first_page=self.get_allow_empty(),
+        )
+        page = paginator.get_page(self.request.GET.get(self.page_kwarg))
+        return paginator, page, page.object_list, page.has_other_pages()
+
     def get_queryset(self):
         self.q = self.request.GET.get("q", "").strip()[:100]
         self.categorias = categorias_publicas()

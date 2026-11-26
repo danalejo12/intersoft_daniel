@@ -151,3 +151,53 @@ class QAAdversarioTests(TestCase):
         ):
             resp = self.client.get(ruta)
             self.assertNotEqual(resp.status_code, 500, f"HTTP 500 inesperado en {ruta}")
+
+    def test_limites_paginacion_marketplace_stock_minimo_telefono_y_pqrs(self):
+        """Paginación fuera de rango devuelve 200, y formularios rechazan stock_minimo<0, teléfono inválido y PQRS >2000."""
+        from .forms import ClienteForm, ProductoForm
+        from pqrs.forms import RadicarPQRSCompradorForm
+
+        # 1. Marketplace ?page=999999 y ?page=-5 devuelven 200 (no 404)
+        self.assertEqual(self.client.get(f"{reverse('marketplace')}?page=999999").status_code, 200)
+        self.assertEqual(self.client.get(f"{reverse('marketplace')}?page=-5").status_code, 200)
+
+        # 2. ProductoForm rechaza stock_minimo negativo
+        form_prod = ProductoForm(
+            {
+                "codigo": "NEG-1",
+                "nombre": "Test",
+                "precio": "10000",
+                "iva_porcentaje": "19",
+                "stock_inicial": "5",
+                "stock_minimo": "-5",
+            },
+            empresa=self.negocio,
+        )
+        self.assertFalse(form_prod.is_valid())
+        self.assertIn("stock_minimo", form_prod.errors)
+
+        # 3. ClienteForm rechaza teléfono con letras/símbolos
+        form_cli = ClienteForm(
+            {
+                "tipo_documento": "CC",
+                "numero_documento": "12345678",
+                "nombre": "Cliente QA",
+                "telefono": "abc!@#123456",
+            },
+            empresa=self.negocio,
+        )
+        self.assertFalse(form_cli.is_valid())
+        self.assertIn("telefono", form_cli.errors)
+
+        # 4. RadicarPQRSCompradorForm rechaza descripción > 2000 caracteres
+        form_pqrs = RadicarPQRSCompradorForm(
+            {
+                "tipo": "queja",
+                "empresa": str(self.negocio.pk),
+                "asunto": "Prueba límite",
+                "descripcion": "X" * 2005,
+            },
+            usuario=self.comprador,
+        )
+        self.assertFalse(form_pqrs.is_valid())
+        self.assertIn("descripcion", form_pqrs.errors)

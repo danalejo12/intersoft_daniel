@@ -26,12 +26,21 @@ class ClienteForm(forms.ModelForm):
 
     def __init__(self, *args, empresa=None, **kwargs):
         # La vista nos pasa la empresa activa para poder validar duplicados
+        from django.core.validators import RegexValidator
+
         super().__init__(*args, **kwargs)
         self.empresa = empresa
         # Opción vacía en español
         self.fields["tipo_documento"].choices = [("", "Selecciona el tipo")] + list(
             Cliente.TipoDocumento.choices
         )
+        self.fields["telefono"].validators.append(
+            RegexValidator(
+                r"^\+?[0-9\s-]{7,20}$",
+                "Escribe un teléfono válido (7 a 20 caracteres: números, espacios, guion o + al inicio).",
+            )
+        )
+        self.fields["telefono"].widget.attrs.update({"inputmode": "tel", "placeholder": "Ej.: 300 123 4567"})
 
     def clean_numero_documento(self):
         # clean_<campo> valida UN campo. Normalizamos: "1.020.304 050" -> "1020304050"
@@ -249,6 +258,11 @@ class ProductoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.empresa = empresa
         self.fields["peso_gramos"].required = False
+        self.fields["stock_minimo"].min_value = 0
+        self.fields["stock_minimo"].widget.attrs["min"] = "0"
+        self.fields["precio"].widget.attrs["min"] = "0"
+        self.fields["iva_porcentaje"].widget.attrs.update({"min": "0", "max": "100"})
+        self.fields["peso_gramos"].widget.attrs["min"] = "0"
         # Al EDITAR no se muestra: el stock de un producto existente solo cambia con movimientos.
         # _state.adding es True solo si el producto aún no está guardado en la base.
         if not self.instance._state.adding:
@@ -271,6 +285,12 @@ class ProductoForm(forms.ModelForm):
         if actuales - quitadas + nuevas > FOTOS_EXTRA_MAXIMO:
             self.add_error("fotos_extra", f"La galería admite hasta {FOTOS_EXTRA_MAXIMO} fotos además de la principal.")
         return datos
+
+    def clean_stock_minimo(self):
+        valor = self.cleaned_data.get("stock_minimo")
+        if valor is not None and valor < 0:
+            raise forms.ValidationError("El stock mínimo no puede ser negativo.")
+        return valor or 0
 
     def clean_peso_gramos(self):
         return self.cleaned_data.get("peso_gramos") or 0

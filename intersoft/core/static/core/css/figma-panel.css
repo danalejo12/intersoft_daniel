@@ -2118,3 +2118,14 @@ button.boton.peligro svg {
   padding-left: 14px;
   background-image: none;
 }
+
+/* 7. Celdas de estado vacío y buscador POS: evitar desbordes con textos largos sin espacios */
+.tabla td[colspan] {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pos-cliente input[type="search"],
+.pos-buscador input[type="search"] {
+  padding-right: 36px;
+}
