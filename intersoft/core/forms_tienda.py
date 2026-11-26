@@ -67,6 +67,12 @@ class RegistroNegocioForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         hacer_obligatorios_datos_legales(self)
+        self.fields["nit"].validators.append(
+            RegexValidator(
+                r"^(?=.*\d)[0-9A-Za-z.\s-]+$",
+                "Escribe un NIT válido (solo dígitos, letras, puntos, espacios o guion).",
+            )
+        )
 
     def clean_nit(self):
         return self.cleaned_data["nit"].replace(".", "").replace(" ", "")

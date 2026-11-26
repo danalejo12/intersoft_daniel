@@ -2119,8 +2119,14 @@ button.boton.peligro svg {
   background-image: none;
 }
 
-/* 7. Celdas de estado vacío y buscador POS: evitar desbordes con textos largos sin espacios */
+/* 7. Celdas de tabla y buscador POS: evitar desbordes con textos largos sin espacios */
 .tabla td[colspan] {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tabla td:not(.num):not(.acciones-fila) {
+  max-width: 320px;
   overflow-wrap: anywhere;
   word-break: break-word;
 }

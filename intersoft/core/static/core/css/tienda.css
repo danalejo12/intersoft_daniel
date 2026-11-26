@@ -1815,6 +1815,14 @@ button svg,
   align-items: center;
 }
 
+.perfil-foto-botones label.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  cursor: pointer;
+}
+
 .perfil-foto-editor input[type="file"] {
   position: absolute;
   width: 1px;

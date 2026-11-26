@@ -34,6 +34,12 @@ class ClienteForm(forms.ModelForm):
         self.fields["tipo_documento"].choices = [("", "Selecciona el tipo")] + list(
             Cliente.TipoDocumento.choices
         )
+        self.fields["numero_documento"].validators.append(
+            RegexValidator(
+                r"^[0-9A-Za-z.\s-]+$",
+                "Escribe solo números, letras, puntos, espacios o guiones.",
+            )
+        )
         self.fields["telefono"].validators.append(
             RegexValidator(
                 r"^\+?[0-9\s-]{7,20}$",
@@ -475,11 +481,23 @@ class PerfilUsuarioForm(forms.ModelForm):
                 attrs={"rows": 4, "placeholder": "Cuéntanos brevemente sobre ti, tu rol o tu experiencia..."}
             ),
             "cargo": forms.TextInput(attrs={"placeholder": "Ej. Administrador, Asesor comercial, Contador..."}),
-            "telefono": forms.TextInput(attrs={"placeholder": "Ej. 300 123 4567"}),
+            "telefono": forms.TextInput(attrs={"placeholder": "Ej. 300 123 4567", "inputmode": "tel"}),
         }
         help_texts = {
             "foto": "Formatos JPG, PNG o WebP · Tamaño máximo 5 MB.",
         }
+
+    def __init__(self, *args, **kwargs):
+        """Agrega validación de formato al teléfono de contacto opcional."""
+        from django.core.validators import RegexValidator
+
+        super().__init__(*args, **kwargs)
+        self.fields["telefono"].validators.append(
+            RegexValidator(
+                r"^\+?[0-9\s-]{7,20}$",
+                "Escribe un teléfono válido (7 a 20 caracteres: números, espacios, guion o + al inicio).",
+            )
+        )
 
     def clean_first_name(self):
         valor = (self.cleaned_data.get("first_name") or "").strip()

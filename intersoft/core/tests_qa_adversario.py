@@ -201,3 +201,46 @@ class QAAdversarioTests(TestCase):
         )
         self.assertFalse(form_pqrs.is_valid())
         self.assertIn("descripcion", form_pqrs.errors)
+
+    def test_validaciones_perfil_cliente_doc_y_nit_negocio(self):
+        """PerfilUsuarioForm, ClienteForm y RegistroNegocioForm rechazan formatos inválidos."""
+        from .forms import ClienteForm, PerfilUsuarioForm
+        from .forms_tienda import RegistroNegocioForm
+
+        # 1. Perfil rechaza teléfono con letras/símbolos
+        form_perfil = PerfilUsuarioForm(
+            {
+                "first_name": "Comprador",
+                "last_name": "QA",
+                "telefono": "abc!!!@@@123",
+            },
+            instance=self.comprador,
+        )
+        self.assertFalse(form_perfil.is_valid())
+        self.assertIn("telefono", form_perfil.errors)
+
+        # 2. Cliente rechaza símbolos inválidos en numero_documento
+        form_cli = ClienteForm(
+            {
+                "tipo_documento": "CC",
+                "numero_documento": "DOC-INVALIDO!!!",
+                "nombre": "Cliente QA",
+                "telefono": "3001234567",
+            },
+            empresa=self.negocio,
+        )
+        self.assertFalse(form_cli.is_valid())
+        self.assertIn("numero_documento", form_cli.errors)
+
+        # 3. Registro de negocio rechaza NIT con símbolos o sin dígitos
+        form_neg = RegistroNegocioForm(
+            {
+                "nombre": "Negocio QA",
+                "nit": "NIT-INVALIDO!!!",
+                "email": "negocio@ejemplo.co",
+                "telefono": "3001234567",
+                "direccion": "Calle 10 # 20-30",
+            }
+        )
+        self.assertFalse(form_neg.is_valid())
+        self.assertIn("nit", form_neg.errors)
