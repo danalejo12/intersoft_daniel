@@ -10,6 +10,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from .validadores import sanitizar_celda_hoja
+
 
 def _pesos(valor) -> str:
     """Formatea un valor como pesos colombianos sin decimales ($ 1.234.567)."""
@@ -208,7 +210,7 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
         ws.append(["Tipo de cartera", "Saldo pendiente (COP)"])
         _estilizar_cabecera(ws)
         for item in cartera:
-            ws.append([item["tipo"], float(item["total"] or 0)])
+            ws.append([sanitizar_celda_hoja(item["tipo"]), float(item["total"] or 0)])
         for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
             row[0].number_format = '"$ "#,##0'
         _auto_ancho(ws)
@@ -218,7 +220,7 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
         ws.append(["Cuenta de caja / banco", "Saldo actual (COP)"])
         _estilizar_cabecera(ws)
         for c in cuentas:
-            ws.append([c["nombre"], float(c["saldo"] or 0)])
+            ws.append([sanitizar_celda_hoja(c["nombre"]), float(c["saldo"] or 0)])
         for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
             row[0].number_format = '"$ "#,##0'
         _auto_ancho(ws)
@@ -230,8 +232,8 @@ def generar_reporte_erp_excel(*, empresa, cartera=None, cuentas=None, balance=No
         for b in balance:
             ws.append(
                 [
-                    b["cuenta__codigo"],
-                    b["cuenta__nombre"],
+                    sanitizar_celda_hoja(b["cuenta__codigo"]),
+                    sanitizar_celda_hoja(b["cuenta__nombre"]),
                     float(b["debito"] or 0),
                     float(b["credito"] or 0),
                 ]

@@ -2,6 +2,7 @@
 from django import forms
 
 from core.models import Empresa, Pedido, Usuario
+from core.validadores import validar_texto_util
 
 from .models import PQRS, MensajePQRS
 
@@ -42,6 +43,14 @@ class RadicarPQRSCompradorForm(forms.Form):
                 .order_by("-creado_en")
             )
 
+    def clean_asunto(self):
+        """Rechaza asuntos vacíos o de puro relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["asunto"], min_caracteres=3)
+
+    def clean_descripcion(self):
+        """Rechaza descripciones vacías o de puro relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["descripcion"], min_caracteres=5)
+
     def clean(self):
         datos = super().clean()
         pedido = datos.get("pedido")
@@ -73,6 +82,14 @@ class RadicarPQRSNegocioForm(forms.Form):
         required=False,
     )
 
+    def clean_asunto(self):
+        """Rechaza asuntos vacíos o de puro relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["asunto"], min_caracteres=3)
+
+    def clean_descripcion(self):
+        """Rechaza descripciones vacías o de puro relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["descripcion"], min_caracteres=5)
+
 
 class MensajePQRSForm(forms.ModelForm):
     """Formulario para responder en el hilo de una PQRS."""
@@ -88,6 +105,10 @@ class MensajePQRSForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not permitir_interno:
             self.fields.pop("interno", None)
+
+    def clean_texto(self):
+        """Rechaza respuestas vacías o de puro relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["texto"], min_caracteres=3)
 
 
 class EncuestaSatisfaccionForm(forms.Form):

@@ -5,7 +5,16 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
 
 from .models import Cliente, Comentario, Empresa
-from .validadores import validar_nit_negocio, validar_nombre_negocio, validar_nombre_persona
+from .validadores import (
+    validar_ciudad,
+    validar_correo_registro,
+    validar_direccion,
+    validar_documento_por_tipo,
+    validar_nit_negocio,
+    validar_nombre_negocio,
+    validar_nombre_persona,
+    validar_texto_util,
+)
 
 Usuario = get_user_model()
 
@@ -47,7 +56,7 @@ class RegistroCompradorForm(UserCreationForm):
         return validar_nombre_persona(self.cleaned_data["last_name"])
 
     def clean_email(self):
-        correo = self.cleaned_data["email"].lower()
+        correo = validar_correo_registro(self.cleaned_data["email"])
         # Se revisa también username porque una cuenta creada con otro método puede tener este valor
         if Usuario.objects.filter(email__iexact=correo).exists() or Usuario.objects.filter(username__iexact=correo).exists():
             raise forms.ValidationError("Ya existe una cuenta con este correo.")
@@ -84,6 +93,10 @@ class RegistroNegocioForm(forms.ModelForm):
     def clean_nit(self):
         """Valida el formato numérico del NIT y lo normaliza sin puntos ni espacios."""
         return validar_nit_negocio(self.cleaned_data["nit"])
+
+    def clean_direccion(self):
+        """Valida la dirección legal de notificaciones del negocio."""
+        return validar_direccion(self.cleaned_data["direccion"])
 
 
 def hacer_obligatorios_datos_legales(form):
@@ -141,8 +154,28 @@ class DatosEnvioForm(forms.Form):
         """Valida el nombre del comprador en el checkout."""
         return validar_nombre_persona(self.cleaned_data["nombre"])
 
+    def clean_ciudad(self):
+        """Valida el nombre de la ciudad o municipio de entrega."""
+        return validar_ciudad(self.cleaned_data["ciudad"])
+
+    def clean_direccion(self):
+        """Valida la dirección de entrega con nomenclatura real."""
+        return validar_direccion(self.cleaned_data["direccion"])
+
     def clean_numero_documento(self):
         return self.cleaned_data["numero_documento"].replace(".", "").replace(" ", "")
+
+    def clean(self):
+        """Valida el número de documento según el tipo elegido (CC, CE, NIT o PP)."""
+        datos = super().clean()
+        tipo = datos.get("tipo_documento")
+        numero = datos.get("numero_documento")
+        if tipo and numero:
+            try:
+                datos["numero_documento"] = validar_documento_por_tipo(tipo, numero)
+            except forms.ValidationError as exc:
+                self.add_error("numero_documento", exc)
+        return datos
 
 
 class ComentarioForm(forms.ModelForm):
@@ -154,3 +187,7 @@ class ComentarioForm(forms.ModelForm):
             "calificacion": {"required": "Elige de 1 a 5 estrellas.", "invalid": "Elige de 1 a 5 estrellas."},
             "texto": {"required": "Cuéntanos un poco más en tu comentario."},
         }
+
+    def clean_texto(self):
+        """Rechaza reseñas vacías o de relleno repetitivo."""
+        return validar_texto_util(self.cleaned_data["texto"], min_caracteres=3)

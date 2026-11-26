@@ -11,6 +11,7 @@ from django.views import View
 from .http_utils import obtener_por_uuid_o_404
 from .mixins import PermisoRequeridoMixin
 from .models import CuponTienda
+from .validadores import validar_codigo_comercial
 
 
 class CuponTiendaForm(forms.ModelForm):
@@ -34,8 +35,8 @@ class CuponTiendaForm(forms.ModelForm):
         self.fields["vence_en"].required = False
 
     def clean_codigo(self):
-        codigo = (self.cleaned_data.get("codigo") or "").strip().upper()
-        if not codigo or " " in codigo:
+        codigo = validar_codigo_comercial(self.cleaned_data.get("codigo"), ejemplo="PROMO15")
+        if not codigo:
             raise forms.ValidationError("Escribe un código sin espacios (ej.: PROMO15).")
         return codigo
 

@@ -120,17 +120,25 @@ class QAAdversarioTests(TestCase):
         reservas.marcar_pagado(pedido)
         mail.outbox.clear()
 
+        with self.assertRaises(ValueError):
+            reservas.actualizar_envio_pedido(
+                pedido=pedido,
+                estado_envio="enviado",
+                transportadora="Servientrega",
+                numero_guia="<b>G-1</b>",
+            )
+
         reservas.actualizar_envio_pedido(
             pedido=pedido,
             estado_envio="enviado",
             transportadora='<script>alert("xss")</script>',
-            numero_guia="<b>G-1</b>",
+            numero_guia="GUIA-001",
         )
         self.assertEqual(len(mail.outbox), 1)
         html, _ = mail.outbox[0].alternatives[0]
         self.assertNotIn("<script>", html)
         self.assertIn("&lt;script&gt;", html)
-        self.assertNotIn("<b>G-1</b>", html)
+        self.assertIn("GUIA-001", html)
 
     def test_filtros_get_corruptos_en_pqrs_tienda_y_panel_no_dan_500(self):
         """Parámetros GET maliciosos (UUID inválido, fechas imposibles, páginas basura) nunca causan 500."""
@@ -361,3 +369,118 @@ class QAAdversarioTests(TestCase):
         )
         self.assertFalse(form_neg_mal.is_valid())
         self.assertIn("nombre", form_neg_mal.errors)
+
+    def test_ocho_validadores_mundo_real_completos(self):
+        """Valida los 8 bloques: documento por tipo, códigos, ciudad/dirección, fórmulas, guías, spam y correo."""
+        from django.core.exceptions import ValidationError
+
+        from pqrs.forms import RadicarPQRSCompradorForm
+
+        from .forms import BodegaForm, CategoriaForm, ClienteForm, PerfilUsuarioForm
+        from .forms_tienda import ComentarioForm, DatosEnvioForm, RegistroCompradorForm
+        from .validadores import (
+            sanitizar_celda_hoja,
+            validar_ciudad,
+            validar_codigo_comercial,
+            validar_correo_registro,
+            validar_direccion,
+            validar_documento_por_tipo,
+            validar_numero_guia,
+            validar_texto_util,
+            validar_url_segura,
+        )
+        from .views_cupones import CuponTiendaForm
+
+        # 1. Documento por tipo
+        self.assertEqual(validar_documento_por_tipo("CC", "1.020.304.050"), "1020304050")
+        self.assertEqual(validar_documento_por_tipo("PP", "ab-12345"), "AB-12345")
+        with self.assertRaises(ValidationError):
+            validar_documento_por_tipo("CC", "ABC12345")
+
+        # 2. Clientes, categorías, bodegas y cargo rechazan código/símbolos
+        self.assertFalse(
+            ClienteForm({"tipo_documento": "CC", "numero_documento": "ABC123", "nombre": "<b>X</b>"}, empresa=self.negocio).is_valid()
+        )
+        self.assertFalse(CategoriaForm({"nombre": "Ropa <script>"}, empresa=self.negocio).is_valid())
+        self.assertFalse(BodegaForm({"nombre": "Bodega!!!"}).is_valid())
+        self.assertFalse(
+            PerfilUsuarioForm({"first_name": "Ana", "cargo": "<img src=x onerror=1>"}, instance=self.comprador).is_valid()
+        )
+
+        # 3. SKU y cupones
+        self.assertEqual(validar_codigo_comercial("sku_2026-a"), "SKU_2026-A")
+        with self.assertRaises(ValidationError):
+            validar_codigo_comercial("SKU/123!")
+        self.assertFalse(CuponTiendaForm({"codigo": "PROMO$10", "tipo": "porcentaje", "valor": "10"}).is_valid())
+
+        # 4. Ciudad y dirección
+        self.assertEqual(validar_ciudad("Bogotá D.C."), "Bogotá D.C.")
+        with self.assertRaises(ValidationError):
+            validar_ciudad("Cali123!!!")
+        self.assertEqual(validar_direccion("Calle 10 # 20-30 Apto 402"), "Calle 10 # 20-30 Apto 402")
+        with self.assertRaises(ValidationError):
+            validar_direccion("<script>alert(1)</script>")
+        with self.assertRaises(ValidationError):
+            validar_direccion("###---")
+        self.assertFalse(
+            DatosEnvioForm(
+                {
+                    "nombre": "Ana Pérez",
+                    "tipo_documento": "CC",
+                    "numero_documento": "10203040",
+                    "email": "ana@ejemplo.co",
+                    "telefono": "3001234567",
+                    "departamento": "Bogotá D.C.",
+                    "ciudad": "Bogotá123",
+                    "direccion": "Calle 10 # 20-30",
+                }
+            ).is_valid()
+        )
+
+        # 5. Formula Injection en Excel/CSV
+        self.assertEqual(sanitizar_celda_hoja('=HYPERLINK("http://evil")'), '\'=HYPERLINK("http://evil")')
+        self.assertEqual(sanitizar_celda_hoja("+SUM(A1:A2)"), "'+SUM(A1:A2)")
+        self.assertEqual(sanitizar_celda_hoja("Texto normal"), "Texto normal")
+
+        # 6. Guías y URLs seguras
+        self.assertEqual(validar_numero_guia("SG-998877"), "SG-998877")
+        with self.assertRaises(ValidationError):
+            validar_numero_guia("GUIA 123!")
+        self.assertEqual(validar_url_segura("https://mi-tienda.co"), "https://mi-tienda.co")
+        with self.assertRaises(ValidationError):
+            validar_url_segura("javascript:alert(1)")
+
+        # 7. Anti-basura en comentarios y PQRS
+        self.assertEqual(validar_texto_util("Excelente servicio"), "Excelente servicio")
+        with self.assertRaises(ValidationError):
+            validar_texto_util("..........")
+        with self.assertRaises(ValidationError):
+            validar_texto_util("aaaaaaaaaa")
+        self.assertFalse(ComentarioForm({"calificacion": 5, "texto": "....."}).is_valid())
+        self.assertFalse(
+            RadicarPQRSCompradorForm(
+                {"tipo": "queja", "empresa": str(self.negocio.pk), "asunto": "???", "descripcion": "aaaaaaaaaa"},
+                usuario=self.comprador,
+            ).is_valid()
+        )
+
+        # 8. Correos falsos y typos en registro
+        self.assertEqual(validar_correo_registro("usuario@gmail.com"), "usuario@gmail.com")
+        with self.assertRaises(ValidationError) as ctx:
+            validar_correo_registro("ana@gmial.com")
+        self.assertIn("gmail.com", str(ctx.exception))
+        with self.assertRaises(ValidationError):
+            validar_correo_registro("ana@test.local")
+        form_typo = RegistroCompradorForm(
+            {
+                "first_name": "Ana",
+                "last_name": "Pérez",
+                "email": "ana@hotmial.com",
+                "password1": "ClaveSegura2026!",
+                "password2": "ClaveSegura2026!",
+                "acepta_datos": True,
+                "mayor_edad": True,
+            }
+        )
+        self.assertFalse(form_typo.is_valid())
+        self.assertIn("email", form_typo.errors)

@@ -5,6 +5,14 @@ from django.core.files.uploadedfile import UploadedFile
 from .models import (
     FOTOS_EXTRA_MAXIMO, Bodega, Categoria, Cliente, Empresa, FotoProducto, MovimientoInventario, Producto, Usuario,
 )
+from .validadores import (
+    validar_codigo_comercial,
+    validar_direccion,
+    validar_documento_por_tipo,
+    validar_nombre_negocio,
+    validar_nombre_persona,
+    validar_url_segura,
+)
 
 IMAGEN_TAMANO_MAXIMO = 5 * 1024 * 1024  # 5 MB
 
@@ -48,6 +56,14 @@ class ClienteForm(forms.ModelForm):
         )
         self.fields["telefono"].widget.attrs.update({"inputmode": "tel", "placeholder": "Ej.: 300 123 4567"})
 
+    def clean_nombre(self):
+        """Valida que el nombre del cliente use caracteres reales de persona o empresa."""
+        return validar_nombre_negocio(self.cleaned_data["nombre"])
+
+    def clean_direccion(self):
+        """Valida la dirección del cliente si se ingresa."""
+        return validar_direccion(self.cleaned_data.get("direccion"))
+
     def clean_numero_documento(self):
         # clean_<campo> valida UN campo. Normalizamos: "1.020.304 050" -> "1020304050"
         numero = self.cleaned_data["numero_documento"]
@@ -58,6 +74,14 @@ class ClienteForm(forms.ModelForm):
         datos = super().clean()
         tipo = datos.get("tipo_documento")
         numero = datos.get("numero_documento")
+
+        if tipo and numero:
+            try:
+                numero = validar_documento_por_tipo(tipo, numero)
+                datos["numero_documento"] = numero
+            except forms.ValidationError as exc:
+                self.add_error("numero_documento", exc)
+                return datos
 
         if tipo and numero and self.empresa:
             existe = (
@@ -163,7 +187,7 @@ class CategoriaForm(forms.ModelForm):
         self.empresa = empresa
 
     def clean_nombre(self):
-        nombre = self.cleaned_data["nombre"].strip()
+        nombre = validar_nombre_negocio(self.cleaned_data["nombre"])
         if not nombre:
             raise forms.ValidationError("El nombre de la categoría no puede estar vacío.")
         if self.empresa is not None:
@@ -317,8 +341,8 @@ class ProductoForm(forms.ModelForm):
         return imagen
 
     def clean_codigo(self):
-        # Normalizamos: " p-001 " -> "P-001", y validamos que no se repita en la empresa
-        codigo = self.cleaned_data["codigo"].strip().upper()
+        # Normalizamos: " p-001 " -> "P-001", validamos formato SKU y unicidad en la empresa
+        codigo = validar_codigo_comercial(self.cleaned_data["codigo"], ejemplo="P-001")
         existe = (
             Producto.objects
             .filter(empresa=self.empresa, codigo=codigo)
@@ -385,6 +409,14 @@ class DatosNegocioForm(forms.ModelForm):
         hacer_obligatorios_datos_legales(self)
         for campo in ("tarifa_envio_base", "tarifa_envio_por_kg", "envio_gratis_desde"):
             self.fields[campo].required = False
+
+    def clean_direccion(self):
+        """Valida la dirección pública de notificaciones del negocio."""
+        return validar_direccion(self.cleaned_data.get("direccion"))
+
+    def clean_sitio_web(self):
+        """Exige esquema seguro http:// o https:// en el sitio web del negocio."""
+        return validar_url_segura(self.cleaned_data.get("sitio_web"))
 
     def clean_logo(self):
         from .archivos_seguros import sanitizar_imagen, validar_firma_archivo
@@ -501,8 +533,6 @@ class PerfilUsuarioForm(forms.ModelForm):
 
     def clean_first_name(self):
         """Valida que el nombre del usuario no esté vacío y solo use caracteres reales."""
-        from .validadores import validar_nombre_persona
-
         valor = validar_nombre_persona(self.cleaned_data.get("first_name"))
         if not valor:
             raise forms.ValidationError("Ingresa tu nombre.")
@@ -510,9 +540,11 @@ class PerfilUsuarioForm(forms.ModelForm):
 
     def clean_last_name(self):
         """Valida que el apellido (si se ingresa) solo use caracteres reales."""
-        from .validadores import validar_nombre_persona
-
         return validar_nombre_persona(self.cleaned_data.get("last_name"))
+
+    def clean_cargo(self):
+        """Valida que el cargo o especialidad no contenga código ni símbolos inválidos."""
+        return validar_nombre_negocio(self.cleaned_data.get("cargo"))
 
     def clean_foto(self):
         from .archivos_seguros import sanitizar_imagen, validar_firma_archivo
@@ -545,6 +577,14 @@ class BodegaForm(forms.Form):
         label="Vende en línea", required=False,
         help_text="El marketplace reserva el stock de esta bodega.",
     )
+
+    def clean_nombre(self):
+        """Valida el nombre de la bodega."""
+        return validar_nombre_negocio(self.cleaned_data["nombre"])
+
+    def clean_direccion(self):
+        """Valida la dirección de la bodega si se proporciona."""
+        return validar_direccion(self.cleaned_data.get("direccion"))
 
 
 class TrasladoForm(forms.Form):
