@@ -116,7 +116,7 @@ class ProductoPublicoView(DetailView):
             contexto["es_favorito"] = False
 
         relacionados = []
-        base_rel = productos_publicos().exclude(pk=self.object.pk)
+        base_rel = con_valoraciones(productos_publicos().exclude(pk=self.object.pk))
         if self.object.categoria_id:
             relacionados = list(base_rel.filter(categoria=self.object.categoria)[:4])
         if len(relacionados) < 4:
@@ -139,16 +139,28 @@ class AvisoStockCreateView(View):
         from django.core.validators import validate_email
 
         from .models import AvisoStock
+        from .rate_limit import respuesta_limite_excedido, verificar_limite
+        from .validadores import validar_correo_registro
+
+        if not verificar_limite(request, ambito="aviso_stock", maximo=10, ventana_segundos=900):
+            return respuesta_limite_excedido(
+                "Has registrado varios avisos en pocos minutos. Inténtalo de nuevo más tarde."
+            )
 
         producto = get_object_or_404(productos_publicos(), pk=pk)
+        if producto.disponible > 0:
+            messages.info(request, f"«{producto.nombre}» ya tiene unidades disponibles; puedes añadirlo al carrito.")
+            return redirect("tienda_producto", pk=producto.pk)
+
         correo = (
             request.POST.get("email")
             or (request.user.email if request.user.is_authenticated else "")
         ).strip().lower()
         try:
             validate_email(correo)
-        except ValidationError:
-            messages.error(request, "Escribe un correo electrónico válido para recibir el aviso de stock.")
+            correo = validar_correo_registro(correo)
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0] if exc.messages else "Escribe un correo electrónico válido.")
             return redirect("tienda_producto", pk=producto.pk)
 
         AvisoStock.objects.get_or_create(

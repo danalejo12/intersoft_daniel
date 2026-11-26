@@ -636,3 +636,25 @@ class QAAdversarioTests(TestCase):
         # 6. Plantillas personalizadas de error 404, 403 y 500
         for tpl, texto in (("404.html", "Error 404"), ("403.html", "Error 403"), ("500.html", "Error 500")):
             self.assertIn(texto, render_to_string(tpl))
+
+        # 7. AvisoStock rechaza producto que YA tiene stock y rechaza dominios falsos/typos
+        self.client.post(
+            reverse("producto_avisar_stock", args=[self.producto.pk]),
+            {"email": "con_stock@gmail.com"},
+        )
+        self.assertFalse(AvisoStock.objects.filter(producto=self.producto, email="con_stock@gmail.com").exists())
+        agotado2 = Producto.objects.create(
+            empresa=self.negocio,
+            codigo="AGOT-02",
+            nombre="Producto Agotado Dos",
+            precio=Decimal("10000.00"),
+            iva_porcentaje=Decimal("0"),
+            stock=0,
+            publicado=True,
+            activo=True,
+        )
+        self.client.post(
+            reverse("producto_avisar_stock", args=[agotado2.pk]),
+            {"email": "mal@gmial.com"},
+        )
+        self.assertFalse(AvisoStock.objects.filter(producto=agotado2, email="mal@gmial.com").exists())

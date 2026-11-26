@@ -93,26 +93,13 @@
   </article>
 
   {% if relacionados %}
-    <section class="relacionados" aria-labelledby="titulo-relacionados" style="margin:32px 0;">
-      <h2 id="titulo-relacionados" style="margin:0 0 16px;">También te puede interesar</h2>
+    <section class="seccion relacionados" aria-labelledby="titulo-relacionados">
+      <div class="seccion-cabeza">
+        <h2 id="titulo-relacionados">También te puede interesar</h2>
+      </div>
       <div class="rejilla">
         {% for rel in relacionados %}
-          <article class="tarjeta">
-            <a class="tarjeta-enlace" href="{% url 'tienda_producto' rel.pk %}">
-              <div class="tarjeta-foto">
-                {% if rel.imagen %}
-                  <img src="{{ rel.imagen.url }}" alt="{{ rel.nombre }}" loading="lazy">
-                {% else %}
-                  <span class="inicial con-tono" data-letra="{{ rel.nombre|first|upper }}" aria-hidden="true">{{ rel.nombre|first|upper }}</span>
-                {% endif %}
-              </div>
-              <div class="tarjeta-cuerpo">
-                <h3>{{ rel.nombre }}</h3>
-                <p class="tarjeta-negocio">{{ rel.empresa.nombre }}</p>
-                <p class="tarjeta-precio">$ {{ rel.precio_marketplace|floatformat:"0g" }}</p>
-              </div>
-            </a>
-          </article>
+          {% include "core/tienda/tarjeta_producto.html" with producto=rel %}
         {% endfor %}
       </div>
     </section>

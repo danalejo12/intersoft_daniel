@@ -61,6 +61,11 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
 
     if not filas:
         return {"creados": 0, "errores": [{"fila": 1, "error": "El archivo Excel está vacío."}]}
+    if len(filas) > 1001:
+        return {
+            "creados": 0,
+            "errores": [{"fila": 1, "error": "El archivo supera el máximo permitido de 1.000 productos por carga."}],
+        }
 
     encabezados = [_limpiar_texto(h).lower() for h in filas[0]]
     indice = {nombre: idx for idx, nombre in enumerate(encabezados) if nombre}
@@ -85,20 +90,38 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
             return None
         return fila[pos]
 
+    from django.core.exceptions import ValidationError
+
+    from .validadores import validar_codigo_comercial, validar_nombre_negocio
+
     for num_fila, fila in enumerate(filas[1:], start=2):
         if all(c is None or _limpiar_texto(c) == "" for c in fila):
             continue
-        codigo = _limpiar_texto(_celda(fila, "codigo"))
+        codigo_crudo = _limpiar_texto(_celda(fila, "codigo"))
         nombre = _limpiar_texto(_celda(fila, "nombre"))
         categoria_nombre = _limpiar_texto(_celda(fila, "categoria")) or "General"
 
         errores_fila = []
-        if not codigo:
+        codigo = ""
+        if not codigo_crudo:
             errores_fila.append("El código es obligatorio.")
-        elif codigo in existentes:
-            errores_fila.append(f"El código '{codigo}' ya existe en el catálogo.")
-        elif codigo in vistos_archivo:
-            errores_fila.append(f"El código '{codigo}' está duplicado en el archivo.")
+        elif len(codigo_crudo) > 30:
+            errores_fila.append("El código no puede superar 30 caracteres.")
+        else:
+            try:
+                codigo = validar_codigo_comercial(codigo_crudo, ejemplo="P-001")
+            except ValidationError as exc:
+                errores_fila.append(exc.messages[0])
+            else:
+                if codigo in existentes:
+                    errores_fila.append(f"El código '{codigo}' ya existe en el catálogo.")
+                elif codigo in vistos_archivo:
+                    errores_fila.append(f"El código '{codigo}' está duplicado en el archivo.")
+
+        try:
+            categoria_nombre = validar_nombre_negocio(categoria_nombre)
+        except ValidationError as exc:
+            errores_fila.append(f"Categoría inválida: {exc.messages[0]}")
 
         if not nombre:
             errores_fila.append("El nombre es obligatorio.")
@@ -142,7 +165,7 @@ def importar_productos_excel(*, empresa, archivo, usuario, bodega=None) -> dict:
         vistos_archivo.add(codigo)
         validados.append(
             {
-                "codigo": codigo[:40],
+                "codigo": codigo[:30],
                 "nombre": nombre[:150],
                 "categoria": categoria_nombre[:80],
                 "precio": precio,
