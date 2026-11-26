@@ -2,37 +2,48 @@
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.utils.html import escape
 
 logger = logging.getLogger(__name__)
 
 
-def _enviar(*, asunto, mensaje, destinatarios, html=None):
-    """Envía un correo a los destinatarios sin repetir ni vacíos; devuelve cuántos se enviaron."""
+def _limpiar_correos(correos):
+    """Devuelve una lista de correos sin vacíos ni duplicados."""
     limpios = []
-    for correo in destinatarios:
+    for correo in correos or ():
         valor = (correo or "").strip()
         if valor and valor not in limpios:
             limpios.append(valor)
+    return limpios
+
+
+def _enviar(*, asunto, mensaje, destinatarios, html=None, reply_to=None):
+    """Envía un correo (texto + HTML opcional y Reply-To) sin repetir destinatarios."""
+    limpios = _limpiar_correos(destinatarios)
     if not limpios:
         return 0
+    responder_a = _limpiar_correos(reply_to)
+    if not responder_a and settings.DEFAULT_FROM_EMAIL:
+        responder_a = [settings.DEFAULT_FROM_EMAIL]
     try:
-        return send_mail(
+        correo = EmailMultiAlternatives(
             subject=asunto,
-            message=mensaje,
+            body=mensaje,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=limpios,
-            fail_silently=False,
-            html_message=html,
+            to=limpios,
+            reply_to=responder_a or None,
         )
+        if html:
+            correo.attach_alternative(html, "text/html")
+        return correo.send(fail_silently=False)
     except Exception:
         logger.warning("No se pudo enviar correo transaccional: %s", asunto, exc_info=True)
         return 0
 
 
-def _correo_html(*, titulo, saludo, parrafos, detalles=None, boton_texto="", boton_url=""):
-    """Plantilla HTML limpia y segura (todo escapado) para correos transaccionales de pedidos."""
+def _correo_html(*, titulo, saludo, parrafos, detalles=None, boton_texto="", boton_url="", nota_pie=""):
+    """Plantilla HTML limpia y segura (todo escapado) para correos transaccionales de InterSoft."""
     bloques_p = "".join(
         f'<p style="margin:0 0 12px;color:#334155;font-size:15px;line-height:1.55;">{escape(p)}</p>'
         for p in parrafos
@@ -57,16 +68,19 @@ def _correo_html(*, titulo, saludo, parrafos, detalles=None, boton_texto="", bot
             'background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;'
             f'font-size:14px;border-radius:8px;">{escape(boton_texto)}</a></p>'
         )
+    pie = nota_pie or "Correo enviado por InterSoft · Puedes responder directamente a este mensaje si necesitas ayuda."
     return (
         '<!doctype html><html lang="es"><body style="margin:0;padding:24px;background:#f1f5f9;'
         'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
         '<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;'
         'border-radius:14px;padding:28px;">'
+        '<p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.06em;'
+        'text-transform:uppercase;color:#2563eb;">InterSoft</p>'
         f'<h1 style="margin:0 0 14px;font-size:20px;color:#0f172a;">{escape(titulo)}</h1>'
         f'<p style="margin:0 0 12px;color:#0f172a;font-size:15px;">{escape(saludo)}</p>'
         f"{bloques_p}{bloque_detalles}{bloque_boton}"
         '<p style="margin:22px 0 0;padding-top:14px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;">'
-        "Correo automático enviado por InterSoft."
+        f"{escape(pie)}"
         "</p></div></body></html>"
     )
 
@@ -95,7 +109,13 @@ def notificar_pedido_pagado(pedido):
             ("Entrega", f"{pedido.direccion}, {pedido.ciudad} ({pedido.departamento})"),
         ],
     )
-    return _enviar(asunto=asunto, mensaje=mensaje, destinatarios=[pedido.email], html=html)
+    return _enviar(
+        asunto=asunto,
+        mensaje=mensaje,
+        destinatarios=[pedido.email],
+        html=html,
+        reply_to=[pedido.empresa.email] if pedido.empresa.email else None,
+    )
 
 
 def notificar_envio_actualizado(pedido):
@@ -133,7 +153,13 @@ def notificar_envio_actualizado(pedido):
         boton_texto="Rastrear envío" if rastreo else "",
         boton_url=rastreo,
     )
-    return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email], html=html)
+    return _enviar(
+        asunto=asunto,
+        mensaje="\n".join(lineas),
+        destinatarios=[pedido.email],
+        html=html,
+        reply_to=[pedido.empresa.email] if pedido.empresa.email else None,
+    )
 
 
 def notificar_reembolso_registrado(pedido):
@@ -146,9 +172,29 @@ def notificar_reembolso_registrado(pedido):
         f"Comprobante de reembolso: {pedido.reembolso_referencia}",
         f"Monto del pedido: $ {pedido.total}",
     ]
+    detalles = [
+        ("Negocio", pedido.empresa.nombre),
+        ("Comprobante", str(pedido.reembolso_referencia)),
+        ("Monto reembolsado", f"$ {pedido.total}"),
+    ]
     if pedido.reembolso_nota:
         lineas.append(f"Nota: {pedido.reembolso_nota}")
-    return _enviar(asunto=asunto, mensaje="\n".join(lineas), destinatarios=[pedido.email])
+        detalles.append(("Nota", pedido.reembolso_nota))
+    html = _correo_html(
+        titulo=f"Reembolso procesado · Pedido #{pedido.numero}",
+        saludo=f"Hola {pedido.nombre},",
+        parrafos=[
+            f"Hemos procesado el reembolso correspondiente a tu pedido #{pedido.numero} en {pedido.empresa.nombre}.",
+        ],
+        detalles=detalles,
+    )
+    return _enviar(
+        asunto=asunto,
+        mensaje="\n".join(lineas),
+        destinatarios=[pedido.email],
+        html=html,
+        reply_to=[pedido.empresa.email] if pedido.empresa.email else None,
+    )
 
 
 def notificar_alerta_stock_minimo(*, empresa, productos_criticos, existencias_criticas=None):
@@ -278,13 +324,36 @@ def notificar_negocio_pedido_pagado(pedido):
     ]
     if pedido.indicaciones:
         lineas.append(f"Indicaciones: {pedido.indicaciones}")
+    items = list(pedido.lineas.select_related("producto"))
     lineas += ["", "Productos:"]
-    lineas += [f"  · {linea.cantidad} × {linea.producto.nombre}" for linea in pedido.lineas.select_related("producto")]
+    lineas += [f"  · {linea.cantidad} × {linea.producto.nombre}" for linea in items]
     lineas += ["", "Prepáralo y actualiza el envío desde tu panel, en Pedidos web."]
+    detalles = [
+        ("Pedido", f"#{pedido.numero}"),
+        ("Total cobrado", f"$ {pedido.total}"),
+        ("Neto para tu negocio", f"$ {pedido.neto_vendedor}"),
+        ("Cliente", f"{pedido.nombre} · {pedido.telefono}"),
+        ("Entrega", f"{pedido.direccion}, {pedido.ciudad} ({pedido.departamento})"),
+    ]
+    if pedido.indicaciones:
+        detalles.append(("Indicaciones", pedido.indicaciones))
+    parrafos = [
+        "Tienes un nuevo pedido pagado listo para preparar desde tu panel en Pedidos web.",
+        "Productos: " + ", ".join(f"{linea.cantidad} × {linea.producto.nombre}" for linea in items),
+    ]
+    html = _correo_html(
+        titulo=f"Nuevo pedido pagado #{pedido.numero}",
+        saludo=f"Hola equipo de {pedido.empresa.nombre},",
+        parrafos=parrafos,
+        detalles=detalles,
+        nota_pie="Puedes responder directamente a este correo para escribirle al comprador.",
+    )
     enviados = _enviar(
         asunto=f"Nuevo pedido pagado #{pedido.numero} · $ {pedido.total}",
         mensaje="\n".join(lineas),
         destinatarios=correos_del_negocio(pedido.empresa),
+        html=html,
+        reply_to=[pedido.email] if pedido.email else None,
     )
     whatsapp = _enviar_whatsapp(pedido)
     return enviados, whatsapp

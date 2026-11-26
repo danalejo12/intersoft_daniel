@@ -375,6 +375,7 @@ class RecuperarContrasenaView(auth_views.PasswordResetView):
 
     template_name = "core/auth/password_reset_form.html"
     email_template_name = "core/auth/password_reset_email.txt"
+    html_email_template_name = "core/auth/password_reset_email.html"
     subject_template_name = "core/auth/password_reset_subject.txt"
 
     def post(self, request, *args, **kwargs):

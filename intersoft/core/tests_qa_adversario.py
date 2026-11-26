@@ -484,3 +484,63 @@ class QAAdversarioTests(TestCase):
         )
         self.assertFalse(form_typo.is_valid())
         self.assertIn("email", form_typo.errors)
+
+    def test_correos_html_y_reply_to_en_recuperacion_pedidos_y_pqrs(self):
+        """Recuperación de clave, pedidos/envíos y PQRS envían HTML + texto y Reply-To correcto."""
+        from django.core import mail
+
+        from pqrs.models import PQRS
+        from pqrs.services import agregar_mensaje_pqrs, radicar_pqrs
+
+        # 1. Recuperación de contraseña con HTML + botón
+        mail.outbox.clear()
+        resp = self.client.post(reverse("password_reset"), {"email": self.comprador.email})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(mail.outbox[0].alternatives)
+        html_reset, mime_reset = mail.outbox[0].alternatives[0]
+        self.assertEqual(mime_reset, "text/html")
+        self.assertIn("Crear nueva contraseña", html_reset)
+
+        # 2. Pedido pagado + envío con HTML y Reply-To al negocio
+        self.negocio.email = "ventas@negocio.co"
+        self.negocio.save(update_fields=["email"])
+        mail.outbox.clear()
+        pedido = compras.crear_pedido(
+            usuario=self.comprador,
+            negocio=self.negocio,
+            lineas=[{"producto": self.producto, "cantidad": 1}],
+            datos=DATOS_ENVIO,
+        )
+        from . import notificaciones
+
+        reservas.marcar_pagado(pedido)
+        notificaciones.notificar_negocio_pedido_pagado(pedido)
+        correo_comprador = next(m for m in mail.outbox if DATOS_ENVIO["email"] in m.to)
+        self.assertEqual(correo_comprador.reply_to, ["ventas@negocio.co"])
+        self.assertEqual(correo_comprador.alternatives[0][1], "text/html")
+        correo_negocio = next(m for m in mail.outbox if "ventas@negocio.co" in m.to)
+        self.assertEqual(correo_negocio.reply_to, [DATOS_ENVIO["email"]])
+        self.assertEqual(correo_negocio.alternatives[0][1], "text/html")
+
+        # 3. PQRS radicada y respuesta pública con HTML y Reply-To
+        mail.outbox.clear()
+        pqrs = radicar_pqrs(
+            autor=self.comprador,
+            tipo=PQRS.Tipo.QUEJA,
+            flujo=PQRS.Flujo.COMPRADOR_NEGOCIO,
+            asunto="Consulta sobre entrega",
+            descripcion="Necesito confirmar la fecha exacta de entrega.",
+            empresa=self.negocio,
+        )
+        self.assertGreaterEqual(len(mail.outbox), 2)
+        for m in mail.outbox:
+            self.assertEqual(m.alternatives[0][1], "text/html")
+            self.assertTrue(m.reply_to)
+
+        mail.outbox.clear()
+        agregar_mensaje_pqrs(pqrs, autor=self.dueno, texto="Tu pedido sale hoy mismo.", interno=False)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.comprador.email])
+        self.assertEqual(mail.outbox[0].reply_to, ["ventas@negocio.co"])
+        self.assertEqual(mail.outbox[0].alternatives[0][1], "text/html")
